@@ -28,10 +28,9 @@ public class UtilsTest extends TestCase {
 		String englishStr = "A String.";
 		assertEquals("4120537472696E672E", Utils.toHex(englishStr.getBytes("UTF-8")));
 
-		String frenchStr = "Une chaîne de caractères.";
+		// Non ASCII characters has been represent as Unicode caracters to be
+		// sure it will be interpreted correctly in different platforms.
+		String frenchStr = "Une cha\u00EEne de caract\u00E8res."; // 00EE => i circ (C3AE in hexa), 00E8 => e grave (C3A8 in hexa)
 		assertEquals("556E6520636861C3AE6E6520646520636172616374C3A87265732E", Utils.toHex(frenchStr.getBytes("UTF-8")));
-
-		String hangulStr = "한글";
-		assertEquals("ED959CEAB880", Utils.toHex(hangulStr.getBytes("UTF-8")));
 	}
 }
