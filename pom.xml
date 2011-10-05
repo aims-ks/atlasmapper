@@ -1,0 +1,228 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>au.gov.aims</groupId>
+	<artifactId>atlasmapper</artifactId>
+	<packaging>war</packaging>
+	<version>0.1</version>
+	<name>AtlasMapper server and clients</name>
+    <description>This application compiled as a single War, that can be deployed in Tomcat, without any other dependency.
+It contains:
+* a GUI to configure the clients (protected by a login, preferably setted up under HTTPS),
+* multi-client capability,
+* a proxy that redirect AJAX request to be sent to an other domain (limited to the URLs used by the application to avoid XSS)</description>
+	<url>http://www.atlasmapper.org.au</url>
+
+	<repositories>
+		<repository>
+			<id>central</id>
+			<name>Maven Repository Switchboard</name>
+			<url>http://repo1.maven.org/maven2</url>
+		</repository>
+
+		<repository>
+			<id>osgeo</id>
+			<name>Open Source Geospatial Foundation Repository</name>
+			<url>http://download.osgeo.org/webdav/geotools/</url>
+		</repository>
+
+<!--
+		<repository>
+			<id>java.net2</id>
+			<name>Repository hosting the jee6 artifacts</name>
+			<url>http://download.java.net/maven/2</url>
+		</repository>
+
+		<repository>
+			<id>opengeo</id>
+			<name>opengeo</name>
+			<url>http://repo.opengeo.org</url>
+		</repository>
+-->
+	</repositories>
+
+	<dependencies>
+		<!-- Jar containing classes provided by tomcat - Not included in the war -->
+		<dependency>
+			<groupId>javax</groupId>
+			<artifactId>javaee-web-api</artifactId>
+			<version>6.0</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<!-- Library used to parse GetCapabilities documents (mandatory) - gt-wms (205.7k), dependencies (4.5M) -->
+		<dependency>
+			<groupId>org.geotools</groupId>
+			<artifactId>gt-wms</artifactId>
+			<version>2.7.2</version>
+		</dependency>
+
+		<!-- Database containing the information about the EPSG CRS projections - dependencies (1.3M) -->
+		<!-- Available database format:
+			* hsql (gt-epsg-hsql - 1.8M) (SQL database in memory)
+			* wkt (gt-epsg-wkt - 87.3k) (Well Known Text)
+			* PostgreSQL (gt-epsg-postgresql)
+			* Oracle (gt-epsg-oracle)
+			* Access (gt-epsg-access)
+		IMPORTANT: Use only one as they conflict with each other. -->
+		<dependency>
+			<groupId>org.geotools</groupId>
+			<artifactId>gt-epsg-hsql</artifactId>
+			<version>8.0-M1</version>
+		</dependency>
+		<!-- More EPSG CRS projections (Google, ESRI, etc.) - gt2-epsg-extension (29.5k) -->
+		<dependency>
+			<groupId>org.geotools</groupId>
+			<artifactId>gt-epsg-extension</artifactId>
+			<version>8.0-M1</version>
+		</dependency>
+
+		<!-- Templating to generate HTML files - freemarker (902.6k) (This is the templating used by GeoServer) -->
+		<dependency>
+			<groupId>org.freemarker</groupId>
+			<artifactId>freemarker</artifactId>
+			<version>2.3.18</version>
+		</dependency>
+
+		<!-- Used for JUnit tests - Not included in the war -->
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>3.8.2</version>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<!-- Make the clientResources folder accessible for both the application and the JUnit tests
+			without the examples and source files of the JS libraries (they make the war way too big) -->
+		<!-- http://maven.apache.org/pom.html -->
+		<resources>
+			<resource>
+				<directory>${project.basedir}/clientResources</directory>
+				<excludes>
+					<exclude>amc/GeoExt/examples/**</exclude>
+					<exclude>amc/GeoExt/lib/**</exclude>
+					<exclude>amc/GeoExt/resources/**</exclude>
+					<exclude>amc/GeoExt/GeoExt-release-1.0-rc1.zip</exclude>
+					<exclude>amc/GeoExt/license.txt</exclude>
+
+					<exclude>amc/OpenLayers/OpenLayers-2.10/**</exclude>
+					<exclude>amc/OpenLayers/OpenLayers-2.11/apidoc_config/**</exclude>
+					<exclude>amc/OpenLayers/OpenLayers-2.11/art/**</exclude>
+					<exclude>amc/OpenLayers/OpenLayers-2.11/build/**</exclude>
+					<exclude>amc/OpenLayers/OpenLayers-2.11/doc/**</exclude>
+					<exclude>amc/OpenLayers/OpenLayers-2.11/doc_config/**</exclude>
+					<exclude>amc/OpenLayers/OpenLayers-2.11/examples/**</exclude>
+					<exclude>amc/OpenLayers/OpenLayers-2.11/lib/**</exclude>
+					<exclude>amc/OpenLayers/OpenLayers-2.11/tests/**</exclude>
+					<exclude>amc/OpenLayers/OpenLayers-2.11/tools/**</exclude>
+
+					<exclude>amc/extjs/3.3.0/ext-3.3.0/docs/**</exclude>
+					<exclude>amc/extjs/3.3.0/ext-3.3.0/examples/**</exclude>
+					<exclude>amc/extjs/3.3.0/ext-3.3.0/pkgs/**</exclude>
+					<exclude>amc/extjs/3.3.0/ext-3.3.0/src/**</exclude>
+					<exclude>amc/extjs/3.3.0/ext-3.3.0/test/**</exclude>
+					<exclude>amc/extjs/3.3.0/ext-3.3.0/welcome/**</exclude>
+					<exclude>amc/extjs/3.3.0/ext-3.3.0/INCLUDE_ORDER.txt</exclude>
+					<exclude>amc/extjs/3.3.0/ext-3.3.0/ext-all-debug-w-comments.js</exclude>
+					<exclude>amc/extjs/3.3.0/ext-3.3.0/ext.jsb2</exclude>
+					<exclude>amc/extjs/3.3.0/ext-3.3.0/gpl-3.0.txt</exclude>
+					<exclude>amc/extjs/3.3.0/ext-3.3.0/index.html</exclude>
+					<exclude>amc/extjs/3.3.0/ext-3.3.0/license.txt</exclude>
+				</excludes>
+			</resource>
+		</resources>
+		<testResources>
+			<testResource>
+				<directory>${project.basedir}/clientResources</directory>
+			</testResource>
+		</testResources>
+
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<!-- <version>2.0.2</version> -->
+				<configuration>
+					<source>1.6</source>
+					<target>1.6</target>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-war-plugin</artifactId>
+				<!-- <version>2.1-beta-1</version> -->
+				<configuration>
+					<!-- warResources do not work as a resource, the method getResource can't find them -->
+					<!-- http://maven.apache.org/plugins/maven-war-plugin/examples/adding-filtering-webresources.html -->
+
+					<!-- packagingExcludes can be used to exclude any files from the war -->
+					<!-- http://maven.apache.org/plugins/maven-war-plugin/examples/skinny-wars.html -->
+					<packagingExcludes>
+						extjs/4.0.2/ext-4.0.2/build/**,
+						extjs/4.0.2/ext-4.0.2/builds/**,
+						extjs/4.0.2/ext-4.0.2/docs/**,
+						extjs/4.0.2/ext-4.0.2/examples/**,
+						extjs/4.0.2/ext-4.0.2/jsbuilder/**,
+						extjs/4.0.2/ext-4.0.2/overview/**,
+						extjs/4.0.2/ext-4.0.2/pkgs/**,
+						extjs/4.0.2/ext-4.0.2/src/**,
+						extjs/4.0.2/ext-4.0.2/welcome/**,
+						extjs/4.0.2/ext-4.0.2/welcome/ext-all-debug-w-comments.js,
+						extjs/4.0.2/ext-4.0.2/welcome/ext-all-dev.js,
+						extjs/4.0.2/ext-4.0.2/welcome/ext-debug.js,
+						extjs/4.0.2/ext-4.0.2/welcome/ext-dev.js,
+						extjs/4.0.2/ext-4.0.2/welcome/index.html,
+						extjs/4.0.2/ext-4.0.2/welcome/license.txt,
+						extjs/4.0.2/ext-4.0.2/welcome/release-notes.html,
+					</packagingExcludes>
+					<failOnMissingWebXml>false</failOnMissingWebXml>
+				</configuration>
+			</plugin>
+		</plugins>
+		<finalName>atlasmapper</finalName>
+	</build>
+
+	<profiles>
+		<profile>
+			<id>endorsed</id>
+			<activation>
+				<property>
+					<name>sun.boot.class.path</name>
+				</property>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-compiler-plugin</artifactId>
+						<!-- <version>2.0.2</version> -->
+						<configuration>
+							<!-- javaee6 contains upgrades of APIs contained within the JDK itself.
+							As such these need to be placed on the bootclasspath, rather than classpath of the
+							compiler.
+							If you don't make use of these new updated API, you can delete the profile.
+							On non-SUN jdk, you will need to create a similar profile for your jdk, with the similar property as sun.boot.class.path in Sun's JDK.-->
+							<compilerArguments>
+								<bootclasspath>${settings.localRepository}/javax/javaee-endorsed-api/6.0/javaee-endorsed-api-6.0.jar${path.separator}${sun.boot.class.path}</bootclasspath>
+							</compilerArguments>
+						</configuration>
+						<dependencies>
+							<dependency>
+								<groupId>javax</groupId>
+								<artifactId>javaee-endorsed-api</artifactId>
+								<version>6.0</version>
+							</dependency>
+						</dependencies>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+    <properties>
+        <netbeans.hint.deploy.server>Tomcat60</netbeans.hint.deploy.server>
+    </properties>
+</project>
+

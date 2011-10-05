@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app version="2.4" xmlns="http://java.sun.com/xml/ns/j2ee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://java.sun.com/xml/ns/j2ee http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd">
+	<display-name>AtlasMapper server and clients</display-name>
+
+	<filter>
+		<filter-name>SecureFilter</filter-name>
+		<filter-class>au.gov.aims.atlasmapperserver.servlet.login.SecureFilter</filter-class>
+	</filter>
+
+	<filter-mapping>
+		<filter-name>SecureFilter</filter-name>
+		<url-pattern>/admin/*</url-pattern>
+	</filter-mapping>
+
+	<servlet>
+		<servlet-name>login</servlet-name>
+		<servlet-class>au.gov.aims.atlasmapperserver.servlet.login.LoginServlet</servlet-class>
+	</servlet>
+	<servlet>
+		<servlet-name>clientFileDispatcher</servlet-name>
+		<servlet-class>au.gov.aims.atlasmapperserver.servlet.ClientServlet</servlet-class>
+	</servlet>
+	<servlet>
+		<servlet-name>proxy</servlet-name>
+		<servlet-class>au.gov.aims.atlasmapperserver.servlet.Proxy</servlet-class>
+	</servlet>
+
+	<servlet-mapping>
+		<servlet-name>login</servlet-name>
+		<url-pattern>/public/login.jsp</url-pattern>
+	</servlet-mapping>
+	<servlet-mapping>
+		<servlet-name>clientFileDispatcher</servlet-name>
+		<!-- Must match FileFinder.CLIENT_BASE_URL -->
+		<url-pattern>/client/*</url-pattern>
+	</servlet-mapping>
+	<servlet-mapping>
+		<servlet-name>proxy</servlet-name>
+		<url-pattern>/proxy</url-pattern>
+	</servlet-mapping>
+
+</web-app>

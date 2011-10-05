@@ -1,0 +1,229 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+		"http://www.w3.org/TR/html4/loose.dtd">
+
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<link rel="icon" type="image/png" href="../resources/favicon.png" />
+		<title>Manual Override documentation</title>
+
+		<style>
+			table {
+				border-collapse: collapse;
+				border: 1px solid #99BCE8;
+				width: 100%;
+			}
+			table th, table td {
+				vertical-align: top;
+				padding: 0.2em;
+			}
+			table th {
+				border: 1px solid #FFFFFF;
+				background-color: #99BCE8;
+			}
+			table td {
+				border: 1px solid #99BCE8;
+			}
+			table tr td.attr {
+				font-family: "monospace";
+				width: 300px;
+			}
+			table tr .type {
+				width: 100px;
+			}
+		</style>
+	</head>
+
+	<body>
+		<h1>Manual Override documentation</h1>
+		<p>
+			This field must respect the JSON syntax, a subset of JavaScript. If it contains errors, the form will refuse to submit. It always start with <b>{</b> and ends with <b>}</b>. To override an attribute of a layer, specified the layer ID following by a column <b>:</b> and the curly brackets <b>{</b> and <b>}</b>. Add the attributes inside the brackets.
+		</p>
+		<p>
+			For example, the following will override the attribute <i>wmsRequestMimeType</i> for the layer <i>bluemarble</i> to request tiles as GIF:
+		</p>
+<pre>
+{
+	"bluemarble": {
+		"wmsRequestMimeType": "image/gif"
+	}
+}
+</pre>
+
+		<p>
+			The following table show the layers attributes that can be specified:
+		</p>
+
+		<table>
+			<tr>
+				<th class="attr">Attribute</th>
+				<th class="type">Type</th>
+				<th class="desc">Description</th>
+			</tr>
+			<tr>
+				<td class="attr">title</td>
+				<td class="type">String</td>
+				<td class="desc">The displayed name of the layer, shown in multiple location in the client.</td>
+			</tr>
+			<tr>
+				<td class="attr">description</td>
+				<td class="type">HTML String</td>
+				<td class="desc">A HTML description of the layer, shown in the layer info panel of the client.</td>
+			</tr>
+			<tr>
+				<td class="attr">datasourceId</td>
+				<td class="type">String</td>
+				<td class="desc">The ID of the datasource, as specified in the datasource page. This field can be used to specified which URL to use to get the tiles, legend, feature requests, etc.</td>
+			</tr>
+			<tr>
+				<td class="attr">layerBoundingBox</td> <!-- TODO Is this field work? -->
+				<td class="type">Array of 4 decimal numbers</td>
+				<td class="desc">The coordinate of the top-left corner and the bottom left corder of the layer. Those coordinates are used to locate the layer when the <i>Locate</i> button is pressed.</td>
+			</tr>
+			<tr>
+				<td class="attr">wmsQueryable</td>
+				<td class="type">Boolean</td>
+				<td class="desc"><i>true</i> to allow a layer to receive WMS Feature requests, <i>false</i> otherwise.</td>
+			</tr>
+			<tr>
+				<td class="attr">wmsVersion</td> <!-- TODO Is this field work? -->
+				<td class="type">String</td>
+				<td class="desc">The WMS version send in the request; "1.1.1", "1.3.0"</td>
+			</tr>
+			<tr>
+				<td class="attr">isBaseLayer</td>
+				<td class="type">Boolean</td>
+				<td class="desc"><i>true</i> to make this layer a base layer, <i>false</i> otherwise. Note that it is better to use the <i>Base layers</i> field in the <i>Datasources</i> configuration page.</td>
+			</tr>
+			<tr>
+				<td class="attr">hasLegend</td>
+				<td class="type">Boolean</td>
+				<td class="desc"><i>false</i> to disable the legend of this layer.</td>
+			</tr>
+			<tr>
+				<td class="attr">legendUrl</td>
+				<td class="type">URL</td>
+				<td class="desc">URL to an image, to be use as a legend, to substitute the one provide by the server.</td>
+			</tr>
+			<tr>
+				<td class="attr">legendGroup</td> <!-- TODO Is this field work? -->
+				<td class="type">String</td>
+				<td class="desc">Name of the group that will be use to group legend together, in the legend window.</td>
+			</tr>
+			<tr>
+				<td class="attr">legendTitle</td>
+				<td class="type">String</td>
+				<td class="desc">Name of the layer, to be display in the legend window.</td>
+			</tr>
+			<tr>
+				<td class="attr">infoHtmlUrls</td> <!-- TODO Is this field work? -->
+				<td class="type">Array of URL</td>
+				<td class="desc">URLs of documents that will be displayed in the Layer info panel.</td>
+			</tr>
+			<tr>
+				<td class="attr">aliasIds</td> <!-- TODO Is this field still useful? -->
+				<td class="type">Array of String</td>
+				<td class="desc">List of IDs that can be used to refer to this layer.</td>
+			</tr>
+			<tr>
+				<td class="attr">serverUrls</td>
+				<td class="type">Array of URL</td>
+				<td class="desc">URL used to request the tiles. The application currently only support one URL. The first one only is used.</td>
+			</tr>
+			<tr>
+				<td class="attr">wmsRequestMimeType</td>
+				<td class="type">Mime type</td>
+				<td class="desc">Mime type used to request the tiles. Usualy <i>image/jpeg</i>, <i>image/png</i> or <i>image/gif</i></td>
+			</tr>
+			<tr>
+				<td class="attr">wmsFeatureRequestLayers</td>
+				<td class="type">Array of Layer ID</td>
+				<td class="desc">List of layers to be request when a feature request is sent to this layer.</td>
+			</tr>
+			<!-- TODO Enable this when transectable will be implemented
+			<tr>
+				<td class="attr">wmsTransectable</td>
+				<td class="type">Boolean</td>
+				<td class="desc"><i>true</i> to allow the client to draw transect on this layer, <i>false</i> otherwise.</td>
+			</tr>
+			-->
+			<tr>
+				<td class="attr">default</td>
+				<td class="type">Boolean</td>
+				<td class="desc"><i>true</i> to load this layer when the client load, <i>false</i> otherwise.</td>
+			</tr>
+			<tr>
+				<td class="attr">wmsStyles</td>
+				<td class="type">JSON Object</td>
+				<td class="desc">Define the style of this layer. For more info, check the definition of the styles of a layer in the <i>layers.js</i> file</td>
+			</tr>
+			<!-- TODO Test first
+			<tr>
+				<td class="attr">layerOptions</td>
+				<td class="type">JSON Object</td>
+				<td class="desc">TODO</td>
+			</tr>
+			-->
+			<!-- wmsStyles & layerOptions: [name, type, mandatory, defaultValue] -->
+		</table>
+
+		<p>
+			The following table show the datasources attributes that can be specified in the layer definition, to override any datasource for a layer:
+		</p>
+
+		<table>
+			<tr>
+				<th class="attr">Attribute</th>
+				<th class="type">Type</th>
+				<th class="desc">Description</th>
+			</tr>
+			<tr>
+				<td class="attr">featureRequestsUrl</td>
+				<td class="type">URL</td>
+				<td class="desc">URL used to send the feature requests. Useful to redirect the feature requests of WebCache layers to a WMS server.</td>
+			</tr>
+			<tr>
+				<td class="attr">serverUrls</td>
+				<td class="type">Array of URL</td>
+				<td class="desc">URL used to request the tiles. The application currently only support one URL. The first one only is used.</td>
+			</tr>
+			<tr>
+				<td class="attr">webCacheUrl</td>
+				<td class="type">URL</td>
+				<td class="desc">URL of the server used to request the layer from a cache, when the URL only contains supported parameters.</td>
+			</tr>
+			<tr>
+				<td class="attr">webCacheSupportedParameters</td>
+				<td class="type">Array of String</td>
+				<td class="desc">List of the parameters supported by the WebCache server.</td>
+			</tr>
+			<tr>
+				<td class="attr">legendUrl</td>
+				<td class="type">URL</td>
+				<td class="desc">URL to an image, to be use as a legend, to substitute the one provide by the server.</td>
+			</tr>
+			<tr>
+				<td class="attr">datasourceName</td> <!-- TODO Is this field work? -->
+				<td class="type">String</td>
+				<td class="desc">Specified a different datasource name for this layer, to display it in a different tab in the <i>Add layers</i> window.</td>
+			</tr>
+			<!--
+			<tr>
+				<td class="attr">datasourceType</td>
+				<td class="type">String</td>
+				<td class="desc"></td>
+			</tr>
+			-->
+			<tr>
+				<td class="attr">legendParameters</td>
+				<td class="type">JSON Object</td>
+				<td class="desc">Object of <i>parameter: value</i> to be send with the request for the legend graphic.</td>
+			</tr>
+			<tr>
+				<td class="attr">wmsVersion</td> <!-- TODO Is this field work? -->
+				<td class="type">String</td>
+				<td class="desc">The WMS version send in the request; "1.1.1", "1.3.0"</td>
+			</tr>
+		</table>
+	</body>
+</html>

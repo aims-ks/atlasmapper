@@ -1,0 +1,2 @@
+EditArea is LGPL
+http://www.cdolivet.com/editarea/?page=editArea

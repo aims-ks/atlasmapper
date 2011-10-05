@@ -1,0 +1,88 @@
+.highlighted {
+	background-color: #FDFFD7;
+}
+.highlighted a span {
+	font-style: italic;
+	color: #555555 !important;
+}
+.infoTab {
+	padding: 0.2em;
+	font: 10pt tahoma,arial,helvetica,sans-serif;
+}
+.emptyInfo {
+	font-style: italic;
+}
+
+.legend {
+}
+.legend-group {
+	padding: 5px;
+	margin: 5px;
+}
+.legend-group-header {
+	font: bold 13px tahoma,arial,helvetica,sans-serif;
+	font-weight: bold;
+}
+.legend-item {
+	padding-left: 5px;
+}
+.legend-item-header {
+}
+
+
+/* For the Layer Switcher Delete icon */
+
+.x-tree-node-collapsed .x-tree-node-delete,
+.x-tree-node-expanded .x-tree-node-delete,
+.x-tree-node-leaf .x-tree-node-delete {
+	border: 0 none;
+	width: 16px;
+	height: 16px;
+	margin: 0;
+	padding: 1px 0; /* for alignment */
+	vertical-align: top;
+	background-position: 0; /* Show the first sprite, the light X */
+	background-repeat: no-repeat;
+	cursor: pointer;
+	background-image:url(../images/delete-sprites.gif);
+}
+
+.x-tree-node-collapsed img:hover.x-tree-node-delete,
+.x-tree-node-expanded img:hover.x-tree-node-delete,
+.x-tree-node-leaf img:hover.x-tree-node-delete {
+	background-position: -16px; /* Show the second sprite, the dark X */
+}
+
+.x-legend-delete {
+	float: right;
+	width: 16px;
+	height: 16px;
+	background-position: 16px 0; /* Move the image to the right, so there is nothing to display */
+	background-repeat: no-repeat;
+	background-image:url(../images/delete-sprites.gif);
+}
+
+:hover.legend-item .x-legend-delete {
+	background-position: 0; /* Show the first sprite, the light X */
+}
+
+.ext-ie .x-tree-node-delete {
+    vertical-align: middle !important;
+}
+
+.ext-strict .ext-ie8 .x-tree-node-delete {
+	vertical-align: top !important;
+}
+.x-tree-noicon .x-tree-node-delete{
+	width:0; height:0;
+}
+.x-tree-node .x-tree-node-disabled .x-tree-node-delete{
+	-moz-opacity: 0.5;
+	opacity:.5;
+	filter: alpha(opacity=50);
+}
+
+/* Open Layer */
+div.olControlMousePosition {
+	color: #FFFFFF;
+}

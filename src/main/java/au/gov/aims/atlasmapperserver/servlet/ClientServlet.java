@@ -1,0 +1,108 @@
+package au.gov.aims.atlasmapperserver.servlet;
+
+import au.gov.aims.atlasmapperserver.ServletUtils;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+/**
+ * Generate response to requests sent to www
+ * @author glafond
+ * References:
+ * http://docstore.mik.ua/orelly/java-ent/servlet/ch04_04.htm#ch04-35758
+ * http://stackoverflow.com/questions/417658/how-to-config-tomcat-to-serve-images-from-an-external-folder-outside-webapps
+ */
+public class ClientServlet extends HttpServlet {
+	private static final Logger LOGGER = Logger.getLogger(ClientServlet.class.getName());
+
+	// Don't define a constructor! Initialise the Servlet here.
+	@Override
+	public void init(ServletConfig sc) throws ServletException {
+		super.init(sc);
+	}
+
+	@Override
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		this.performTask(request, response);
+	}
+
+	@Override
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		this.performTask(request, response);
+	}
+
+	private void performTask(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		// http://localhost:12080/atlasmapperserver/www/images/test.jpg?param=value
+		// RequestURI:  [/atlasmapperserver/www/images/test.jpg]
+		// ContextPath: [/atlasmapperserver]
+		// ServletPath: [/www]
+		// PathInfo:    [/images/test.jpg]  <=  This is the one
+		// QueryString: [param=value]
+		// PathTranslated: [/home/reefatlas/e-atlas_site/maps/tomcat/webapps/atlasmapperserver/images/test.jpg]  <=  Useful, but not quite what we are looking for
+		// System.out.println("RequestURI: [" + request.getRequestURI() + "]  ServletPath: [" + request.getServletPath() + "]  PathInfo: [" + request.getPathInfo() + "]  ContextPath: [" + request.getContextPath() + "]");
+
+		ServletOutputStream out = null;
+		File file = null;
+
+		// Return the file
+		try {
+			out = response.getOutputStream();
+
+			// Get the file to view
+			// TODO Convert fileRelativePath to OS file separators, if needed (try it on a different OS, if the fileRelativePath contains "/", replace "/" with System.getProperty("file.separator");)
+			String fileRelativePath = request.getPathInfo();
+			file = FileFinder.getClientFile(this.getServletContext(), fileRelativePath);
+
+			// No file, nothing to view
+			if (file == null) {
+				response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+				out.println("No file to view");
+				return;
+			}
+
+			// Get and set the type of the file
+			String contentType = getServletContext().getMimeType(file.getCanonicalPath());
+			response.setContentType(contentType);
+			response.setStatus(HttpServletResponse.SC_OK);
+
+			ServletUtils.sendResponse(request, response, file);
+		} catch (FileNotFoundException e) {
+			response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+			if (file != null) {
+				LOGGER.log(Level.WARNING, "File not found [" + file.getAbsolutePath() + "]");
+			} else {
+				LOGGER.log(Level.WARNING, "File not found - file path unknown?");
+			}
+			if (out != null) {
+				out.println("File not found");
+			}
+		} catch (IOException e) {
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			if (file != null) {
+				LOGGER.log(Level.SEVERE, "Problem sending file [" + file.getAbsolutePath() + "]: ", e);
+			} else {
+				LOGGER.log(Level.SEVERE, "Problem sending file: ", e);
+			}
+			if (out != null) {
+				out.println("Problem sending file: " + e.getMessage());
+			}
+		} finally {
+			if (out != null) {
+				try { out.flush(); } catch(Exception e) {
+					LOGGER.log(Level.SEVERE, "Error occur while flushing the stream", e);
+				}
+				try { out.close(); } catch(Exception e) {
+					LOGGER.log(Level.SEVERE, "Error occur while closing the stream", e);
+				}
+			}
+		}
+	}
+}

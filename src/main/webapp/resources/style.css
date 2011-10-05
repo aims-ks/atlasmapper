@@ -1,0 +1,87 @@
+.icon-user {
+	background-image: url(icons/user.png) !important;
+}
+
+.icon-user-add {
+	background-image: url(icons/user_add.gif) !important;
+}
+
+.icon-save {
+	background-image: url(icons/save.gif) !important;
+}
+
+.icon-reset {
+	background-image: url(icons/stop.png) !important;
+}
+
+.icon-grid {
+	background-image: url(icons/grid.png) !important;
+}
+
+.icon-add {
+	background-image: url(icons/add.png) !important;
+}
+
+.icon-delete {
+	background-image: url(icons/delete.png) !important;
+}
+
+/* ExtJS remove the bullets to start from a known point
+	(some browser (IE) are really at following standards)
+	This class Reset bullet for chosen lists */
+div.messageWindow ul,
+div.tooltip ul,
+ul.bullet-list {
+	padding-left: 2em;
+	list-style-type: disc;
+}
+div.messageWindow ol,
+div.tooltip ol,
+ol.bullet-list {
+	padding-left: 2em;
+	list-style-type: decimal;
+}
+/* ExtJS remove the bullets on li instead of ul. It has to be reset in both. */
+div.messageWindow ul > li,
+div.tooltip ul > li,
+ul.bullet-list > li {
+	list-style-type: disc;
+	margin: 0.5em 0;
+}
+div.messageWindow ol > li,
+div.tooltip ol > li,
+ol.bullet-list > li {
+	list-style-type: decimal;
+	margin: 0.5em 0;
+}
+
+div.messageWindow em,
+div.tooltip em {
+	font-style: italic;
+}
+div.messageWindow strong,
+div.tooltip strong {
+	font-weight: bold;
+}
+
+.grid-icon {
+	margin: 0 5px;
+	cursor: pointer;
+}
+
+div.messageWindow p {
+	margin: 0.5em 0;
+	text-align: justify;
+}
+
+div.messageWindow pre.code {
+	margin: 0.2em 2em;
+	padding: 0.2em;
+	background-color: #DDDDDD;
+}
+div.messageWindow .success {
+	color: #00FF00;
+}
+div.messageWindow .error {
+	color: #FF0000;
+}

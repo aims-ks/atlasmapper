@@ -1,0 +1,188 @@
+X 1st: Add remove layer, fix worst bugs
+X 2nd: Create the server that generate the configuration from GeoServer - Get Tree from GeoServer WMS Path (drupal part will come later)
+X 3rd: Add the Parameterised Layer for the DataCenter - Using Datatypes (http://data.aims.gov.au/atlas/)
+X 4th: Extend the servlet to get extra data from text files (manual overrides) (while drupal is getting extended)
+
+NOTE: Config
+X	1. All static info. Generate by the Administrator
+~	2. Dynamic file generate by a script (in Java) - called by cron or AtlasMapper Server (server side config splitter) and/or Web (from WMS GetCapabilities doc. and Drupal in our case)
+X	3. Optional override - to develop later
+
+
+*** OPTIMIZE ***
+	DO not request for tiles that we dont see (it currently load one line of tiles to allow faster pan, which double the load time)
+
+BUG:
+[FIXED]	Map with 3 overlays; delete the first one, than move the last one on top. This give an error in OpenLayers.
+
+FIELD WIDTH
+[FIXED]	width: 'auto'
+
+Geoserver1 BUG
+	// FISH + GBR - OK
+	http://e-atlas.org.au/geoserver/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=ea:LTMP_Fish-Abundance-Count,ea:GBRMPA_reefs-gbr_features&QUERY_LAYERS=ea:LTMP_Fish-Abundance-Count,ea:GBRMPA_reefs-gbr_features&BBOX=108.273438,-22.526367,155.119141,6.56543&FEATURE_COUNT=10&HEIGHT=662&WIDTH=1066&FORMAT=image/png&INFO_FORMAT=text/html&SRS=EPSG:4326&X=1006&Y=648
+
+	// GBR + FISH - Stacktrace?
+	http://e-atlas.org.au/geoserver/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&LAYERS=ea:GBRMPA_reefs-gbr_features,ea:LTMP_Fish-Abundance-Count&QUERY_LAYERS=ea:GBRMPA_reefs-gbr_features,ea:LTMP_Fish-Abundance-Count&BBOX=108.273438,-22.526367,155.119141,6.56543&FEATURE_COUNT=10&HEIGHT=662&WIDTH=1066&FORMAT=image/png&INFO_FORMAT=text/html&SRS=EPSG:4326&X=1006&Y=648
+
+
+		// TODO
+		// GeoEditor
+		//     http://projects.opengeo.org/geoext/wiki/GeoEditor
+		//
+		// Global:
+		//     [X] Class for objects instead of a bunch of functions
+		//     [X] Setup a proxy (openlayers/examples/proxy.cgi)
+		//     [ ] Add a note in doc to say that Proxy can not be used when the client is taken out of the War (used as local file). The proxy need a Web Server; the proxy can not be on the same domain since local files are on "file://" URL
+		//     [~] Feature requests (http://api.geoext.org/1.0/examples/popup.html)
+		//         [X] Only request for layers that has "<wmsQueryable>: true"
+		//         [X] Feature requests from different servers
+		//         [X] Feature to other server append to same popup
+		//         [X] Feature request on a layer may be sent to other layers (enable feature request on layer X from server S1 send request on layer ID Y and Z from server S2)
+		//         [X] The attribute "queryVisible: true" should concern the visible layer, not the queryable layers
+		//         [ ] Response shown in different tabs for different layers (1 request per layer - this solution is used by other clients)
+		//     [~] Legend
+		//         [X] Show default legend
+		//         [X] Show custom legend (with attributes specified in the config)
+		//         [X] Handle the "Show legend" checkbox in layer options (change 'hideInLegend' in the layer. The attribute from the GeoExt layer record is kind of inaccessible...)
+		//         [ ] Handle override legends in styles
+		//         [X] Legend title and grouping
+		//         [X] Move legend window on browser resize (ExtJS bug - easy fix; disable shadow: http://www.sencha.com/forum/showthread.php?118809-shadowOffset-is-undefined-in-Ext.Window)
+		//         [X] Resize legend window when new legend appear (Legend.js, autoHeight: true)
+		//         [~] Add scroller when legend window height is larger than the browser window. - Scroller is not quite usable...
+		//         [X] Hide legend group when empty (see: GeoExt.ux.LegendGroup.doLayout)
+		//     [ ] Manage exceptions to throw explicit error message as soon as possible - easy debugging
+		//     [X] Wrap the WorldMap (wrapDateLine : true)
+		//     [X] Merge Core and MapWindow (they have circular references anyway) => MapWindow renamed to MapPanel (allow multiple instances) - circular references removed
+		//     [X] Use ExtJs (and GeoExt) only in module (not in core) to allow Embeded map to be smaller.
+		//     [X] Fix all references to THAT variable using the solution mention in LegendGroup.insert, and move all function in the prototype instead of instance (where they were always meant to be)
+		//     [X] Implement <wmsVersion> (MapPanel.addLayer, OpenLayers WMS)
+		//     [~] Implement multiple types of layer
+		//         [~] WMS (one feature request per layer - display responses in a different tab for each layers)
+		//         [~] WMTS (use the real WMTS layer provided by OpenLayer)
+		//         [X] KML
+		//         [~] XYZ
+		//     [ ] Show Legend window under Feature Request windows (change z-index?)
+		//     [X] Map zoom - Zoom show previous image stretch while loading the new tiles -> transitionEffect: 'resize'
+		// Layers panel:
+		//     [X] Checkboxes for view
+		//     [X] Add default layers
+		//     [X] Implement removeLayer
+		//         (Put the X to the right - Ext.ux.TreeGrid library is too big (~40k) and not enough flexible - I did not manage to load a ASYNC tree without a static JSon config)
+		//     [X] qtip: nodeName AND optional attributes (institution, dates, etc.)
+		//     [X] Display info, options, etc
+		//     [X] Order layers correctly on the Map
+		//     [X] Select new base layer after Add base layer
+		//     [ ] Nice to have: Options for all layers (like set opacity for all) + App info when no layer is selected (imply the ability to deselect a layer)
+		//     [ ] Tree: Possibility of adding a Node containing multiple layers (add/remove - show/hide for a bunch of layers)
+		// Info:
+		//     [X] De-hardcode Dataset & Layer (tab name) from config
+		// "Add Layers" window:
+		//     [X] Checkboxes for add
+		//     [X] Implement Add
+		//     [X] Highlight layers that are already added (implement something in the TreeLoader) - TODO Change style colour
+		//     [X] Display info, options, etc
+		//     [ ] Add Info HTML to layers nodes (FilteredLayerContainer)
+		//     [X] AddLayersWindow in separate file (currently in LayersPanel.js)
+		//     [X] Tree: Change layer info when other tree tab is shown (selected layer = myTree.selModel.selNode)
+		// Options:
+		//     [X] Opacity
+		//     [X] Locate
+		//     [X] Show in legend
+		//     [X] Choose layer style
+		//     [ ] Bring to front (top of its category, disabled for the top one, not shown for base layers)
+		//     [~] NCWMS - Date + Animate
+		//         See:
+		//         Example of JSon to describe dates:
+		//             http://behemoth.nerc-essc.ac.uk/ncWMS/wms?SERVICE=WMS&REQUEST=GetMetadata&item=layerDetails&layerName=NCOF_FOAM_ONE%2FSALTY
+		//         AIMS Thredds catalog:
+		//             http://data.aims.gov.au/thredds/catalog.html
+		// MultiMap: (http://tools.geofabrik.de/mc/)
+		//     [~] Add map
+		//     [~] Remove map
+		//     [ ] Buttons to trigger those events (listener in Core)
+		// Server:
+		//     [X] Tree config list layers as obj {title: layerID} (use title as Key: it's order by title and it's good to ensure the name is not duplicated in the same folder)
+		//     [X] Add the possibility to save all layer info in a separate file (JSon ?) and have the functionality to request list of layers, returned as a single JSon map obj.
+
+// [X] Put all server fields (like serverUrls) into the layer.json, allowing those fields to be overriden.
+// [X] Dont use layer.url in OptionsPanel (use URL from layer.json) (doesn't work in option preview)
+//         1. Request get data from the cache directly. -> Memory cache (cache XMLLayer for easy server process)
+//         2. If the cache is not set, create it than process the request.
+//         3. A special request can be send to refresh the cache
+// [X] Cache getCapabilities parsing - server side
+// [~] Add loading image (for Ajax operations)
+// [X] Server side - getCapabilities doc not mandatory (can not be generated from Server URL, it's not a WMS request... its OWS)
+// [X] Legend (Dont show empty window, dont show layer with no images - can't easily detect if the layer legend has 'no image')
+// [~] Improve feature requests (1 req per layer, display top one first, let user choose between TopMostFirst, SelectedLayer, AllLayers)
+// [ ] Login on client - to log on GeoServer to show private layers (using plugin?)
+// [ ] Saved state map - generate preview on server side
+
+//LISTENER IN LayerNode setDeleteLayerFunction
+
+		// *** NOTE ***
+		// Instinctively, we are tempting to call the event with this:
+		// c.on('show', this.triggerVisibility);
+		// But, this doesn't work because it associate the event with
+		// a pointer to the function triggerVisibility. The pointer
+		// is than called, out of context, from the trigger system,
+		// which break the reference to the variable "this".
+		// ("this" point to the instance that call the function)
+		// The solution is to create a new function that do not
+		// need any reference to "this", than call the function
+		// triggerVisibility in that new function.
+		// The variable "this" can't be use in the new function
+		// for the same reason, that's why the private variable
+		// "that" is used instead.
+		//
+		// var that = this;
+		// c.on('show', function() {that.triggerVisibility();});
+
+/** Ext.each and Ext.iterate => No EXT dependencies in my core!!
+
+// If no equivalence in OpenLayer, copy the function from the existing client
+applyIf : function(o, c){
+	if(o){
+		for(var p in c){
+			if(!Ext.isDefined(o[p])){
+				o[p] = c[p];
+			}
+		}
+	}
+	return o;
+},
+isDefined : function(v){
+	return typeof v !== 'undefined';
+},
+
+each : function(array, fn, scope){
+	if(Ext.isEmpty(array, true)){
+		return;
+	}
+	if(!Ext.isIterable(array) || Ext.isPrimitive(array)){
+		array = [array];
+	}
+	for(var i = 0, len = array.length; i < len; i++){
+		if(fn.call(scope || array[i], array[i], i, array) === false){
+			return i;
+		};
+	}
+},
+
+iterate : function(obj, fn, scope){
+	if(Ext.isEmpty(obj)){
+		return;
+	}
+	if(Ext.isIterable(obj)){
+		Ext.each(obj, fn, scope);
+		return;
+	}else if(typeof obj == 'object'){
+		for(var prop in obj){
+			if(obj.hasOwnProperty(prop)){
+				if(fn.call(scope || obj, prop, obj[prop], obj) === false){
+					return;
+				};
+			}
+		}
+	}
+},
