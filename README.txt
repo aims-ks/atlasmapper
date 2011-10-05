@@ -1,0 +1,1 @@
+== Building the AtlasMapper from Source ==This section will eventually describe the building of the source to produce an executable WAR file.
