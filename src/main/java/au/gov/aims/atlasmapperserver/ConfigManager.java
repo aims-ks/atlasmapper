@@ -360,8 +360,12 @@ public class ConfigManager {
 				this.serverConfigFileLastModified = this.serverConfigFile.lastModified();
 			} finally {
 				try { writer.close(); } catch(Exception e) {}
+				// Reload the configuration to refresh the state of the server with the config that is in the file
+				try { this.reloadServerConfig(); } catch(Exception e) {}
 			}
 		} else {
+			// Reload the configuration to refresh the state of the server with the config that is in the file
+			try { this.reloadServerConfig(); } catch(Exception e) {}
 			throw new IOException(this.serverConfigFile.getCanonicalPath() + " is not writable.");
 		}
 	}
@@ -385,15 +389,19 @@ public class ConfigManager {
 		}
 		this.reloadUsersConfigIfNeeded();
 		Writer writer = null;
-		if (this.usersConfigFile.canWrite() || (!this.usersConfigFile.exists() && this.usersConfigFile.getParentFile().canWrite())) {
+		if (Utils.recursiveIsWritable(this.usersConfigFile)) {
 			try {
 				writer = new FileWriter(this.usersConfigFile);
 				this.saveUsersConfig(writer);
 				this.usersConfigFileLastModified = this.usersConfigFile.lastModified();
 			} finally {
 				try { writer.close(); } catch(Exception e) {}
+				// Reload the configuration to refresh the state of the server with the config that is in the file
+				try { this.reloadUsersConfig(); } catch(Exception e) {}
 			}
 		} else {
+			// Reload the configuration to refresh the state of the server with the config that is in the file
+			try { this.reloadUsersConfig(); } catch(Exception e) {}
 			throw new IOException(this.usersConfigFile.getCanonicalPath() + " is not writable.");
 		}
 	}

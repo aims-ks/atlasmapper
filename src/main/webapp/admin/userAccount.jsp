@@ -80,7 +80,7 @@
 							jsonObj.put("data", configManager.getUser(loggedUser.getLoginName()));
 						}
 					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "An error occured while updating user the configuration.", e);
+						LOGGER.log(Level.SEVERE, "An error occured while updating the user configuration.", e);
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						jsonObj.put("success", false);
 						jsonObj.put("errors", new JSONArray().put("An error occured while updating the user configuration. Check your server log."));
