@@ -29,30 +29,6 @@
 .legend-item-header {
 }
 
-
-/* For the Layer Switcher Delete icon */
-
-.x-tree-node-collapsed .x-tree-node-delete,
-.x-tree-node-expanded .x-tree-node-delete,
-.x-tree-node-leaf .x-tree-node-delete {
-	border: 0 none;
-	width: 16px;
-	height: 16px;
-	margin: 0;
-	padding: 1px 0; /* for alignment */
-	vertical-align: top;
-	background-position: 0; /* Show the first sprite, the light X */
-	background-repeat: no-repeat;
-	cursor: pointer;
-	background-image:url(../images/delete-sprites.gif);
-}
-
-.x-tree-node-collapsed img:hover.x-tree-node-delete,
-.x-tree-node-expanded img:hover.x-tree-node-delete,
-.x-tree-node-leaf img:hover.x-tree-node-delete {
-	background-position: -16px; /* Show the second sprite, the dark X */
-}
-
 .x-legend-delete {
 	float: right;
 	width: 16px;
@@ -62,8 +38,14 @@
 	background-image:url(../images/delete-sprites.gif);
 }
 
+/* Mouse over the legend item */
 :hover.legend-item .x-legend-delete {
 	background-position: 0; /* Show the first sprite, the light X */
+}
+
+/* Mouse over the legend X */
+:hover.legend-item .x-legend-delete:hover {
+	background-position: -16px; /* Show the second sprite, the dark X */
 }
 
 .ext-ie .x-tree-node-delete {

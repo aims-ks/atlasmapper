@@ -56,10 +56,9 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 			});
 		};
 
-		var overlayList = new GeoExt.ux.tree.OverlayLayerContainer({
+		var overlayList = new GeoExt.tree.OverlayLayerContainer({
 			text: 'Overlays',
 			layerStore: this.mapPanel.layers,
-			loader: this.getLayerLoader(),
 			deleteLayerFunction: deleteLayerFct,
 			leaf: false,
 			parentNode: layerTree,
@@ -67,11 +66,15 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 			expanded: true,
 			allowDrag: false
 		});
+		// Remove the icons
+		overlayList.loader.createNode = function(attr) {
+			attr.cls = 'x-tree-noicon';
+			return GeoExt.tree.LayerLoader.prototype.createNode.call(this, attr);
+		};
 
-		var baselayerList = new GeoExt.ux.tree.BaseLayerContainer({
+		var baselayerList = new GeoExt.tree.BaseLayerContainer({
 			text: 'Base Layers',
 			layerStore: this.mapPanel.layers,
-			loader: this.getLayerLoader(),
 			deleteLayerFunction: deleteLayerFct,
 			leaf: false,
 			parentNode: layerTree,
@@ -80,6 +83,12 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 			allowDrag: false,
 			allowDrop: false
 		});
+		// Remove the icons
+		baselayerList.loader.createNode = function(attr) {
+			attr.cls = 'x-tree-noicon';
+			return GeoExt.tree.LayerLoader.prototype.createNode.call(this, attr);
+		};
+
 		// Unsure the radio group name is unique for each map
 		if (baselayerList.loader && baselayerList.loader.baseAttrs && baselayerList.loader.baseAttrs.checkedGroup) {
 			baselayerList.loader.baseAttrs.checkedGroup += this.mapPanel.id;
@@ -172,54 +181,6 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 			layout: 'anchor',
 			items: [tabPanel]
 		});
-	},
-
-	/**
-	 * Special loader to get attributes using a function instead
-	 * of a static attribute. This is used to set attributes
-	 * using the layer information.
-	 * Example; setting the tooltip to the layer name.
-	 *
-	 * The defined functions are added to GeoExt.tree.LayerLoader
-	 * (see the constructor of GeoExt.tree.LayerContainer).
-	 */
-	getLayerLoader: function() {
-		return {
-			getBaseAttrs: function(attr) {
-				// Objects accessible from attr:
-				//     attr.layer, attr.layerStore, attr.nodeType
-				var qtip = Atlas.core.getLayerQTip(attr.layer.json);
-
-				return {
-					qtip: qtip
-				};
-			},
-
-			/**
-			 * The layer type gx_layer is hardcoded in GeoExt.tree.LayerLoader.
-			 * This function has been override to modify this value
-			 * to gx_ux_layer.
-			 */
-			addLayerNode: function(node, layerRecord, index) {
-				index = index || 0;
-				if (this.filter(layerRecord) === true) {
-					var child = this.createNode({
-						nodeType: 'gx_ux_layer',
-						layer: layerRecord.getLayer(),
-						// this.store exists in LayerContainer context
-						layerStore: this.store
-					});
-					var sibling = node.item(index);
-					if(sibling) {
-						node.insertBefore(child, sibling);
-					} else {
-						node.appendChild(child);
-					}
-					// ExtJS event
-					child.on("move", this.onChildMove, this);
-				}
-			}
-		};
 	},
 
 	showAddLayersWindow: function() {
