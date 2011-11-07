@@ -72,7 +72,10 @@ public class SecureFilter implements Filter {
 		String uri = request.getRequestURI();
 		String userIP = request.getRemoteAddr();
 		if (loggedUser == null) {
-			LOGGER.log(Level.WARNING, "An anonymous user ["+userIP+"] has tried to access the protected resource ["+uri+"].");
+			LOGGER.log(Level.WARNING, "An anonymous user [{0}] has tried to access the protected resource [{1}].", new Object[]{
+				userIP,
+				uri
+			});
 			if (this.expectJSON(request)) {
 				this.sendJSONTimeoutError(response);
 			} else {
@@ -86,7 +89,11 @@ public class SecureFilter implements Filter {
 				this.sendRedirection(response);
 			}
 		} else {
-			LOGGER.log(Level.INFO, "User ["+loggedUser.getLoginName()+"] ["+userIP+"] is accessing the protected resource ["+uri+"].");
+			LOGGER.log(Level.INFO, "User [{0}] [{1}] is accessing the protected resource [{2}].", new Object[]{
+				loggedUser.getLoginName(),
+				userIP,
+				uri
+			});
 			chain.doFilter(request, response);
 		}
 	}

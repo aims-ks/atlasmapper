@@ -50,13 +50,9 @@
 	<script type="text/javascript" src="Ext-ux/DateField.js"></script>
 	<script type="text/javascript" src="Ext-ux/NCDatetimeField.js"></script>
 
-	<script type="text/javascript" src="GeoExt-ux/LayerNode.js"></script>
 	<script type="text/javascript" src="GeoExt-ux/WMSLegend.js"></script>
 	<script type="text/javascript" src="GeoExt-ux/NCWMSLegend.js"></script>
 	<script type="text/javascript" src="GeoExt-ux/VectorLegend.js"></script>
-	<!--<script type="text/javascript" src="GeoExt-ux/FilteredLayerContainer.js"></script>-->
-	<script type="text/javascript" src="GeoExt-ux/BaseLayerContainer.js"></script>
-	<script type="text/javascript" src="GeoExt-ux/OverlayLayerContainer.js"></script>
 	<script type="text/javascript" src="GeoExt-ux/LegendPanel.js"></script>
 	<script type="text/javascript" src="GeoExt-ux/LegendGroup.js"></script>
 

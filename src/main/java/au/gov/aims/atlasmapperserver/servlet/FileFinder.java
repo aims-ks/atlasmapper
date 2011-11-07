@@ -215,7 +215,10 @@ public class FileFinder {
 		}
 		if (!Utils.recursiveIsWritable(applicationFolder)) {
 			if (applicationFolder != null) {
-				LOGGER.log(Level.SEVERE, "The application do not have write access to the folder: [" + applicationFolder.getAbsolutePath() + "] defined by the property " + DATA_DIR_PROPERTY + ".");
+				LOGGER.log(Level.SEVERE, "The application do not have write access to the folder: [{0}] defined by the property {1}.", new Object[]{
+					applicationFolder.getAbsolutePath(),
+					DATA_DIR_PROPERTY
+				});
 			}
 		}
 

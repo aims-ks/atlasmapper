@@ -20,6 +20,9 @@ public class LayerConfig extends DatasourceConfig {
 	private String layerId;
 
 	@ConfigField
+	private String kmlUrl;
+
+	@ConfigField
 	private String[] aliasIds;
 
 	@ConfigField
@@ -95,6 +98,14 @@ public class LayerConfig extends DatasourceConfig {
 	public void setWmsServiceUrl(String wmsServiceUrl) {
 	}
 
+
+	public String getKmlUrl() {
+		return kmlUrl;
+	}
+
+	public void setKmlUrl(String kmlUrl) {
+		this.kmlUrl = kmlUrl;
+	}
 
 	public String getDescription() {
 		return description;

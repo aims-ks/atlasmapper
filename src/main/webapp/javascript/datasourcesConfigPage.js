@@ -31,7 +31,6 @@ var datasourceTypes = {
 	},
 	'KML': {
 		display: 'KML',
-		disabled: true,
 		qtipHtml: 'KML is the file format used to display geographic data in Earth browser such as <strong>Google Earth</strong>, <strong>Google Maps</strong>, and <strong>Google Maps for mobile</strong>. This application has basic support for this type of datasource.'
 	},
 	'tiles': {
@@ -64,6 +63,9 @@ Ext.define('Writer.LayerServerConfigForm', {
 		});
 		this.addEvents('create');
 
+
+		/** Define items that appair on all Datasource Types **/
+
 		var items = [
 			{
 				// Grids records must have an unmutable ID
@@ -92,6 +94,11 @@ Ext.define('Writer.LayerServerConfigForm', {
 			}
 		];
 
+		var advancedItems = [];
+
+
+		/** Define items that appair on some Datasource Types **/
+
 		var browserSpecificEditAreaConfig = {
 			xtype: 'editareafield',
 			syntax: 'atlasmapperconfig',
@@ -105,164 +112,163 @@ Ext.define('Writer.LayerServerConfigForm', {
 			}
 		}
 
-		var advancedItems = [
-			Ext.apply({
-					fieldLabel: 'Layers\' global manual override (<a href="manualOverrideDoc.html" target="_blank">doc</a>)',
-					qtipTitle: 'Layers\' global manual override',
-					qtipHtml: 'JSON configuration used to override the layers information retrived from the GetCapabilities documents. Every Atlas Mapper clients are affected by these changes.<br/>See the documentation for more information.',
-					vtype: 'jsonfield',
-					name: 'globalManualOverride',
-					height: 400
-				}, browserSpecificEditAreaConfig
-			), {
-				fieldLabel: 'Black listed layers',
-				qtipHtml: 'List of layer ids, separated by coma or new line. The layers listed here are ignored by all AtlasMapper clients.',
-				name: 'blacklistedLayers',
-				xtype: 'textareafield',
-				resizable: {transparent: true}, resizeHandles: 's',
-				height: 100
-			}, {
-				fieldLabel: ' ', labelSeparator: '',
-				qtipHtml: 'Uncheck this box to disable the legend for all layers provided by this datasource. This mean that the layers will not have its legend displayed in the AtlasMapper clients, and they will not have a check box in the layer <em>Options</em> to show its legend.',
-				boxLabel: 'Show layers in legend',
-				name: 'showInLegend',
-				xtype: 'checkboxfield'
-			}, {
-				fieldLabel: 'Legend URL',
-				qtipHtml: 'This field override the legend URL provided by the GetCapabilities document. It\'s possible to override this URL by doing one of these:'+
-					'<ul>'+
-						'<li>leaving this field blank and setting a legend URL for each layer of this datasource, using the <em>Manual Override</em> in <em>Global configuration</em></li>'+
-						'<li>setting a base URL here and a static image file name for each layer of this datasource, using the <em>Manual Override</em> in <em>Global configuration</em></li>'+
-						'<li>providing a legend URL to a static image here, that will be used for each layer of this datasource</li>'+
-					'</ul>',
-				name: 'legendUrl'
-			}/*, legendParametersGrid*/
-		];
+		var globalManualOverride = Ext.apply({
+				fieldLabel: 'Layers\' global manual override (<a href="manualOverrideDoc.html" target="_blank">doc</a>)',
+				qtipTitle: 'Layers\' global manual override',
+				qtipHtml: 'JSON configuration used to override the layers information retrived from the GetCapabilities documents. Every Atlas Mapper clients are affected by these changes.<br/>See the documentation for more information.',
+				vtype: 'jsonfield',
+				name: 'globalManualOverride',
+				height: 400
+			}, browserSpecificEditAreaConfig
+		);
 
-		var wmsServiceUrlTip = 'URL to the WMS service. This URL is used by a java library to download the WMS capabilities document. Setting this field alone with <em>Datasource ID</em> and <em>Datasource name</em> is usually enough.';
-		var featureRequestsUrlTip = 'This field override the feature requests URL provided by the GetCapabilities document.';
-		var secondaryServiceUrlsTipWMS = 'This field can be used to provide additionnal URLs to access the tiles, which is usefull for doing server load balancing and allow the client\'s browser to download more tiles simultaneously.';
-		var serviceUrlsTipKML = 'URL of the KML files. This URL is merged with the KML file name provided in the <em>Manual Override</em> in <em>Global configuration</em>, to create the URL used to download the KML file. If this field is let blank, the full URL has to be provided in the <em>Manual Override</em>.';
+		var blacklistedLayers = {
+			fieldLabel: 'Black listed layers',
+			qtipHtml: 'List of layer ids, separated by coma or new line. The layers listed here are ignored by all AtlasMapper clients.',
+			name: 'blacklistedLayers',
+			xtype: 'textareafield',
+			resizable: {transparent: true}, resizeHandles: 's',
+			height: 100
+		};
+		var showInLegend = {
+			fieldLabel: ' ', labelSeparator: '',
+			qtipHtml: 'Uncheck this box to disable the legend for all layers provided by this datasource. This mean that the layers will not have its legend displayed in the AtlasMapper clients, and they will not have a check box in the layer <em>Options</em> to show its legend.',
+			boxLabel: 'Show layers in legend',
+			name: 'showInLegend',
+			xtype: 'checkboxfield'
+		};
+		var legendUrl = {
+			fieldLabel: 'Legend URL',
+			qtipHtml: 'This field override the legend URL provided by the GetCapabilities document. It\'s possible to override this URL by doing one of these:'+
+				'<ul>'+
+					'<li>leaving this field blank and setting a legend URL for each layer of this datasource, using the <em>Manual Override</em> in <em>Global configuration</em></li>'+
+					'<li>setting a base URL here and a static image file name for each layer of this datasource, using the <em>Manual Override</em> in <em>Global configuration</em></li>'+
+					'<li>providing a legend URL to a static image here, that will be used for each layer of this datasource</li>'+
+				'</ul>',
+			name: 'legendUrl'
+		};
 
+		var wmsServiceUrl = {
+			fieldLabel: 'WMS service URL',
+			qtipHtml: 'URL to the WMS service. This URL is used by a java library to download the WMS capabilities document. Setting this field alone with <em>Datasource ID</em> and <em>Datasource name</em> is usually enough. Note that a full URL to the capabilities document can also be provided, including additional parameters.',
+			name: 'wmsServiceUrl'
+		};
+		var baseLayers = {
+			fieldLabel: 'Base layers',
+			qtipHtml: 'List of layer ids, separated by coma or new line. The layers listed here will considered as base layers by all the AtlasMapper clients.',
+			name: 'baseLayers',
+			xtype: 'textareafield',
+			resizable: {transparent: true}, resizeHandles: 's',
+			height: 100
+		};
+		var extraWmsServiceUrls = {
+			fieldLabel: 'Secondary WMS service URLs',
+			qtipHtml: 'List of URLs, separated by coma or new line. This field can be used to provide additionnal URLs to access the tiles, which is usefull for doing server load balancing and allow the client\'s browser to download more tiles simultaneously.',
+			name: 'extraWmsServiceUrls'
+		};
+		var webCacheUrl = {
+			fieldLabel: 'Web Cache URL',
+			qtipHtml: 'URL to the Web Cache server. This URL will be used to get the tiles for the layers. If the Web Cache server do not support all URL parameters, you have to provide a list of supported parameters in the next field.',
+			name: 'webCacheUrl'
+		};
+		var webCacheParameters = {
+			fieldLabel: 'Web Cache supported URL parameters',
+			qtipHtml: 'Coma separated list of URL parameter supported by the Web Cache server. Leave this field blank if the Web Cache server support all parameters. The list of supported URL parameters for GeoWebCache is listed bellow as an example.',
+			name: 'webCacheParameters'
+		};
+		var webCacheParametersExample = {
+			fieldLabel: 'Example: GeoWebCache supported URL parameters',
+			labelStyle: 'font-style:italic',
+			qtipHtml: 'This is an example of "Web Cache supported URL parameters" for GeoWebCache server.',
+			xtype: 'displayfield',
+			value: '<em>LAYERS, TRANSPARENT, SERVICE, VERSION, REQUEST, EXCEPTIONS, FORMAT, SRS, BBOX, WIDTH, HEIGHT</em>'
+		};
+		var featureRequestsUrl = {
+			fieldLabel: 'Feature requests URL',
+			qtipHtml: 'This field override the feature requests URL provided by the GetCapabilities document.',
+			name: 'featureRequestsUrl'
+		};
+		var kmlUrls = {
+			fieldLabel: 'KML file URLs',
+			qtipHtml: 'List of KML file URLs, separated by coma or new line. The file name (without extension) is used for the layer ID and the layer title. The layer title and many other attributes can be modified using the <em>Manual Override</em>.',
+			name: 'kmlUrls',
+			xtype: 'textareafield',
+			resizable: {transparent: true}, resizeHandles: 's',
+			height: 100
+		};
+		var comment = {
+			fieldLabel: 'Comment',
+			qtipHtml: 'Comment for administrators. This field is not display anywhere else.',
+			name: 'comment',
+			xtype: 'textareafield',
+			resizable: {transparent: true}, resizeHandles: 's',
+			height: 100
+		}
+
+
+		// Set the Form items for the different datasource types
 		switch(this.datasourceType) {
 			case 'WMS':
-				items.push({
-					fieldLabel: 'WMS service URL',
-					qtipHtml: wmsServiceUrlTip,
-					vtype: 'url',
-					name: 'wmsServiceUrl'
-				});
-				/*
-				advancedItems.push({
-					fieldLabel: 'Secondary WMS service URLs',
-					qtipHtml: secondaryServiceUrlsTipWMS,
-					name: 'extraWmsServiceUrls'
-				});
-				*/
-				advancedItems.push({
-					fieldLabel: 'Web Cache URL',
-					qtipHtml: 'URL to the Web Cache server. This URL will be used to get the tiles for the layers. If the Web Cache server do not support all URL parameters, you have to provide a list of supported parameters in the next field.',
-					name: 'webCacheUrl'
-				});
-				advancedItems.push({
-					fieldLabel: 'Web Cache supported URL parameters',
-					qtipHtml: 'Coma separated list of URL parameter supported by the Web Cache server. Leave this field blank if the Web Cache server support all parameters. The list of supported URL parameters for GeoWebCache is listed bellow as an example.',
-					name: 'webCacheParameters'
-				});
-				advancedItems.push({
-					fieldLabel: 'Example: GeoWebCache supported URL parameters',
-					labelStyle: 'font-style:italic',
-					qtipHtml: 'This is an example of "Web Cache supported URL parameters" for GeoWebCache server.',
-					xtype: 'displayfield',
-					value: '<em>LAYERS, TRANSPARENT, SERVICE, VERSION, REQUEST, EXCEPTIONS, FORMAT, SRS, BBOX, WIDTH, HEIGHT</em>'
-				});
-				advancedItems.push({
-					fieldLabel: 'Feature requests URL',
-					qtipHtml: featureRequestsUrlTip,
-					name: 'featureRequestsUrl'
-				});
+				items.push(wmsServiceUrl);
+				items.push(baseLayers);
+				items.push(comment);
+
+				advancedItems.push(globalManualOverride);
+				advancedItems.push(blacklistedLayers);
+				advancedItems.push(showInLegend);
+				advancedItems.push(legendUrl);
+				//advancedItems.push(legendParametersGrid);
+				//advancedItems.push(extraWmsServiceUrls);
+				advancedItems.push(webCacheUrl);
+				advancedItems.push(webCacheParameters);
+				advancedItems.push(webCacheParametersExample);
+				advancedItems.push(featureRequestsUrl);
 				break;
 
 			case 'NCWMS':
-				items.push({
-					fieldLabel: 'ncWMS service URL',
-					qtipHtml: wmsServiceUrlTip,
-					vtype: 'url',
-					name: 'wmsServiceUrl'
-				});
-				/*
-				advancedItems.push({
-					fieldLabel: 'Secondary ncWMS service URLs',
-					qtipHtml: secondaryServiceUrlsTipWMS,
-					name: 'extraWmsServiceUrls'
-				});
-				*/
-				advancedItems.push({
-					fieldLabel: 'Feature requests URL',
-					qtipHtml: featureRequestsUrlTip,
-					name: 'featureRequestsUrl'
-				});
+				items.push(Ext.apply(wmsServiceUrl, { fieldLabel: 'ncWMS service URL' }));
+				items.push(baseLayers);
+				items.push(comment);
+
+				advancedItems.push(globalManualOverride);
+				advancedItems.push(blacklistedLayers);
+				advancedItems.push(showInLegend);
+				advancedItems.push(legendUrl);
+				//advancedItems.push(legendParametersGrid);
+				//advancedItems.push(extraWmsServiceUrls);
+				advancedItems.push(featureRequestsUrl);
 				break;
 
 			case 'WMTS':
-				items.push({
-					fieldLabel: 'WMTS service URL',
-					qtipHtml: wmsServiceUrlTip,
-					vtype: 'url',
-					name: 'wmsServiceUrl'
-				});
-				/*
-				advancedItems.push({
-					fieldLabel: 'Secondary WMTS service URLs',
-					qtipHtml: secondaryServiceUrlsTipWMS,
-					name: 'extraWmsServiceUrls'
-				});
-				*/
-				advancedItems.push({
-					fieldLabel: 'Feature requests URL',
-					qtipHtml: featureRequestsUrlTip,
-					name: 'featureRequestsUrl'
-				});
+				items.push(Ext.apply(wmsServiceUrl, { fieldLabel: 'WMTS service URL' }));
+				items.push(baseLayers);
+				items.push(comment);
+
+				advancedItems.push(globalManualOverride);
+				advancedItems.push(blacklistedLayers);
+				advancedItems.push(showInLegend);
+				advancedItems.push(legendUrl);
+				//advancedItems.push(legendParametersGrid);
+				//advancedItems.push(extraWmsServiceUrls);
+				advancedItems.push(featureRequestsUrl);
 				break;
 
 			case 'KML':
-				// Server URLs is mandatory for KML since there is no GetCapabilities documents
-				items.push({
-					fieldLabel: 'KML file URLs',
-					qtipHtml: serviceUrlsTipKML,
-					name: 'extraWmsServiceUrls'
-				});
+				items.push(kmlUrls);
+				items.push(comment);
+
+				advancedItems.push(globalManualOverride);
 				break;
 
 			case 'GOOGLE':
-				items.push({
-					fieldLabel: 'Comment',
-					qtipHtml: 'Comment for administrators. This field is not display anywhere else.',
-					name: 'comment',
-					xtype: 'textareafield',
-					resizable: {transparent: true}, resizeHandles: 's',
-					height: 100
-				});
+				items.push(comment);
+
+				advancedItems.push(globalManualOverride);
 				break;
 		}
 
-		if (this.datasourceType != 'GOOGLE') {
-			items.push({
-				fieldLabel: 'Base layers',
-				qtipHtml: 'List of layer ids, separated by coma or new line. The layers listed here will considered as base layers by all the AtlasMapper clients.',
-				name: 'baseLayers',
-				xtype: 'textareafield',
-				resizable: {transparent: true}, resizeHandles: 's',
-				height: 100
-			});
-			items.push({
-				fieldLabel: 'Comment',
-				qtipHtml: 'Comment for administrators. This field is not display anywhere else.',
-				name: 'comment',
-				xtype: 'textareafield',
-				resizable: {transparent: true}, resizeHandles: 's',
-				height: 100
-			});
+
+		if (advancedItems.length > 0) {
 			items.push({
 				title: 'Advanced options',
 				xtype:'fieldsetresize',
@@ -287,6 +293,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 			},
 			items: items
 		});
+
 		this.callParent();
 	},
 
@@ -668,6 +675,7 @@ Ext.define('Writer.LayerServerConfig', {
 		{name: 'datasourceType', type: 'string'},
 		'wmsServiceUrl',
 		'extraWmsServiceUrls',
+		'kmlUrls',
 		'webCacheUrl',
 		'webCacheParameters',
 		'featureRequestsUrl',

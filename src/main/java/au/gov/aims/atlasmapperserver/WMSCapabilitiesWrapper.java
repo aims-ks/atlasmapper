@@ -5,25 +5,39 @@
 
 package au.gov.aims.atlasmapperserver;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.geotools.data.ows.CRSEnvelope;
+import org.geotools.data.ows.Capabilities;
+import org.geotools.data.ows.GetCapabilitiesRequest;
+import org.geotools.data.ows.GetCapabilitiesResponse;
 import org.geotools.data.ows.Layer;
 import org.geotools.data.ows.OperationType;
+import org.geotools.data.ows.Response;
 import org.geotools.data.ows.Service;
 import org.geotools.data.ows.StyleImpl;
 import org.geotools.data.ows.WMSCapabilities;
 import org.geotools.data.ows.WMSRequest;
+import org.geotools.data.wms.WMS1_3_0;
 import org.geotools.data.wms.WebMapServer;
+import org.geotools.data.wms.response.WMSGetCapabilitiesResponse;
 import org.geotools.ows.ServiceException;
 import org.opengis.util.InternationalString;
 
@@ -98,9 +112,23 @@ public class WMSCapabilitiesWrapper {
 
 	private WMSCapabilities getWMSCapabilities(String urlStr) throws IOException, ServiceException {
 		LOGGER.log(Level.INFO, "Downloading the Capabilities Document {0}", urlStr);
-		WebMapServer server = new WebMapServer(new URL(urlStr));
 
+		final URL url = new URL(urlStr);
+		WebMapServer server = new WebMapServer(url);
 		if (server == null) { return null; }
+
+		// TODO Find a nicer way to detect if the URL is a complete URL to a GetCapabilities document
+		if (urlStr.contains("?")) {
+			GetCapabilitiesRequest req = new WMS1_3_0.GetCapsRequest(url) {
+				@Override
+				public URL getFinalURL() {
+					return url;
+				}
+			};
+			GetCapabilitiesResponse rep = server.issueRequest(req);
+			return (WMSCapabilities)rep.getCapabilities();
+		}
+
 		return server.getCapabilities();
 	}
 
@@ -201,7 +229,10 @@ public class WMSCapabilitiesWrapper {
 			clone.setFeatureRequestsUrl(this.featureRequestsUrl.toString());
 		}
 
-		if (this.wmsServiceUrl != null && Utils.isBlank(clone.getWmsServiceUrl())) {
+		// The wmsServiceUrl set in the DatasourceConfig is the one set in the
+		// AtlasMapper server GUI. It may contains the capabilities URL.
+		// The GetMap URL found in the capabilities document is always safer.
+		if (this.wmsServiceUrl != null) {
 			clone.setWmsServiceUrl(this.wmsServiceUrl.toString());
 		}
 
@@ -303,7 +334,7 @@ public class WMSCapabilitiesWrapper {
 
 		String layerId = layer.getName();
 		if (Utils.isBlank(layerId)) {
-			LOGGER.log(Level.WARNING, "The Capabilities Document ["+this.serviceTitle+"] contains layers without name (other than the root layer).");
+			LOGGER.log(Level.WARNING, "The Capabilities Document [{0}] contains layers without name (other than the root layer).", this.serviceTitle);
 			return null;
 		}
 		layerConfig.setLayerId(layerId);

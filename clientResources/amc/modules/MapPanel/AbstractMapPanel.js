@@ -332,7 +332,7 @@ Atlas.AbstractMapPanel = {
 	},
 
 	_createKMLLayer: function(layerJSon) {
-		var kmlUrl = layerJSon['serverUrls'] + layerJSon['layerFilename'];
+		var kmlUrl = layerJSon['kmlUrl'];
 
 		// Set the OpenLayer options, used by the library.
 		var layerOptions = {

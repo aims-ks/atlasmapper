@@ -108,8 +108,8 @@ public class LoginServlet extends HttpServlet {
 
 		if (isValid) {
 			// TODO Initiate the user session
-			LOGGER.log(Level.INFO, "User ["+user.getLoginName()+"] has log in");
-			session.setAttribute("logged.user", user.getLoginName());
+			LOGGER.log(Level.INFO, "User [{0}] has log in", user.getLoginName());
+			session.setAttribute(LOGGED_USER_KEY, user.getLoginName());
 			return user;
 		}
 
@@ -130,7 +130,7 @@ public class LoginServlet extends HttpServlet {
 				LOGGER.log(Level.SEVERE, "Can not retrieved users", ex);
 			}
 			if (user != null) {
-				LOGGER.log(Level.INFO, "User ["+user.getLoginName()+"] has log out");
+				LOGGER.log(Level.INFO, "User [{0}] has log out", user.getLoginName());
 			}
 		} else {
 			LOGGER.log(Level.INFO, "Unknown user has log out");

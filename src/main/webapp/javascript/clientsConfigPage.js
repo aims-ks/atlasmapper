@@ -141,6 +141,21 @@ Ext.define('Writer.ClientConfigForm', {
 			}
 		}
 
+		var validateDependencies = function(value) {
+			var field = this;
+			if (value == '' && field.dependencies) {
+				for (var i=0; i < field.dependencies.length; i++) {
+					var dependField = field.up('form').down('#' + field.dependencies[i]);
+					if (dependField != null) {
+						if (dependField.getValue() != '') {
+							return '<i>' + (field.fieldLabel ? field.fieldLabel : field.getName()) + '</i> can not be empty when <i>' + (dependField.fieldLabel ? dependField.fieldLabel : dependField.getName()) + '</i> is not empty.';
+						}
+					}
+				}
+			}
+			return true;
+		};
+
 		Ext.apply(this, {
 			activeRecord: null,
 			border: false,
@@ -298,16 +313,6 @@ Ext.define('Writer.ClientConfigForm', {
 								height: 300
 							}, browserSpecificEditAreaConfig
 						), {
-							fieldLabel: 'Generated file location',
-							qtipHtml: 'Absolute file path, on the server\'s, to the folder where the client has to be generated. The application will try to create the folder if it doesn\'t exists.<br/>'+
-								'<strong>Warning:</strong> Only set this field if you are setting a client outside the application. If you set this field, you will also have to set the <i>Client base URL</i> with the URL that allow users to access the folder.',
-							name: 'generatedFileLocation'
-						}, {
-							fieldLabel: 'Client base URL',
-							qtipHtml: 'Absolute or relative URL to the folder that contains the generated <i>amc</i> and <i>config</i> folders.<br/>'+
-								'<strong>Warning:</strong> Only set this field if you are setting a client outside the application. Setting an absolute URL in this field will break the connection between the client and the proxy, which is needed for clients that use the <em>layer service</em> to request information about layers.',
-							name: 'baseUrl'
-						}, {
 							fieldLabel: 'Proxy URL',
 							qtipHtml: 'The AtlasMapper clients have to send Ajax request (using javascript) for different features such as <em>feature requests</em>. '+
 								'This server application is bundle with such a proxy.<br/>'+
@@ -317,9 +322,28 @@ Ext.define('Writer.ClientConfigForm', {
 								'</ul>',
 							name: 'proxyUrl'
 						}, {
+							fieldLabel: 'Generated file location',
+							qtipHtml: 'Absolute file path, on the server\'s, to the folder where the client has to be generated. The application will try to create the folder if it doesn\'t exists.<br/>'+
+								'<strong>Warning:</strong> Only set this field if you are setting a client outside the application. If you set this field, you will also have to set the <i>Client base URL</i> with the URL that allow users to access the folder.',
+							name: 'generatedFileLocation',
+							id: 'generatedFileLocation',
+							validator: validateDependencies,
+							dependencies: ['layerInfoServiceUrl','baseUrl']
+						}, {
 							fieldLabel: 'Layer info service URL',
-							qtipHtml: 'TODO',
-							name: 'layerInfoServiceUrl'
+							qtipHtml: 'URL used by the client to get information about layers. The default URL is: atlasmapper/public/layersInfo.jsp',
+							name: 'layerInfoServiceUrl',
+							id: 'layerInfoServiceUrl',
+							validator: validateDependencies,
+							dependencies: ['generatedFileLocation','baseUrl']
+						}, {
+							fieldLabel: 'Client base URL',
+							qtipHtml: 'URL to the client. This field is only needed to create the link to the client, in the Administration Interface. Failing to provide this information will not have any effect in the client itself. Default URL for this field is atlasmapper/client/<Client name>/'+
+								'<strong>Warning:</strong> Only set this field if you are setting a client outside the application.',
+							name: 'baseUrl',
+							id: 'baseUrl',
+							validator: validateDependencies,
+							dependencies: ['generatedFileLocation','layerInfoServiceUrl']
 						}, {
 							fieldLabel: ' ', labelSeparator: '',
 							boxLabel: 'Use layer service.',

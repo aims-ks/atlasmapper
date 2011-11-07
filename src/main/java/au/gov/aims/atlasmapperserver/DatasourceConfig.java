@@ -45,6 +45,13 @@ public class DatasourceConfig extends AbstractConfig implements Comparable<Datas
 
 	@ConfigField
 	private String extraWmsServiceUrls;
+	// Cache - avoid parsing baseLayers string every times.
+	private Set<String> extraWmsServiceUrlsSet = null;
+
+	@ConfigField
+	private String kmlUrls;
+	// Cache - avoid parsing baseLayers string every times.
+	private Set<String> kmlUrlsSet = null;
 
 	@ConfigField
 	private String webCacheUrl;
@@ -154,6 +161,7 @@ public class DatasourceConfig extends AbstractConfig implements Comparable<Datas
 
 	public void setWmsServiceUrl(String wmsServiceUrl) {
 		this.wmsServiceUrl = wmsServiceUrl;
+		this.extraWmsServiceUrlsSet = null;
 	}
 
 	public String getLegendUrl() {
@@ -198,9 +206,32 @@ public class DatasourceConfig extends AbstractConfig implements Comparable<Datas
 	public String getExtraWmsServiceUrls() {
 		return extraWmsServiceUrls;
 	}
+	public Set<String> getExtraWmsServiceUrlsSet() {
+		if (this.extraWmsServiceUrlsSet == null && Utils.isNotBlank(this.extraWmsServiceUrls)) {
+			this.extraWmsServiceUrlsSet = toSet(this.extraWmsServiceUrls);
+		}
+
+		return this.extraWmsServiceUrlsSet;
+	}
 
 	public void setExtraWmsServiceUrls(String extraWmsServiceUrls) {
 		this.extraWmsServiceUrls = extraWmsServiceUrls;
+	}
+
+	public String getKmlUrls() {
+		return kmlUrls;
+	}
+	public Set<String> getKmlUrlsSet() {
+		if (this.kmlUrlsSet == null && Utils.isNotBlank(this.kmlUrls)) {
+			this.kmlUrlsSet = toSet(this.kmlUrls);
+		}
+
+		return this.kmlUrlsSet;
+	}
+
+	public void setKmlUrls(String kmlUrls) {
+		this.kmlUrls = kmlUrls;
+		this.kmlUrlsSet = null;
 	}
 
 	public Boolean isShowInLegend() {
@@ -280,16 +311,7 @@ public class DatasourceConfig extends AbstractConfig implements Comparable<Datas
 		}
 
 		if (this.baseLayersSet == null) {
-			this.baseLayersSet = new HashSet<String>();
-			String[] baselayers = baselayersStr.split(SPLIT_PATTERN);
-			if (baselayers != null) {
-				for (int i=0; i<baselayers.length; i++) {
-					String baselayer = baselayers[i];
-					if (Utils.isNotBlank(baselayer)) {
-						this.baseLayersSet.add(baselayer.trim());
-					}
-				}
-			}
+			this.baseLayersSet = toSet(baselayersStr);
 		}
 
 		return this.baseLayersSet.contains(layerId);
@@ -365,18 +387,50 @@ public class DatasourceConfig extends AbstractConfig implements Comparable<Datas
 	public Map<String, LayerConfig> getLayerConfigs(ClientConfig clientConfig) throws MalformedURLException, IOException, ServiceException, JSONException {
 		Map<String, LayerConfig> overridenLayerConfigs = new HashMap<String, LayerConfig>();
 
-		WMSCapabilitiesWrapper wmsCap =
-				WMSCapabilitiesWrapper.getInstance(this.wmsServiceUrl);
-
 		JSONObject globalOverrides = this.globalManualOverride;
 		JSONObject clientOverrides = clientConfig.getManualOverride();
 
 		// Retrieved raw layers, according to the datasource type
 		Map<String, LayerConfig> layersConfig = null;
-		if (wmsCap != null) {
-			layersConfig = wmsCap.getLayerConfigs(clientConfig, this);
-		} else if ("GOOGLE".equals(this.datasourceType)) {
+
+		// 'WMS', 'NCWMS', 'ARCGISWMS', 'GOOGLE', 'WMTS', 'KML', 'tiles', 'XYZ'
+		if ("GOOGLE".equals(this.datasourceType)) {
 			layersConfig = GoogleLayers.getGoogleLayerConfigs(clientConfig, this);
+
+		} else if ("KML".equals(this.datasourceType)) {
+			Set<String> _kmlUrlsSet = this.getKmlUrlsSet();
+			if (_kmlUrlsSet != null && !_kmlUrlsSet.isEmpty()) {
+				for (String kmlUrl : _kmlUrlsSet) {
+					if (Utils.isNotBlank(kmlUrl)) {
+						int layerIdStart = kmlUrl.lastIndexOf('/')+1;
+						int layerIdEnd = kmlUrl.lastIndexOf('.');
+						layerIdEnd = (layerIdEnd > 0 ? layerIdEnd : kmlUrl.length());
+						String layerId = kmlUrl.substring(layerIdStart, layerIdEnd);
+
+						LayerConfig layer = new LayerConfig(this);
+						layer.setLayerId(layerId);
+						layer.setTitle(layerId);
+						layer.setKmlUrl(kmlUrl);
+
+						if (layersConfig == null) {
+							layersConfig = new HashMap<String, LayerConfig>();
+						}
+						layersConfig.put(layerId, layer);
+					}
+				}
+			}
+
+		} else if (Utils.isNotBlank(this.wmsServiceUrl)) {
+			// Assume the service is a WMS compliant service
+			WMSCapabilitiesWrapper wmsCap =
+					WMSCapabilitiesWrapper.getInstance(this.wmsServiceUrl);
+
+			if (wmsCap != null) {
+				layersConfig = wmsCap.getLayerConfigs(clientConfig, this);
+			}
+
+		} else {
+			// Problem...
 		}
 
 		// Remove blacklisted layers and apply manual overrides, if needed
@@ -432,6 +486,20 @@ public class DatasourceConfig extends AbstractConfig implements Comparable<Datas
 		return overridenLayerConfigs;
 	}
 
+	private static Set<String> toSet(String setStr) {
+		Set<String> set = new HashSet<String>();
+		String[] strArray = setStr.split(SPLIT_PATTERN);
+		if (strArray != null) {
+			for (int i=0; i<strArray.length; i++) {
+				String str = strArray[i];
+				if (Utils.isNotBlank(str)) {
+					set.add(str.trim());
+				}
+			}
+		}
+		return set;
+	}
+
 	@Override
 	// Order datasources by datasource name
 	public int compareTo(DatasourceConfig o) {
@@ -470,8 +538,9 @@ public class DatasourceConfig extends AbstractConfig implements Comparable<Datas
 				(Utils.isBlank(datasourceId) ? "" :        "	datasourceId=" + datasourceId + "\n") +
 				(Utils.isBlank(datasourceName) ? "" :      "	datasourceName=" + datasourceName + "\n") +
 				(Utils.isBlank(datasourceType) ? "" :      "	datasourceType=" + datasourceType + "\n") +
-				(Utils.isBlank(extraWmsServiceUrls) ? "" :          "	serverUrls=" + extraWmsServiceUrls + "\n") +
-				(Utils.isBlank(wmsServiceUrl) ? "" :  "	getCapabilitiesUrl=" + wmsServiceUrl + "\n") +
+				(Utils.isBlank(extraWmsServiceUrls) ? "" : "	serverUrls=" + extraWmsServiceUrls + "\n") +
+				(Utils.isBlank(kmlUrls) ? "" :             "	kmlUrls=" + kmlUrls + "\n") +
+				(Utils.isBlank(wmsServiceUrl) ? "" :       "	wmsServiceUrl=" + wmsServiceUrl + "\n") +
 				(Utils.isBlank(webCacheUrl) ? "" :         "	webCacheUrl=" + webCacheUrl + "\n") +
 				(Utils.isBlank(webCacheParameters) ? "" :  "	webCacheParameters=" + webCacheParameters + "\n") +
 				(Utils.isBlank(featureRequestsUrl) ? "" :  "	featureRequestsUrl=" + featureRequestsUrl + "\n") +

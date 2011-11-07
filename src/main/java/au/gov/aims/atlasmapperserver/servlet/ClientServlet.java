@@ -77,7 +77,7 @@ public class ClientServlet extends HttpServlet {
 		} catch (FileNotFoundException e) {
 			response.setStatus(HttpServletResponse.SC_NOT_FOUND);
 			if (file != null) {
-				LOGGER.log(Level.WARNING, "File not found [" + file.getAbsolutePath() + "]");
+				LOGGER.log(Level.WARNING, "File not found [{0}]", file.getAbsolutePath());
 			} else {
 				LOGGER.log(Level.WARNING, "File not found - file path unknown?");
 			}

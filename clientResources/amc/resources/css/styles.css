@@ -12,6 +12,9 @@
 .emptyInfo {
 	font-style: italic;
 }
+.lanernameLabel {
+	font-weight: bold;
+}
 
 .legend {
 }

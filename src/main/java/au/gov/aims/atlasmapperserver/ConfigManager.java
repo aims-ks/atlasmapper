@@ -537,16 +537,6 @@ public class ConfigManager {
 
 						clientConfig.update(dataJSonObj);
 
-						// Ensure there is only one default
-/*
-						if (clientConfig.isDefault()) {
-							for (Map.Entry<Integer, ClientConfig> clientEntry : this.globalConfig.getClientConfigs().entrySet()) {
-								if (!clientId.equals(clientEntry.getKey())) {
-									clientConfig.setDefault(false);
-								}
-							}
-						}
-*/
 						File newClientFolder = null;
 						File newConfigFolder = null;
 						if (clientConfig != null) {
@@ -706,16 +696,15 @@ public class ConfigManager {
 			throws JSONException, FileNotFoundException, MalformedURLException, IOException, ServiceException {
 
 		ClientConfig clientConfig = this.getClientConfig(clientName);
-		return getProxyAllowedHosts(clientConfig, live);
+		return this.getProxyAllowedHosts(clientConfig, live);
 	}
 	public List<String> getProxyAllowedHosts(ClientConfig clientConfig, boolean live)
 			throws JSONException, FileNotFoundException, MalformedURLException, IOException, ServiceException {
 
-		List<String> allowedHosts = null;
+		List<String> allowedHosts = new ArrayList<String>();
 
 		JSONObject clientJSON = this.getClientConfigFileJSon(clientConfig, ConfigType.FULL, live, live);
 		if (clientJSON != null && clientJSON.has("datasources")) {
-			allowedHosts = new ArrayList<String>();
 			JSONObject datasources = clientJSON.optJSONObject("datasources");
 			Iterator<String> keys = datasources.keys();
 			if (keys != null) {
@@ -725,35 +714,29 @@ public class ConfigManager {
 					// Only add the first one that successed
 					boolean success =
 							this.addProxyAllowedHost(allowedHosts, datasource.optString("featureRequestsUrl")) ||
-							this.addProxyAllowedHost(allowedHosts, datasource.optString("serverUrls"));
+							this.addProxyAllowedHost(allowedHosts, datasource.optString("wmsServiceUrl"));
 				}
 			}
 		}
 
-		return allowedHosts;
-	}
-	/*
-	public List<String> getProxyAllowedHosts()
-			throws JSONException, FileNotFoundException, MalformedURLException, IOException, ServiceException {
+		JSONObject layersJSON = this.getClientConfigFileJSon(clientConfig, ConfigType.LAYERS, live, live);
+		if (layersJSON != null) {
+			Iterator<String> layerIds = layersJSON.keys();
+			if (layerIds != null) {
+				while (layerIds.hasNext()) {
+					JSONObject layer = layersJSON.optJSONObject(layerIds.next());
 
-		List<String> allowedHosts = new ArrayList<String>();
-		for (DatasourceConfig datasourceConfig : this.getDatasourceConfigs().values()) {
-			// Get unset URLs from getCapabilities document
-			DatasourceConfig overridenDatasourceConfig = WMSCapabilitiesWrapper.getInstance(
-					datasourceConfig.getGetCapabilitiesUrl()).applyOverrides(
-							datasourceConfig);
-			overridenDatasourceConfig =
-					datasourceConfig.applyOverrides();
-
-			// Only add the first one that successed
-			boolean success =
-					this.addProxyAllowedHost(allowedHosts, overridenDatasourceConfig.getFeatureRequestsUrl()) ||
-					this.addProxyAllowedHost(allowedHosts, overridenDatasourceConfig.getServerUrls()) ||
-					this.addProxyAllowedHost(allowedHosts, overridenDatasourceConfig.getGetCapabilitiesUrl());
+					// Only add the first one that successed
+					boolean success =
+							this.addProxyAllowedHost(allowedHosts, layer.optString("kmlUrl")) ||
+							this.addProxyAllowedHost(allowedHosts, layer.optString("featureRequestsUrl")) ||
+							this.addProxyAllowedHost(allowedHosts, layer.optString("wmsServiceUrl"));
+				}
+			}
 		}
-		return allowedHosts;
+
+		return allowedHosts.isEmpty() ? null : allowedHosts;
 	}
-	*/
 
 	private boolean addProxyAllowedHost(List<String> allowedHosts, String urlStr) {
 		URL url = null;
@@ -765,7 +748,11 @@ public class ConfigManager {
 		// It should not be null if it succeed, but better not taking chance.
 		if (url == null) { return false; }
 
-		allowedHosts.add(url.getHost());
+		String host = url.getHost();
+		if (host != null && !host.isEmpty() && !allowedHosts.contains(host)) {
+			allowedHosts.add(host);
+		}
+
 		return true;
 	}
 
@@ -1309,6 +1296,10 @@ public class ConfigManager {
 
 	private JSONObject generateLayer(LayerConfig layerConfig) throws JSONException {
 		JSONObject jsonLayer = new JSONObject();
+
+		if (Utils.isNotBlank(layerConfig.getKmlUrl())) {
+			jsonLayer.put("kmlUrl", layerConfig.getKmlUrl());
+		}
 
 		if (Utils.isNotBlank(layerConfig.getTitle())) {
 			jsonLayer.put("title", layerConfig.getTitle());

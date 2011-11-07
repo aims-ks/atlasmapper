@@ -6,6 +6,7 @@ import au.gov.aims.atlasmapperserver.ServletUtils;
 import au.gov.aims.atlasmapperserver.Utils;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLDecoder;
@@ -87,7 +88,8 @@ public class Proxy extends HttpServlet {
 		String host = rawhost.trim();
 
 		for (String allowedHost: this.allowedHosts) {
-			if (host.equals(allowedHost.trim())) {
+			// Case-insensitive: http://en.wikipedia.org/wiki/Domain_name#Technical_requirements_and_process
+			if (host.equalsIgnoreCase(allowedHost.trim())) {
 				return true;
 			}
 		}
@@ -113,59 +115,105 @@ public class Proxy extends HttpServlet {
 
 		String urlStr = request.getParameter(URL_PARAM);
 		if (urlStr != null && !urlStr.isEmpty()) {
-			LOGGER.log(Level.INFO, "Proxy URL: " + urlStr);
+			LOGGER.log(Level.INFO, "Proxy URL: {0}", urlStr);
 			try {
-			    URL url = new URL(URLDecoder.decode(urlStr, "UTF-8"));
-				String protocol = url.getProtocol();
-				String host = url.getHost();
-				if (!isHostAllowed(host)) {
-					response.setContentType("text/plain");
-					response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+				String decodedUrl = URLDecoder.decode(urlStr, "UTF-8");
+				if (decodedUrl != null) { decodedUrl = decodedUrl.trim(); }
 
-					String responseTxt = "This proxy does not allow you to access that location (" + host + ").";
-					LOGGER.log(Level.WARNING, responseTxt);
+				URL url = new URL(decodedUrl);
+				if (url != null) {
+					String protocol = url.getProtocol();
+					String host = url.getHost();
+					if (!isHostAllowed(host)) {
+						response.setContentType("text/plain");
+						response.setStatus(HttpServletResponse.SC_FORBIDDEN);
 
-					ServletUtils.sendResponse(request, response, responseTxt);
-				} else if (protocol.equals("http") || protocol.equals("https")) {
-				    URLConnection conn = url.openConnection();
+						String responseTxt = "This proxy does not allow you to access that location (" + host + ").";
+						LOGGER.log(Level.WARNING, responseTxt);
 
-					if (conn != null) {
-						String contentType = conn.getContentType();
-						if (contentType == null || contentType.isEmpty()) {
-							response.setContentType("text/plain");
-							LOGGER.log(Level.INFO, "Can not retrieved the content, falling back to: " + response.getContentType());
-						} else {
-							response.setContentType(contentType);
-							LOGGER.log(Level.INFO, "Set content type using URL connection content type: " + response.getContentType());
-						}
+						ServletUtils.sendResponse(request, response, responseTxt);
+					} else if (protocol.equals("http") || protocol.equals("https")) {
+						URLConnection conn = url.openConnection();
 
-						InputStream inputStream = null;
-						try {
-							inputStream = conn.getInputStream();
-							ServletUtils.sendResponse(request, response, inputStream);
-						} finally {
-							if (inputStream != null) {
-								try { inputStream.close(); } catch (Exception e) { LOGGER.log(Level.WARNING, "Cant close the URL input stream.", e); }
+						if (conn != null) {
+							HttpURLConnection httpConn = (HttpURLConnection)conn;
+							int responseCode = httpConn.getResponseCode();
+
+							if (responseCode > 0) {
+								response.setStatus(responseCode);
 							}
+
+							if (responseCode < 400) {
+								// -1: Unknown status code
+								// 1XX: Informational
+								// 2XX: Successful
+								// 3XX: Redirection
+								String contentType = conn.getContentType();
+								if (contentType == null || contentType.isEmpty()) {
+									response.setContentType("text/plain");
+									LOGGER.log(Level.INFO, "Can not retrieved the content type, falling back to: {0}", response.getContentType());
+								} else {
+									response.setContentType(contentType);
+									LOGGER.log(Level.INFO, "Set content type using URL connection content type: {0}", response.getContentType());
+								}
+
+								InputStream inputStream = null;
+								try {
+									inputStream = conn.getInputStream();
+									ServletUtils.sendResponse(request, response, inputStream);
+								} finally {
+									if (inputStream != null) {
+										try { inputStream.close(); } catch (Exception e) { LOGGER.log(Level.WARNING, "Cant close the URL input stream.", e); }
+									}
+								}
+							} else if (responseCode == HttpServletResponse.SC_BAD_REQUEST) {
+								// 400: Bad Request
+								response.setContentType("text/plain");
+								String responseTxt = "Error "+responseCode+" - Bad Request: "+decodedUrl;
+								LOGGER.log(Level.WARNING, responseTxt);
+
+								ServletUtils.sendResponse(request, response, responseTxt);
+							} else if (responseCode == HttpServletResponse.SC_NOT_FOUND) {
+								// 404: Not Found
+								response.setContentType("text/plain");
+								String responseTxt = "Error "+responseCode+" - Not Found: "+decodedUrl;
+								LOGGER.log(Level.WARNING, responseTxt);
+
+								ServletUtils.sendResponse(request, response, responseTxt);
+							} else if (responseCode == HttpServletResponse.SC_INTERNAL_SERVER_ERROR) {
+								// 500: Internal Server Error
+								response.setContentType("text/plain");
+								String responseTxt = "Error "+responseCode+" - Internal Server Error: "+decodedUrl;
+								LOGGER.log(Level.WARNING, responseTxt);
+
+								ServletUtils.sendResponse(request, response, responseTxt);
+							} else {
+								// Any other errors
+								response.setContentType("text/plain");
+								String responseTxt = "Error "+responseCode+": "+decodedUrl;
+								LOGGER.log(Level.WARNING, responseTxt);
+
+								ServletUtils.sendResponse(request, response, responseTxt);
+							}
+						} else {
+							LOGGER.log(Level.WARNING, "Can not open the URL connection.");
+							throw new ServletException("Can not open the URL connection.");
 						}
 					} else {
-						LOGGER.log(Level.WARNING, "Can not open the URL connection.");
-						throw new ServletException("Can not open the URL connection.");
+						response.setContentType("text/plain");
+						response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+
+						String responseTxt = "Error - Unsupported protocol: "+decodedUrl;
+						LOGGER.log(Level.WARNING, responseTxt);
+
+						ServletUtils.sendResponse(request, response, responseTxt);
 					}
-				} else {
-					response.setContentType("text/plain");
-					response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-
-					String responseTxt = "Bad request, url: " + urlStr;
-					LOGGER.log(Level.WARNING, responseTxt);
-
-					ServletUtils.sendResponse(request, response, responseTxt);
 				}
 			} catch (Exception e) {
 				response.setContentType("text/plain");
 				response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 
-				String responseTxt = "Some unexpected error occurred. Error text was: " + e.getMessage();
+				String responseTxt = "An unexpected error occurred: " + e.getMessage();
 				LOGGER.log(Level.WARNING, responseTxt, e);
 
 				ServletUtils.sendResponse(request, response, responseTxt);

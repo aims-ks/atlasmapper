@@ -6,7 +6,7 @@ editAreaLoader.load_syntax["atlasmapperconfig"] = {
 	'KEYWORD_CASE_SENSITIVE': true,
 	'KEYWORDS': {
  		'layers': [
-			'title', 'description', 'datasourceId', 'layerBoundingBox',
+			'kmlUrl', 'title', 'description', 'datasourceId', 'layerBoundingBox',
 			'wmsQueryable', 'wmsVersion', 'isBaseLayer', 'hasLegend',
 			'legendUrl', 'legendGroup', 'legendTitle', 'infoHtmlUrls',
 			'aliasIds', 'serverUrls', 'wmsRequestMimeType',

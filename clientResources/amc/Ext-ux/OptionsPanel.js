@@ -15,6 +15,7 @@ Ext.ux.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 	extraOptionsFieldSet: null,
 	ncwmsOptionsFieldSet: null,
 
+	layernameLabel: null,
 	legendCheckbox: null,
 	opacitySlider: null,
 
@@ -38,6 +39,12 @@ Ext.ux.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 		this.headerLabel = new Ext.form.Label({
 			cls: 'emptyInfo',
 			html: this.defaultContent
+		});
+
+		this.layernameLabel = new Ext.form.Label({
+			cls: 'lanernameLabel',
+			html: '',
+			hidden: true
 		});
 
 		this.legendCheckbox = new Ext.form.Checkbox({
@@ -199,6 +206,7 @@ Ext.ux.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 			},
 			items: [
 				this.headerLabel,
+				this.layernameLabel,
 				this.optionsFieldSet,
 				this.extraOptionsFieldSet,
 				this.ncwmsOptionsFieldSet
@@ -252,6 +260,7 @@ Ext.ux.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 		this.currentLayer = layer;
 
 		if (layer) {
+			this.layernameLabel.setText(layer.name);
 			if (layer.json) {
 
 				// Set extra options for the selected layer
@@ -520,6 +529,7 @@ Ext.ux.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 
 			// Hide the "Empty options" label
 			this.headerLabel.hide();
+			this.layernameLabel.show();
 
 			// Conditionally show some options
 			this.toggleLayerField(this.legendCheckbox, hasLegendEnabled);
@@ -564,6 +574,7 @@ Ext.ux.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 			// Show the "Empty options" label
 			this.headerLabel.setText(html ? html : this.defaultContent, false);
 			this.headerLabel.show();
+			this.layernameLabel.hide();
 
 			// Hide all options
 			this.optionsFieldSet.hide();
@@ -582,6 +593,7 @@ Ext.ux.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 
 			// Hide the "Empty options" label
 			this.headerLabel.hide();
+			this.layernameLabel.show();
 
 			// Show the ncWMS options fieldset
 			if (hasNcwmsOptions) {
