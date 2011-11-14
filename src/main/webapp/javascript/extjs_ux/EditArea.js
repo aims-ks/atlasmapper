@@ -38,6 +38,34 @@ Example usage:
  * @docauthor Gael Lafond <g.lafond@aims.gov.au>
  */
 
+// Validation type usually used with EditArea
+Ext.apply(Ext.form.field.VTypes, {
+	jsonfield: function(val, field) {
+		if (val == null || val == '') {
+			// The form will return an error for this field if it doesn't allow null value.
+			return true;
+		}
+
+		var json = null;
+		if (typeof(val) == 'object') {
+			json = val
+		} else {
+			try {
+				json = Ext.JSON.decode(val);
+			} catch(error) {
+				return false;
+			}
+		}
+
+		if (!json) {
+			return false;
+		}
+		return true;
+	},
+
+	jsonfieldText: 'Invalid JSON syntax. See the documentation for more info.'
+});
+
 Ext.define('Ext.ux.form.field.EditArea', {
 	extend:'Ext.form.field.TextArea',
 	alias: ['widget.editareafield'],
@@ -154,7 +182,8 @@ Ext.define('Ext.ux.form.field.EditArea', {
 
 	// JSON Object or String => String
 	valueToRaw: function(value) {
-		if (value && this.valueType && this.valueType == 'json' && typeof(value) == 'object') {
+		if (this.valueType && this.valueType == 'json' && typeof(value) == 'object') {
+			if (value == '') { return value; }
 			if (typeof(JSON) != 'undefined' && this.indent) {
 				// Not suitable for IE 6 and IE 7.
 				return JSON.stringify(value, null, this.indent);
@@ -168,7 +197,8 @@ Ext.define('Ext.ux.form.field.EditArea', {
 
 	// String => JSON Object or String
 	rawToValue: function(rawValue) {
-		if (rawValue && this.valueType && this.valueType == 'json' && typeof(rawValue) == 'string') {
+		if (this.valueType && this.valueType == 'json' && typeof(rawValue) == 'string') {
+			if (rawValue == '') { return rawValue; }
 			try {
 				return Ext.JSON.decode(rawValue);
 			} catch(error) {
@@ -184,8 +214,16 @@ Ext.define('Ext.ux.form.field.EditArea', {
 		// It should always be EditArea value, even when the EditArea is off
 		// (it return the value of the TextArea). The other values are there
 		// for safety.
-		var me = this,
-			v = (me.valueEl ? editAreaLoader.getValue(me.valueEl.id) || me.valueEl.getValue() : Ext.value(me.rawValue, ''));
+		var me = this, v = null;
+
+		if (me.valueEl) {
+			v = editAreaLoader.getValue(me.valueEl.id);
+			if (v == null) {
+				v = me.valueEl.getValue();
+			}
+		} else {
+			v = Ext.value(me.rawValue, '');
+		}
 
 		me.rawValue = v;
 

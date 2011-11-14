@@ -1,8 +1,9 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 
+<!-- Generated with AtlasMapper version ${version} -->
 <head>
-	<title>Atlas Mapper</title>
+	<title>${clientName}</title>
 	<link rel="icon" type="image/png" href="resources/favicon.png" />
 	<meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
@@ -38,7 +39,7 @@
 	<!--<script type="text/javascript" src="GeoExt/lib/GeoExt.js"></script> -->
 	<script type="text/javascript" src="GeoExt/script/GeoExt.js"></script>
 
-	<!-- Personal addition to GeoExt -->
+	<!-- Personal addition to ExtJS -->
 	<script type="text/javascript" src="Ext-ux/CompositeFieldAnchor.js"></script>
 	<script type="text/javascript" src="Ext-ux/IFramePanel.js"></script>
 	<script type="text/javascript" src="Ext-ux/OptionsPanel.js"></script>
@@ -50,6 +51,8 @@
 	<script type="text/javascript" src="Ext-ux/DateField.js"></script>
 	<script type="text/javascript" src="Ext-ux/NCDatetimeField.js"></script>
 
+	<!-- Personal addition to GeoExt -->
+	<script type="text/javascript" src="GeoExt-ux/LayerLegend.js"></script>
 	<script type="text/javascript" src="GeoExt-ux/WMSLegend.js"></script>
 	<script type="text/javascript" src="GeoExt-ux/NCWMSLegend.js"></script>
 	<script type="text/javascript" src="GeoExt-ux/VectorLegend.js"></script>

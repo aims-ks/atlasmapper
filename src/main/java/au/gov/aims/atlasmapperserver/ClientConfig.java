@@ -56,12 +56,6 @@ public class ClientConfig extends AbstractConfig {
 	private JSONArray embededClientModules;
 
 	@ConfigField
-	private String generatedFileLocation;
-
-	@ConfigField
-	private String baseUrl;
-
-	@ConfigField
 	private JSONObject manualOverride;
 
 	@ConfigField
@@ -101,16 +95,25 @@ public class ClientConfig extends AbstractConfig {
 
 	@ConfigField
 	private String baseLayers;
+	// Cache - avoid parsing baseLayers string every times.
+	private Set<String> baseLayersSet = null;
 
 	@ConfigField
 	private String proxyUrl;
 
-	@ConfigField
-	private String layerInfoServiceUrl;
-	// Cache - avoid parsing baseLayers string every times.
-	private Set<String> baseLayersSet = null;
+	// Read only values also need to be disabled in the form (clientsConfigPage.js)
+	@ConfigField(demoReadOnly = true)
+	private String generatedFileLocation;
 
-	public ClientConfig() { }
+	@ConfigField(demoReadOnly = true)
+	private String baseUrl;
+
+	@ConfigField(demoReadOnly = true)
+	private String layerInfoServiceUrl;
+
+	public ClientConfig(ConfigManager configManager) {
+		super(configManager);
+	}
 
 	@Override
 	public void setJSONObjectKey(String key) {
@@ -208,22 +211,6 @@ public class ClientConfig extends AbstractConfig {
 		this.enable = enable;
 	}
 
-	public String getGeneratedFileLocation() {
-		return generatedFileLocation;
-	}
-
-	public void setGeneratedFileLocation(String generatedFileLocation) {
-		this.generatedFileLocation = generatedFileLocation;
-	}
-
-	public String getBaseUrl() {
-		return baseUrl;
-	}
-
-	public void setBaseUrl(String baseUrl) {
-		this.baseUrl = baseUrl;
-	}
-
 	public JSONObject getManualOverride() {
 		return manualOverride;
 	}
@@ -313,6 +300,22 @@ public class ClientConfig extends AbstractConfig {
 		this.proxyUrl = proxyUrl;
 	}
 
+	public String getGeneratedFileLocation() {
+		return generatedFileLocation;
+	}
+
+	public void setGeneratedFileLocation(String generatedFileLocation) {
+		this.generatedFileLocation = generatedFileLocation;
+	}
+
+	public String getBaseUrl() {
+		return baseUrl;
+	}
+
+	public void setBaseUrl(String baseUrl) {
+		this.baseUrl = baseUrl;
+	}
+
 	public String getLayerInfoServiceUrl() {
 		return layerInfoServiceUrl;
 	}
@@ -320,6 +323,7 @@ public class ClientConfig extends AbstractConfig {
 	public void setLayerInfoServiceUrl(String layerInfoServiceUrl) {
 		this.layerInfoServiceUrl = layerInfoServiceUrl;
 	}
+
 
 	public JSONObject toJSonObjectWithClientUrls(ServletContext context) throws JSONException {
 		JSONObject json = this.toJSonObject();
@@ -446,7 +450,7 @@ public class ClientConfig extends AbstractConfig {
 				if (!overridenLayerConfigs.containsKey(layerId)) {
 					JSONObject jsonClientOverride = clientOverrides.optJSONObject(layerId);
 					if (jsonClientOverride != null && jsonClientOverride.length() > 0) {
-						LayerConfig manualLayer = new LayerConfig(jsonClientOverride);
+						LayerConfig manualLayer = new LayerConfig(this.getConfigManager(), jsonClientOverride);
 						manualLayer.setLayerId(layerId);
 
 						overridenLayerConfigs.put(

@@ -24,6 +24,10 @@ public class LayerStyleConfig extends AbstractConfig implements Comparable<Layer
 	@ConfigField(name="default", getter="isDefault", setter="setDefault")
 	private Boolean _default;
 
+	public LayerStyleConfig(ConfigManager configManager) {
+		super(configManager);
+	}
+
 	@Override
 	public void setJSONObjectKey(String key) {
 		if (Utils.isBlank(this.name)) {

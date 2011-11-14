@@ -6,7 +6,6 @@
 package au.gov.aims.atlasmapperserver.module;
 
 import au.gov.aims.atlasmapperserver.ClientConfig;
-import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.annotation.Module;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -20,7 +19,7 @@ import org.json.JSONObject;
 )
 public class Info extends AbstractModule {
 	@Override
-	public JSONObject getJSONConfiguration(ConfigManager configManager, ClientConfig clientConfig) throws JSONException {
+	public JSONObject getJSONConfiguration(ClientConfig clientConfig) throws JSONException {
 		JSONObject layerTabConfig = new JSONObject();
 		layerTabConfig.put("type", "description");
 		layerTabConfig.put("startingTab", true);

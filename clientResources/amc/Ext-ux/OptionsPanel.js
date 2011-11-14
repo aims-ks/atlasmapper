@@ -77,6 +77,7 @@ Ext.ux.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 		});
 
 		this.optionsFieldSet = new Ext.form.FieldSet({
+			hidden: true,
 			defaultType: 'textfield',
 			defaults: {
 				anchor:'100%'
@@ -260,8 +261,8 @@ Ext.ux.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 		this.currentLayer = layer;
 
 		if (layer) {
-			this.layernameLabel.setText(layer.name);
 			if (layer.json) {
+				this.layernameLabel.setText(layer.json['title'], false);
 
 				// Set extra options for the selected layer
 
@@ -269,11 +270,10 @@ Ext.ux.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 				if (layer.json['wmsStyles']) {
 					var styleOptionName = 'STYLES';
 					var styleOptions = [];
-					var i=0;
 					Ext.iterate(layer.json['wmsStyles'], function(styleName, jsonStyle) {
 						// BUG: Duplicate names can not be select with the ExtJS select option.
 						// Temporary(?) solution: Add a sequential number in front of it.
-						var styleTitle = ++i + '. ' + (jsonStyle['title'] ? jsonStyle['title'] : styleName);
+						var styleTitle = (jsonStyle['title'] ? jsonStyle['title'] : styleName);
 						// TODO Display de description on a box when a style is selected
 						var styleDescription = jsonStyle['description'];
 
@@ -289,6 +289,20 @@ Ext.ux.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 						this.getParameterActualValue(layer, styleOptionName, "");
 
 					if (styleOptions.length > 1) {
+						// Sort styles
+						styleOptions.sort(this._sortByName);
+
+						// Fancy style name formating
+						Ext.each(styleOptions, function(style, index) {
+							// Highlight the default style (can not add any HTML inside input element...)
+							if (style[0] === '') {
+								style[1] = '[' + style[1] + ']';
+							}
+							// Add number before the Style name, to avoid duplicates
+							style[1] = (index+1) + '. ' + style[1];
+							styleOptions[index] = style;
+						});
+
 						var styleSelect = {
 							xtype: "combo",
 							name: styleOptionName,
@@ -402,6 +416,20 @@ Ext.ux.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 		}
 
 		this.showHideOptions(layer, hasLegendEnabled, opacityEnabled);
+	},
+
+	// Ignore case sort
+	_sortByName: function(a, b) {
+		// Move nulls at the end (this should not append)
+		if (!a || !a[1]) { return -1; }
+		if (!b || !b[1]) { return 1; }
+
+		var lca = a[1].toLowerCase();
+		var lcb = b[1].toLowerCase();
+
+		if (lcb > lca) { return -1; }
+		// Never equals, we don't want to loose data
+		return 1;
 	},
 
 	/**

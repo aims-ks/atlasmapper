@@ -8,7 +8,9 @@ Atlas.Core = OpenLayers.Class({
 	EVENT_TYPES: [
 		'createNewMap', 'mapAdded', 'removeMap', 'mapRemoved'
 	],
-	// The OpenLayers event object, set in initialize function
+	MAX_URL_LENGTH: 40,
+
+// The OpenLayers event object, set in initialize function
 	events: null,
 	configFileUrl: null,
 	live: false,
@@ -240,7 +242,7 @@ Atlas.Core = OpenLayers.Class({
 
 	moveEnd: function(mapIndex) {
 		if (this.moving) {
-			return;
+			return false;
 		}
 		this.moving = true;
 
@@ -259,7 +261,7 @@ Atlas.Core = OpenLayers.Class({
 		this.moving = false;
 		this.movestarted = false;
 		this._showMarkers(mapIndex);
-		return(false);
+		return false;
 	},
 
 	mouseMove: function(mapIndex, evt) {
@@ -275,19 +277,19 @@ Atlas.Core = OpenLayers.Class({
 						masterMap.getLonLatFromViewPortPx(evt.xy)));
 			}
 		}
-		return(false);
+		return false;
 	},
 
 	mouseOver: function(mapIndex, evt) {
 		if (!this.movestarted) {
 			this._showMarkers(mapIndex);
 		}
-		return(false);
+		return false;
 	},
 
 	mouseOut: function(mapIndex, evt) {
 		this._hideMarkers();
-		return(false);
+		return false;
 	},
 
 	_hideMarkers: function() {
@@ -614,12 +616,64 @@ Atlas.Core = OpenLayers.Class({
 	// This function needs some works (\S is too permissive).
 	// See to RFC 1738:
 	//     http://www.apps.ietf.org/rfc/rfc1738.html
-	urlToHTML: function(input) {
-		return input
-			.replace(/(ftp|http|https|file):\/\/[\S]+(\b|$)/gim,
-				'<a href="$&" class="my_link" target="_blank">$&</a>')
-			.replace(/(^|[^\/])(www[\S]+(\b|$))/gim,
-				'$1<a href="http://$2" class="my_link" target="_blank">$2</a>');
+	/**
+	 * Change all URLs in the input to a HTML link, and truncate long URL to
+	 * MAX_URL_LENGTH.
+	 */
+	urlsToHTML: function(input) {
+		var newInput = '';
+		var lastIndex = 0;
+
+		// pattern:
+		//     Well formed URL
+		//     protocol "://" not-white-spaces(multiple times) word-boundary OR end-of-string
+		//     ( ---------------------------------- 1 ------------------------------------- )
+		//     ( - 2 - )                                       ( ------------ 3 ----------- )
+		//         Example: http://google.com?search=abc
+		//     OR
+		//     URL without explicit protocol
+		//     start-of-string OR not-a-slash "www" not-white-spaces(multiple times) word-boundary OR end-of-string
+		//     ( ----------------------------------------------- 4 ---------------------------------------------- )
+		//     ( ------------ 5 ----------- ) ( ------------------------------- 6 ------------------------------- )
+		//                                                                           ( ------------ 7 ----------- )
+		//         Example: www.google.com?search=abc
+		var pattern = /((ftp|http|https|file):\/\/[\S]+(\b|$))|((^|[^\/])(www[\S]+(\b|$)))/gim;
+		var matches = null;
+		while (matches = pattern.exec(input)) {
+			var url = null;
+			var displayedUrl = null;
+			// gap = number of characters to skip;
+			//     The pattern may include some unwanted characters.
+			var gap = 0;
+
+			if (typeof(matches[6]) !== 'undefined') {
+				// URL without explicit protocol
+				displayedUrl = matches[6];
+				url = 'http://' + matches[6];
+				if (typeof(matches[5]) !== 'undefined') {
+					gap = matches[5].length;
+				}
+			} else {
+				// Well formed URL
+				displayedUrl = matches[1];
+				url = matches[1];
+			}
+
+			var truncateUrl = (displayedUrl.length > this.MAX_URL_LENGTH ? displayedUrl.substring(0, (this.MAX_URL_LENGTH-3)/4*3) + '...' + displayedUrl.substring(displayedUrl.length - (this.MAX_URL_LENGTH-3)/4) : displayedUrl);
+			newInput = newInput +
+					input.substring(lastIndex, matches.index + gap) +
+					'<a href="' + url + '" class="my_link" target="_blank">' + truncateUrl + '</a>';
+
+			lastIndex = matches.index + matches[0].length;
+		}
+		newInput = newInput + input.substring(lastIndex);
+
+		return newInput;
+	},
+
+	lineBreaksToHTML: function(input) {
+		// Replace all 3 types of line breaks with a HTML line break.
+		return input.replace(/(\r\n|\n|\r)/gim, '<br/>\n');
 	},
 
 	/**
@@ -661,7 +715,7 @@ Atlas.Core = OpenLayers.Class({
 			}
 		}
 		if (jsonLayer['description']) {
-			desc += '<br/>' + this.urlToHTML(jsonLayer['description']);
+			desc += '<br/>' + this.urlsToHTML(this.lineBreaksToHTML(jsonLayer['description']));
 		}
 
 		if (jsonLayer['layerId']) {

@@ -31,10 +31,10 @@ public class ModuleHelper {
 	 * @return
 	 * @throws JSONException
 	 */
-	public static JSONObject generateModuleConfiguration(String moduleName, ConfigManager configManager, ClientConfig clientConfig) throws JSONException {
+	public static JSONObject generateModuleConfiguration(String moduleName, ClientConfig clientConfig) throws JSONException {
 		AbstractModule moduleClass = getModules().get(moduleName);
 		if (moduleClass != null) {
-			return moduleClass.getJSONConfiguration(configManager, clientConfig);
+			return moduleClass.getJSONConfiguration(clientConfig);
 		}
 		return null;
 	}

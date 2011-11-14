@@ -156,6 +156,8 @@ Ext.define('Writer.ClientConfigForm', {
 			return true;
 		};
 
+		var notAvailableInDemoMode = demoMode ? "<br/><strong>This function is not available in the Demo version.</strong>" : "";
+
 		Ext.apply(this, {
 			activeRecord: null,
 			border: false,
@@ -182,7 +184,7 @@ Ext.define('Writer.ClientConfigForm', {
 				}, {
 					fieldLabel: 'Client Name',
 					name: 'clientName',
-					qtipHtml: 'A human readable name for this client. This field is not used by the application. It\'s only a reference for this list.',
+					qtipHtml: 'A human readable name for this client. This field is used as a name for the client folder, as a title for the Atlas Mapper client and as a reference in this interface, for the administrator.',
 					allowBlank: false
 				}, {
 					xtype: 'checkboxgroup',
@@ -324,26 +326,29 @@ Ext.define('Writer.ClientConfigForm', {
 						}, {
 							fieldLabel: 'Generated file location',
 							qtipHtml: 'Absolute file path, on the server\'s, to the folder where the client has to be generated. The application will try to create the folder if it doesn\'t exists.<br/>'+
-								'<strong>Warning:</strong> Only set this field if you are setting a client outside the application. If you set this field, you will also have to set the <i>Client base URL</i> with the URL that allow users to access the folder.',
+								'<strong>Warning:</strong> Only set this field if you are setting a client outside the application. If you set this field, you will also have to set the <i>Client base URL</i> with the URL that allow users to access the folder.'+
+								notAvailableInDemoMode,
 							name: 'generatedFileLocation',
 							id: 'generatedFileLocation',
+							disabled: demoMode,
 							validator: validateDependencies,
-							dependencies: ['layerInfoServiceUrl','baseUrl']
-						}, {
-							fieldLabel: 'Layer info service URL',
-							qtipHtml: 'URL used by the client to get information about layers. The default URL is: atlasmapper/public/layersInfo.jsp',
-							name: 'layerInfoServiceUrl',
-							id: 'layerInfoServiceUrl',
-							validator: validateDependencies,
-							dependencies: ['generatedFileLocation','baseUrl']
+							dependencies: ['baseUrl']
 						}, {
 							fieldLabel: 'Client base URL',
 							qtipHtml: 'URL to the client. This field is only needed to create the link to the client, in the Administration Interface. Failing to provide this information will not have any effect in the client itself. Default URL for this field is atlasmapper/client/<Client name>/'+
-								'<strong>Warning:</strong> Only set this field if you are setting a client outside the application.',
+								'<strong>Warning:</strong> Only set this field if you are setting a client outside the application.'+
+								notAvailableInDemoMode,
 							name: 'baseUrl',
 							id: 'baseUrl',
+							disabled: demoMode,
 							validator: validateDependencies,
-							dependencies: ['generatedFileLocation','layerInfoServiceUrl']
+							dependencies: ['generatedFileLocation']
+						}, {
+							fieldLabel: 'Layer info service URL',
+							qtipHtml: 'URL used by the client to get information about layers. The default URL is: atlasmapper/public/layersInfo.jsp'+
+								notAvailableInDemoMode,
+							name: 'layerInfoServiceUrl',
+							disabled: demoMode
 						}, {
 							fieldLabel: ' ', labelSeparator: '',
 							boxLabel: 'Use layer service.',

@@ -27,6 +27,10 @@ public class LayerOptionConfig extends AbstractConfig {
 	@ConfigField
 	private String defaultValue;
 
+	public LayerOptionConfig(ConfigManager configManager) {
+		super(configManager);
+	}
+
 	@Override
 	public void setJSONObjectKey(String key) {
 		if (Utils.isBlank(this.name)) {

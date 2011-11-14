@@ -95,13 +95,13 @@ public class Utils {
 	 * @param jsStr
 	 * @return
 	 */
-	public static String safeJsStr(String jsStr) {
-		if (jsStr == null) { return null; }
-		return jsStr.replace("\\", "\\\\").replace("'", "\\'").replace("\"", "\\\"");
-	}
 	public static String safeJsStr(Object jsObj) {
 		if (jsObj == null) { return null; }
 		return safeJsStr(jsObj.toString());
+	}
+	public static String safeJsStr(String jsStr) {
+		if (jsStr == null) { return null; }
+		return jsStr.replace("\\", "\\\\").replace("\n", "\\n").replace("'", "\\'").replace("\"", "\\\"");
 	}
 
 	public static String jsonToStr(JSONObject json) throws JSONException {

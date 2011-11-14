@@ -33,4 +33,9 @@ public class UtilsTest extends TestCase {
 		String frenchStr = "Une cha\u00EEne de caract\u00E8res."; // 00EE => i circ (C3AE in hexa), 00E8 => e grave (C3A8 in hexa)
 		assertEquals("556E6520636861C3AE6E6520646520636172616374C3A87265732E", Utils.toHex(frenchStr.getBytes("UTF-8")));
 	}
+
+	public void testGetVersion() {
+		assertNotNull("Project version number is null", ProjectInfo.getVersion());
+		System.out.println(ProjectInfo.getDescription());
+	}
 }

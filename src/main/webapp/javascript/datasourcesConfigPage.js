@@ -59,7 +59,9 @@ Ext.define('Writer.LayerServerConfigForm', {
 	initComponent: function() {
 		this.defaultValues = Ext.create('Writer.LayerServerConfig', {
 			'datasourceType': 'WMS',
-			'showInLegend': true
+			'showInLegend': true,
+			'legendParameters': 'FORMAT=image/png\nHEIGHT=10\nWIDTH=20',
+			'webCacheParameters': 'LAYERS, TRANSPARENT, SERVICE, VERSION, REQUEST, EXCEPTIONS, FORMAT, SRS, BBOX, WIDTH, HEIGHT'
 		});
 		this.addEvents('create');
 
@@ -121,6 +123,14 @@ Ext.define('Writer.LayerServerConfigForm', {
 				height: 400
 			}, browserSpecificEditAreaConfig
 		);
+		var legendParameters = {
+			fieldLabel: 'Legend parameters',
+			qtipHtml: 'List of URL parameters <i>key=value</i>, separated by coma or new line. Those parameters are added to the URL sent to request the legend graphics.',
+			name: 'legendParameters',
+			xtype: 'textareafield',
+			resizable: {transparent: true}, resizeHandles: 's',
+			height: 100
+		};
 
 		var blacklistedLayers = {
 			fieldLabel: 'Black listed layers',
@@ -139,11 +149,10 @@ Ext.define('Writer.LayerServerConfigForm', {
 		};
 		var legendUrl = {
 			fieldLabel: 'Legend URL',
-			qtipHtml: 'This field override the legend URL provided by the GetCapabilities document. It\'s possible to override this URL by doing one of these:'+
+			qtipHtml: 'This field override the legend URL provided by the capabilities document. It\'s possible to override this URL by doing one of these:'+
 				'<ul>'+
-					'<li>leaving this field blank and setting a legend URL for each layer of this datasource, using the <em>Manual Override</em> in <em>Global configuration</em></li>'+
-					'<li>setting a base URL here and a static image file name for each layer of this datasource, using the <em>Manual Override</em> in <em>Global configuration</em></li>'+
-					'<li>providing a legend URL to a static image here, that will be used for each layer of this datasource</li>'+
+					'<li>leaving this field blank and setting a legend URL (attribute <i>legendUrl</i>) for each layer of this datasource, using the <em>Layers\' global manual override</em> field</li>'+
+					'<li>providing a legend URL to a static image here, that will be used for each layers of this datasource</li>'+
 				'</ul>',
 			name: 'legendUrl'
 		};
@@ -203,7 +212,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 			xtype: 'textareafield',
 			resizable: {transparent: true}, resizeHandles: 's',
 			height: 100
-		}
+		};
 
 
 		// Set the Form items for the different datasource types
@@ -216,12 +225,11 @@ Ext.define('Writer.LayerServerConfigForm', {
 				advancedItems.push(globalManualOverride);
 				advancedItems.push(blacklistedLayers);
 				advancedItems.push(showInLegend);
+				advancedItems.push(legendParameters);
 				advancedItems.push(legendUrl);
-				//advancedItems.push(legendParametersGrid);
 				//advancedItems.push(extraWmsServiceUrls);
 				advancedItems.push(webCacheUrl);
 				advancedItems.push(webCacheParameters);
-				advancedItems.push(webCacheParametersExample);
 				advancedItems.push(featureRequestsUrl);
 				break;
 
@@ -233,8 +241,8 @@ Ext.define('Writer.LayerServerConfigForm', {
 				advancedItems.push(globalManualOverride);
 				advancedItems.push(blacklistedLayers);
 				advancedItems.push(showInLegend);
+				advancedItems.push(legendParameters);
 				advancedItems.push(legendUrl);
-				//advancedItems.push(legendParametersGrid);
 				//advancedItems.push(extraWmsServiceUrls);
 				advancedItems.push(featureRequestsUrl);
 				break;
@@ -247,8 +255,8 @@ Ext.define('Writer.LayerServerConfigForm', {
 				advancedItems.push(globalManualOverride);
 				advancedItems.push(blacklistedLayers);
 				advancedItems.push(showInLegend);
+				advancedItems.push(legendParameters);
 				advancedItems.push(legendUrl);
-				//advancedItems.push(legendParametersGrid);
 				//advancedItems.push(extraWmsServiceUrls);
 				advancedItems.push(featureRequestsUrl);
 				break;

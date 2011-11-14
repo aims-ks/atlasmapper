@@ -56,6 +56,12 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 			});
 		};
 
+		var onCheckChange = function(node, checked) {
+			if (checked) {
+				node.select();
+			}
+		};
+
 		var overlayList = new GeoExt.tree.OverlayLayerContainer({
 			text: 'Overlays',
 			layerStore: this.mapPanel.layers,
@@ -66,10 +72,16 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 			expanded: true,
 			allowDrag: false
 		});
-		// Remove the icons
+		// Remove the icons and auto-select layers when needed
 		overlayList.loader.createNode = function(attr) {
 			attr.cls = 'x-tree-noicon';
-			return GeoExt.tree.LayerLoader.prototype.createNode.call(this, attr);
+			var layerNode = GeoExt.tree.LayerLoader.prototype.createNode.call(this, attr);
+
+			// Select the node when it check box get checked
+			layerNode.on("checkchange", onCheckChange, that);
+			// Select the node after it is added
+			Ext.defer(layerNode.select, 1, layerNode);
+			return layerNode;
 		};
 
 		var baselayerList = new GeoExt.tree.BaseLayerContainer({
@@ -83,10 +95,16 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 			allowDrag: false,
 			allowDrop: false
 		});
-		// Remove the icons
+		// Remove the icons and auto-select layers when needed
 		baselayerList.loader.createNode = function(attr) {
 			attr.cls = 'x-tree-noicon';
-			return GeoExt.tree.LayerLoader.prototype.createNode.call(this, attr);
+			var layerNode = GeoExt.tree.LayerLoader.prototype.createNode.call(this, attr);
+
+			// Select the node when it check box get checked
+			layerNode.on("checkchange", onCheckChange, that);
+			// Select the node after it is added
+			Ext.defer(layerNode.select, 1, layerNode);
+			return layerNode;
 		};
 
 		// Unsure the radio group name is unique for each map

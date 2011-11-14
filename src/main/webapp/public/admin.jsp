@@ -1,3 +1,4 @@
+<%@page import="au.gov.aims.atlasmapperserver.ProjectInfo"%>
 <%@page import="java.io.File"%>
 <%@page import="au.gov.aims.atlasmapperserver.Utils"%>
 <%@page import="au.gov.aims.atlasmapperserver.servlet.FileFinder"%>
@@ -38,11 +39,7 @@
 			<script type="text/javascript" src="../javascript/noConfigFolder.js"></script>
 			<%
 		} else {
-			String dataDirPropertyValue = FileFinder.getDataDirPropertyValue(this.getServletContext());
 			%>
-			<script type="text/javascript">
-				var dataDirPropertyValue = '<%=Utils.safeJsStr(dataDirPropertyValue) %>';
-			</script>
 			<script type="text/javascript" src="../javascript/login.js"></script>
 			<%
 		}
@@ -50,5 +47,6 @@
 		<link rel="stylesheet" type="text/css" href="../resources/style.css" />
 	</head>
 	<body>
+		<p>version: <%=ProjectInfo.getVersion() %></p>
 	</body>
 </html>

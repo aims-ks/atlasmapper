@@ -62,6 +62,12 @@ public class ConfigManager {
 	private static final String DATASOURCES_KEY = "datasources";
 	private static final String CLIENTS_KEY = "clients";
 
+	// Demo: Atlas Mapper can run as a Demo application, with limited feature for better security.
+	// The value can only be set by modifying the "server.conf" config file manually.
+	private static final String DEMO_KEY = "demoMode";
+
+	private Boolean demoMode = null;
+
 	private String defaultProxyUrl = null;
 	private String defaultLayerInfoServiceUrl = null;
 
@@ -203,6 +209,8 @@ public class ConfigManager {
 			return;
 		}
 
+		this.demoMode = jsonObj.optBoolean(DEMO_KEY, false);
+
 		this.datasourceConfigs = new MultiKeyHashMap<Integer, String, DatasourceConfig>();
 		this.lastDatasourceId = 0;
 		JSONArray datasourceConfigsArray = jsonObj.optJSONArray(DATASOURCES_KEY);
@@ -210,7 +218,7 @@ public class ConfigManager {
 			for (int i=0; i<datasourceConfigsArray.length(); i++) {
 				JSONObject rawDatasourceConfig = datasourceConfigsArray.optJSONObject(i);
 				if (rawDatasourceConfig != null) {
-					DatasourceConfig datasourceConfig = new DatasourceConfig();
+					DatasourceConfig datasourceConfig = new DatasourceConfig(this);
 					datasourceConfig.update(rawDatasourceConfig);
 					Integer datasourceId = datasourceConfig.getId();
 					if (datasourceId != null && datasourceId > this.lastDatasourceId) {
@@ -233,7 +241,7 @@ public class ConfigManager {
 			for (int i=0; i<clientConfigsArray.length(); i++) {
 				Object rawClientConfig = clientConfigsArray.get(i);
 				if (rawClientConfig instanceof JSONObject) {
-					ClientConfig clientConfig = new ClientConfig();
+					ClientConfig clientConfig = new ClientConfig(this);
 					clientConfig.update((JSONObject)rawClientConfig);
 					Integer clientId = clientConfig.getId();
 					if (clientId != null && clientId > this.lastClientId) {
@@ -315,7 +323,7 @@ public class ConfigManager {
 				for (int i=0; i<jsonUsers.length(); i++) {
 					JSONObject jsonUser = jsonUsers.optJSONObject(i);
 					if (jsonUser != null) {
-						User user = new User();
+						User user = new User(this);
 						user.update(jsonUser);
 						this.users.put(user.getLoginName(), user);
 					}
@@ -374,6 +382,11 @@ public class ConfigManager {
 			return;
 		}
 		JSONObject config = new JSONObject();
+
+		if (this.demoMode != null && this.demoMode) {
+			config.put(DEMO_KEY, this.demoMode);
+		}
+
 		config.put(DATASOURCES_KEY, this._getDatasourceConfigsJSon(false));
 		config.put(CLIENTS_KEY, this._getClientConfigsJSon(false));
 
@@ -418,6 +431,17 @@ public class ConfigManager {
 		this.saveJSONConfig(jsonUsers, usersConfigWriter);
 	}
 
+	public boolean isDemoMode() {
+		try {
+			this.reloadServerConfigIfNeeded();
+		} catch (Exception ex) {
+			// This should not happen...
+			LOGGER.log(Level.SEVERE, "Unexpected exception occured while reloading the config. Fall back to demo mode.", ex);
+			return true;
+		}
+		return this.demoMode;
+	}
+
 	public synchronized List<DatasourceConfig> createDatasourceConfig(ServletRequest request) throws JSONException, FileNotFoundException {
 		if (request == null) {
 			return null;
@@ -433,7 +457,7 @@ public class ConfigManager {
 					if (dataJSonObj.isNull("id") || dataJSonObj.optString("id", "").length() <= 0) {
 						dataJSonObj.put("id", this.getNextDatasourceId());
 					}
-					DatasourceConfig datasourceConfig = new DatasourceConfig();
+					DatasourceConfig datasourceConfig = new DatasourceConfig(this);
 					datasourceConfig.update(dataJSonObj);
 					if (datasourceConfig != null) {
 						configs.put(datasourceConfig.getId(),
@@ -460,7 +484,7 @@ public class ConfigManager {
 					Integer datasourceId = dataJSonObj.optInt("id", -1);
 					DatasourceConfig datasourceConfig = configs.get1(datasourceId);
 					if (datasourceConfig != null) {
-						datasourceConfig.update(dataJSonObj);
+						datasourceConfig.update(dataJSonObj, true);
 					}
 				}
 			}
@@ -500,7 +524,7 @@ public class ConfigManager {
 					if (dataJSonObj.isNull("id") || dataJSonObj.optString("id", "").length() <= 0) {
 						dataJSonObj.put("id", this.getNextClientId());
 					}
-					ClientConfig clientConfig = new ClientConfig();
+					ClientConfig clientConfig = new ClientConfig(this);
 					clientConfig.update(dataJSonObj);
 					if (clientConfig != null) {
 						configs.put(clientConfig.getId(),
@@ -535,7 +559,7 @@ public class ConfigManager {
 							oldConfigFolder = FileFinder.getAtlasMapperClientConfigFolder(this.applicationFolder, clientConfig, false);
 						}
 
-						clientConfig.update(dataJSonObj);
+						clientConfig.update(dataJSonObj, true);
 
 						File newClientFolder = null;
 						File newConfigFolder = null;
@@ -915,11 +939,15 @@ public class ConfigManager {
 
 			// Process all templates, one by one, because they are all unique
 			Map<String, Object> indexValues = new HashMap<String, Object>();
+			indexValues.put("version", ProjectInfo.getVersion());
+			indexValues.put("clientName", clientConfig.getClientName());
 			indexValues.put("timestamp", ""+Utils.getCurrentTimestamp());
 			indexValues.put("useGoogle", useGoogle);
 			Utils.processTemplate(templatesConfig, "index.html", indexValues, atlasMapperClientFolder);
 
 			Map<String, Object> embededValues = new HashMap<String, Object>();
+			embededValues.put("version", ProjectInfo.getVersion());
+			embededValues.put("clientName", clientConfig.getClientName());
 			embededValues.put("timestamp", ""+Utils.getCurrentTimestamp());
 			embededValues.put("useGoogle", useGoogle);
 			Utils.processTemplate(templatesConfig, "embeded.html", embededValues, atlasMapperClientFolder);
@@ -947,6 +975,7 @@ public class ConfigManager {
 
 				// Set the values that will be inserted in the template
 				Map<String, Object> previewValues = new HashMap<String, Object>();
+				previewValues.put("version", ProjectInfo.getVersion());
 				previewValues.put("clientName", clientConfig.getClientName());
 				previewValues.put("useGoogle", useGoogle);
 				Utils.processTemplate(templatesConfig, "preview.html", previewValues, atlasMapperClientFolder);
@@ -1252,7 +1281,7 @@ public class ConfigManager {
 			datasource.put("datasourceType", datasourceConfig.getDatasourceType());
 		}
 
-		JSONObject legendParameters = datasourceConfig.getLegendParameters();
+		JSONObject legendParameters = datasourceConfig.getLegendParametersJson();
 		if (legendParameters != null && legendParameters.length() > 0) {
 			datasource.put("legendParameters", legendParameters);
 		}
@@ -1285,7 +1314,7 @@ public class ConfigManager {
 
 	private JSONObject generateModule(String moduleConfig, ClientConfig clientConfig) throws JSONException {
 		JSONObject moduleJSONConfig =
-				ModuleHelper.generateModuleConfiguration(moduleConfig, this, clientConfig);
+				ModuleHelper.generateModuleConfiguration(moduleConfig, clientConfig);
 
 		if (moduleJSONConfig == null) {
 			LOGGER.log(Level.SEVERE, "Can not generate the configuration for {0}", moduleConfig);

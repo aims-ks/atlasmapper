@@ -26,6 +26,7 @@ import org.json.JSONObject;
 public class DatasourceConfig extends AbstractConfig implements Comparable<DatasourceConfig>, Cloneable {
 	private static final Logger LOGGER = Logger.getLogger(DatasourceConfig.class.getName());
 	private static final String SPLIT_PATTERN = "[,\r\n]";
+	private static final String SPLIT_ATTRIBUTES_PATTERN = "=";
 
 	// Grids records must have an unmutable ID
 	@ConfigField
@@ -66,7 +67,9 @@ public class DatasourceConfig extends AbstractConfig implements Comparable<Datas
 	private String legendUrl;
 
 	@ConfigField
-	private JSONObject legendParameters;
+	private String legendParameters;
+	// Cache - avoid parsing legendParameters string every times.
+	private JSONObject legendParametersJson;
 
 	@ConfigField
 	private String blacklistedLayers;
@@ -96,6 +99,10 @@ public class DatasourceConfig extends AbstractConfig implements Comparable<Datas
 
 	@ConfigField
 	private String comment;
+
+	public DatasourceConfig(ConfigManager configManager) {
+		super(configManager);
+	}
 
 	@Override
 	public void setJSONObjectKey(String key) {
@@ -172,7 +179,8 @@ public class DatasourceConfig extends AbstractConfig implements Comparable<Datas
 		this.legendUrl = legendUrl;
 	}
 
-	public JSONObject getLegendParameters() throws JSONException {
+	public String getLegendParameters() throws JSONException {
+		/*
 		//return legendParameters;
 		// TODO - Not a stub!!!
 		JSONObject params = new JSONObject();
@@ -181,12 +189,42 @@ public class DatasourceConfig extends AbstractConfig implements Comparable<Datas
 		params.put("WIDTH", "20");
 
 		return params;
+		*/
+		return this.legendParameters;
 	}
 
-	public void setLegendParameters(JSONObject legendParameters) {
+	public void setLegendParameters(String legendParameters) {
 		this.legendParameters = legendParameters;
+		this.legendParametersJson = null;
 	}
 
+	public JSONObject getLegendParametersJson() throws JSONException {
+		if (this.legendParameters == null) {
+			return null;
+		}
+
+		if (this.legendParametersJson == null) {
+			String trimedLegendParameters = this.legendParameters.trim();
+			if (trimedLegendParameters.isEmpty()) {
+				return null;
+			}
+
+			this.legendParametersJson = new JSONObject();
+			for (String legendParameter : toSet(trimedLegendParameters)) {
+				if (Utils.isNotBlank(legendParameter)) {
+					String[] attribute = legendParameter.split(SPLIT_ATTRIBUTES_PATTERN);
+					if (attribute != null && attribute.length >= 2) {
+						this.legendParametersJson.put(
+								attribute[0],  // Key
+								attribute[1]); // Value
+					}
+				}
+			}
+		}
+
+		return this.legendParametersJson;
+	}
+			
 	public String getDatasourceId() {
 		return datasourceId;
 	}
@@ -272,7 +310,7 @@ public class DatasourceConfig extends AbstractConfig implements Comparable<Datas
 		}
 
 		String trimedWebCacheParameters = this.webCacheParameters.trim();
-		if (trimedWebCacheParameters.length() <= 0) {
+		if (trimedWebCacheParameters.isEmpty()) {
 			return null;
 		}
 
@@ -458,14 +496,14 @@ public class DatasourceConfig extends AbstractConfig implements Comparable<Datas
 				if (!overridenLayerConfigs.containsKey(layerId) && !this.isBlacklisted(layerId)) {
 					JSONObject jsonGlobalOverride = globalOverrides.optJSONObject(layerId);
 					if (jsonGlobalOverride != null && jsonGlobalOverride.length() > 0) {
-						LayerConfig manualLayer = new LayerConfig(jsonGlobalOverride);
+						LayerConfig manualLayer = new LayerConfig(this.getConfigManager(), jsonGlobalOverride);
 						manualLayer.setLayerId(layerId);
 
 						// Apply client override if any
 						if (clientOverrides != null && clientOverrides.has(layerId)) {
 							JSONObject jsonClientOverride = clientOverrides.optJSONObject(layerId);
 							if (jsonClientOverride != null && jsonClientOverride.length() > 0) {
-								LayerConfig clientOverride = new LayerConfig(jsonClientOverride);
+								LayerConfig clientOverride = new LayerConfig(this.getConfigManager(), jsonClientOverride);
 								manualLayer.applyOverrides(clientOverride);
 							}
 						}

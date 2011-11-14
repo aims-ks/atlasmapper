@@ -252,14 +252,15 @@ GeoExt.ux.WMSLegend = Ext.extend(GeoExt.WMSLegend, {
 		layerNames = [layer.params.LAYERS].join(",").split(",");
 
 		var destroyList = [];
-		var deleteButtonCmp = this.items.get(0);
-		var textCmp = this.items.get(1);
-		this.items.each(function(cmp) {
-			if (cmp != deleteButtonCmp) {
+		// It's much safer to compare indexes than objects
+		var deleteButtonCmpIndex = 0;
+		var textCmpIndex = 1;
+		this.items.each(function(cmp, cmpIndex) {
+			if (cmpIndex != deleteButtonCmpIndex) {
 				i = layerNames.indexOf(cmp.itemId);
-				if(i < 0 && cmp != textCmp) {
+				if(i < 0 && cmpIndex != textCmpIndex) {
 					destroyList.push(cmp);
-				} else if(cmp !== textCmp){
+				} else if(cmpIndex !== textCmpIndex){
 					layerName = layerNames[i];
 					var newUrl = this.getLegendUrl(layerName, layerNames);
 					if(!OpenLayers.Util.isEquivalentUrl(newUrl, cmp.url)) {

@@ -36,10 +36,12 @@
 		<script type="text/javascript" src="../javascript/Frameset.js"></script>
 		<!-- Send the client name to the clients config page -->
 		<script type="text/javascript">
+			<% ConfigManager manager = ConfigHelper.getConfigManager(this.getServletContext()); %>
+
 			var userName = '<%=Utils.safeJsStr(request.getAttribute("loggedUser.name")) %>';
+			var demoMode = <%=manager.isDemoMode() %>;
 			var datasources = {
 				<%
-					ConfigManager manager = ConfigHelper.getConfigManager(this.getServletContext());
 					List<DatasourceConfig> datasourceConfigs = new ArrayList<DatasourceConfig>(manager.getDatasourceConfigs().values());
 					Collections.sort(datasourceConfigs);
 
@@ -51,7 +53,7 @@
 						}
 					}
 				%>
-			}
+			};
 
 			var modules = {
 				<%

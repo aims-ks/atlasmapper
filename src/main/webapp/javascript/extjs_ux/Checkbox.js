@@ -41,5 +41,80 @@ Ext.override(Ext.form.field.Checkbox, {
 	// Return the value set with inputValue instead of true/false
 	getValue: function() {
 		return this.getSubmitValue();
+	},
+
+	setValue: function(checked) {
+		var me = this;
+		if (Ext.isArray(checked)) {
+			// getByField is defined bellow
+			me.getManager().getByField(me).each(function(cb) {
+				cb.setValue(Ext.Array.contains(checked, cb.inputValue));
+			});
+		} else {
+			me.callParent(arguments);
+		}
+
+		return me;
 	}
 });
+
+// Checkboxes bug:
+// http://www.sencha.com/forum/showthread.php?145132-Zombie-Checkboxes-bug-%28with-fix%29
+Ext.form.field.Checkbox.implement({
+	destroy: function(){
+		this.getManager().remove(this);
+		Ext.form.field.Checkbox.superclass.destroy.call(this);
+	}
+});
+
+Ext.override(Ext.form.field.Radio, {
+	onChange: function(newVal, oldVal) {
+		var me = this;
+		me.callParent(arguments);
+
+		if (newVal) {
+			this.getManager().getByField(me).each(function(item){
+				if (item !== me) {
+					item.setValue(false);
+				}
+			}, me);
+		}
+	}
+});
+
+// Singleton class - can not call implement nor override
+Ext.form.CheckboxManager.getByField = function(field){
+	return this.filterBy(function(item) {
+		if (item.name != field.name) {
+			return false;
+		}
+
+		var itemGroup = item.findParentByType('checkboxgroup');
+		var fieldGroup = field.findParentByType('checkboxgroup');
+
+		if (itemGroup == null || typeof(itemGroup.getId) == 'undefined') {
+			return fieldGroup == null || typeof(fieldGroup.getId) == 'undefined';
+		}
+		return fieldGroup != null &&
+				typeof(fieldGroup.getId) != 'undefined' &&
+				itemGroup.getId() == fieldGroup.getId();
+	});
+};
+
+Ext.form.RadioManager.getByField = function(field){
+	return this.filterBy(function(item) {
+		if (item.name != field.name) {
+			return false;
+		}
+
+		var itemGroup = item.findParentByType('radiogroup');
+		var fieldGroup = field.findParentByType('radiogroup');
+
+		if (itemGroup == null || typeof(itemGroup.getId) == 'undefined') {
+			return fieldGroup == null || typeof(fieldGroup.getId) == 'undefined';
+		}
+		return fieldGroup != null &&
+				typeof(fieldGroup.getId) != 'undefined' &&
+				itemGroup.getId() == fieldGroup.getId();
+	});
+};

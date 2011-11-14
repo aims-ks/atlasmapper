@@ -27,14 +27,16 @@
 }
 
 /* ExtJS remove the bullets to start from a known point
-	(some browser (IE) are really at following standards)
+	(some browser (IE) are really bad at following standards)
 	This class Reset bullet for chosen lists */
+#about ul,
 div.messageWindow ul,
 div.tooltip ul,
 ul.bullet-list {
 	padding-left: 2em;
 	list-style-type: disc;
 }
+#about ol,
 div.messageWindow ol,
 div.tooltip ol,
 ol.bullet-list {
@@ -42,12 +44,14 @@ ol.bullet-list {
 	list-style-type: decimal;
 }
 /* ExtJS remove the bullets on li instead of ul. It has to be reset in both. */
+#about ul > li,
 div.messageWindow ul > li,
 div.tooltip ul > li,
 ul.bullet-list > li {
 	list-style-type: disc;
 	margin: 0.5em 0;
 }
+#about ol > li,
 div.messageWindow ol > li,
 div.tooltip ol > li,
 ol.bullet-list > li {
@@ -84,4 +88,22 @@ div.messageWindow .success {
 }
 div.messageWindow .error {
 	color: #FF0000;
+}
+
+#about table {
+	border-collapse:collapse;
+	margin-bottom: 1em;
+}
+
+#about th {
+	font-weight: bold;
+}
+
+#about th, #about td {
+	vertical-align: top;
+	padding: 0.5em;
+}
+
+#about table, #about th, #about td {
+	border: 1px solid black;
 }

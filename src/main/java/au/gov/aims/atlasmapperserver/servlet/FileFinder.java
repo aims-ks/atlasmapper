@@ -80,7 +80,7 @@ public class FileFinder {
 			if (!baseUrl.endsWith("/")) {
 				baseUrl += "/";
 			}
-			url = baseUrl + ATLASMAPPERCLIENT_FOLDER + "/" + welcomePage;
+			url = baseUrl + welcomePage;
 		}
 
 		return url;
@@ -110,22 +110,7 @@ public class FileFinder {
 		return getAtlasMapperClientFolder(applicationFolder, clientConfig, true);
 	}
 	public static File getAtlasMapperClientFolder(File applicationFolder, ClientConfig clientConfig, boolean create) {
-		if (applicationFolder == null || clientConfig == null) {
-			return null;
-		}
-		File clientFolder = getClientFolder(applicationFolder, clientConfig, false);
-		if (clientFolder == null) {
-			return null;
-		}
-
-		File amcFolder = new File(clientFolder, ATLASMAPPERCLIENT_FOLDER);
-
-		if (create && amcFolder != null && !amcFolder.exists()) {
-			// Try to create the folder structure, if it doesn't exist
-			amcFolder.mkdirs();
-		}
-
-		return amcFolder;
+		return getClientFolder(applicationFolder, clientConfig, create);
 	}
 
 	public static File getAtlasMapperClientSourceFolder() throws URISyntaxException {
@@ -194,9 +179,7 @@ public class FileFinder {
 		}
 
 		// Only allow "-", "_" and alphanumeric
-		clientname.replaceAll("[^A-Za-z0-9-_]", "");
-
-		return clientname;
+		return clientname.replaceAll("\\s", "_").replaceAll("[^A-Za-z0-9-_]", "");
 	}
 
 	public static File getApplicationFolder(ServletContext context) {

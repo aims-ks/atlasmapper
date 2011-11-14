@@ -13,6 +13,7 @@
 <%@page import="org.json.JSONArray"%>
 <%@page import="java.util.List"%>
 <%@page import="org.json.JSONObject"%>
+<%@page contentType="application/json" pageEncoding="UTF-8"%>
 <%
 	String actionStr = request.getParameter("action");
 	String layerIdsStr = request.getParameter("layerIds");

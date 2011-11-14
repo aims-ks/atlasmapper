@@ -64,15 +64,17 @@ public class LayerConfig extends DatasourceConfig {
 	@ConfigField
 	private List<LayerOptionConfig> options;
 
-	public LayerConfig() {}
+	public LayerConfig(ConfigManager configManager) {
+		super(configManager);
+	}
 
-	public LayerConfig(JSONObject json) {
-		this();
+	public LayerConfig(ConfigManager configManager, JSONObject json) {
+		this(configManager);
 		this.update(json);
 	}
 
 	public LayerConfig(DatasourceConfig datasource) {
-		this();
+		this(datasource.getConfigManager());
 		this.applyOverrides(datasource);
 	}
 
@@ -236,7 +238,7 @@ public class LayerConfig extends DatasourceConfig {
 		if (globalOverrides != null && globalOverrides.length() > 0) {
 			JSONObject globalOverride = globalOverrides.optJSONObject(this.layerId);
 			if (globalOverride != null && globalOverride.length() > 0) {
-				layerGlobalOverride = new LayerConfig(globalOverride);
+				layerGlobalOverride = new LayerConfig(this.getConfigManager(), globalOverride);
 			}
 		}
 
@@ -244,7 +246,7 @@ public class LayerConfig extends DatasourceConfig {
 		if (clientOverrides != null && clientOverrides.length() > 0) {
 			JSONObject clientOverride = clientOverrides.optJSONObject(this.layerId);
 			if (clientOverride != null && clientOverride.length() > 0) {
-				layerClientOverride = new LayerConfig(clientOverride);
+				layerClientOverride = new LayerConfig(this.getConfigManager(), clientOverride);
 			}
 		}
 

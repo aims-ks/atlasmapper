@@ -6,6 +6,7 @@
 package au.gov.aims.atlasmapperserver;
 
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
+import java.io.FileNotFoundException;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -35,8 +36,16 @@ public abstract class AbstractConfig implements Cloneable {
 	private static final int DEFAULT_NUMBER = -1;
 	private static final boolean DEFAULT_BOOLEAN = false;
 
+	private ConfigManager configManager;
+
 	// Describe the needed constructors
-	public AbstractConfig () {}
+	public AbstractConfig (ConfigManager configManager) {
+		this.configManager = configManager;
+	}
+
+	public ConfigManager getConfigManager() {
+		return this.configManager;
+	}
 
 	/**
 	 * This method is call to set the value of a JSONObject into a field
@@ -155,6 +164,17 @@ public abstract class AbstractConfig implements Cloneable {
 	}
 
 	public void update(Map<String, String[]> parameters) {
+		this.update(parameters, false);
+	}
+	/**
+	 *
+	 * @param parameters Map of values to be set in the bean.
+	 * @param userUpdate This function is used to load value into new object,
+	 * apply overrides and update values. Some value can not be modified by the
+	 * user. The method has to know if the update was trigger by the system
+	 * (userUpdate = false) or by the user (userUpdate = true).
+	 */
+	public void update(Map<String, String[]> parameters, boolean userUpdate) {
 		Map<String, Object> cleanParameters = new HashMap<String, Object>();
 		for (Map.Entry<String, String[]> parameterEntry : parameters.entrySet()) {
 			String[] value = parameterEntry.getValue();
@@ -164,44 +184,63 @@ public abstract class AbstractConfig implements Cloneable {
 				cleanParameters.put(parameterEntry.getKey(), value[0]);
 			}
 		}
-		this.update(new JSONObject(cleanParameters));
+		this.update(new JSONObject(cleanParameters), userUpdate);
 	}
 
 	public void update(JSONObject jsonObj) {
+		update(jsonObj, false);
+	}
+	/**
+	 *
+	 * @param jsonObj Map of values to be set in the bean.
+	 * @param userUpdate This function is used to load value into new object,
+	 * apply overrides and update values. Some value can not be modified by the
+	 * user. The method has to know if the update was trigger by the system
+	 * (userUpdate = false) or by the user (userUpdate = true).
+	 */
+	public void update(JSONObject jsonObj, boolean userUpdate) {
 		// Get all fields; public, protected and private
 		//Field fields[] = this.getClass().getDeclaredFields();
 		List<Field> fields = Utils.getAllFields(this.getClass());
 		for (Field field : fields) {
 			ConfigField annotation = field.getAnnotation(ConfigField.class);
 			if (annotation != null) {
-				Method setter = _getFieldSetter(field, annotation);
-				if (setter != null) {
-					String configName = annotation.name();
-					if (configName == null || configName.length() <= 0) {
-						configName = field.getName();
-					}
-
-					try {
-						if (jsonObj.has(configName)) {
-							Class fieldClass = field.getType();
-							Type[] collectionTypes = null;
-							if (Collection.class.isAssignableFrom(fieldClass)) {
-								try {
-									collectionTypes = ((ParameterizedType)setter.getGenericParameterTypes()[0]).getActualTypeArguments();
-								} catch(Exception e) {
-									LOGGER.log(Level.WARNING, "Can not find the types for the values in the collection ["+configName+"]", e);
-								}
-							}
-
-							Object value = getValue(jsonObj, configName, fieldClass, collectionTypes);
-							setter.invoke(this, value);
+				if (!userUpdate || !this.isReadOnly(annotation)) {
+					Method setter = _getFieldSetter(field, annotation);
+					if (setter != null) {
+						String configName = annotation.name();
+						if (configName == null || configName.length() <= 0) {
+							configName = field.getName();
 						}
-					} catch (Exception ex) {
-						LOGGER.log(Level.SEVERE, "Can not call the method ["+setter.getName()+"] for the field ["+field.getName()+"]", ex);
+
+						try {
+							if (jsonObj.has(configName)) {
+								Class fieldClass = field.getType();
+								Type[] collectionTypes = null;
+								if (Collection.class.isAssignableFrom(fieldClass)) {
+									try {
+										collectionTypes = ((ParameterizedType)setter.getGenericParameterTypes()[0]).getActualTypeArguments();
+									} catch(Exception e) {
+										LOGGER.log(Level.WARNING, "Can not find the types for the values in the collection ["+configName+"]", e);
+									}
+								}
+
+								Object value = getValue(jsonObj, configName, fieldClass, collectionTypes);
+								setter.invoke(this, value);
+							}
+						} catch (Exception ex) {
+							LOGGER.log(Level.SEVERE, "Can not call the method ["+setter.getName()+"] for the field ["+field.getName()+"]", ex);
+						}
 					}
 				}
 			}
 		}
+	}
+
+	private boolean isReadOnly(ConfigField annotation) {
+		return this.configManager != null
+				&& this.configManager.isDemoMode()
+				&& annotation.demoReadOnly();
 	}
 
 	// Support (for now) int, float, double, boolean, JSONObject, JSONArray, String, sub classes of AbstractConfig, Map and other Collection.
@@ -674,7 +713,9 @@ public abstract class AbstractConfig implements Cloneable {
 	public Object clone() {
 		Object clone = null;
 		try {
-			clone = this.getClass().newInstance();
+			// Get the basic constructor that required only a ConfigManager and instanciate it.
+			// Since the object extend AbstractConfig, such a constructor IS present.
+			clone = this.getClass().getConstructor(ConfigManager.class).newInstance(this.configManager);
 
 			// Get all fields; public, protected and private
 			//Field fields[] = this.getClass().getDeclaredFields();

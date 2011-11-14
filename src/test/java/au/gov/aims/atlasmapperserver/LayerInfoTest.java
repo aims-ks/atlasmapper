@@ -28,16 +28,16 @@ public class LayerInfoTest extends TestCase {
 		System.out.println("/amc ["+url+"]");
 	}
 
-	public void _testToJsonObject() {
+	public void testToJsonObject() {
 		try {
-			LayerConfig layerInfo = new LayerConfig();
+			LayerConfig layerInfo = new LayerConfig((ConfigManager)null);
 
 			double[] layerBoundingBox = {141.116, -29.384, 160.884, -9.616};
 
-			JSONObject legendParameters = new JSONObject();
-			legendParameters.put("FORMAT", "image/png");
-			legendParameters.put("HEIGHT", "10");
-			legendParameters.put("WIDTH", "20");
+			StringBuilder legendParameters = new StringBuilder();
+			legendParameters.append("FORMAT=image/png\n");
+			legendParameters.append("HEIGHT=10\n");
+			legendParameters.append("WIDTH=20");
 
 			layerInfo.setLayerId("ea:test");
 
@@ -47,7 +47,7 @@ public class LayerInfoTest extends TestCase {
 			layerInfo.setLayerBoundingBox(layerBoundingBox);
 			layerInfo.setIsBaseLayer(true);
 			layerInfo.setHasLegend(false);
-			layerInfo.setLegendParameters(legendParameters);
+			layerInfo.setLegendParameters(legendParameters.toString());
 			layerInfo.setWmsQueryable(true);
 
 			JSONObject jsonObject = layerInfo.toJSonObject();

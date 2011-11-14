@@ -29,11 +29,13 @@ public class User extends AbstractConfig {
 	private String lastName;
 	// TODO Add user info; email, birthdate, etc.
 
-	public User() {
+	public User(ConfigManager configManager) {
+		super(configManager);
 		this.encryptedPassword = Utils.encrypt(DEFAULT_PASSWORD);
 	}
 
-	public User(String loginName, String password) {
+	public User(ConfigManager configManager, String loginName, String password) {
+		super(configManager);
 		this.loginName = loginName;
 		this.encryptedPassword = Utils.encrypt(password);
 	}
@@ -47,11 +49,6 @@ public class User extends AbstractConfig {
 	public JSONObject toJSonObject() throws JSONException {
 		JSONObject json = super.toJSonObject();
 		return json;
-	}
-
-	@Override
-	public void update(JSONObject jsonObj) {
-		super.update(jsonObj);
 	}
 
 	public void setLoginName(String loginName) {

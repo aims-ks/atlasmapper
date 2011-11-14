@@ -5,39 +5,28 @@
 
 package au.gov.aims.atlasmapperserver;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLConnection;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.geotools.data.ows.CRSEnvelope;
-import org.geotools.data.ows.Capabilities;
 import org.geotools.data.ows.GetCapabilitiesRequest;
 import org.geotools.data.ows.GetCapabilitiesResponse;
 import org.geotools.data.ows.Layer;
 import org.geotools.data.ows.OperationType;
-import org.geotools.data.ows.Response;
 import org.geotools.data.ows.Service;
 import org.geotools.data.ows.StyleImpl;
 import org.geotools.data.ows.WMSCapabilities;
 import org.geotools.data.ows.WMSRequest;
 import org.geotools.data.wms.WMS1_3_0;
 import org.geotools.data.wms.WebMapServer;
-import org.geotools.data.wms.response.WMSGetCapabilitiesResponse;
 import org.geotools.ows.ServiceException;
 import org.opengis.util.InternationalString;
 
@@ -368,7 +357,7 @@ public class WMSCapabilitiesWrapper {
 		if (styleImpls != null && !styleImpls.isEmpty()) {
 			List<LayerStyleConfig> styles = new ArrayList<LayerStyleConfig>(styleImpls.size());
 			for (StyleImpl styleImpl : styleImpls) {
-				LayerStyleConfig styleConfig = styleToLayerStyleConfig(styleImpl);
+				LayerStyleConfig styleConfig = styleToLayerStyleConfig(clientConfig.getConfigManager(), styleImpl);
 
 				if (styleConfig != null) {
 					if (firstStyle) {
@@ -397,7 +386,7 @@ public class WMSCapabilitiesWrapper {
 		return layerConfig;
 	}
 
-	private LayerStyleConfig styleToLayerStyleConfig(StyleImpl style) {
+	private LayerStyleConfig styleToLayerStyleConfig(ConfigManager configManager, StyleImpl style) {
 		String name = style.getName();
 		InternationalString intTitle = style.getTitle();
 		InternationalString intDescription = style.getAbstract();
@@ -406,7 +395,7 @@ public class WMSCapabilitiesWrapper {
 		// See modules/extension/wms/src/main/java/org/geotools/data/wms/xml/WMSComplexTypes.java line 4155
 		//List u = styleImpl.getLegendURLs();
 
-		LayerStyleConfig styleConfig = new LayerStyleConfig();
+		LayerStyleConfig styleConfig = new LayerStyleConfig(configManager);
 		styleConfig.setName(name);
 		if (intTitle != null) {
 			styleConfig.setTitle(intTitle.toString());

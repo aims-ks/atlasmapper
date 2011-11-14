@@ -6,7 +6,6 @@
 package au.gov.aims.atlasmapperserver.module;
 
 import au.gov.aims.atlasmapperserver.ClientConfig;
-import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.DatasourceConfig;
 import au.gov.aims.atlasmapperserver.LayerConfig;
 import au.gov.aims.atlasmapperserver.Utils;
@@ -27,9 +26,9 @@ public class Tree extends AbstractModule {
 	private static final String BASE_LAYER_TAB_LABEL = "Base layers";
 
 	@Override
-	public JSONObject getJSONConfiguration(ConfigManager configManager, ClientConfig clientConfig) throws JSONException {
+	public JSONObject getJSONConfiguration(ClientConfig clientConfig) throws JSONException {
 		try {
-			List<DatasourceConfig> datasources = clientConfig.getDatasourceConfigs(configManager);
+			List<DatasourceConfig> datasources = clientConfig.getDatasourceConfigs(clientConfig.getConfigManager());
 			if (datasources != null) {
 				JSONObject treeConfig = new JSONObject();
 				for (DatasourceConfig datasourceConfig : datasources) {

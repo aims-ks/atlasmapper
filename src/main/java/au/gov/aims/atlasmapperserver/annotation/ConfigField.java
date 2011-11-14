@@ -30,4 +30,7 @@ public @interface ConfigField {
 	String name() default "";
 	String getter() default "";
 	String setter() default "";
+
+	// Set to true to make the field Read Only on the demo version.
+	boolean demoReadOnly() default false;
 }

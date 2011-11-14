@@ -2,103 +2,6 @@
 // to validate json syntaxe.
 // ExtJS implement a nice tool to decode JSON. Unfortunatly it's errors
 // description are useless.
-Ext.apply(Ext.form.field.VTypes, {
-	jsonfield: function(val, field) {
-		var json = null;
-		if (typeof(val) == 'object') {
-			json = val
-		} else {
-			try {
-				json = Ext.JSON.decode(val);
-			} catch(error) {
-				return false;
-			}
-		}
-
-		if (!json) {
-			return false;
-		}
-		return true;
-	},
-
-	jsonfieldText: 'Invalid JSON syntax. See the documentation for more info.'
-});
-
-// Checkboxes bug:
-// http://www.sencha.com/forum/showthread.php?145132-Zombie-Checkboxes-bug-%28with-fix%29
-Ext.form.field.Checkbox.implement({
-	destroy: function(){
-		this.getManager().remove(this);
-		Ext.form.field.Checkbox.superclass.destroy.call(this);
-	}
-});
-Ext.override(Ext.form.field.Checkbox, {
-	setValue: function(checked) {
-		var me = this;
-		if (Ext.isArray(checked)) {
-			// getByField is defined bellow
-			me.getManager().getByField(me).each(function(cb) {
-				cb.setValue(Ext.Array.contains(checked, cb.inputValue));
-			});
-		} else {
-			me.callParent(arguments);
-		}
-
-		return me;
-	}
-});
-
-Ext.override(Ext.form.field.Radio, {
-	onChange: function(newVal, oldVal) {
-		var me = this;
-		me.callParent(arguments);
-
-		if (newVal) {
-			this.getManager().getByField(me).each(function(item){
-				if (item !== me) {
-					item.setValue(false);
-				}
-			}, me);
-		}
-	}
-});
-
-// Singleton class - can not call implement nor override
-Ext.form.CheckboxManager.getByField = function(field){
-	return this.filterBy(function(item) {
-		if (item.name != field.name) {
-			return false;
-		}
-
-		var itemGroup = item.findParentByType('checkboxgroup');
-		var fieldGroup = field.findParentByType('checkboxgroup');
-
-		if (itemGroup == null || typeof(itemGroup.getId) == 'undefined') {
-			return fieldGroup == null || typeof(fieldGroup.getId) == 'undefined';
-		}
-		return fieldGroup != null &&
-				typeof(fieldGroup.getId) != 'undefined' &&
-				itemGroup.getId() == fieldGroup.getId();
-	});
-};
-
-Ext.form.RadioManager.getByField = function(field){
-	return this.filterBy(function(item) {
-		if (item.name != field.name) {
-			return false;
-		}
-
-		var itemGroup = item.findParentByType('radiogroup');
-		var fieldGroup = field.findParentByType('radiogroup');
-
-		if (itemGroup == null || typeof(itemGroup.getId) == 'undefined') {
-			return fieldGroup == null || typeof(fieldGroup.getId) == 'undefined';
-		}
-		return fieldGroup != null &&
-				typeof(fieldGroup.getId) != 'undefined' &&
-				itemGroup.getId() == fieldGroup.getId();
-	});
-};
 
 Ext.define('Frameset', {
     extend: 'Ext.container.Viewport',
@@ -171,9 +74,9 @@ Ext.define('Frameset', {
 				cmargins: '0 0 5 0'
 			}, {
 				html: '<ul class="bullet-list">'+
-						//'<li><a href="../admin/globalConfigPage.jsp">Global configuration</a></li>'+
 						'<li><a href="../admin/datasourcesConfigPage.jsp">Datasources</a></li>'+
 						'<li><a href="../admin/clientsConfigPage.jsp">AtlasMapper clients</a></li>'+
+						'<li><a href="../admin/aboutPage.jsp">About</a></li>'+
 					'</ul>',
 				title: 'Navigation',
 				region:'west',
