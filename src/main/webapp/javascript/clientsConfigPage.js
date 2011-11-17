@@ -1,3 +1,23 @@
+/*
+ *  This file is part of AtlasMapper server and clients.
+ *
+ *  Copyright (C) 2011 Australian Institute of Marine Science
+ *
+ *  Contact: Gael Lafond <g.lafond@aims.org.au>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 // http://dev.sencha.com/deploy/ext-4.0.2/examples/writer/writer.html
 
 // A function that return a function
@@ -481,7 +501,7 @@ Ext.define('Writer.ClientConfigGrid', {
 							text: 'Regenerate all',
 							tooltip: 'Regenerate the configuration file for all clients',
 							scope: this,
-							handler: this.onRegenerateAll
+							handler: this.confirmRegenerateAll
 						}
 					]
 				}
@@ -560,48 +580,7 @@ Ext.define('Writer.ClientConfigGrid', {
 							tooltip: 'Generate<br/>Push the modifications to the live client',
 							handler: function(grid, rowIndex, colIndex) {
 								var rec = grid.getStore().getAt(rowIndex);
-
-								frameset.setSavingMessage('Saving...');
-
-								// Request the data and update the window when we receive it
-								Ext.Ajax.request({
-									url: 'clientsConfig.jsp',
-									timeout: timeoutPerClient,
-									params: {
-										'action': 'GENERATE',
-										'clientId': rec.get('id'),
-										'jsonResponse': true
-									},
-									success: function(response){
-										var responseObj = null;
-										var statusCode = response ? response.status : null;
-										if (response && response.responseText) {
-											try {
-												responseObj = Ext.decode(response.responseText);
-											} catch (err) {
-												responseObj = {errors: [err.toString()]};
-											}
-										}
-										if(responseObj && responseObj.success){
-											frameset.setSavedMessage('client configuration generated successfully.');
-											that.onReload();
-										} else {
-											frameset.setErrors('An error occured while generating the client configuration.', responseObj, statusCode);
-										}
-									},
-									failure: function(response) {
-										var responseObj = null;
-										var statusCode = response ? response.status : null;
-										if (response && response.responseText) {
-											try {
-												responseObj = Ext.decode(response.responseText);
-											} catch (err) {
-												responseObj = {errors: [err.toString()]};
-											}
-										}
-										frameset.setErrors('An error occured while generating the client configuration.', responseObj, statusCode);
-									}
-								});
+								that.confirmRegenerate(rec.get('id'), rec.get('clientName'));
 							}
 						}, {
 							icon: '../resources/icons/cog-error.png',
@@ -1076,19 +1055,190 @@ Ext.define('Writer.ClientConfigGrid', {
 		this.down('#delete').setDisabled(selections.length === 0);
 	},
 
-	onRegenerateAll: function() {
+
+
+
+	confirmRegenerate: function(clientId, clientName) {
+		var that = this;
+		Ext.create('Ext.window.Window', {
+			layout:'fit',
+			width: 400,
+			title: 'Regenerate the client <i>'+clientName+'</i>',
+			closable: true,
+			resizable: false,
+			plain: true,
+			border: false,
+			items: {
+				bodyPadding: 5,
+				html: 'Regenerate the client <b>'+clientName+'</b>.\n'+
+					'<ul class="bullet-list">\n'+
+						'<li><b>Minimal:</b> Regenerate the config and index files only. It\'s fast and usually enough.</li>\n'+
+						'<li><b>Complete:</b> Recopy all client files and regenerate the configs. This operation is needed after an update of the AtlasMapper or when one or more files get corrupted.</li>\n'+
+					'</ul>'
+			},
+			dockedItems: [{
+				xtype: 'toolbar',
+				dock: 'bottom',
+				ui: 'footer',
+				defaults: { minWidth: 75 },
+				items: [
+					'->', // Pseudo item to move the following items to the right (available with ui:footer)
+					{
+						xtype: 'button',
+						text: 'Minimal',
+						padding: '2 10',
+						handler: function() {
+							that.onRegenerate(clientId, clientName, false);
+							this.ownerCt.ownerCt.close();
+						}
+					}, {
+						xtype: 'button',
+						text: 'Complete',
+						padding: '2 10',
+						handler: function() {
+							that.onRegenerate(clientId, clientName, true);
+							this.ownerCt.ownerCt.close();
+						}
+					}, {
+						xtype: 'button',
+						text: 'Cancel',
+						padding: '2 10',
+						handler: function() {
+							this.ownerCt.ownerCt.close();
+						}
+					}
+				]
+			}]
+		}).show();
+	},
+
+	onRegenerate: function(clientId, clientName, complete) {
+		var that = this;
+		frameset.setSavingMessage(
+				complete ?
+					'Regenerating all '+clientName+' files...' :
+					'Regenerating '+clientName+' configuration files...');
+
+		// Request the data and update the window when we receive it
+		Ext.Ajax.request({
+			url: 'clientsConfig.jsp',
+			timeout: timeoutPerClient,
+			params: {
+				'action': 'GENERATE',
+				'complete': !!complete, // Ensure "complete" is boolean
+				'clientId': clientId,
+				'jsonResponse': true
+			},
+			success: function(response){
+				var responseObj = null;
+				var statusCode = response ? response.status : null;
+				if (response && response.responseText) {
+					try {
+						responseObj = Ext.decode(response.responseText);
+					} catch (err) {
+						responseObj = {errors: [err.toString()]};
+					}
+				}
+				if(responseObj && responseObj.success){
+					frameset.setSavedMessage('client configuration generated successfully.');
+					that.onReload();
+				} else {
+					frameset.setErrors('An error occured while generating the client configuration.', responseObj, statusCode);
+				}
+			},
+			failure: function(response) {
+				var responseObj = null;
+				var statusCode = response ? response.status : null;
+				if (response && response.responseText) {
+					try {
+						responseObj = Ext.decode(response.responseText);
+					} catch (err) {
+						responseObj = {errors: [err.toString()]};
+					}
+				}
+				frameset.setErrors('An error occured while generating the client configuration.', responseObj, statusCode);
+			}
+		});
+	},
+
+
+
+
+
+
+
+	confirmRegenerateAll: function() {
+		var that = this;
+		Ext.create('Ext.window.Window', {
+			layout:'fit',
+			width: 400,
+			title: 'Regenerate <i>all</i> clients',
+			closable: true,
+			resizable: false,
+			plain: true,
+			border: false,
+			items: {
+				bodyPadding: 5,
+				html: 'Regenerate <b>all</b> clients can takes several minutes.\n'+
+					'<ul class="bullet-list">\n'+
+						'<li><b>Minimal:</b> Regenerate the config and index files only. It\'s fast and usually enough.</li>\n'+
+						'<li><b>Complete:</b> Recopy all clients files and regenerate all configs. This operation is needed after an update of the AtlasMapper or when one or more files get corrupted.</li>\n'+
+					'</ul>'
+			},
+			dockedItems: [{
+				xtype: 'toolbar',
+				dock: 'bottom',
+				ui: 'footer',
+				defaults: { minWidth: 75 },
+				items: [
+					'->', // Pseudo item to move the following items to the right (available with ui:footer)
+					{
+						xtype: 'button',
+						text: 'Minimal',
+						padding: '2 10',
+						handler: function() {
+							that.onRegenerateAll(false);
+							this.ownerCt.ownerCt.close();
+						}
+					}, {
+						xtype: 'button',
+						text: 'Complete',
+						padding: '2 10',
+						handler: function() {
+							that.onRegenerateAll(true);
+							this.ownerCt.ownerCt.close();
+						}
+					}, {
+						xtype: 'button',
+						text: 'Cancel',
+						padding: '2 10',
+						handler: function() {
+							this.ownerCt.ownerCt.close();
+						}
+					}
+				]
+			}]
+		}).show();
+	},
+
+	onRegenerateAll: function(complete) {
 		var that = this;
 		var nbClients = 1;
 		if (this.items && this.items.getCount) {
 			nbClients = this.items.getCount();
 		}
-		frameset.setSavingMessage('Generating all configuration files...');
+		frameset.setSavingMessage(
+				complete ?
+					'Regenerating all files of all clients...' :
+					'Regenerating all configuration files...');
+
 		// Request the data and update the window when we receive it
 		Ext.Ajax.request({
 			url: 'clientsConfig.jsp',
 			timeout: timeoutPerClient * nbClients,
 			params: {
 				'action': 'GENERATEALL',
+				'complete': !!complete, // Ensure "complete" is boolean
 				'jsonResponse': true
 			},
 			success: function(response) {

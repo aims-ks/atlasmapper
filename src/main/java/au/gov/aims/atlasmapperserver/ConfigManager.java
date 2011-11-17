@@ -1,3 +1,23 @@
+/*
+ *  This file is part of AtlasMapper server and clients.
+ *
+ *  Copyright (C) 2011 Australian Institute of Marine Science
+ *
+ *  Contact: Gael Lafond <g.lafond@aims.org.au>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package au.gov.aims.atlasmapperserver;
 
 import au.gov.aims.atlasmapperserver.collection.MultiKeyHashMap;
@@ -46,6 +66,12 @@ public class ConfigManager {
 	private static final Logger LOGGER = Logger.getLogger(ConfigManager.class.getName());
 	private static final String SERVER_DEFAULT_CONFIG_FILENAME = "defaultServer.conf";
 	private static final String USERS_DEFAULT_CONFIG_FILENAME = "defaultUsers.conf";
+
+	private static final String CONFIG_VERSION_KEY = "version";
+	private static final String CURRENT_CONFIG_VERSION = "1.0";
+
+	private String configVersion;
+	private String usersConfigVersion;
 
 	private File serverConfigFile = null;
 	private long serverConfigFileLastModified = -1;
@@ -210,6 +236,7 @@ public class ConfigManager {
 		}
 
 		this.demoMode = jsonObj.optBoolean(DEMO_KEY, false);
+		this.configVersion = jsonObj.optString(CONFIG_VERSION_KEY, CURRENT_CONFIG_VERSION);
 
 		this.datasourceConfigs = new MultiKeyHashMap<Integer, String, DatasourceConfig>();
 		this.lastDatasourceId = 0;
@@ -317,15 +344,19 @@ public class ConfigManager {
 	private synchronized void reloadUsersConfig(Reader usersConfigReader) throws JSONException {
 		this.users = new HashMap<String, User>();
 		if (usersConfigReader != null) {
-			JSONArray jsonUsers = new JSONArray(new JSONTokener(usersConfigReader));
+			JSONObject usersConfig = new JSONObject(new JSONTokener(usersConfigReader));
+			if (usersConfig != null) {
+				this.usersConfigVersion = usersConfig.optString(CONFIG_VERSION_KEY, CURRENT_CONFIG_VERSION);
+				JSONArray jsonUsers = usersConfig.optJSONArray("users");
 
-			if (jsonUsers != null) {
-				for (int i=0; i<jsonUsers.length(); i++) {
-					JSONObject jsonUser = jsonUsers.optJSONObject(i);
-					if (jsonUser != null) {
-						User user = new User(this);
-						user.update(jsonUser);
-						this.users.put(user.getLoginName(), user);
+				if (jsonUsers != null) {
+					for (int i=0; i<jsonUsers.length(); i++) {
+						JSONObject jsonUser = jsonUsers.optJSONObject(i);
+						if (jsonUser != null) {
+							User user = new User(this);
+							user.update(jsonUser);
+							this.users.put(user.getLoginName(), user);
+						}
 					}
 				}
 			}
@@ -387,6 +418,7 @@ public class ConfigManager {
 			config.put(DEMO_KEY, this.demoMode);
 		}
 
+		config.put(CONFIG_VERSION_KEY, CURRENT_CONFIG_VERSION);
 		config.put(DATASOURCES_KEY, this._getDatasourceConfigsJSon(false));
 		config.put(CLIENTS_KEY, this._getClientConfigsJSon(false));
 
@@ -428,7 +460,11 @@ public class ConfigManager {
 			jsonUsers.put(user.toJSonObject());
 		}
 
-		this.saveJSONConfig(jsonUsers, usersConfigWriter);
+		JSONObject usersConfig = new JSONObject();
+		usersConfig.put(CONFIG_VERSION_KEY, CURRENT_CONFIG_VERSION);
+		usersConfig.put("users", jsonUsers);
+
+		this.saveJSONConfig(usersConfig, usersConfigWriter);
 	}
 
 	public boolean isDemoMode() {
@@ -653,8 +689,7 @@ public class ConfigManager {
 
 		JSONObject foundLayers = new JSONObject();
 
-		JSONObject clientLayers = null;
-		clientLayers = this.getClientConfigFileJSon(clientConfig, ConfigType.LAYERS, live, live);
+		JSONObject clientLayers = this.getClientConfigFileJSon(clientConfig, ConfigType.LAYERS, live, live);
 
 		for (String rawLayerId : layerIds) {
 			String layerId = rawLayerId.trim();
@@ -846,19 +881,23 @@ public class ConfigManager {
 		return this.users.get(loginName);
 	}
 
-	public void generateAllClients()
+	public void generateAllClients(boolean complete)
 			throws JSONException, MalformedURLException, IOException, ServiceException, FileNotFoundException, TemplateException {
+
+		// TODO!!!
 
 		// Emplty the capabilities cache before regenerating the configs
 		WMSCapabilitiesWrapper.clearCapabilitiesDocumentsCache();
 
 		for (ClientConfig clientConfig : this.getClientConfigs().values()) {
-			this._generateClient(clientConfig);
+			this._generateClient(clientConfig, complete);
 		}
 	}
 
-	public void generateClient(Integer clientId)
+	public void generateClient(Integer clientId, boolean complete)
 			throws JSONException, MalformedURLException, IOException, ServiceException, FileNotFoundException, TemplateException {
+
+		// TODO!!!
 
 		if (clientId == null) {
 			return;
@@ -867,19 +906,19 @@ public class ConfigManager {
 		// Emplty the capabilities cache before regenerating the configs
 		WMSCapabilitiesWrapper.clearCapabilitiesDocumentsCache();
 
-		this._generateClient(this.getClientConfigs().get1(clientId));
+		this._generateClient(this.getClientConfigs().get1(clientId), complete);
 	}
 
-	public void generateClient(ClientConfig clientConfig)
+	public void generateClient(ClientConfig clientConfig, boolean complete)
 			throws JSONException, MalformedURLException, IOException, ServiceException, FileNotFoundException, TemplateException {
 
 		// Emplty the capabilities cache before regenerating the configs
 		WMSCapabilitiesWrapper.clearCapabilitiesDocumentsCache();
 
-		this._generateClient(clientConfig);
+		this._generateClient(clientConfig, complete);
 	}
 
-	private void _generateClient(ClientConfig clientConfig)
+	private void _generateClient(ClientConfig clientConfig, boolean complete)
 			throws JSONException, MalformedURLException, IOException, ServiceException, FileNotFoundException, TemplateException {
 
 		if (clientConfig == null) {
@@ -888,7 +927,7 @@ public class ConfigManager {
 
 		boolean useGoogle = clientConfig.useGoogle(this);
 
-		this.copyClientFilesIfNeeded(clientConfig);
+		this.copyClientFilesIfNeeded(clientConfig, complete);
 		JSONObject generatedFullConfig = this.getClientConfigFileJSon(clientConfig, ConfigType.FULL, false, true);
 		JSONObject generatedEmbededConfig = this.getClientConfigFileJSon(clientConfig, ConfigType.EMBEDED, false, true);
 		JSONObject generatedLayers = this.getClientConfigFileJSon(clientConfig, ConfigType.LAYERS, false, true);
@@ -896,7 +935,13 @@ public class ConfigManager {
 		this.saveGeneratedConfigs(clientConfig, generatedFullConfig, generatedEmbededConfig, generatedLayers);
 	}
 
-	private void copyClientFilesIfNeeded(ClientConfig clientConfig) throws IOException {
+	/**
+	 * Copy the client files from clientResources/amc to the client location.
+	 * @param clientConfig The client to copy the files to
+	 * @param force Force file copy even if they are already there (used with complete regeneration)
+	 * @throws IOException
+	 */
+	private void copyClientFilesIfNeeded(ClientConfig clientConfig, boolean force) throws IOException {
 		if (clientConfig == null) { return; }
 
 		File atlasMapperClientFolder =
@@ -905,14 +950,14 @@ public class ConfigManager {
 
 		// Return if the folder is not empty
 		String[] folderContent = atlasMapperClientFolder.list();
-		if (folderContent != null && folderContent.length > 0) {
+		if (!force && folderContent != null && folderContent.length > 0) {
 			return;
 		}
 
 		// The folder is Empty, copying the files
 		try {
 			File src = FileFinder.getAtlasMapperClientSourceFolder();
-			Utils.recursiveFileCopy(src, atlasMapperClientFolder);
+			Utils.recursiveFileCopy(src, atlasMapperClientFolder, force);
 		} catch (URISyntaxException ex) {
 			throw new IOException("Can not get a File reference to the AtlasMapperClient", ex);
 		}
@@ -1106,6 +1151,7 @@ public class ConfigManager {
 		if (clientConfig == null) { return null; }
 
 		JSONObject json = new JSONObject();
+		json.put(CONFIG_VERSION_KEY, CURRENT_CONFIG_VERSION);
 		json.put("clientName", clientConfig.getClientName());
 
 		// TODO Remove when the default saved state will be implemented
@@ -1325,6 +1371,8 @@ public class ConfigManager {
 
 	private JSONObject generateLayer(LayerConfig layerConfig) throws JSONException {
 		JSONObject jsonLayer = new JSONObject();
+
+		jsonLayer.put(CONFIG_VERSION_KEY, CURRENT_CONFIG_VERSION);
 
 		if (Utils.isNotBlank(layerConfig.getKmlUrl())) {
 			jsonLayer.put("kmlUrl", layerConfig.getKmlUrl());

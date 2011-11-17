@@ -1,7 +1,26 @@
-<%-- 
-    Document   : aboutPage
-    Created on : 08/11/2011, 5:24:25 PM
-    Author     : glafond
+<%--
+ *  This file is part of AtlasMapper server and clients.
+ *
+ *  Copyright (C) 2011 Australian Institute of Marine Science
+ *
+ *  Contact: Gael Lafond <g.lafond@aims.org.au>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+	Document   : aboutPage
+	Created on : 08/11/2011, 5:24:25 PM
+	Author     : glafond
 --%>
 
 <%@page import="au.gov.aims.atlasmapperserver.servlet.FileFinder"%>
@@ -33,6 +52,7 @@
 			var description = '<%=Utils.safeJsStr(ProjectInfo.getDescription()) %>';
 			var version = '<%=Utils.safeJsStr(ProjectInfo.getVersion()) %>';
 			var url = '<%=Utils.safeJsStr(ProjectInfo.getUrl()) %>';
+			var license = '<%=Utils.safeJsStr(ProjectInfo.getLicense()) %>';
 			var dataDirProperty = '<%=Utils.safeJsStr(FileFinder.DATA_DIR_PROPERTY) %>';
 			var dataDirPropertyValue = '<%=Utils.safeJsStr(FileFinder.getDataDirPropertyValue(this.getServletContext())) %>';
 		</script>

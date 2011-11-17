@@ -19,31 +19,32 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-.x-grid-checkheader {
-    height: 14px;
-    background-image: url('images/unchecked.gif');
-    background-position: 50% -2px;
-    background-repeat: no-repeat;
-    background-color: transparent;
-}
+package au.gov.aims.atlasmapperserver;
 
-.x-grid-checkheader-checked {
-    background-image: url('images/checked.gif');
-}
+import junit.framework.TestCase;
 
-.x-grid-radioheader {
-    height: 14px;
-    background-image: url('images/unselected.gif');
-    background-position: 50% 0;
-    background-repeat: no-repeat;
-    background-color: transparent;
-}
+/**
+ *
+ * @author glafond
+ */
+public class ProjectInfoTest extends TestCase {
+	public void testGetVersion() {
+		assertTrue("Can not parse the project version", validProjectAttribute(ProjectInfo.getVersion()));
+	}
 
-.x-grid-radioheader-checked {
-    background-image: url('images/selected.gif');
-}
+	public void testGetLicenses() {
+		assertTrue("Can not parse the project license", validProjectAttribute(ProjectInfo.getLicenseName()));
+	}
 
-.x-grid-checkheader-editor .x-form-cb-wrap,
-.x-grid-radioheader-editor .x-form-cb-wrap {
-    text-align: center;
+	private static boolean validProjectAttribute(String value) {
+		if (value == null) return false;
+
+		String trimValue = value.trim();
+
+		if (trimValue.startsWith("${") && trimValue.endsWith("}")) {
+			return false;
+		}
+
+		return true;
+	}
 }

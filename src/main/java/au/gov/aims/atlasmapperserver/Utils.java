@@ -1,6 +1,22 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ *  This file is part of AtlasMapper server and clients.
+ *
+ *  Copyright (C) 2011 Australian Institute of Marine Science
+ *
+ *  Contact: Gael Lafond <g.lafond@aims.org.au>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 package au.gov.aims.atlasmapperserver;
@@ -146,7 +162,7 @@ public class Utils {
 		return sb.toString();
 	}
 
-	public static void recursiveFileCopy(File src, File dest) throws IOException {
+	public static void recursiveFileCopy(File src, File dest, boolean overwrite) throws IOException {
 		if (src == null || dest == null) {
 			return;
 		}
@@ -155,10 +171,9 @@ public class Utils {
 		}
 
 		if (src.isFile()) {
-			if (dest.exists()) {
-				throw new IOException("The destination file ["+dest.getAbsolutePath()+"] already exists.");
+			if (overwrite || !dest.exists()) {
+				binaryfileCopy(src, dest);
 			}
-			binaryfileCopy(src, dest);
 
 		} else if (src.isDirectory()) {
 			if (dest.exists()) {
@@ -169,7 +184,7 @@ public class Utils {
 				dest.mkdirs();
 			}
 			for (File subFile : src.listFiles()) {
-				recursiveFileCopy(subFile, new File(dest, subFile.getName()));
+				recursiveFileCopy(subFile, new File(dest, subFile.getName()), overwrite);
 			}
 		}
 	}

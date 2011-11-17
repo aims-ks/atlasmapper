@@ -1,7 +1,26 @@
 <%--
-    Document   : clientsConfig
-    Created on : 28/06/2011, 4:08:39 PM
-    Author     : glafond
+ *  This file is part of AtlasMapper server and clients.
+ *
+ *  Copyright (C) 2011 Australian Institute of Marine Science
+ *
+ *  Contact: Gael Lafond <g.lafond@aims.org.au>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+	Document   : clientsConfig
+	Created on : 28/06/2011, 4:08:39 PM
+	Author     : glafond
 --%>
 
 <%@page import="au.gov.aims.atlasmapperserver.Utils"%>
@@ -22,6 +41,7 @@
 
 	String actionStr = request.getParameter("action");
 	String clientIdStr = request.getParameter("clientId");
+	String completeStr = request.getParameter("complete");
 
 	JSONObject jsonObj = new JSONObject();
 
@@ -159,8 +179,10 @@
 						jsonObj.put("success", false);
 						jsonObj.put("errors", new JSONArray().put("Missing parameter [clientId]."));
 					} else {
+						boolean complete = false;
 						Integer clientId = null;
 						try {
+							complete = Boolean.parseBoolean(completeStr);
 							clientId = Integer.valueOf(clientIdStr);
 						} catch(Exception e) {
 							response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -176,7 +198,7 @@
 									jsonObj.put("success", false);
 									jsonObj.put("errors", new JSONArray().put("Client id ["+clientId+"] not found."));
 								} else {
-									configManager.generateClient(clientId);
+									configManager.generateClient(clientId, complete);
 									response.setStatus(HttpServletResponse.SC_OK);
 									jsonObj.put("success", true);
 									jsonObj.put("message", "Config Generated");
@@ -193,7 +215,9 @@
 
 				case GENERATEALL:
 					try {
-						configManager.generateAllClients();
+						boolean complete = Boolean.parseBoolean(completeStr);
+
+						configManager.generateAllClients(complete);
 						response.setStatus(HttpServletResponse.SC_OK);
 						jsonObj.put("success", true);
 						jsonObj.put("message", "Config saved for all clients");
