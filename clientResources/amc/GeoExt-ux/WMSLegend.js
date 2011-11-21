@@ -191,9 +191,9 @@ GeoExt.ux.WMSLegend = Ext.extend(GeoExt.WMSLegend, {
 		// Override of the LegendGraphics in the layer config, and let
 		// GeoExt deal with it.
 		// "legendUrl" & "legendFilename"
-		if (jsonLayer['wmsStyles']) {
+		if (jsonLayer['styles']) {
 			var styles = [];
-			Ext.iterate(jsonLayer['wmsStyles'], function(styleName, styleJsonObj) {
+			Ext.iterate(jsonLayer['styles'], function(styleName, styleJsonObj) {
 				var styleObj = {};
 				if (styleName) {
 					styleObj.name = styleName;

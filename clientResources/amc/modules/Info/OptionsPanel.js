@@ -111,50 +111,33 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 		});
 
 		this.onExtraOptionChange = function() {
-				if (that.extraOptionsFieldSet && that.extraOptionsFieldSet.items) {
-					var layer = that.currentLayer;
-					if (layer && layer.mergeNewParams) {
-						var serviceUrl = layer.json['wmsServiceUrl'];
-						var webCacheUrl = layer.json['webCacheUrl'];
-						if (!webCacheUrl) {
-							webCacheUrl = serviceUrl;
-						}
-						var supportedParams = layer.json['webCacheSupportedParameters'];
+			if (that.extraOptionsFieldSet && that.extraOptionsFieldSet.items) {
+				var layer = that.currentLayer;
+				if (layer && layer.mergeNewParams) {
+					var newParams = {};
+					that.extraOptionsFieldSet.items.each(function(option) {
+						var optionName = option.getName();
+						if (option && optionName) {
+							//var optionType = option.getXType();
+							var optionValue = option.getValue();
 
-						var newParams = {};
-						var canUseWebCache = true;
-						that.extraOptionsFieldSet.items.each(function(option) {
-							var optionName = option.getName();
-							if (option && optionName) {
-								var optionType = option.getXType();
-								var optionValue = option.getValue();
-
-								// Check if the parameter may stop us from using the WebCache - Ignore parameter with no values
-								if (canUseWebCache && optionValue) {
-									canUseWebCache = that.paramIsSupported(optionName, supportedParams);
-								}
-
-								// Set the new parameter, or unset it if it has a null value (don't remove STYLES - it's mandatory).
-								if (optionName != 'STYLES' && (typeof(optionValue) == 'undefined' || optionValue == null || optionValue == '')) {
-									// Remove the param from the URL - Some server don't like to have en empty parameter
-									delete layer.params[optionName];
-								} else {
-									newParams[optionName] = optionValue;
-								}
+							// Set the new parameter, or unset it if it has a null value (don't remove STYLES - it's mandatory).
+							if (optionName != 'STYLES' && (typeof(optionValue) == 'undefined' || optionValue == null || optionValue == '')) {
+								// Remove the param from the URL - Some server don't like to have en empty parameter
+								delete layer.params[optionName];
+							} else {
+								newParams[optionName] = optionValue;
 							}
-						});
-
-						// Change the URL of the layer to use the appropriate server
-						if (canUseWebCache) {
-							layer.setUrl(webCacheUrl);
-						} else {
-							layer.setUrl(serviceUrl);
 						}
+					});
 
-						layer.mergeNewParams(newParams);
-					}
+					// Change the URL of the layer to use the appropriate server
+					// NOTE: setUrl must be called before mergeNewParams (mergeNewParams reload the tiles, setUrl don't; when called in wrong order, tiles are requested against the wrong server)
+					layer.setUrl(that.mapPanel.getWMSServiceUrl(layer.json, that._mergeParams(layer.params, newParams)));
+					layer.mergeNewParams(newParams);
 				}
-			};
+			}
+		};
 
 		this.extraOptionsFieldSet = new Ext.form.FieldSet({
 			hidden: true,
@@ -168,25 +151,12 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 			if (that.ncwmsOptionsFieldSet && that.ncwmsOptionsFieldSet.items) {
 				var layer = that.currentLayer;
 				if (layer && layer.mergeNewParams) {
-					var serviceUrl = layer.json['wmsServiceUrl'];
-					var webCacheUrl = layer.json['webCacheUrl'];
-					if (!webCacheUrl) {
-						webCacheUrl = serviceUrl;
-					}
-					var supportedParams = layer.json['webCacheSupportedParameters'];
-
 					var newParams = {};
-					var canUseWebCache = true;
 					that.ncwmsOptionsFieldSet.items.each(function(option) {
 						var optionName = option.getName();
 						if (option && optionName) {
-							var optionType = option.getXType();
+							//var optionType = option.getXType();
 							var optionValue = option.getValue();
-
-							// Check if the parameter may stop us from using the WebCache - Ignore parameter with no values
-							if (canUseWebCache && optionValue) {
-								canUseWebCache = that.paramIsSupported(optionName, supportedParams);
-							}
 
 							// Set the new parameter, or unset it if it has a null value (don't remove STYLES - it's mandatory).
 							if (optionName != 'STYLES' && (typeof(optionValue) == 'undefined' || optionValue == null || optionValue == '')) {
@@ -199,12 +169,8 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 					});
 
 					// Change the URL of the layer to use the appropriate server
-					if (canUseWebCache) {
-						layer.setUrl(webCacheUrl);
-					} else {
-						layer.setUrl(serviceUrl);
-					}
-
+					// NOTE: setUrl must be called before mergeNewParams (mergeNewParams reload the tiles, setUrl don't; when called in wrong order, tiles are requested against the wrong server)
+					layer.setUrl(that.mapPanel.getWMSServiceUrl(layer.json, that._mergeParams(layer.params, newParams)));
 					layer.mergeNewParams(newParams);
 				}
 			}
@@ -245,22 +211,23 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 		});
 	},
 
-	/**
-	 * Verify if the Web Cache support the URL parameter.
-	 */
-	paramIsSupported: function(paramName, supportedParams) {
-		if (!supportedParams || supportedParams.length <= 0) {
-			// Supported parameters is not set:
-			// The Web Cache server support everything
-			return true;
-		}
-
-		Ext.each(supportedParams, function(supportedParam) {
-			if (supportedParam.toUpperCase() === paramName.toUpperCase()) {
-				return true;
+	// Return a new map resulting of the merge of both maps.
+	// This is required to determine is the WebCache URL can be used. Calling
+	// layer.merge reload the tiles before the layer URL actually get modified.
+	_mergeParams: function(layerParams, newParams) {
+		var result = {};
+		var paramName = "";
+		for(paramName in layerParams){
+			if(layerParams.hasOwnProperty(paramName)){
+				result[paramName] = layerParams[paramName];
 			}
-		});
-		return false;
+		}
+		for(paramName in newParams){
+			if(newParams.hasOwnProperty(paramName)){
+				result[paramName] = newParams[paramName];
+			}
+		}
+		return result;
 	},
 
 	/**
@@ -286,25 +253,20 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 				// Set extra options for the selected layer
 
 				// Styles dropdown
-				if (layer.json['wmsStyles']) {
+				if (layer.json['styles']) {
 					var styleOptionName = 'STYLES';
 					var styleOptions = [];
-					Ext.iterate(layer.json['wmsStyles'], function(styleName, jsonStyle) {
+					Ext.iterate(layer.json['styles'], function(styleName, jsonStyle) {
 						// BUG: Duplicate names can not be select with the ExtJS select option.
 						// Temporary(?) solution: Add a sequential number in front of it.
 						var styleTitle = (jsonStyle['title'] ? jsonStyle['title'] : styleName);
 						// TODO Display de description on a box when a style is selected
 						var styleDescription = jsonStyle['description'];
 
-						var styleReqName = styleName;
-						if (jsonStyle['default']) {
-							// To use the default style, set the parameter to nothing.
-							styleReqName = "";
-						}
-						styleOptions[styleOptions.length] = [styleReqName, styleTitle];
+						styleOptions[styleOptions.length] = [styleName, styleTitle];
 					});
 
-					var defaultValue =
+					var currentValue =
 						this.getParameterActualValue(layer, styleOptionName, "");
 
 					if (styleOptions.length > 1) {
@@ -326,7 +288,7 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 							xtype: "combo",
 							name: styleOptionName,
 							fieldLabel: "Styles",
-							value: defaultValue,
+							value: currentValue,
 							typeAhead: false,
 							triggerAction: 'all',
 							lazyRender: true,

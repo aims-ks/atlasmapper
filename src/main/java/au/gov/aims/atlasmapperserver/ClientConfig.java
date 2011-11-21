@@ -455,6 +455,7 @@ public class ClientConfig extends AbstractConfig {
 	public Map<String, LayerConfig> getLayerConfigs(ConfigManager configManager) throws MalformedURLException, IOException, ServiceException, JSONException {
 		Map<String, LayerConfig> overridenLayerConfigs = new HashMap<String, LayerConfig>();
 
+		// Retrieved all layers for all datasources of this client
 		for (DatasourceConfig datasourceConfig : this.getDatasourceConfigs(configManager)) {
 			if (datasourceConfig != null) {
 				overridenLayerConfigs.putAll(

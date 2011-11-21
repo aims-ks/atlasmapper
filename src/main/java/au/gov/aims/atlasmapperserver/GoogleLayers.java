@@ -80,8 +80,8 @@ public class GoogleLayers {
 	}
 
 	private static LayerConfig createGoogleLayer(DatasourceConfig datasourceConfig, String googleLayerType, String name, String description) {
-		// Create a LayerConfig based on its datasource
-		LayerConfig layerConfig = new LayerConfig(datasourceConfig);
+		LayerConfig layerConfig = new LayerConfig(datasourceConfig.getConfigManager());
+		layerConfig.setDatasourceId(datasourceConfig.getDatasourceId());
 
 		layerConfig.setLayerId(googleLayerType);
 		layerConfig.setTitle(name);

@@ -27,7 +27,7 @@
 		<link rel="icon" type="image/png" href="../resources/favicon.png" />
 		<title>Manual Override documentation</title>
 
-		<style>
+		<style type="text/css">
 			table {
 				border-collapse: collapse;
 				border: 1px solid #99BCE8;
@@ -72,14 +72,49 @@
 		<h2>Examples</h2>
 		<p>
 			The following bloc override the attribute
-			<i>wmsRequestMimeType</i> for the layer ID <i>ea:bluemarble</i> to
-			request tiles as GIF:
+			<i>wmsRequestMimeType</i> and <i>legendParameters</i> for the
+			layer ID <i>ea:bluemarble</i> to request tiles and legend graphics as GIF:
 		</p>
 <pre>
 {
 	"ea:bluemarble": {
-		"wmsRequestMimeType": "image/gif"
+		"wmsRequestMimeType": "image/gif",
+		"legendParameters": {
+			"FORMAT": "image/gif"
+		}
 	}
+}
+</pre>
+
+		<p>
+			This example show how to deactivate the feature requests for the
+			layer ID "ea:GBR_GBRMPA_GBR-features" and change the default style
+			and change the title of an other one.
+		</p>
+<pre>
+{
+	"ea:GBR_GBRMPA_GBR-features": {
+		"wmsQueryable": false,
+		"styles": {
+			"GBR-features_Reefs-outline-BW": {"default": true},
+			"GBR-features_Baselayer": {
+				"title": "GBR features for baselayer"
+			}
+		}
+	}
+}
+</pre>
+
+		<p>
+			The next example show how to disable the legend for multiple layers.
+			This feature is useful for layer groups serve by GeoServer since
+			this server can't provide legend graphics for grouped layers.
+		</p>
+<pre>
+{
+	"GBR_JCU_Bathymetry-3DGBR_Land-and-sea": {"hasLegend": false},
+	"World_NE2-coast-cities-reefs_Baselayer": {"hasLegend": false},
+	"ea:World_NED_NE2": {"hasLegend": false}
 }
 </pre>
 
@@ -159,9 +194,44 @@
 				<td class="desc">List of IDs that can be used to refer to this layer.</td>
 			</tr>
 			<tr>
+				<td class="attr">featureRequestsUrl</td>
+				<td class="type">URL</td>
+				<td class="desc">URL used to send the feature requests. Useful to redirect the feature requests of WebCache layers to a WMS server.</td>
+			</tr>
+			<tr>
 				<td class="attr">serverUrls</td>
 				<td class="type">Array of URL</td>
 				<td class="desc">URL used to request the tiles. The application currently only support one URL. The first one only is used.</td>
+			</tr>
+			<tr>
+				<td class="attr">webCacheUrl</td>
+				<td class="type">URL</td>
+				<td class="desc">URL of the server used to request the layer from a cache, when the URL only contains supported parameters.</td>
+			</tr>
+			<tr>
+				<td class="attr">webCacheSupportedParameters</td>
+				<td class="type">Array of String</td>
+				<td class="desc">List of the parameters supported by the WebCache server.</td>
+			</tr>
+			<tr>
+				<td class="attr">datasourceName</td> <!-- TODO Is this field work? -->
+				<td class="type">String</td>
+				<td class="desc">Specified a different datasource name for this layer, to display it in a different tab in the <i>Add layers</i> window.</td>
+			</tr>
+			<tr>
+				<td class="attr">datasourceType</td>
+				<td class="type">String</td>
+				<td class="desc">Override the type of layer. This option should not be used in normals circumstances.</td>
+			</tr>
+			<tr>
+				<td class="attr">legendParameters</td>
+				<td class="type">String</td>
+				<td class="desc">String of pairs <i>parameter=value</i>, separated by coma. Those parameters are sent with the request for the legend graphic.</td>
+			</tr>
+			<tr>
+				<td class="attr">wmsVersion</td> <!-- TODO Is this field work? -->
+				<td class="type">String</td>
+				<td class="desc">The WMS version send in the request; "1.1.1", "1.3.0"</td>
 			</tr>
 			<tr>
 				<td class="attr">wmsRequestMimeType</td>
@@ -183,80 +253,93 @@
 			<tr>
 				<td class="attr">default</td>
 				<td class="type">Boolean</td>
-				<td class="desc"><i>true</i> to load this layer when the client load, <i>false</i> otherwise.</td>
+				<td class="desc"><i>true</i> to load this layer when the client load, <i>false</i> otherwise. (default value: false)</td>
 			</tr>
 			<tr>
-				<td class="attr">wmsStyles</td>
+				<td class="attr">styles</td>
 				<td class="type">JSON Object</td>
-				<td class="desc">Define the style of this layer. For more info, check the definition of the styles of a layer in the <i>layers.js</i> file</td>
+				<td class="desc">
+					Define the styles of this layer.<br/>
+					List of available options for styles:
+					<table>
+						<tr>
+							<th class="attr">Attribute</th>
+							<th class="type">Type</th>
+							<th class="desc">Description</th>
+						</tr>
+						<tr>
+							<td class="attr">title</td>
+							<td class="type">String</td>
+							<td class="desc">The displayed name for this style. It's shown in the dropdown list in the option panel of the layer.</td>
+						</tr>
+						<tr>
+							<td class="attr">description</td>
+							<td class="type">String</td>
+							<td class="desc">A description for the layer. This field currently has no use in the AtlasMapper client.</td>
+						</tr>
+						<tr>
+							<td class="attr">default</td>
+							<td class="type">Boolean</td>
+							<td class="desc"><i>true</i> to load this style by default when the layer is loaded, <i>false</i> otherwise. (default value: false)</td>
+						</tr>
+					</table>
+					For more info, check the example above or the styles' definition for a layer in the file <i>layers.js</i>.
+				</td>
 			</tr>
-			<!-- TODO Test first
 			<tr>
 				<td class="attr">layerOptions</td>
 				<td class="type">JSON Object</td>
-				<td class="desc">TODO</td>
+				<td class="desc">
+					Define extra options to be added in the options panel of this layer.<br/>
+					<b>WARNING</b> this attribute is under development and may be unstable or change considerably between versions.<br/>
+					List of available options for layerOptions:
+					<table>
+						<tr>
+							<th class="attr">Attribute</th>
+							<th class="type">Type</th>
+							<th class="desc">Description</th>
+						</tr>
+						<tr>
+							<td class="attr">title</td>
+							<td class="type">String</td>
+							<td class="desc">The displayed name for this option. It's shown as a label for the new input.</td>
+						</tr>
+						<tr>
+							<td class="attr">type</td>
+							<td class="type">String</td>
+							<td class="desc">
+								The ExtJS xtype for the input.<br/>
+								List of available types:
+								<ul>
+									<li><b>checkbox</b></li>
+									<li><b>combo</b>: for dropdown. Not supported yet.</li>
+									<li><b>displayfield</b>: to display a readonly value.</li>
+									<li><b>hidden</b>: to send a value to the server without showing it to the user.</li>
+									<li><b>numberfield</b></li>
+									<li><b>sliderfield</b></li>
+									<li><b>textarea</b></li>
+									<li><b>textfield</b></li>
+									<li><b>timefield</b></li>
+									<li><b>datefield</b>: For date in format d/m/Y</li>
+									<li><b>ux-datefield</b>: For date displayed in format d/m/Y but sent to the server in format Y-m-d</li>
+									<li><b>ux-ncdatetimefield</b>: For date and time displayed in format d/m/Y and saved in the ISO format expected by NCWMS server.</li>
+								</ul>
+							</td>
+						</tr>
+						<tr>
+							<td class="attr">mandatory</td>
+							<td class="type">Boolean</td>
+							<td class="desc"><i>true</i> to force the user to fill the option with a value, <i>false</i> otherwise. (default value: false)</td>
+						</tr>
+						<tr>
+							<td class="attr">defaultValue</td>
+							<td class="type">String</td>
+							<td class="desc">Value pre-entered in the field.</td>
+						</tr>
+					</table>
+				</td>
 			</tr>
-			-->
-			<!-- wmsStyles & layerOptions: [name, type, mandatory, defaultValue] -->
-		</table>
-
-		<p>
-			The following table show the datasources attributes that can be specified in the layer definition, to override any datasource attribute for a layer:
-		</p>
-
-		<table>
-			<tr>
-				<th class="attr">Attribute</th>
-				<th class="type">Type</th>
-				<th class="desc">Description</th>
-			</tr>
-			<tr>
-				<td class="attr">featureRequestsUrl</td>
-				<td class="type">URL</td>
-				<td class="desc">URL used to send the feature requests. Useful to redirect the feature requests of WebCache layers to a WMS server.</td>
-			</tr>
-			<tr>
-				<td class="attr">serverUrls</td>
-				<td class="type">Array of URL</td>
-				<td class="desc">URL used to request the tiles. The application currently only support one URL. The first one only is used.</td>
-			</tr>
-			<tr>
-				<td class="attr">webCacheUrl</td>
-				<td class="type">URL</td>
-				<td class="desc">URL of the server used to request the layer from a cache, when the URL only contains supported parameters.</td>
-			</tr>
-			<tr>
-				<td class="attr">webCacheSupportedParameters</td>
-				<td class="type">Array of String</td>
-				<td class="desc">List of the parameters supported by the WebCache server.</td>
-			</tr>
-			<tr>
-				<td class="attr">legendUrl</td>
-				<td class="type">URL</td>
-				<td class="desc">URL to an image, to be use as a legend, to substitute the one provide by the server.</td>
-			</tr>
-			<tr>
-				<td class="attr">datasourceName</td> <!-- TODO Is this field work? -->
-				<td class="type">String</td>
-				<td class="desc">Specified a different datasource name for this layer, to display it in a different tab in the <i>Add layers</i> window.</td>
-			</tr>
-			<!--
-			<tr>
-				<td class="attr">datasourceType</td>
-				<td class="type">String</td>
-				<td class="desc"></td>
-			</tr>
-			-->
-			<tr>
-				<td class="attr">legendParameters</td>
-				<td class="type">JSON Object</td>
-				<td class="desc">Object of <i>parameter: value</i> to be send with the request for the legend graphic.</td>
-			</tr>
-			<tr>
-				<td class="attr">wmsVersion</td> <!-- TODO Is this field work? -->
-				<td class="type">String</td>
-				<td class="desc">The WMS version send in the request; "1.1.1", "1.3.0"</td>
-			</tr>
+			<!-- styles & layerOptions: [name, type, mandatory, defaultValue] -->
 		</table>
 	</body>
 </html>

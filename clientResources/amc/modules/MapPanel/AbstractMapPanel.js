@@ -225,7 +225,7 @@ Atlas.AbstractMapPanel = {
 		// Normalise the layers and load them in the core cache.
 		Atlas.core.loadNewLayersCache(defaultLayers);
 		for(var layerId in defaultLayers){
-			if(defaultLayers.hasOwnProperty(layerId) && layerId != 'defaults'){
+			if(defaultLayers.hasOwnProperty(layerId)){
 				// Get the layer from the core cache and load it in the map
 				this.addLayerById(layerId);
 			}
@@ -254,20 +254,54 @@ Atlas.AbstractMapPanel = {
 		this.events.triggerEvent(event, attributes);
 	},
 
+	/**
+	 * Return the Web Cache URL if every parameters are supported by the Web Cache server.
+	 * Return the WMS Service URL otherwise.
+	 */
+	getWMSServiceUrl: function(layerJSon, layerParams) {
+		var serviceUrl = layerJSon['wmsServiceUrl'];
+		if (layerJSon['webCacheUrl'] &&
+				this._canUseWebCache(layerJSon['webCacheSupportedParameters'], layerParams)) {
+			serviceUrl = layerJSon['webCacheUrl'];
+		}
+		return serviceUrl;
+	},
+
+	_canUseWebCache: function(supportedParams, layerParams) {
+		for(var paramName in layerParams){
+			if(layerParams.hasOwnProperty(paramName)){
+				if (layerParams[paramName] && !this._webCacheSupportParam(paramName, supportedParams)) {
+					// console.log('Can NOT use Web Cache ['+paramName+']');
+					return false;
+				}
+			}
+		}
+		// console.log('Can use Web Cache');
+		return true;
+	},
+
+	_webCacheSupportParam: function(paramName, supportedParams) {
+		if (!supportedParams || supportedParams.length <= 0) {
+			// Supported parameters is not set:
+			// The Web Cache server support everything
+			return true;
+		}
+
+		for (var i=0; i < supportedParams.length; i++) {
+			var supportedParam = supportedParams[i];
+			if (supportedParam.toUpperCase() === paramName.toUpperCase()) {
+				return true;
+			}
+		}
+		return false;
+	},
+
 	_getTitle: function(layerJSon) {
 		var title = layerJSon['title'];
 		if (!title) {
 			title = layerJSon['layerId'];
 		}
 		return title;
-	},
-
-	_getWMSServiceUrl: function(layerJSon) {
-		var serviceUrl = layerJSon['wmsServiceUrl'];
-		if (layerJSon['webCacheUrl']) {
-			serviceUrl = layerJSon['webCacheUrl'];
-		}
-		return serviceUrl;
 	},
 
 	_getWMSExtraServiceUrls: function(layerJSon) {
@@ -288,6 +322,17 @@ Atlas.AbstractMapPanel = {
 
 		if (layerJSon['wmsRequestMimeType']) {
 			layerParams.format = layerJSon['wmsRequestMimeType'];
+		}
+
+		// Select default style if needed
+		if (layerJSon['styles']) {
+			for (var styleName in layerJSon['styles']) {
+				var jsonStyle = layerJSon['styles'][styleName];
+				if (styleName && jsonStyle["default"]) {
+					layerParams.styles = styleName;
+					break;
+				}
+			}
 		}
 
 		if (isBaseLayer) {
@@ -329,20 +374,22 @@ Atlas.AbstractMapPanel = {
 
 	_createNCWMSLayer: function(layerJSon) {
 		// TODO Support Multiple URLS => this._getWMSExtraServiceUrls(layerJSon),
+		var layerParams = this._getWMSLayerParams(layerJSon);
 		return new OpenLayers.Layer.ux.NCWMS(
 			this._getTitle(layerJSon),
-			this._getWMSServiceUrl(layerJSon),
-			this._getWMSLayerParams(layerJSon),
+			this.getWMSServiceUrl(layerJSon, layerParams),
+			layerParams,
 			this._getWMSLayerOptions(layerJSon)
 		);
 	},
 
 	_createWMSLayer: function(layerJSon) {
 		// TODO Support Multiple URLS => this._getWMSExtraServiceUrls(layerJSon),
+		var layerParams = this._getWMSLayerParams(layerJSon);
 		return new OpenLayers.Layer.WMS(
 			this._getTitle(layerJSon),
-			this._getWMSServiceUrl(layerJSon),
-			this._getWMSLayerParams(layerJSon),
+			this.getWMSServiceUrl(layerJSon, layerParams),
+			layerParams,
 			this._getWMSLayerOptions(layerJSon)
 		);
 	},

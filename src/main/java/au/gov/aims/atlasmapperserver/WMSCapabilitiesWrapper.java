@@ -334,8 +334,10 @@ public class WMSCapabilitiesWrapper {
 			ClientConfig clientConfig,
 			DatasourceConfig datasourceConfig) {
 
-		// Create a LayerConfig based on its datasource
-		LayerConfig layerConfig = new LayerConfig(datasourceConfig);
+		LayerConfig layerConfig = new LayerConfig(clientConfig.getConfigManager());
+
+		// Link the layer to it's datasource
+		layerConfig.setDatasourceId(datasourceConfig.getDatasourceId());
 
 		String layerId = layer.getName();
 		if (Utils.isBlank(layerId)) {
@@ -369,19 +371,13 @@ public class WMSCapabilitiesWrapper {
 		}
 
 		List<StyleImpl> styleImpls = layer.getStyles();
-		boolean firstStyle = true;
 		if (styleImpls != null && !styleImpls.isEmpty()) {
 			List<LayerStyleConfig> styles = new ArrayList<LayerStyleConfig>(styleImpls.size());
 			for (StyleImpl styleImpl : styleImpls) {
 				LayerStyleConfig styleConfig = styleToLayerStyleConfig(clientConfig.getConfigManager(), styleImpl);
 
 				if (styleConfig != null) {
-					if (firstStyle) {
-						styleConfig.setDefault(true);
-					}
-
 					styles.add(styleConfig);
-					firstStyle = false;
 				}
 			}
 			if (!styles.isEmpty()) {

@@ -89,11 +89,6 @@ public class LayerConfig extends DatasourceConfig {
 		this.update(json);
 	}
 
-	public LayerConfig(DatasourceConfig datasource) {
-		this(datasource.getConfigManager());
-		this.applyOverrides(datasource);
-	}
-
 	// Disable a few methods that should never be used.
 	@Override
 	public Integer getId() {

@@ -42,7 +42,6 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -1289,8 +1288,7 @@ public class ConfigManager {
 		return clientConfig.getDefaultLayersSet();
 	}
 
-	private JSONObject generateDatasource(DatasourceConfig datasourceConfig)
-			throws JSONException, MalformedURLException, IOException, ServiceException {
+	private JSONObject generateDatasource(DatasourceConfig datasourceConfig) throws JSONException {
 
 		JSONObject datasource = new JSONObject();
 
@@ -1371,7 +1369,8 @@ public class ConfigManager {
 	}
 
 	private JSONObject generateLayer(LayerConfig layerConfig) throws JSONException {
-		JSONObject jsonLayer = new JSONObject();
+		// LayerConfig extends DatasourceConfig
+		JSONObject jsonLayer = this.generateDatasource(layerConfig);
 
 		jsonLayer.put(CONFIG_VERSION_KEY, CURRENT_CONFIG_VERSION);
 
@@ -1460,30 +1459,23 @@ public class ConfigManager {
 		if (styles != null && !styles.isEmpty()) {
 			JSONObject jsonStyles = new JSONObject();
 			if (styles != null && !styles.isEmpty()) {
-				boolean hasDefaultStyle = false;
-				JSONObject firstStyle = null;
+				boolean firstStyle = true;
 				for (LayerStyleConfig style : styles) {
-					if (style.isDefault() != null && style.isDefault()) {
-						hasDefaultStyle = true;
-					}
-
 					String styleName = style.getName();
-					if (Utils.isNotBlank(styleName)) {
+					if (firstStyle) {
+						firstStyle = false;
+						styleName = "";
+					}
+					if (styleName != null) {
 						JSONObject jsonStyle = this.generateLayerStyle(style);
 						if (jsonStyle != null && jsonStyle.length() > 0) {
-							if (firstStyle == null) {
-								firstStyle = jsonStyle;
-							}
 							jsonStyles.put(styleName, jsonStyle);
 						}
 					}
 				}
-				if (!hasDefaultStyle) {
-					firstStyle.put("default", true);
-				}
 			}
 			if (jsonStyles.length() > 0) {
-				jsonLayer.put("wmsStyles", jsonStyles);
+				jsonLayer.put("styles", jsonStyles);
 			}
 		}
 

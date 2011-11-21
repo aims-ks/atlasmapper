@@ -466,7 +466,8 @@ public class DatasourceConfig extends AbstractConfig implements Comparable<Datas
 						layerIdEnd = (layerIdEnd > 0 ? layerIdEnd : kmlUrl.length());
 						String layerId = kmlUrl.substring(layerIdStart, layerIdEnd);
 
-						LayerConfig layer = new LayerConfig(this);
+						LayerConfig layer = new LayerConfig(this.getConfigManager());
+						layer.setDatasourceId(this.datasourceId);
 						layer.setLayerId(layerId);
 						layer.setTitle(layerId);
 						layer.setKmlUrl(kmlUrl);
