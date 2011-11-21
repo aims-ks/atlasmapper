@@ -18,22 +18,21 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-Ext.namespace('GeoExt.ux');
 /**
- * GeoExt.ux.LegendPanel is a collection of GeoExt.ux.LegendGroup,
+ * Atlas.LegendPanel is a collection of GeoExt.ux.LegendGroup,
  * which are Ext.Panels that collect the legend graphics
- * (see GeoExt.ux.LegendPanel.addLegend, GeoExt.ux.LegendGroup.insert)
+ * (see Atlas.LegendPanel.addLegend, GeoExt.ux.LegendGroup.insert)
  * that usually goes to a GeoExt.LegendPanel
  * (see GeoExt.LegendPanel.addLegend).
  * 
- * GeoExt.ux.LegendPanel.addLegend ack as a dispatcher to place the
+ * Atlas.LegendPanel.addLegend ack as a dispatcher to place the
  * legend graphics into the corresponding GeoExt.ux.LegendGroup.
  * 
- * GeoExt.ux.LegendPanel config options are almost the same as
+ * Atlas.LegendPanel config options are almost the same as
  * GeoExt.LegendPanel.
  */
-GeoExt.ux.LegendPanel = Ext.extend(GeoExt.LegendPanel, {
+
+Atlas.LegendPanel = Ext.extend(GeoExt.LegendPanel, {
 	// Hashmap of legend groups.
 	// Key: legendGroupName (String)
 	// Value: GeoExt.ux.LegendGroup (extend Ext.Panel)
@@ -41,7 +40,7 @@ GeoExt.ux.LegendPanel = Ext.extend(GeoExt.LegendPanel, {
 	legendWindow: null,
 
 	bodyCssClass: 'legend',
-	preferredTypes: ['gx_ux_ncwmslegend', 'gx_ux_wmslegend', 'gx_ux_vectorlegend'], // TODO Check layer type somehow...
+	preferredTypes: ['gx_ux_ncwmslegend', 'gx_ux_wmslegend', 'gx_ux_vectorlegend'],
 
 	autoHeight: true,
 	autoScroll: true,
@@ -96,7 +95,7 @@ GeoExt.ux.LegendPanel = Ext.extend(GeoExt.LegendPanel, {
 			this.layerStore = this.mapPanel.layers;
 		}
 
-		GeoExt.ux.LegendPanel.superclass.initComponent.call(this);
+		Atlas.LegendPanel.superclass.initComponent.call(this);
 		this.legendGroups = {};
 
 		// PATCH to make the scroll works in the legend
@@ -125,7 +124,7 @@ GeoExt.ux.LegendPanel = Ext.extend(GeoExt.LegendPanel, {
 			w = rawWidth;
 		}
 
-		GeoExt.ux.LegendPanel.superclass.onResize.call(this, w, h, rawWidth, rawHeight);
+		Atlas.LegendPanel.superclass.onResize.call(this, w, h, rawWidth, rawHeight);
 	},
 
 	addLegend: function(record, index) {
@@ -203,7 +202,7 @@ GeoExt.ux.LegendPanel = Ext.extend(GeoExt.LegendPanel, {
 					show: function(comp){ that.showHidePanel(); }
 				}
 			}
-			// Add GeoExt.ux.LegendPanel.defaults to the GeoExt.ux.LegendGroup.defaults
+			// Add Atlas.LegendPanel.defaults to the GeoExt.ux.LegendGroup.defaults
 			// (GeoExt.ux.LegendGroup.defaults params are the same as GeoExt.LegendPanel.defaults)
 			Ext.applyIf(params.defaults, this.defaults);
 
@@ -213,7 +212,7 @@ GeoExt.ux.LegendPanel = Ext.extend(GeoExt.LegendPanel, {
 	},
 
 	doLayout: function() {
-		GeoExt.ux.LegendPanel.superclass.doLayout.call(this);
+		Atlas.LegendPanel.superclass.doLayout.call(this);
 		this.showHidePanel();
 	},
 
@@ -239,5 +238,5 @@ GeoExt.ux.LegendPanel = Ext.extend(GeoExt.LegendPanel, {
 		}
 	}
 });
-/** api: xtype = gx_ux_legendpanel */
-Ext.reg('gx_ux_legendpanel', GeoExt.ux.LegendPanel);
+/** api: xtype = atlas_legendpanel */
+Ext.reg('atlas_legendpanel', Atlas.LegendPanel);

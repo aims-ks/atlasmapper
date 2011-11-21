@@ -19,7 +19,9 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 /**
- * Used for the AddLayersWindow
+ * LayerNode and LayerLeaf are TreeNode that hold a reference to the
+ * configuration object for a layer.
+ * Used for the Tree, in the AddLayersWindow
  */
 
 Ext.namespace("Ext.ux");

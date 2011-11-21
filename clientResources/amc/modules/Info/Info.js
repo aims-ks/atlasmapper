@@ -59,7 +59,7 @@ Atlas.Info = Ext.extend(Ext.Component, {
 						panelConfig.html = tabObj['defaultContent'];
 					}
 					this.optionsTab = this.tabs.length;
-					this.tabs.push(new Ext.ux.OptionsPanel(panelConfig));
+					this.tabs.push(new Atlas.OptionsPanel(panelConfig));
 				} else {
 					if (tabObj['type'] === 'description') {
 						this.descriptionTab = this.tabs.length;

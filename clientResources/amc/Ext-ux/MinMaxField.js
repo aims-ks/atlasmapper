@@ -18,6 +18,12 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+/**
+ * ExtJS form field with 2 NumberFields. The getValues order the fields to
+ * ensure the first one has the smalest value and the second one has the
+ * highest value, than return both value glue together using the value of the
+ * spacer option (coma "," by default).
+ */
 
 Ext.namespace("Ext.ux");
 Ext.namespace("Ext.ux.form");

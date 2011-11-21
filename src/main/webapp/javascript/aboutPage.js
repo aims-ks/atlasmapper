@@ -52,7 +52,7 @@ Ext.onReady(function() {
 				'	</tr>\n' +
 				'	<tr>\n' +
 				'		<th>License</th>\n' +
-				'		<td><a href="http://www.gnu.org/copyleft/gpl.html" target="_blank">'+license+'</a></td>\n' +
+				'		<td><a href="'+licenseUrl+'" target="_blank">'+licenseName+'</a></td>\n' +
 				'	</tr>\n' +
 				'	<tr>\n' +
 				'		<th>Dependencies</th>\n' +

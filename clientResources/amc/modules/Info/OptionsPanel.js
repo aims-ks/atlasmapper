@@ -19,9 +19,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-Ext.namespace("Ext.ux");
-
-Ext.ux.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
+Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 	mapPanel: null,
 
 	defaultContent: null,
@@ -236,7 +234,7 @@ Ext.ux.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 		};
 		Ext.applyIf(this, formConfig);
 
-		Ext.ux.OptionsPanel.superclass.initComponent.call(this);
+		Atlas.OptionsPanel.superclass.initComponent.call(this);
 
 		// Prevent form's keyboard event to go to the map
 		this.on('render', function(evt) {
@@ -679,4 +677,4 @@ Ext.ux.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 	}
 });
 
-Ext.reg('ux_optionspanel', Ext.ux.OptionsPanel);
+Ext.reg('atlas_optionspanel', Atlas.OptionsPanel);

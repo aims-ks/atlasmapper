@@ -51,6 +51,12 @@ public class LayerStyleConfig extends AbstractConfig implements Comparable<Layer
 		}
 	}
 
+	@Override
+	public String getJSONObjectKey() {
+		return this.name;
+	}
+
+
 	public Boolean isDefault() {
 		return _default;
 	}

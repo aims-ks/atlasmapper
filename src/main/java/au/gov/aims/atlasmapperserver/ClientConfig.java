@@ -138,6 +138,11 @@ public class ClientConfig extends AbstractConfig {
 		}
 	}
 
+	@Override
+	public String getJSONObjectKey() {
+		return this.clientName;
+	}
+
 	public Integer getId() {
 		return id;
 	}

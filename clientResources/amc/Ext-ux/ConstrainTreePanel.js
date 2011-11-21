@@ -19,6 +19,10 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/**
+ * TreePanel using ConstrainTreeDropZone.
+ */
+
 Ext.namespace("Ext.ux");
 Ext.namespace("Ext.ux.tree");
 

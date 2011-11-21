@@ -62,6 +62,11 @@ public class User extends AbstractConfig {
 	}
 
 	@Override
+	public String getJSONObjectKey() {
+		return this.loginName;
+	}
+
+	@Override
 	public JSONObject toJSonObject() throws JSONException {
 		JSONObject json = super.toJSonObject();
 		return json;

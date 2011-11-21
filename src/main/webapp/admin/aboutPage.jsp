@@ -52,7 +52,8 @@
 			var description = '<%=Utils.safeJsStr(ProjectInfo.getDescription()) %>';
 			var version = '<%=Utils.safeJsStr(ProjectInfo.getVersion()) %>';
 			var url = '<%=Utils.safeJsStr(ProjectInfo.getUrl()) %>';
-			var license = '<%=Utils.safeJsStr(ProjectInfo.getLicense()) %>';
+			var licenseName = '<%=Utils.safeJsStr(ProjectInfo.getLicenseName()) %>';
+			var licenseUrl = '<%=Utils.safeJsStr(ProjectInfo.getLicenseUrl()) %>';
 			var dataDirProperty = '<%=Utils.safeJsStr(FileFinder.DATA_DIR_PROPERTY) %>';
 			var dataDirPropertyValue = '<%=Utils.safeJsStr(FileFinder.getDataDirPropertyValue(this.getServletContext())) %>';
 		</script>

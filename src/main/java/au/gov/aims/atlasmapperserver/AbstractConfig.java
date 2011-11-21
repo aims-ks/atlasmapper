@@ -28,6 +28,7 @@ package au.gov.aims.atlasmapperserver;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -79,6 +80,7 @@ public abstract class AbstractConfig implements Cloneable {
 	 * @param key
 	 */
 	public abstract void setJSONObjectKey(String key);
+	public abstract String getJSONObjectKey();
 
 	/**
 	 * This method use reflexion to get all field annoted with ConfigField,
@@ -244,7 +246,7 @@ public abstract class AbstractConfig implements Cloneable {
 									}
 								}
 
-								Object value = getValue(jsonObj, configName, fieldClass, collectionTypes);
+								Object value = getValue(this.configManager, jsonObj, configName, fieldClass, collectionTypes);
 								setter.invoke(this, value);
 							}
 						} catch (Exception ex) {
@@ -264,7 +266,7 @@ public abstract class AbstractConfig implements Cloneable {
 
 	// Support (for now) int, float, double, boolean, JSONObject, JSONArray, String, sub classes of AbstractConfig, Map and other Collection.
 	// Recursive for collections
-	private static Object getValue(JSONObject jsonObj, String configName, Class fieldClass, Type[] collectionTypes) throws InstantiationException, IllegalAccessException, JSONException {
+	private static Object getValue(ConfigManager configManager, JSONObject jsonObj, String configName, Class fieldClass, Type[] collectionTypes) throws InstantiationException, IllegalAccessException, JSONException {
 		if (jsonObj.isNull(configName)) {
 			if(int.class.equals(fieldClass) || float.class.equals(fieldClass) || double.class.equals(fieldClass)) {
 				return DEFAULT_NUMBER;
@@ -282,12 +284,21 @@ public abstract class AbstractConfig implements Cloneable {
 		if (AbstractConfig.class.isAssignableFrom(fieldClass)) {
 			JSONObject jsonValue = getJSONObject(jsonObj, configName);
 			if (jsonValue != null && jsonValue.length() > 0) {
-				AbstractConfig configValue =
-						(AbstractConfig)fieldClass.newInstance();
-				configValue.update(jsonValue);
-				// setJSONObjectKey: Only called here, when the JSON parameter is a JSONObject
-				configValue.setJSONObjectKey(configName);
-				value = configValue;
+				try {
+					AbstractConfig configValue =
+							(AbstractConfig)fieldClass.getConstructor(ConfigManager.class).newInstance(configManager);
+
+					configValue.update(jsonValue);
+					// setJSONObjectKey: Only called here, when the JSON parameter is a JSONObject
+					configValue.setJSONObjectKey(configName);
+					value = configValue;
+				} catch (NoSuchMethodException ex) {
+					LOGGER.log(Level.SEVERE, fieldClass.getName() + " has no constructor using a ConfigManager as parameter.", ex);
+				} catch (InvocationTargetException ex) {
+					LOGGER.log(Level.SEVERE, fieldClass.getName() + " constructor generated an exception when called.", ex);
+				} catch (SecurityException ex) {
+					LOGGER.log(Level.SEVERE, fieldClass.getName() + " constructor can not be called due to security restrictions.", ex);
+				}
 			}
 		} else if (Map.class.isAssignableFrom(fieldClass)) {
 			// The field is a map, the value can only be a JSONObject, or a String that represent a JSONObject.
@@ -302,6 +313,7 @@ public abstract class AbstractConfig implements Cloneable {
 				while(keys.hasNext()) {
 					String key = keys.next();
 					Object val = getValue(
+							configManager,
 							jsonValue,
 							key,
 							collectionClass,
@@ -336,6 +348,7 @@ public abstract class AbstractConfig implements Cloneable {
 						if (jsonArrValue != null) {
 							for (int i=0; i<jsonArrValue.length(); i++) {
 								Object val = getValue(
+										configManager,
 										jsonArrValue,
 										i,
 										collectionClass,
@@ -349,6 +362,7 @@ public abstract class AbstractConfig implements Cloneable {
 						Iterator<String> keys = jsonObjValue.keys();
 						while(keys.hasNext()) {
 							Object val = getValue(
+									configManager,
 									jsonObjValue,
 									keys.next(),
 									collectionClass,
@@ -374,6 +388,7 @@ public abstract class AbstractConfig implements Cloneable {
 					if (jsonArrValue != null) {
 						for (int i=0; i<jsonArrValue.length(); i++) {
 							Object val = getValue(
+									configManager,
 									jsonArrValue,
 									i,
 									(Class)arrayType,
@@ -387,6 +402,7 @@ public abstract class AbstractConfig implements Cloneable {
 					Iterator<String> keys = jsonObjValue.keys();
 					while(keys.hasNext()) {
 						Object val = getValue(
+								configManager,
 								jsonObjValue,
 								keys.next(),
 								(Class)arrayType,
@@ -428,7 +444,7 @@ public abstract class AbstractConfig implements Cloneable {
 	}
 
 	// Duplicate of the previous function because JSONObject and JSONArray do not extends a common abstract class
-	private static Object getValue(JSONArray jsonArr, int index, Class fieldClass, Type[] collectionTypes) throws JSONException, InstantiationException, IllegalAccessException {
+	private static Object getValue(ConfigManager configManager, JSONArray jsonArr, int index, Class fieldClass, Type[] collectionTypes) throws JSONException, InstantiationException, IllegalAccessException {
 		if (jsonArr.isNull(index)) {
 			if(int.class.equals(fieldClass) || float.class.equals(fieldClass) || double.class.equals(fieldClass)) {
 				return DEFAULT_NUMBER;
@@ -446,10 +462,20 @@ public abstract class AbstractConfig implements Cloneable {
 		if (AbstractConfig.class.isAssignableFrom(fieldClass)) {
 			JSONObject jsonValue = getJSONObject(jsonArr, index);
 			if (jsonValue != null && jsonValue.length() > 0) {
-				AbstractConfig configValue =
-						(AbstractConfig)fieldClass.newInstance();
-				configValue.update(jsonValue);
-				value = configValue;
+
+				try {
+					AbstractConfig configValue =
+							(AbstractConfig)fieldClass.getConstructor(ConfigManager.class).newInstance(configManager);
+
+					configValue.update(jsonValue);
+					value = configValue;
+				} catch (NoSuchMethodException ex) {
+					LOGGER.log(Level.SEVERE, fieldClass.getName() + " has no constructor using a ConfigManager as parameter.", ex);
+				} catch (InvocationTargetException ex) {
+					LOGGER.log(Level.SEVERE, fieldClass.getName() + " constructor generated an exception when called.", ex);
+				} catch (SecurityException ex) {
+					LOGGER.log(Level.SEVERE, fieldClass.getName() + " constructor can not be called due to security restrictions.", ex);
+				}
 			}
 		} else if (Map.class.isAssignableFrom(fieldClass)) {
 			// The field is a map, the value can only be a JSONObject, or a String that represent a JSONObject.
@@ -464,6 +490,7 @@ public abstract class AbstractConfig implements Cloneable {
 				while(keys.hasNext()) {
 					String key = keys.next();
 					Object val = getValue(
+							configManager,
 							jsonValue,
 							key,
 							collectionClass,
@@ -499,6 +526,7 @@ public abstract class AbstractConfig implements Cloneable {
 						if (jsonArrValue != null) {
 							for (int i=0; i<jsonArrValue.length(); i++) {
 								Object val = getValue(
+										configManager,
 										jsonArrValue,
 										i,
 										collectionClass,
@@ -512,6 +540,7 @@ public abstract class AbstractConfig implements Cloneable {
 						Iterator<String> keys = jsonObjValue.keys();
 						while(keys.hasNext()) {
 							Object val = getValue(
+									configManager,
 									jsonObjValue,
 									keys.next(),
 									collectionClass,
@@ -537,6 +566,7 @@ public abstract class AbstractConfig implements Cloneable {
 					if (jsonArrValue != null) {
 						for (int i=0; i<jsonArrValue.length(); i++) {
 							Object val = getValue(
+									configManager,
 									jsonArrValue,
 									i,
 									(Class)arrayType,
@@ -550,6 +580,7 @@ public abstract class AbstractConfig implements Cloneable {
 					Iterator<String> keys = jsonObjValue.keys();
 					while(keys.hasNext()) {
 						Object val = getValue(
+								configManager,
 								jsonObjValue,
 								keys.next(),
 								(Class)arrayType,
@@ -773,7 +804,7 @@ public abstract class AbstractConfig implements Cloneable {
 						Object rawValue = getter.invoke(overrides);
 						if (rawValue != null) {
 
-							if (rawValue instanceof Collection) {
+							if(rawValue instanceof Collection) {
 								// Merge Collection values
 								Collection newColl = (Collection)rawValue;
 								Collection curColl = (Collection)getter.invoke(this);
@@ -781,7 +812,71 @@ public abstract class AbstractConfig implements Cloneable {
 									curColl = newColl.getClass().newInstance();
 									setter.invoke(this, curColl);
 								}
-								curColl.addAll(newColl);
+
+								ParameterizedType collElType = (ParameterizedType)field.getGenericType();
+								Class collElClass = (Class)collElType.getActualTypeArguments()[0];
+								// collElClass instanceof AbstractConfig
+								if (AbstractConfig.class.isAssignableFrom(collElClass)) {
+									// Apply needed overrides
+									for (Object el : curColl) {
+										if (el != null) {
+											AbstractConfig configEl = (AbstractConfig)el;
+											String currentKey = configEl.getJSONObjectKey();
+											if (currentKey != null) {
+												for (Object newEl : newColl) {
+													if (newEl != null) {
+														AbstractConfig newConfigEl = (AbstractConfig)newEl;
+														if (currentKey.equals(newConfigEl.getJSONObjectKey())) {
+															// Refer to the same object, need override
+															configEl.applyOverrides(newConfigEl);
+														}
+													}
+												}
+											}
+										}
+									}
+									// Add new elements
+									for (Object newEl : newColl) {
+										if (newEl != null) {
+											AbstractConfig newConfigEl = (AbstractConfig)newEl;
+											String newKey = newConfigEl.getJSONObjectKey();
+											if (newKey != null) {
+												boolean newElFound = false;
+												for (Object el : curColl) {
+													if (el != null) {
+														AbstractConfig configEl = (AbstractConfig)el;
+														if (newKey.equals(configEl.getJSONObjectKey())) {
+															newElFound = true;
+															break;
+														}
+													}
+												}
+												if (!newElFound) {
+													// The new object can not be found, need to be added
+													curColl.add(newEl);
+												}
+											}
+										}
+									}
+								} else {
+									// For Collection of something else than AbstractConfig,
+									// Only add elements that are not already present in the collection
+									// I.E. equals return false
+									for (Object newEl : newColl) {
+										if (newEl != null) {
+											boolean newElFound = false;
+											for (Object el : curColl) {
+												if (newEl.equals(el)) {
+													newElFound = true;
+													break;
+												}
+											}
+											if (!newElFound) {
+												curColl.add(newEl);
+											}
+										}
+									}
+								}
 
 							} else if (rawValue.getClass().isArray()) {
 								// Merge Array values

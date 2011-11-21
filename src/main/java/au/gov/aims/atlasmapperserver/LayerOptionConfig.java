@@ -54,6 +54,11 @@ public class LayerOptionConfig extends AbstractConfig {
 		}
 	}
 
+	@Override
+	public String getJSONObjectKey() {
+		return this.name;
+	}
+
 	public String getName() {
 		return name;
 	}

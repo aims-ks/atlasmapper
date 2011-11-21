@@ -23,13 +23,15 @@ Ext.namespace("Ext.ux");
 Ext.namespace("Ext.ux.form");
 
 /**
- * @class Ext.form.DateField
- * @extends Ext.form.TriggerField
- * Provides a date input field with a {@link Ext.DatePicker} dropdown and automatic date validation.
+ * @class Ext.ux.form.NCDatetimeField
+ * @extends Ext.ux.form.CompositeFieldAnchor
+ * Provides a date input field with a {@link Ext.DatePicker} dropdown and
+ * automatic date validation, and a time input field. The allowed values are
+ * determined by the NCWMS server provided by the layer.
  * @constructor
- * Create a new DateField
+ * Create a new NCDatetimeField
  * @param {Object} config
- * @xtype datefield
+ * @xtype ux-ncdatetimefield
  */
 // http://www.sencha.com/forum/showthread.php?7385-DateField-limit-to-available-dates-from-array
 Ext.ux.form.NCDatetimeField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {

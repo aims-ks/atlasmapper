@@ -24,6 +24,19 @@ Ext.namespace("Ext.ux.form");
 
 /**
  * A Ext.form.DateField with a distinct format for display and for output.
+ * 
+ * NOTE: This field is using the international logical date format
+ *     that order its parts in the little endian order (d/m/y) or the big
+ *     endian order (Y-m-d).
+ *
+ * Author's angry note about middle endian format:
+ *     This class allow the "d/m/y" date format and other similar format but not the
+ *     illogical and confusing middle indian format (m/d/y) that is only used
+ *     in USA (and Belize). It is also supported in Canada and a few other countries
+ *     (see: http://en.wikipedia.org/wiki/Date_format_by_country), but only USA
+ *     and Belize use only this date format, and for some USA selfish reasons,
+ *     it's the default date format used in almost every application an libraries
+ *     Worldwide used.
  */
 Ext.ux.form.DateField = Ext.extend(Ext.form.DateField,  {
 	/**

@@ -19,6 +19,11 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/**
+ * ConstrainTreeDropZone allow re-ordering the children under a node but not
+ * moving a child from one node to an other.
+ */
+
 Ext.namespace("Ext.ux");
 Ext.namespace("Ext.ux.tree");
 

@@ -19,6 +19,10 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/**
+ * Panel that contains an IFrame (set using setSrc) or HTML content
+ * (set using setContent).
+ */
 Ext.namespace("Ext.ux");
 
 Ext.ux.IFramePanel = function(config){

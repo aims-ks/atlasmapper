@@ -62,7 +62,6 @@
 	<!-- Personal addition to ExtJS -->
 	<script type="text/javascript" src="Ext-ux/CompositeFieldAnchor.js"></script>
 	<script type="text/javascript" src="Ext-ux/IFramePanel.js"></script>
-	<script type="text/javascript" src="Ext-ux/OptionsPanel.js"></script>
 	<script type="text/javascript" src="Ext-ux/ConstrainTreePanel.js"></script>
 	<script type="text/javascript" src="Ext-ux/ConstrainTreeDropZone.js"></script>
 	<script type="text/javascript" src="Ext-ux/LayerTreeLoader.js"></script>
@@ -76,7 +75,6 @@
 	<script type="text/javascript" src="GeoExt-ux/WMSLegend.js"></script>
 	<script type="text/javascript" src="GeoExt-ux/NCWMSLegend.js"></script>
 	<script type="text/javascript" src="GeoExt-ux/VectorLegend.js"></script>
-	<script type="text/javascript" src="GeoExt-ux/LegendPanel.js"></script>
 	<script type="text/javascript" src="GeoExt-ux/LegendGroup.js"></script>
 
 	<script type="text/javascript" src="modules/Core/Core.js"></script>
@@ -84,10 +82,12 @@
 	<script type="text/javascript" src="modules/MapPanel/GeoExtMapPanel.js"></script>
 	<script type="text/javascript" src="modules/MapPanel/MultiWMSGetFeatureInfo.js"></script>
 	<script type="text/javascript" src="modules/Legend/Legend.js"></script>
+	<script type="text/javascript" src="modules/Legend/LegendPanel.js"></script>
 	<script type="text/javascript" src="modules/LayersPanel/LayersPanel.js"></script>
 	<script type="text/javascript" src="modules/LayersPanel/AddLayersWindow.js"></script>
 	<script type="text/javascript" src="modules/Trees/Trees.js"></script>
 	<script type="text/javascript" src="modules/Info/Info.js"></script>
+	<script type="text/javascript" src="modules/Info/OptionsPanel.js"></script>
 
 	<script type="text/javascript">
 

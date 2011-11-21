@@ -18,7 +18,10 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
+/**
+ * TreeLoader that initialise LayerNode and handle highlighting of nodes and
+ * leaves describe in the treePaths config option.
+ */
 Ext.namespace("Ext.ux");
 Ext.namespace("Ext.ux.tree");
 

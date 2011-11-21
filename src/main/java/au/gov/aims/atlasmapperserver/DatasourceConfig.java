@@ -127,6 +127,11 @@ public class DatasourceConfig extends AbstractConfig implements Comparable<Datas
 		}
 	}
 
+	@Override
+	public String getJSONObjectKey() {
+		return this.datasourceId;
+	}
+
 	public Integer getId() {
 		return id;
 	}

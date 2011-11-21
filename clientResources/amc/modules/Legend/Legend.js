@@ -39,7 +39,7 @@ Atlas.Legend = Ext.extend(Ext.Window, {
 
 	initComponent: function() {
 		Atlas.Legend.superclass.initComponent.call(this);
-		var legendPanel = new GeoExt.ux.LegendPanel({
+		var legendPanel = new Atlas.LegendPanel({
 			legendWindow: this,
 			mapPanel: this.mapPanel
 		});
@@ -73,7 +73,7 @@ Atlas.Legend = Ext.extend(Ext.Window, {
 
 	/**
 	 * Go out of autoheight/autowidth as soon as the user manually resize the legend window.
-	 * See also GeoExt.ux.LegendPanel.onResize
+	 * See also Atlas.LegendPanel.onResize
 	 */
 	// To block the autoheight to a maxHeight, see:
 	// http://www.sencha.com/forum/showthread.php?25704-Panel-with-autoHeight-ignores-MaxHeight

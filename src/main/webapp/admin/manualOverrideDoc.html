@@ -57,14 +57,27 @@
 	<body>
 		<h1>Manual Override documentation</h1>
 		<p>
-			This field must respect the JSON syntax, a subset of JavaScript. If it contains errors, the form will refuse to submit. It always start with <b>{</b> and ends with <b>}</b>. To override an attribute of a layer, specified the layer ID following by a column <b>:</b> and the curly brackets <b>{</b> and <b>}</b>. Add the attributes inside the brackets.
+			This field must respect the JSON syntax, a subset of JavaScript. If
+			it contains errors, the form will refuse to submit. It always start
+			with <b>{</b> and ends with <b>}</b>. To override an attribute of a
+			layer, specified the layer ID following by a column <b>:</b> and the
+			curly brackets <b>{</b> and <b>}</b>. Add the attributes inside the
+			brackets.
 		</p>
 		<p>
-			For example, the following will override the attribute <i>wmsRequestMimeType</i> for the layer <i>bluemarble</i> to request tiles as GIF:
+			The attributes for a layer are build from the capabilities document,
+			for WMS layers, after applying the manual overrides from the layer
+			datasource than the manual overrides from the client.
+		</p>
+		<h2>Examples</h2>
+		<p>
+			The following bloc override the attribute
+			<i>wmsRequestMimeType</i> for the layer ID <i>ea:bluemarble</i> to
+			request tiles as GIF:
 		</p>
 <pre>
 {
-	"bluemarble": {
+	"ea:bluemarble": {
 		"wmsRequestMimeType": "image/gif"
 	}
 }
@@ -188,7 +201,7 @@
 		</table>
 
 		<p>
-			The following table show the datasources attributes that can be specified in the layer definition, to override any datasource for a layer:
+			The following table show the datasources attributes that can be specified in the layer definition, to override any datasource attribute for a layer:
 		</p>
 
 		<table>

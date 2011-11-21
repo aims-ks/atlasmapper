@@ -70,6 +70,7 @@ public class ConfigManager {
 	private static final String CONFIG_VERSION_KEY = "version";
 	private static final String CURRENT_CONFIG_VERSION = "1.0";
 
+	// Will eventually be used for backward compatibility
 	private String configVersion;
 	private String usersConfigVersion;
 
@@ -1457,7 +1458,6 @@ public class ConfigManager {
 		List<LayerStyleConfig> styles = layerConfig.getStyles();
 		// Browsers do not have to keep the order in JavaScript objects, but they often do.
 		if (styles != null && !styles.isEmpty()) {
-			Collections.sort(styles);
 			JSONObject jsonStyles = new JSONObject();
 			if (styles != null && !styles.isEmpty()) {
 				boolean hasDefaultStyle = false;
