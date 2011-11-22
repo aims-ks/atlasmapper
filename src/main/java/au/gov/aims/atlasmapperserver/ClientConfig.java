@@ -54,6 +54,9 @@ public class ClientConfig extends AbstractConfig {
 	private Boolean _default;
 
 	@ConfigField
+	private String clientId;
+
+	@ConfigField
 	private String clientName;
 
 	@ConfigField
@@ -133,14 +136,14 @@ public class ClientConfig extends AbstractConfig {
 
 	@Override
 	public void setJSONObjectKey(String key) {
-		if (Utils.isBlank(this.clientName)) {
-			this.clientName = key;
+		if (Utils.isBlank(this.clientId)) {
+			this.clientId = key;
 		}
 	}
 
 	@Override
 	public String getJSONObjectKey() {
-		return this.clientName;
+		return this.clientId;
 	}
 
 	public Integer getId() {
@@ -165,6 +168,23 @@ public class ClientConfig extends AbstractConfig {
 
 	public void setBaseLayersInTab(boolean baseLayersInTab) {
 		this.baseLayersInTab = baseLayersInTab;
+	}
+
+	public String getClientId() {
+		// Error protection against erronous manual config file edition
+		if (this.clientId == null) {
+			if (this.clientName != null) {
+				return this.clientName;
+			}
+			if (this.id != null) {
+				return this.id.toString();
+			}
+		}
+		return this.clientId;
+	}
+
+	public void setClientId(String clientId) {
+		this.clientId = clientId;
 	}
 
 	public String getClientName() {

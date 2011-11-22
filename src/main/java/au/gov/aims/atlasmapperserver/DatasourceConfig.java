@@ -247,7 +247,11 @@ public class DatasourceConfig extends AbstractConfig implements Comparable<Datas
 	}
 			
 	public String getDatasourceId() {
-		return datasourceId;
+		// Error protection against erronous manual config file edition
+		if (this.datasourceId == null && this.id != null) {
+			return this.id.toString();
+		}
+		return this.datasourceId;
 	}
 
 	public void setDatasourceId(String datasourceId) {

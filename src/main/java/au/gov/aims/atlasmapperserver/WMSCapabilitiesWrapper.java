@@ -62,7 +62,7 @@ public class WMSCapabilitiesWrapper {
 	private long instanceTimestamp = -1;
 
 	// Layer config, for each clients
-	// Map<String clientName, Map<String layerId, LayerConfig layer>>
+	// Map<String clientId, Map<String layerId, LayerConfig layer>>
 	private Map<String, Map<String, LayerConfig>> layerConfigsCache = null;
 	private WMSCapabilities wmsCapabilities = null;
 	private String serviceTitle = null;
@@ -172,11 +172,11 @@ public class WMSCapabilitiesWrapper {
 	}
 
 	public Map<String, LayerConfig> getLayerConfigs(ClientConfig clientConfig, DatasourceConfig datasourceConfig) {
-		Map<String, LayerConfig> configs = this.layerConfigsCache.get(clientConfig.getClientName());
+		Map<String, LayerConfig> configs = this.layerConfigsCache.get(clientConfig.getClientId());
 		if (configs == null) {
 			// API: http://docs.geotools.org/latest/javadocs/org/geotools/data/ows/WMSCapabilities.html
 			configs = this.getLayersInfoFromCaps(clientConfig, datasourceConfig);
-			this.layerConfigsCache.put(clientConfig.getClientName(), configs);
+			this.layerConfigsCache.put(clientConfig.getClientId(), configs);
 		}
 		return configs;
 	}

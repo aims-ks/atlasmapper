@@ -32,7 +32,7 @@ NOTE: Add a button to a grid field (better use a header toolbar...
 	header: 'Config',
 	width: 150,
 	sortable: false,
-	dataIndex: 'clientName',
+	dataIndex: 'clientId',
 
 	// http://techmix.net/blog/2010/11/25/add-button-to-extjs-gridpanel-cell-using-renderer/
 	renderer: function(value, metaData, record) {
@@ -202,10 +202,14 @@ Ext.define('Writer.ClientConfigForm', {
 					name: 'enable',
 					xtype: 'checkboxfield'
 				}, {
+					fieldLabel: 'Client ID',
+					name: 'clientId',
+					qtipHtml: 'This field is used for the client folder and as a reference in this interface, for the administrator.',
+					allowBlank: false
+				}, {
 					fieldLabel: 'Client Name',
 					name: 'clientName',
-					qtipHtml: 'A human readable name for this client. This field is used as a name for the client folder, as a title for the Atlas Mapper client and as a reference in this interface, for the administrator.',
-					allowBlank: false
+					qtipHtml: 'A human readable name for this client. This field is used as a title for the Atlas Mapper client and in error/warnning messages.'
 				}, {
 					xtype: 'checkboxgroup',
 					fieldLabel: 'Datasource type',
@@ -513,6 +517,11 @@ Ext.define('Writer.ClientConfigGrid', {
 					xtype: 'radiocolumn',
 					dataIndex: 'default'
 				}, {
+					header: 'Client ID',
+					width: 100,
+					sortable: true,
+					dataIndex: 'clientId'
+				}, {
 					header: 'Client Name',
 					width: 100,
 					sortable: true,
@@ -580,7 +589,15 @@ Ext.define('Writer.ClientConfigGrid', {
 							tooltip: 'Generate<br/>Push the modifications to the live client',
 							handler: function(grid, rowIndex, colIndex) {
 								var rec = grid.getStore().getAt(rowIndex);
-								that.confirmRegenerate(rec.get('id'), rec.get('clientName'));
+								var clientName = 'UNKNOWN';
+								if (rec) {
+									if (rec.get('clientName')) {
+										clientName = rec.get('clientName');
+									} else {
+										clientName = rec.get('clientId');
+									}
+								}
+								that.confirmRegenerate(rec.get('id'), clientName);
 							}
 						}, {
 							icon: '../resources/icons/cog-error.png',
@@ -1057,8 +1074,11 @@ Ext.define('Writer.ClientConfigGrid', {
 
 
 
-
-	confirmRegenerate: function(clientId, clientName) {
+	/**
+	 * id: Numerical is of the client (used in the Grid)
+	 * clientName: Display name of the client, for user friendly messages
+	 */
+	confirmRegenerate: function(id, clientName) {
 		var that = this;
 		Ext.create('Ext.window.Window', {
 			layout:'fit',
@@ -1088,7 +1108,7 @@ Ext.define('Writer.ClientConfigGrid', {
 						text: 'Minimal',
 						padding: '2 10',
 						handler: function() {
-							that.onRegenerate(clientId, clientName, false);
+							that.onRegenerate(id, clientName, false);
 							this.ownerCt.ownerCt.close();
 						}
 					}, {
@@ -1096,7 +1116,7 @@ Ext.define('Writer.ClientConfigGrid', {
 						text: 'Complete',
 						padding: '2 10',
 						handler: function() {
-							that.onRegenerate(clientId, clientName, true);
+							that.onRegenerate(id, clientName, true);
 							this.ownerCt.ownerCt.close();
 						}
 					}, {
@@ -1112,7 +1132,12 @@ Ext.define('Writer.ClientConfigGrid', {
 		}).show();
 	},
 
-	onRegenerate: function(clientId, clientName, complete) {
+	/**
+	 * id: Numerical is of the client (used in the Grid)
+	 * clientName: Display name of the client, for user friendly messages
+	 * complete: boolean value. True to recopy every client files, false to copy only the config and the index pages.
+	 */
+	onRegenerate: function(id, clientName, complete) {
 		var that = this;
 		frameset.setSavingMessage(
 				complete ?
@@ -1126,7 +1151,7 @@ Ext.define('Writer.ClientConfigGrid', {
 			params: {
 				'action': 'GENERATE',
 				'complete': !!complete, // Ensure "complete" is boolean
-				'clientId': clientId,
+				'id': id,
 				'jsonResponse': true
 			},
 			success: function(response){
@@ -1279,7 +1304,14 @@ Ext.define('Writer.ClientConfigGrid', {
 	onDeleteClick: function() {
 		var selection = this.getView().getSelectionModel().getSelection()[0];
 		if (selection) {
-			var clientName = (selection.data ? selection.data.clientName : 'UNKNOWN');
+			var clientName = 'UNKNOWN';
+			if (selection.data) {
+				if (selection.data.clientName) {
+					clientName = selection.data.clientName;
+				} else {
+					clientName = selection.data.clientId;
+				}
+			}
 			var confirm = Ext.MessageBox.confirm(
 				'Confirm',
 				'Deleting the client will also delete the generated files.<br/>'+
@@ -1304,7 +1336,14 @@ Ext.define('Writer.ClientConfigGrid', {
 		frameset.setSavingMessage('Deleting a client...');
 		var selection = this.getView().getSelectionModel().getSelection()[0];
 		if (selection) {
-			var clientName = (selection.data ? selection.data.clientName : 'UNKNOWN');
+			var clientName = 'UNKNOWN';
+			if (selection.data) {
+				if (selection.data.clientName) {
+					clientName = selection.data.clientName;
+				} else {
+					clientName = selection.data.clientId;
+				}
+			}
 			this.store.remove(selection);
 			frameset.setSavedMessage('Client <b>'+clientName+'</b> deleted');
 		} else {
@@ -1325,6 +1364,7 @@ Ext.define('Writer.ClientConfig', {
 	fields: [
 		{name: 'id', type: 'int', useNull: true},
 		{name: 'default', type: 'boolean', defaultValue: false},
+		{name: 'clientId', sortType: 'asUCString'},
 		{name: 'clientName', sortType: 'asUCString'},
 
 		'datasources', // String or Array<String>
@@ -1352,11 +1392,7 @@ Ext.define('Writer.ClientConfig', {
 		'comment'
 	]/*,
 	validations: [{
-		field: 'clientName',
-		type: 'length',
-		min: 1
-	}, {
-		field: 'projection',
+		field: 'clientId',
 		type: 'length',
 		min: 1
 	}]*/

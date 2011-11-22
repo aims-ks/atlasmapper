@@ -40,7 +40,7 @@
 	ConfigManager configManager = ConfigHelper.getConfigManager(this.getServletContext());
 
 	String actionStr = request.getParameter("action");
-	String clientIdStr = request.getParameter("clientId");
+	String idStr = request.getParameter("id");
 	String completeStr = request.getParameter("complete");
 
 	JSONObject jsonObj = new JSONObject();
@@ -174,31 +174,31 @@
 					break;
 
 				case GENERATE:
-					if (Utils.isBlank(clientIdStr)) {
+					if (Utils.isBlank(idStr)) {
 						response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 						jsonObj.put("success", false);
 						jsonObj.put("errors", new JSONArray().put("Missing parameter [clientId]."));
 					} else {
 						boolean complete = false;
-						Integer clientId = null;
+						Integer id = null;
 						try {
 							complete = Boolean.parseBoolean(completeStr);
-							clientId = Integer.valueOf(clientIdStr);
+							id = Integer.valueOf(idStr);
 						} catch(Exception e) {
 							response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 							jsonObj.put("success", false);
 							jsonObj.put("errors", new JSONArray().put("Invalid clientid format."));
 						}
 
-						if (clientId != null) {
+						if (id != null) {
 							try {
-								ClientConfig foundClientConfig = configManager.getClientConfig(clientId);
+								ClientConfig foundClientConfig = configManager.getClientConfig(id);
 								if (foundClientConfig == null) {
 									response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 									jsonObj.put("success", false);
-									jsonObj.put("errors", new JSONArray().put("Client id ["+clientId+"] not found."));
+									jsonObj.put("errors", new JSONArray().put("Client number ["+id+"] not found."));
 								} else {
-									configManager.generateClient(clientId, complete);
+									configManager.generateClient(id, complete);
 									response.setStatus(HttpServletResponse.SC_OK);
 									jsonObj.put("success", true);
 									jsonObj.put("message", "Config Generated");
@@ -230,27 +230,27 @@
 					break;
 
 				case DEBUG:
-					if (Utils.isBlank(clientIdStr)) {
+					if (Utils.isBlank(idStr)) {
 						response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 						jsonObj.put("success", false);
 						jsonObj.put("errors", new JSONArray().put("Missing parameter [clientId]."));
 					} else {
-						Integer clientId = null;
+						Integer id = null;
 						try {
-							clientId = Integer.valueOf(clientIdStr);
+							id = Integer.valueOf(idStr);
 						} catch(Exception e) {
 							response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 							jsonObj.put("success", false);
 							jsonObj.put("errors", new JSONArray().put("Invalid clientid format."));
 						}
 
-						if (clientId != null) {
+						if (id != null) {
 							try {
-								ClientConfig foundClientConfig = configManager.getClientConfig(clientId);
+								ClientConfig foundClientConfig = configManager.getClientConfig(id);
 								if (foundClientConfig == null) {
 									response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 									jsonObj.put("success", false);
-									jsonObj.put("errors", new JSONArray().put("Client id ["+clientId+"] not found."));
+									jsonObj.put("errors", new JSONArray().put("Client number ["+id+"] not found."));
 								} else {
 									JSONObject configs = configManager.debugClientConfigJSon(foundClientConfig);
 									if (configs == null) {

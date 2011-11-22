@@ -36,7 +36,7 @@
 <%
 	String actionStr = request.getParameter("action");
 	String layerIdsStr = request.getParameter("layerIds");
-	String clientName = request.getParameter("client");
+	String clientId = request.getParameter("client");
 
 	ConfigManager configManager = ConfigHelper.getConfigManager(getServletContext());
 
@@ -49,16 +49,16 @@
 	// "live" is true only when it's value is the String "true", ignoring case.
 	boolean live = (request.getParameter("live") == null ? false : Boolean.parseBoolean(request.getParameter("live")));
 
-	if (Utils.isBlank(clientName)) {
+	if (Utils.isBlank(clientId)) {
 		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 		jsonObj.put("success", false);
 		jsonObj.put("errors", new JSONArray().put("Missing parameter [client]."));
 	} else {
-		ClientConfig clientConfig = configManager.getClientConfig(clientName);
+		ClientConfig clientConfig = configManager.getClientConfig(clientId);
 		if (clientConfig == null) {
 			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 			jsonObj.put("success", false);
-			jsonObj.put("errors", new JSONArray().put("This client "+clientName+" do not exists."));
+			jsonObj.put("errors", new JSONArray().put("This client "+clientId+" do not exists."));
 		} else {
 			if (Utils.isNotBlank(actionStr)) {
 				if ("GET_LIVE_CONFIG".equalsIgnoreCase(actionStr)) {

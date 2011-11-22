@@ -32,7 +32,7 @@
 
 	<link rel="stylesheet" type="text/css" href="resources/css/styles.css" />
 	<link rel="stylesheet" type="text/css" href="extjs/3.3.0/ext-3.3.0/resources/css/ext-all.css" />
-	<style>
+	<style type="text/css">
 		html, body, #loading { height: 100% }
 		#loading {
 			/*position: absolute;
@@ -106,7 +106,7 @@
 		Ext.onReady(function() {
 			document.getElementById('loading').style.display = 'none';
 
-			Atlas.core = new Atlas.Core("/atlasmapper/public/layersInfo.jsp?client=${clientName}&action=GET_LIVE_CONFIG", null, timestamp, true);
+			Atlas.core = new Atlas.Core("/atlasmapper/public/layersInfo.jsp?client=${clientId}&action=GET_LIVE_CONFIG", null, timestamp, true);
 			Atlas.core.afterLoad = function() {
 				mapLayoutItems = [];
 				for (var i=0; i<nbMaps; i++) {

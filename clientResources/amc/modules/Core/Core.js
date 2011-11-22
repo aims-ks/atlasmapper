@@ -377,7 +377,7 @@ Atlas.Core = OpenLayers.Class({
 		if (this.layerInfoServiceUrl) {
 			url = this.layerInfoServiceUrl;
 			params = {
-				client: Atlas.conf['clientName'],
+				client: Atlas.conf['clientId'],
 				live: this.live,
 				layerIds: missingLayerIds.join(),
 				ver: this.version

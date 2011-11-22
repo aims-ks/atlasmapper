@@ -80,11 +80,11 @@ public class Proxy extends HttpServlet {
 		super.init(sc);
 	}
 
-	public synchronized void reloadConfig(String clientName, boolean live) {
+	public synchronized void reloadConfig(String clientId, boolean live) {
 		List<String> foundAllowedHosts = null;
 		try {
 			ConfigManager configManager = ConfigHelper.getConfigManager(this.getServletContext());
-			foundAllowedHosts = configManager.getProxyAllowedHosts(clientName, live);
+			foundAllowedHosts = configManager.getProxyAllowedHosts(clientId, live);
 			if (foundAllowedHosts == null) {
 				LOGGER.log(Level.WARNING, "No allowed hosts found in AtlasMapperServer configuration.");
 			}
@@ -131,8 +131,8 @@ public class Proxy extends HttpServlet {
 		String liveStr = request.getParameter("live");
 		boolean live = liveStr != null && Boolean.parseBoolean(liveStr);
 
-		String clientName = request.getParameter("client");
-		this.reloadConfig(clientName, live);
+		String clientId = request.getParameter("client");
+		this.reloadConfig(clientId, live);
 
 		String urlStr = request.getParameter(URL_PARAM);
 		if (urlStr != null && !urlStr.isEmpty()) {

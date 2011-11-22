@@ -111,7 +111,7 @@ public class ConfigHelperTest extends TestCase {
 							"\"baseLayersInTab\":true,"+
 							"\"zoom\":\"6\","+
 							"\"projection\":\"EPSG:4326\","+
-							"\"clientName\":\"Test\","+
+							"\"clientId\":\"Test\","+
 							"\"enable\":true,"+
 							"\"longitude\":\"148.0\","+
 							"\"latitude\":\"-18.0\","+
@@ -123,7 +123,7 @@ public class ConfigHelperTest extends TestCase {
 							"\"baseLayersInTab\":true,"+
 							"\"zoom\":\"6\","+
 							"\"projection\":\"EPSG:4326\","+
-							"\"clientName\":\"Test\","+
+							"\"clientId\":\"Test\","+
 							"\"enable\":true,"+
 							"\"longitude\":\"148.0\","+
 							"\"latitude\":\"-18.0\","+

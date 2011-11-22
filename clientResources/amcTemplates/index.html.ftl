@@ -32,7 +32,7 @@
 
 	<link rel="stylesheet" type="text/css" href="resources/css/styles.css" />
 	<link rel="stylesheet" type="text/css" href="extjs/3.3.0/ext-3.3.0/resources/css/ext-all.css" />
-	<style>
+	<style type="text/css">
 		html, body, #loading { height: 100% }
 		#loading {
 			/*position: absolute;

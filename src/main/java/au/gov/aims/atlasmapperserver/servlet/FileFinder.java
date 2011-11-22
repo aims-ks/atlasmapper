@@ -115,9 +115,14 @@ public class FileFinder {
 			return clientBaseUrlOverride;
 		}
 
+		String filename = safeClientFoldername(clientConfig.getClientId());
+		if (filename == null) {
+			return null;
+		}
+
 		return context.getContextPath() +
 				"/" + CLIENT_BASE_URL +
-				"/" + safeClientFoldername(clientConfig.getClientName());
+				"/" + filename;
 	}
 
 	public static String getDefaultProxyURL(ServletContext context) {
@@ -183,7 +188,10 @@ public class FileFinder {
 		if (Utils.isNotBlank(clientFolderOverrideStr)) {
 			clientFolder = new File(clientFolderOverrideStr);
 		} else {
-			clientFolder = new File(applicationFolder, safeClientFoldername(clientConfig.getClientName()));
+			String filename = safeClientFoldername(clientConfig.getClientId());
+			if (filename != null) {
+				clientFolder = new File(applicationFolder, filename);
+			}
 		}
 
 		if (create && clientFolder != null && !clientFolder.exists()) {
@@ -194,13 +202,13 @@ public class FileFinder {
 		return clientFolder;
 	}
 
-	private static String safeClientFoldername(String clientname) {
-		if (Utils.isBlank(clientname)) {
+	private static String safeClientFoldername(String clientId) {
+		if (Utils.isBlank(clientId)) {
 			return null;
 		}
 
 		// Only allow "-", "_" and alphanumeric
-		return clientname.replaceAll("\\s", "_").replaceAll("[^A-Za-z0-9-_]", "");
+		return clientId.replaceAll("\\s", "_").replaceAll("[^A-Za-z0-9-_]", "");
 	}
 
 	public static File getApplicationFolder(ServletContext context) {

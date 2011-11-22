@@ -270,12 +270,15 @@ public class ConfigManager {
 				if (rawClientConfig instanceof JSONObject) {
 					ClientConfig clientConfig = new ClientConfig(this);
 					clientConfig.update((JSONObject)rawClientConfig);
-					Integer clientId = clientConfig.getId();
-					if (clientId != null && clientId > this.lastClientId) {
-						this.lastClientId = clientId;
+					Integer id = clientConfig.getId();
+					if (id != null && id > this.lastClientId) {
+						this.lastClientId = id;
 					}
-					this.clientConfigs.put(clientId,
-							clientConfig.getClientName(),
+
+					String clientId = clientConfig.getClientId();
+
+					this.clientConfigs.put(id,
+							clientId,
 							clientConfig);
 				} else {
 					LOGGER.log(Level.WARNING, "Malformated AtlasMapper JSON config file: a client is not set properly [{0}]", rawClientConfig);
@@ -564,7 +567,7 @@ public class ConfigManager {
 					clientConfig.update(dataJSonObj);
 					if (clientConfig != null) {
 						configs.put(clientConfig.getId(),
-								clientConfig.getClientName(),
+								clientConfig.getClientId(),
 								clientConfig);
 						newClientConfigs.add(clientConfig);
 					}
@@ -669,10 +672,10 @@ public class ConfigManager {
 	}
 	*/
 
-	public JSONObject getClientLayers(String clientName, String[] layerIds, boolean live) throws JSONException, MalformedURLException, IOException, ServiceException {
-		if (Utils.isBlank(clientName)) { return null; }
+	public JSONObject getClientLayers(String clientId, String[] layerIds, boolean live) throws JSONException, MalformedURLException, IOException, ServiceException {
+		if (Utils.isBlank(clientId)) { return null; }
 
-		return this.getClientLayers(this.getClientConfig(clientName), layerIds, live);
+		return this.getClientLayers(this.getClientConfig(clientId), layerIds, live);
 	}
 
 	public JSONObject getClientLayers(ClientConfig clientConfig, String[] layerIds, boolean live) throws JSONException, MalformedURLException, IOException, ServiceException {
@@ -725,8 +728,8 @@ public class ConfigManager {
 		return this.clientConfigs;
 	}
 
-	public ClientConfig getClientConfig(String clientName) throws JSONException, FileNotFoundException {
-		if (Utils.isBlank(clientName)) {
+	public ClientConfig getClientConfig(String clientId) throws JSONException, FileNotFoundException {
+		if (Utils.isBlank(clientId)) {
 			return null;
 		}
 
@@ -735,7 +738,7 @@ public class ConfigManager {
 			return null;
 		}
 
-		return configs.get2(clientName);
+		return configs.get2(clientId);
 	}
 
 	public ClientConfig getClientConfig(Integer clientId) throws JSONException, FileNotFoundException {
@@ -751,10 +754,10 @@ public class ConfigManager {
 		return configs.get1(clientId);
 	}
 
-	public List<String> getProxyAllowedHosts(String clientName, boolean live)
+	public List<String> getProxyAllowedHosts(String clientId, boolean live)
 			throws JSONException, FileNotFoundException, MalformedURLException, IOException, ServiceException {
 
-		ClientConfig clientConfig = this.getClientConfig(clientName);
+		ClientConfig clientConfig = this.getClientConfig(clientId);
 		return this.getProxyAllowedHosts(clientConfig, live);
 	}
 	public List<String> getProxyAllowedHosts(ClientConfig clientConfig, boolean live)
@@ -884,8 +887,6 @@ public class ConfigManager {
 	public void generateAllClients(boolean complete)
 			throws JSONException, MalformedURLException, IOException, ServiceException, FileNotFoundException, TemplateException {
 
-		// TODO!!!
-
 		// Emplty the capabilities cache before regenerating the configs
 		WMSCapabilitiesWrapper.clearCapabilitiesDocumentsCache();
 
@@ -896,8 +897,6 @@ public class ConfigManager {
 
 	public void generateClient(Integer clientId, boolean complete)
 			throws JSONException, MalformedURLException, IOException, ServiceException, FileNotFoundException, TemplateException {
-
-		// TODO!!!
 
 		if (clientId == null) {
 			return;
@@ -985,14 +984,16 @@ public class ConfigManager {
 			// Process all templates, one by one, because they are all unique
 			Map<String, Object> indexValues = new HashMap<String, Object>();
 			indexValues.put("version", ProjectInfo.getVersion());
-			indexValues.put("clientName", clientConfig.getClientName());
+			indexValues.put("clientId", clientConfig.getClientId());
+			indexValues.put("clientName", clientConfig.getClientName() != null ? clientConfig.getClientName() : clientConfig.getClientId());
 			indexValues.put("timestamp", ""+Utils.getCurrentTimestamp());
 			indexValues.put("useGoogle", useGoogle);
 			Utils.processTemplate(templatesConfig, "index.html", indexValues, atlasMapperClientFolder);
 
 			Map<String, Object> embededValues = new HashMap<String, Object>();
 			embededValues.put("version", ProjectInfo.getVersion());
-			embededValues.put("clientName", clientConfig.getClientName());
+			embededValues.put("clientId", clientConfig.getClientId());
+			embededValues.put("clientName", clientConfig.getClientName() != null ? clientConfig.getClientName() : clientConfig.getClientId());
 			embededValues.put("timestamp", ""+Utils.getCurrentTimestamp());
 			embededValues.put("useGoogle", useGoogle);
 			Utils.processTemplate(templatesConfig, "embeded.html", embededValues, atlasMapperClientFolder);
@@ -1021,7 +1022,8 @@ public class ConfigManager {
 				// Set the values that will be inserted in the template
 				Map<String, Object> previewValues = new HashMap<String, Object>();
 				previewValues.put("version", ProjectInfo.getVersion());
-				previewValues.put("clientName", clientConfig.getClientName());
+				previewValues.put("clientId", clientConfig.getClientId());
+				previewValues.put("clientName", clientConfig.getClientName() != null ? clientConfig.getClientName() : clientConfig.getClientId());
 				previewValues.put("useGoogle", useGoogle);
 				Utils.processTemplate(templatesConfig, "preview.html", previewValues, atlasMapperClientFolder);
 			} catch (URISyntaxException ex) {
@@ -1152,10 +1154,11 @@ public class ConfigManager {
 
 		JSONObject json = new JSONObject();
 		json.put(CONFIG_VERSION_KEY, CURRENT_CONFIG_VERSION);
+		json.put("clientId", clientConfig.getClientId());
 		json.put("clientName", clientConfig.getClientName());
 
 		// TODO Remove when the default saved state will be implemented
-		json.put("defaultLayers", this.getClientDefaultLayers(clientConfig.getClientName()));
+		json.put("defaultLayers", this.getClientDefaultLayers(clientConfig.getClientId()));
 
 		if (Utils.isNotBlank(clientConfig.getProjection())) {
 			json.put("projection", clientConfig.getProjection());
@@ -1254,7 +1257,7 @@ public class ConfigManager {
 				String proxyUrl = Utils.addUrlParameter(
 						this.defaultProxyUrl,
 						"client",
-						clientConfig.getClientName());
+						clientConfig.getClientId());
 
 				if (live) {
 					proxyUrl = Utils.addUrlParameter(proxyUrl, "live", "true");
@@ -1270,19 +1273,19 @@ public class ConfigManager {
 		}
 	}
 
-	private JSONObject getClientDefaultLayers(String clientName) throws JSONException, MalformedURLException, IOException, ServiceException {
-		if (Utils.isBlank(clientName)) { return null; }
+	private JSONObject getClientDefaultLayers(String clientId) throws JSONException, MalformedURLException, IOException, ServiceException {
+		if (Utils.isBlank(clientId)) { return null; }
 
 		return this._getClientLayers(
-				this.getClientConfig(clientName),
-				this._getClientDefaultLayerIds(clientName),
+				this.getClientConfig(clientId),
+				this._getClientDefaultLayerIds(clientId),
 				true);
 	}
 
-	private Set<String> _getClientDefaultLayerIds(String clientName) throws JSONException, MalformedURLException, IOException, ServiceException {
-		if (Utils.isBlank(clientName)) { return null; }
+	private Set<String> _getClientDefaultLayerIds(String clientId) throws JSONException, MalformedURLException, IOException, ServiceException {
+		if (Utils.isBlank(clientId)) { return null; }
 
-		ClientConfig clientConfig = this.getClientConfig(clientName);
+		ClientConfig clientConfig = this.getClientConfig(clientId);
 		if (clientConfig == null) { return null; }
 
 		return clientConfig.getDefaultLayersSet();

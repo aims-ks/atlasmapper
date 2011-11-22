@@ -44,15 +44,15 @@
 	ConfigManager configManager = ConfigHelper.getConfigManager(this.getServletContext());
 
 	String clientIdStr = request.getParameter("clientId");
-	String clientName = request.getParameter("clientName");
+	String client = request.getParameter("client");
 	String configTypeStr = request.getParameter("configType");
 	boolean live = Boolean.parseBoolean(request.getParameter("live"));
 
 	String output = "";
 
-	if (Utils.isBlank(clientIdStr) && Utils.isBlank(clientName)) {
+	if (Utils.isBlank(clientIdStr) && Utils.isBlank(client)) {
 		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-		output = "Missing parameter [clientId] or [clientName].";
+		output = "Missing parameter [clientId] or [client].";
 	} else if (Utils.isBlank(configTypeStr)) {
 		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 		output = "Missing parameter [configType].";
@@ -70,11 +70,11 @@
 				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 				output = "Invalid clientId format.";
 			}
-		} else if (Utils.isNotBlank(clientName)) {
-			foundClientConfig = configManager.getClientConfig(clientName);
+		} else if (Utils.isNotBlank(client)) {
+			foundClientConfig = configManager.getClientConfig(client);
 			if (foundClientConfig == null) {
 				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-				output = "Client name ["+clientName+"] not found.";
+				output = "Client ["+client+"] not found.";
 			}
 		}
 

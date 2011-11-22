@@ -48,7 +48,7 @@ editAreaLoader.load_syntax["atlasmapperconfig"] = {
 			'options', 'description', 'true', 'false'
 		],
 		'main': [
-			'modules', 'clientName', 'defaultLayers', 'projection',
+			'modules', 'clientId', 'clientName', 'defaultLayers', 'projection',
 			'layerInfoServiceUrl', 'proxyUrl', 'version', 'startingLocation',
 			'datasources'
 		]
