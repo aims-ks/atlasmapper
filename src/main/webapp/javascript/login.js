@@ -87,6 +87,8 @@ Ext.onReady(function() {
 
 	// Create a variable to hold our EXT Form Panel.
 	// Assign various config options as seen.
+	// NOTE: login.jsp is a virtual file, pointing to the servlet:
+	//    au.gov.aims.atlasmapperserver.servlet.login.LoginServlet
 	var login = Ext.create('Ext.form.Panel', {
 		labelWidth: 80,
 		url: 'login.jsp?action=login',

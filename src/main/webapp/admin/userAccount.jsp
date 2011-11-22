@@ -75,7 +75,7 @@
 					try {
 						loggedUser.update(request.getParameterMap());
 						String newPassword = request.getParameter("password");
-						if (Utils.isNotBlank(newPassword)) {
+						if (Utils.isNotBlank(newPassword) && !configManager.isDemoMode()) {
 							String currentPassword = request.getParameter("currentPassword");
 							String passwordConfirm = request.getParameter("passwordConfirm");
 							if (loggedUser.verifyPassword(currentPassword) && newPassword.equals(passwordConfirm)) {

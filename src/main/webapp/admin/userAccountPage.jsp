@@ -23,6 +23,7 @@
 	Author     : glafond
 --%>
 
+<%@page import="au.gov.aims.atlasmapperserver.ConfigHelper"%>
 <%@page import="au.gov.aims.atlasmapperserver.Utils"%>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
@@ -45,6 +46,7 @@
 		<link rel="stylesheet" type="text/css" href="../resources/style.css" />
 
 		<script type="text/javascript">
+			var demoMode = <%=ConfigHelper.getConfigManager(this.getServletContext()).isDemoMode() %>;
 			var userName = '<%=Utils.safeJsStr(request.getAttribute("loggedUser.name")) %>';
 			var userLogin = '<%=Utils.safeJsStr(request.getAttribute("loggedUser.login")) %>';
 		</script>

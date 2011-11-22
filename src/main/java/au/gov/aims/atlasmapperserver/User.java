@@ -22,6 +22,9 @@
 package au.gov.aims.atlasmapperserver;
 
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
+import java.io.FileNotFoundException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -30,12 +33,13 @@ import org.json.JSONObject;
  * @author glafond
  */
 public class User extends AbstractConfig {
+	private static final Logger LOGGER = Logger.getLogger(User.class.getName());
 	private static String DEFAULT_PASSWORD = "admin";
 
-	@ConfigField
+	@ConfigField(demoReadOnly = true)
 	private String loginName;
 
-	@ConfigField
+	@ConfigField(demoReadOnly = true)
 	private String encryptedPassword;
 
 	@ConfigField
@@ -127,6 +131,12 @@ public class User extends AbstractConfig {
 	}
 
 	public boolean verifyPassword(String passwordAttempt) {
+		try {
+			this.getConfigManager().reloadUsersConfigIfNeeded();
+		} catch (Exception ex) {
+			LOGGER.log(Level.SEVERE, "Could not reload Users", ex);
+			return false;
+		}
 		return this.encryptedPassword.equals(
 				Utils.encrypt(passwordAttempt));
 	}

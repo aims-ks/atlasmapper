@@ -40,6 +40,8 @@ Ext.onReady(function() {
 	frameset.addContentDescription('This page allow you to configure the information about the administrator user of this application. If the account is still using the default password, it would be a good idea to change it now. The password is store in the configuration file is encrypted, so there is no way to get it back. If you forgot your password, you can delete the <i>users.conf</i> file to reset the account to its default values.<br/><b>Note:</b> The application do not currently allow you to create new account.');
 	frameset.render(document.body);
 
+	var notAvailableInDemoMode = demoMode ? "<br/><strong>This function is not available in the Demo version.</strong>" : "";
+
 	var userAccountForm = Ext.create('Ext.form.Panel', {
 		url: 'userAccount.jsp?action=update',
 		bodyStyle: 'padding:5px 5px 0',
@@ -81,18 +83,24 @@ Ext.onReady(function() {
 				items: [
 					{
 						fieldLabel: 'Current Password',
-						qtipHtml: 'Current password used to log to the AtlasMapper server (this application).',
+						qtipHtml: 'Current password used to log to the AtlasMapper server (this application).' +
+							notAvailableInDemoMode,
+						disabled: demoMode,
 						inputType:'password',
 						name: 'currentPassword'
 					}, {
 						fieldLabel: 'New Password',
-						qtipHtml: 'New password that will be use to log to the AtlasMapper server (this application).',
+						qtipHtml: 'New password that will be use to log to the AtlasMapper server (this application).' +
+							notAvailableInDemoMode,
+						disabled: demoMode,
 						inputType:'password',
 						name: 'password',
 						id: 'password'
 					}, {
 						fieldLabel: 'Confirm Password',
-						qtipHtml: 'Repeat the new password.',
+						qtipHtml: 'Repeat the new password.' +
+							notAvailableInDemoMode,
+						disabled: demoMode,
 						name: 'passwordConfirm',
 						inputType:'password',
 						vtype: 'password',
@@ -109,7 +117,7 @@ Ext.onReady(function() {
 					frameset.setSavingMessage('Saving...');
 					userAccountForm.getForm().submit({
 						success: function (form, action) {
-							frameset.setSavedMessage('Configuration saved');
+							frameset.setSavingMessage('Reloading...');
 							// Reload the page to refresh the header (and reset the form)
 							location.reload(true);
 						},
