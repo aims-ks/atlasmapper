@@ -589,6 +589,7 @@ Ext.define('Writer.ClientConfigGrid', {
 							tooltip: 'Generate<br/>Push the modifications to the live client',
 							handler: function(grid, rowIndex, colIndex) {
 								var rec = grid.getStore().getAt(rowIndex);
+								var isGenerated = !!rec.get('clientUrl');
 								var clientName = 'UNKNOWN';
 								if (rec) {
 									if (rec.get('clientName')) {
@@ -597,7 +598,7 @@ Ext.define('Writer.ClientConfigGrid', {
 										clientName = rec.get('clientId');
 									}
 								}
-								that.confirmRegenerate(rec.get('id'), clientName);
+								that.confirmRegenerate(rec.get('id'), clientName, isGenerated);
 							}
 						}, {
 							icon: '../resources/icons/cog-error.png',
@@ -1078,7 +1079,7 @@ Ext.define('Writer.ClientConfigGrid', {
 	 * id: Numerical is of the client (used in the Grid)
 	 * clientName: Display name of the client, for user friendly messages
 	 */
-	confirmRegenerate: function(id, clientName) {
+	confirmRegenerate: function(id, clientName, isGenerated) {
 		var that = this;
 		Ext.create('Ext.window.Window', {
 			layout:'fit',
@@ -1092,8 +1093,8 @@ Ext.define('Writer.ClientConfigGrid', {
 				bodyPadding: 5,
 				html: 'Regenerate the client <b>'+clientName+'</b>.\n'+
 					'<ul class="bullet-list">\n'+
-						'<li><b>Minimal:</b> Regenerate the config and index files only. It\'s fast and usually enough.</li>\n'+
-						'<li><b>Complete:</b> Recopy all client files and regenerate the configs. This operation is needed after an update of the AtlasMapper or when one or more files get corrupted.</li>\n'+
+						'<li><b>Minimal:</b> Regenerate the config and index files only. It\'s fast and it\'s usually enough.</li>\n'+
+						'<li><b>Complete:</b> Recopy all client files and regenerate the configs. This operation is needed for clients that has never been generated, after an update of the AtlasMapper or when one or more files are corrupted.</li>\n'+
 					'</ul>'
 			},
 			dockedItems: [{
@@ -1106,6 +1107,7 @@ Ext.define('Writer.ClientConfigGrid', {
 					{
 						xtype: 'button',
 						text: 'Minimal',
+						disabled: !isGenerated,
 						padding: '2 10',
 						handler: function() {
 							that.onRegenerate(id, clientName, false);
@@ -1186,12 +1188,6 @@ Ext.define('Writer.ClientConfigGrid', {
 		});
 	},
 
-
-
-
-
-
-
 	confirmRegenerateAll: function() {
 		var that = this;
 		Ext.create('Ext.window.Window', {
@@ -1206,8 +1202,8 @@ Ext.define('Writer.ClientConfigGrid', {
 				bodyPadding: 5,
 				html: 'Regenerate <b>all</b> clients can takes several minutes.\n'+
 					'<ul class="bullet-list">\n'+
-						'<li><b>Minimal:</b> Regenerate the config and index files only. It\'s fast and usually enough.</li>\n'+
-						'<li><b>Complete:</b> Recopy all clients files and regenerate all configs. This operation is needed after an update of the AtlasMapper or when one or more files get corrupted.</li>\n'+
+						'<li><b>Minimal:</b> Regenerate the config and index files only. It\'s fast and it\'s usually enough.<br/><i>Note that the complete generation will be executed for clients that has not been generated.</i></li>\n'+
+						'<li><b>Complete:</b> Recopy all clients files and regenerate all configs. This operation is needed for clients that has never been generated, after an update of the AtlasMapper or when one or more files are corrupted.</li>\n'+
 					'</ul>'
 			},
 			dockedItems: [{

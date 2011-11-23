@@ -121,9 +121,15 @@ public class ConfigManager {
 	public File getServerConfigFile() {
 		return this.serverConfigFile;
 	}
+	public String getConfigVersion() {
+		return this.configVersion;
+	}
 
 	public File getUsersConfigFile() {
 		return this.usersConfigFile;
+	}
+	public String getUsersConfigVersion() {
+		return this.usersConfigVersion;
 	}
 
 	public File getClientEmbededConfigFile(ClientConfig clientConfig) {
@@ -223,7 +229,7 @@ public class ConfigManager {
 		}
 	}
 
-	private synchronized void reloadServerConfig(Reader serverConfigReader) throws JSONException {
+	protected synchronized void reloadServerConfig(Reader serverConfigReader) throws JSONException {
 		if (serverConfigReader == null) {
 			return;
 		}
@@ -290,7 +296,7 @@ public class ConfigManager {
 		WMSCapabilitiesWrapper.cleanupCapabilitiesDocumentsCache(this.datasourceConfigs.values());
 	}
 
-	private synchronized void reloadDefaultServerConfig() throws JSONException {
+	protected synchronized void reloadDefaultServerConfig() throws JSONException {
 		InputStream in = null;
 		Reader reader = null;
 
@@ -344,7 +350,8 @@ public class ConfigManager {
 			this.reloadDefaultUsersConfig();
 		}
 	}
-	private synchronized void reloadUsersConfig(Reader usersConfigReader) throws JSONException {
+
+	protected synchronized void reloadUsersConfig(Reader usersConfigReader) throws JSONException {
 		this.users = new HashMap<String, User>();
 		if (usersConfigReader != null) {
 			JSONObject usersConfig = new JSONObject(new JSONTokener(usersConfigReader));
@@ -366,7 +373,7 @@ public class ConfigManager {
 		}
 	}
 
-	private synchronized void reloadDefaultUsersConfig() throws JSONException {
+	protected synchronized void reloadDefaultUsersConfig() throws JSONException {
 		InputStream in = null;
 		Reader reader = null;
 
@@ -723,7 +730,7 @@ public class ConfigManager {
 		return datasourceConfigArray;
 	}
 
-	private MultiKeyHashMap<Integer, String, ClientConfig> getClientConfigs() throws JSONException, FileNotFoundException {
+	public MultiKeyHashMap<Integer, String, ClientConfig> getClientConfigs() throws JSONException, FileNotFoundException {
 		this.reloadServerConfigIfNeeded();
 		return this.clientConfigs;
 	}
@@ -874,6 +881,11 @@ public class ConfigManager {
 		}
 
 		return oldestClientConfig;
+	}
+
+	public Map<String, User> getUsers() throws JSONException, FileNotFoundException {
+		this.reloadUsersConfigIfNeeded();
+		return this.users;
 	}
 
 	public User getUser(String loginName) throws JSONException, FileNotFoundException {
