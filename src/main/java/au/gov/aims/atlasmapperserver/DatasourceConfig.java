@@ -41,8 +41,6 @@ import org.json.JSONObject;
  */
 public class DatasourceConfig extends AbstractConfig implements Comparable<DatasourceConfig>, Cloneable {
 	private static final Logger LOGGER = Logger.getLogger(DatasourceConfig.class.getName());
-	private static final String SPLIT_PATTERN = "[,\r\n]";
-	private static final String SPLIT_ATTRIBUTES_PATTERN = "=";
 
 	// Grids records must have an unmutable ID
 	@ConfigField
@@ -201,16 +199,6 @@ public class DatasourceConfig extends AbstractConfig implements Comparable<Datas
 	}
 
 	public String getLegendParameters() throws JSONException {
-		/*
-		//return legendParameters;
-		// TODO - Not a stub!!!
-		JSONObject params = new JSONObject();
-		params.put("FORMAT", "image/png");
-		params.put("HEIGHT", "10");
-		params.put("WIDTH", "20");
-
-		return params;
-		*/
 		return this.legendParameters;
 	}
 
@@ -548,20 +536,6 @@ public class DatasourceConfig extends AbstractConfig implements Comparable<Datas
 		}
 
 		return overridenLayerConfigs;
-	}
-
-	private static Set<String> toSet(String setStr) {
-		Set<String> set = new HashSet<String>();
-		String[] strArray = setStr.split(SPLIT_PATTERN);
-		if (strArray != null) {
-			for (int i=0; i<strArray.length; i++) {
-				String str = strArray[i];
-				if (Utils.isNotBlank(str)) {
-					set.add(str.trim());
-				}
-			}
-		}
-		return set;
 	}
 
 	@Override

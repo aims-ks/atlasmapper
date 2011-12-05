@@ -268,6 +268,11 @@ Atlas.AbstractMapPanel = {
 	},
 
 	_canUseWebCache: function(supportedParams, layerParams) {
+		// IE6 can't use Web Cache (GeoServer Web Cache send blank tiles as PNG, even when requested as GIF)
+		// Equivalent to "if (Ext.isIE6)" without Ext dependencies
+		var userAgent = navigator.userAgent.toLowerCase();
+		if (!/opera/.test(userAgent) && /msie 6/.test(userAgent)) { return false; }
+
 		for(var paramName in layerParams){
 			if(layerParams.hasOwnProperty(paramName)){
 				if (layerParams[paramName] && !this._webCacheSupportParam(paramName, supportedParams)) {

@@ -155,7 +155,8 @@ ul.x-tab-strip-bottom{
 
 .x-tab-panel-body {
     border-color:#18181a;
-    background-color:#fff;
+    /*background-color:#fff;*/
+    background-color:#1F2730;
 }
 
 .x-tab-panel-body-top {

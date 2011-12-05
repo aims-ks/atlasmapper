@@ -52,6 +52,8 @@ import org.json.JSONObject;
  */
 public abstract class AbstractConfig implements Cloneable {
 	private static final Logger LOGGER = Logger.getLogger(AbstractConfig.class.getName());
+	protected static final String SPLIT_PATTERN = "[,\r\n]";
+	protected static final String SPLIT_ATTRIBUTES_PATTERN = "=";
 
 	private static final int DEFAULT_NUMBER = -1;
 	private static final boolean DEFAULT_BOOLEAN = false;
@@ -81,6 +83,20 @@ public abstract class AbstractConfig implements Cloneable {
 	 */
 	public abstract void setJSONObjectKey(String key);
 	public abstract String getJSONObjectKey();
+
+	protected static Set<String> toSet(String setStr) {
+		Set<String> set = new HashSet<String>();
+		String[] strArray = setStr.split(SPLIT_PATTERN);
+		if (strArray != null) {
+			for (int i=0; i<strArray.length; i++) {
+				String str = strArray[i];
+				if (Utils.isNotBlank(str)) {
+					set.add(str.trim());
+				}
+			}
+		}
+		return set;
+	}
 
 	/**
 	 * This method use reflexion to get all field annoted with ConfigField,

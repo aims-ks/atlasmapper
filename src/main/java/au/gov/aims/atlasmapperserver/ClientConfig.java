@@ -44,8 +44,6 @@ import org.json.JSONObject;
  * @author glafond
  */
 public class ClientConfig extends AbstractConfig {
-	private static final String SPLIT_PATTERN = "[,\r\n]";
-
 	// Grids records must have an unmutable ID
 	@ConfigField
 	private Integer id;
@@ -76,6 +74,11 @@ public class ClientConfig extends AbstractConfig {
 
 	@ConfigField
 	private JSONObject manualOverride;
+
+	@ConfigField
+	private String legendParameters;
+	// Cache - avoid parsing legendParameters string every times.
+	private JSONObject legendParametersJson;
 
 	@ConfigField
 	private String projection;
@@ -119,6 +122,9 @@ public class ClientConfig extends AbstractConfig {
 
 	@ConfigField
 	private String proxyUrl;
+
+	@ConfigField
+	private String theme;
 
 	// Read only values also need to be disabled in the form (clientsConfigPage.js)
 	@ConfigField(demoReadOnly = true)
@@ -260,6 +266,42 @@ public class ClientConfig extends AbstractConfig {
 		this.manualOverride = manualOverride;
 	}
 
+	public String getLegendParameters() throws JSONException {
+		return this.legendParameters;
+	}
+
+	public void setLegendParameters(String legendParameters) {
+		this.legendParameters = legendParameters;
+		this.legendParametersJson = null;
+	}
+
+	public JSONObject getLegendParametersJson() throws JSONException {
+		if (this.legendParameters == null) {
+			return null;
+		}
+
+		if (this.legendParametersJson == null) {
+			String trimedLegendParameters = this.legendParameters.trim();
+			if (trimedLegendParameters.isEmpty()) {
+				return null;
+			}
+
+			this.legendParametersJson = new JSONObject();
+			for (String legendParameter : toSet(trimedLegendParameters)) {
+				if (Utils.isNotBlank(legendParameter)) {
+					String[] attribute = legendParameter.split(SPLIT_ATTRIBUTES_PATTERN);
+					if (attribute != null && attribute.length >= 2) {
+						this.legendParametersJson.put(
+								attribute[0],  // Key
+								attribute[1]); // Value
+					}
+				}
+			}
+		}
+
+		return this.legendParametersJson;
+	}
+
 	public String getLatitude() {
 		return latitude;
 	}
@@ -339,6 +381,14 @@ public class ClientConfig extends AbstractConfig {
 
 	public void setProxyUrl(String proxyUrl) {
 		this.proxyUrl = proxyUrl;
+	}
+
+	public String getTheme() {
+		return this.theme;
+	}
+
+	public void setTheme(String theme) {
+		this.theme = theme;
 	}
 
 	public String getGeneratedFileLocation() {
@@ -472,15 +522,25 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	// Helper
-	public Map<String, LayerConfig> getLayerConfigs(ConfigManager configManager) throws MalformedURLException, IOException, ServiceException, JSONException {
+	public Map<String, LayerConfig> getLayerConfigs(ConfigManager configManager) throws MalformedURLException, IOException, ServiceException, JSONException, GetCapabilitiesExceptions {
 		Map<String, LayerConfig> overridenLayerConfigs = new HashMap<String, LayerConfig>();
 
 		// Retrieved all layers for all datasources of this client
+		GetCapabilitiesExceptions errors = new GetCapabilitiesExceptions();
 		for (DatasourceConfig datasourceConfig : this.getDatasourceConfigs(configManager)) {
-			if (datasourceConfig != null) {
-				overridenLayerConfigs.putAll(
-						datasourceConfig.getLayerConfigs(this));
+			try {
+				if (datasourceConfig != null) {
+					overridenLayerConfigs.putAll(
+							datasourceConfig.getLayerConfigs(this));
+				}
+			} catch(IOException ex) {
+				// Collect all errors
+				errors.add(datasourceConfig, ex);
 			}
+		}
+
+		if (!errors.isEmpty()) {
+			throw errors;
 		}
 
 		// Create manual layers defined for this client

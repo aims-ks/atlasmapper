@@ -155,6 +155,12 @@ Atlas.LegendPanel = Ext.extend(GeoExt.LegendPanel, {
 
 				Ext.applyIf(legendConfig.baseParams, layer.json['legendParameters']);
 
+				// IE6 can't use PNG legend
+				if (Ext.isIE6) {
+					legendConfig.baseParams.FORMAT = 'image/gif';
+				}
+
+
 				legendGroup.insert(index, legendConfig);
 			}
 		}

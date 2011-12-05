@@ -23,6 +23,7 @@
 	Author     : glafond
 --%>
 
+<%@page import="au.gov.aims.atlasmapperserver.GetCapabilitiesExceptions"%>
 <%@page import="au.gov.aims.atlasmapperserver.Utils"%>
 <%@page import="java.util.List"%>
 <%@page import="org.json.JSONArray"%>
@@ -203,6 +204,11 @@
 									jsonObj.put("success", true);
 									jsonObj.put("message", "Config Generated");
 								}
+							} catch(GetCapabilitiesExceptions e) {
+								LOGGER.log(Level.SEVERE, "Can not retrieved all Capabilities Documents. Generation aborded.", e);
+								response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+								jsonObj.put("success", false);
+								jsonObj.put("errors", new JSONArray().put("Can not retrieved all Capabilities Documents. Generation aborded.<br/>\n" + e.getMessage().replace("\n", "<br/>\n")));
 							} catch(Exception e) {
 								LOGGER.log(Level.SEVERE, "An error occured while generating the Client configuration.", e);
 								response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
@@ -221,6 +227,11 @@
 						response.setStatus(HttpServletResponse.SC_OK);
 						jsonObj.put("success", true);
 						jsonObj.put("message", "Config saved for all clients");
+					} catch(GetCapabilitiesExceptions e) {
+						LOGGER.log(Level.SEVERE, "Can not retrieved all Capabilities Documents. Generation aborded.", e);
+						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+						jsonObj.put("success", false);
+						jsonObj.put("errors", new JSONArray().put("Can not retrieved all Capabilities Documents. Generation aborded.<br/>\n" + e.getMessage().replace("\n", "<br/>\n")));
 					} catch (Exception e) {
 						LOGGER.log(Level.SEVERE, "An error occured while generating the Client configurations.", e);
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
@@ -264,6 +275,11 @@
 										jsonObj.put("data", configs);
 									}
 								}
+							} catch(GetCapabilitiesExceptions e) {
+								LOGGER.log(Level.SEVERE, "Can not retrieved all Capabilities Documents. Generation aborded.", e);
+								response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+								jsonObj.put("success", false);
+								jsonObj.put("errors", new JSONArray().put("Can not retrieved all Capabilities Documents. Generation aborded.<br/>\n" + e.getMessage().replace("\n", "<br/>\n")));
 							} catch(Exception e) {
 								LOGGER.log(Level.SEVERE, "An error occured while retrieving/generating the Client configurations.", e);
 								response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);

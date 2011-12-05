@@ -205,6 +205,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 			qtipHtml: 'Coma separated list of URL parameter supported by the Web Cache server. Leave this field blank if the Web Cache server support all parameters. The list of supported URL parameters for GeoWebCache is listed bellow as an example.',
 			name: 'webCacheParameters'
 		};
+		/*
 		var webCacheParametersExample = {
 			fieldLabel: 'Example: GeoWebCache supported URL parameters',
 			labelStyle: 'font-style:italic',
@@ -212,6 +213,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 			xtype: 'displayfield',
 			value: '<em>LAYERS, TRANSPARENT, SERVICE, VERSION, REQUEST, EXCEPTIONS, FORMAT, SRS, BBOX, WIDTH, HEIGHT</em>'
 		};
+		*/
 		var featureRequestsUrl = {
 			fieldLabel: 'Feature requests URL',
 			qtipHtml: 'This field override the feature requests URL provided by the GetCapabilities document.',
@@ -295,14 +297,16 @@ Ext.define('Writer.LayerServerConfigForm', {
 				break;
 		}
 
+		var tabs = [{
+			// Normal config options
+			title: 'General',
+			items: items
+		}];
 
 		if (advancedItems.length > 0) {
-			items.push({
-				title: 'Advanced options',
-				xtype:'fieldsetresize',
-				defaultType: 'textfield',
-				collapsible: true,
-				collapsed: true,
+			tabs.push({
+				// Advanced config options
+				title: 'Advanced',
 				items: advancedItems
 			});
 		}
@@ -319,7 +323,19 @@ Ext.define('Writer.LayerServerConfigForm', {
 				labelAlign: 'right',
 				labelWidth: 150
 			},
-			items: items
+			items: [{
+				xtype: 'tabpanel',
+				border: false,
+				height: '100%', width: '100%',
+				defaults: {
+					layout: 'anchor',
+					autoScroll: true,
+					border: false,
+					bodyPadding: 5,
+					defaultType: 'textfield'
+				},
+				items: tabs
+			}]
 		});
 
 		this.callParent();
@@ -615,7 +631,8 @@ Ext.define('Writer.LayerServerConfigGrid', {
 		return Ext.create('Ext.window.Window', {
 			title: 'Datasource configuration',
 			width: 700,
-			height: 450,
+			height: 430,
+			maxHeight: Ext.getBody().getViewSize().height,
 			layout: 'fit',
 			constrainHeader: true,
 			closeAction: 'hide',
@@ -624,7 +641,6 @@ Ext.define('Writer.LayerServerConfigGrid', {
 			items: [
 				{
 					xtype: 'writerlayerserverconfigform',
-					bodyPadding: 5,
 					datasourceType: datasourceType,
 					listeners: {
 						scope: this,

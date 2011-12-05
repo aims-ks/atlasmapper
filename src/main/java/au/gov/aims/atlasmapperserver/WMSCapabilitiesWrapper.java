@@ -21,9 +21,18 @@
 
 package au.gov.aims.atlasmapperserver;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -32,11 +41,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.GZIPInputStream;
 import org.geotools.data.ows.CRSEnvelope;
 import org.geotools.data.ows.GetCapabilitiesRequest;
 import org.geotools.data.ows.GetCapabilitiesResponse;
 import org.geotools.data.ows.Layer;
 import org.geotools.data.ows.OperationType;
+import org.geotools.data.ows.Request;
+import org.geotools.data.ows.Response;
 import org.geotools.data.ows.Service;
 import org.geotools.data.ows.StyleImpl;
 import org.geotools.data.ows.WMSCapabilities;
@@ -118,24 +130,44 @@ public class WMSCapabilitiesWrapper {
 	private WMSCapabilities getWMSCapabilities(String urlStr) throws IOException, ServiceException {
 		LOGGER.log(Level.INFO, "Downloading the Capabilities Document {0}", urlStr);
 
-		final URL url = new URL(urlStr);
-		WebMapServer server = new WebMapServer(url);
-		if (server == null) { return null; }
+		URL url = new URL(urlStr);
 
 		// TODO Find a nicer way to detect if the URL is a complete URL to a GetCapabilities document
-		if (urlStr.contains("?")) {
-			GetCapabilitiesRequest req = new WMS1_3_0.GetCapsRequest(url) {
-				@Override
-				public URL getFinalURL() {
-					return url;
-				}
-			};
-			GetCapabilitiesResponse rep = server.issueRequest(req);
-			return (WMSCapabilities)rep.getCapabilities();
+		if (urlStr.startsWith("file://")) {
+			GetCapabilitiesRequest req = getCapRequest(url);
+			GetCapabilitiesResponse resp = (GetCapabilitiesResponse)this.issueFileRequest(req);
+			return (WMSCapabilities)resp.getCapabilities();
+
+		} else if (urlStr.contains("?")) {
+			WebMapServer server = new WebMapServer(url);
+			GetCapabilitiesRequest req = getCapRequest(url);
+			GetCapabilitiesResponse resp = server.issueRequest(req);
+			return (WMSCapabilities)resp.getCapabilities();
 		}
 
+		WebMapServer server = new WebMapServer(url);
 		return server.getCapabilities();
 	}
+
+	private GetCapabilitiesRequest getCapRequest(final URL url) {
+		return new WMS1_3_0.GetCapsRequest(url) {
+			@Override
+			public URL getFinalURL() {
+				return url;
+			}
+		};
+	}
+
+	protected GetCapabilitiesResponse issueFileRequest(Request request) throws IOException, ServiceException {
+		URL finalURL = request.getFinalURL();
+		URLConnection connection = finalURL.openConnection();
+		InputStream inputStream = connection.getInputStream();
+
+		String contentType = connection.getContentType();
+
+		return (GetCapabilitiesResponse)request.createResponse(contentType, inputStream);
+	}
+
 
 	protected static synchronized void clearCapabilitiesDocumentsCache() {
 		if (capabilitiesDocumentsCache != null) {

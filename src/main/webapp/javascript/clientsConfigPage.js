@@ -118,6 +118,7 @@ Ext.define('Writer.ClientConfigForm', {
 			'fullClientModules': ['Info', 'Tree'], // TODO Delete this once this field is implemented
 			'baseLayersInTab': true,
 			'useLayerService': true,
+			'theme': '',
 			'enable': true
 		});
 		this.addEvents('create');
@@ -181,225 +182,286 @@ Ext.define('Writer.ClientConfigForm', {
 		Ext.apply(this, {
 			activeRecord: null,
 			border: false,
-			autoScroll: true,
-			defaultType: 'textfield',
 			fieldDefaults: {
-				msgTarget: 'side', // Display an icon next to the field when it's valid
+				msgTarget: 'side', // Display an (X) icon next to the field when it's not valid
 				qtipMaxWidth: 200,
 				anchor: '100%',
 				labelAlign: 'right',
 				labelWidth: 150
 			},
-			items: [
-				{
-					// Grids records must have an unmutable ID
-					name: 'id',
-					xtype: 'hiddenfield'
-				}, {
-					fieldLabel: ' ', labelSeparator: '',
-					boxLabel: 'Enable this client',
-					qtipHtml: 'The application ignore the entries which has this box unchecked.',
-					name: 'enable',
-					xtype: 'checkboxfield'
-				}, {
-					fieldLabel: 'Client ID',
-					name: 'clientId',
-					qtipHtml: 'This field is used for the client folder and as a reference in this interface, for the administrator.',
-					allowBlank: false
-				}, {
-					fieldLabel: 'Client Name',
-					name: 'clientName',
-					qtipHtml: 'A human readable name for this client. This field is used as a title for the Atlas Mapper client and in error/warnning messages.'
-				}, {
-					xtype: 'checkboxgroup',
-					fieldLabel: 'Datasource type',
-					columns: 2,
-					items: datasourcesItems
-				}, {
-					title: 'Modules for the full client(s)',
-					qtipTitle: 'Full client',
-					qtipHtml: 'Selected modules will appear in the full client.',
-					checkboxToggle: true,
-					checkboxName: 'fullClientEnable',
-					xtype:'fieldsetresize',
-					defaultType: 'textfield',
-					collapsible: true,
-					collapsed: true,
-					hidden: true, // TODO Delete this once this field is implemented
-					items: [
-						{
-							xtype: 'checkboxgroup',
-							columns: 2,
-							items: fullClientModules
-						}
-					]
-				}, {
-					title: 'Modules for the embeded client(s)',
-					qtipTitle: 'Embeded client',
-					qtipHtml: 'Selected modules will appear in the embeded client.',
-					checkboxToggle: true,
-					checkboxName: 'embededClientEnable',
-					xtype:'fieldsetresize',
-					defaultType: 'textfield',
-					collapsible: true,
-					collapsed: true,
-					hidden: true, // TODO Delete this once this field is implemented
-					items: [
-						{
-							xtype: 'checkboxgroup',
-							columns: 2,
-							items: embededClientModules
-						}
-					]
-				}, {
-					fieldLabel: 'Projection (<a href="http://spatialreference.org/" target="_blank">?</a>)',
-					qtipTitle: 'Projection',
-					qtipHtml: 'Projection for this client. Default is <em>EPSG:4326</em>. See the spatial reference Web Site for more info.',
-					name: 'projection',
-					xtype: 'combobox',
-					forceSelection: true, // Force the user to choose something from the list (do not allow random value)
-					valueField: 'name',
-					displayField: 'title',
-					allowBlank: false,
-					store: projectionsStore,
-					queryMode: 'local'
-				}, {
-					fieldLabel: 'Save states',
-					qtipHtml: 'Save states... - TODO -',
-					name: 'saveStates',
-					hidden: true, // TODO Delete this once this field is implemented
-					xtype: 'displayfield',
-					value: 'Grid of all save states, allow user to view, modify, delete, choose de default one'
-				}, {
-					xtype: 'fieldcontainer',
-					fieldLabel: 'Starting Location',
-					qtipHtml: 'The starting location of the map. Longitude and latitude indicate the centre of the map and the zoom indicate the resolution;<br/>'+
-						'<ul>'+
-							'<li>0 for a resolution of 1:221M</li>'+
-							'<li>1 for a resolution of 1:111M</li>'+
-							'<li>...</li>'+
-							'<li>15 for a resolution of 1:6759</li>'+
-						'</ul>'+
-						'Example: longitude: 148.0, latitude: -18.0, zoom: 6',
-					combineErrors: true,
-					msgTarget: 'side',
-					layout: 'hbox',
-					defaults: {
-						xtype: 'numberfield',
-						// Remove spinner buttons, and arrow key and mouse wheel listeners
-						hideTrigger: true,
-						keyNavEnabled: false,
+			items: [{
+				xtype: 'tabpanel',
+				border: false,
+				height: '100%', width: '100%',
+				defaults: {
+					layout: 'anchor',
+					autoScroll: true,
+					border: false,
+					bodyPadding: 5,
+					defaultType: 'textfield'
+				},
+				items: [
+					{
+						// Normal config options
+						title: 'General',
+						items: [
+							{
+								// Grids records must have an unmutable ID
+								name: 'id',
+								xtype: 'hiddenfield'
+							}, {
+								fieldLabel: ' ', labelSeparator: '',
+								boxLabel: 'Enable this client',
+								qtipHtml: 'The application ignore the entries which has this box unchecked.',
+								name: 'enable',
+								xtype: 'checkboxfield'
+							}, {
+								fieldLabel: 'Client ID',
+								name: 'clientId',
+								qtipHtml: 'This field is used for the client folder and as a reference in this interface, for the administrator.',
+								allowBlank: false
+							}, {
+								fieldLabel: 'Client Name',
+								name: 'clientName',
+								qtipHtml: 'A human readable name for this client. This field is used as a title for the Atlas Mapper client and in error/warnning messages.'
+							}, {
+								xtype: 'checkboxgroup',
+								fieldLabel: 'Datasource type',
+								columns: 2,
+								items: datasourcesItems
+							}, {
+								title: 'Modules for the full client(s)',
+								qtipTitle: 'Full client',
+								qtipHtml: 'Selected modules will appear in the full client.',
+								checkboxToggle: true,
+								checkboxName: 'fullClientEnable',
+								xtype:'fieldsetresize',
+								defaultType: 'textfield',
+								collapsible: true,
+								collapsed: true,
+								hidden: true, // TODO Delete this once this field is implemented
+								items: [
+									{
+										xtype: 'checkboxgroup',
+										columns: 2,
+										items: fullClientModules
+									}
+								]
+							}, {
+								title: 'Modules for the embeded client(s)',
+								qtipTitle: 'Embeded client',
+								qtipHtml: 'Selected modules will appear in the embeded client.',
+								checkboxToggle: true,
+								checkboxName: 'embededClientEnable',
+								xtype:'fieldsetresize',
+								defaultType: 'textfield',
+								collapsible: true,
+								collapsed: true,
+								hidden: true, // TODO Delete this once this field is implemented
+								items: [
+									{
+										xtype: 'checkboxgroup',
+										columns: 2,
+										items: embededClientModules
+									}
+								]
+							}, {
+								fieldLabel: 'Projection (<a href="http://spatialreference.org/" target="_blank">?</a>)',
+								qtipTitle: 'Projection',
+								qtipHtml: 'Projection for this client. Default is <em>EPSG:4326</em>. See the spatial reference Web Site for more info.',
+								name: 'projection',
+								xtype: 'combobox',
+								forceSelection: true, // Force the user to choose something from the list (do not allow random value)
+								valueField: 'name',
+								displayField: 'title',
+								allowBlank: false,
+								store: projectionsStore,
+								queryMode: 'local'
+							}, {
+								fieldLabel: 'Save states',
+								qtipHtml: 'Save states... - TODO -',
+								name: 'saveStates',
+								hidden: true, // TODO Delete this once this field is implemented
+								xtype: 'displayfield',
+								value: 'Grid of all save states, allow user to view, modify, delete, choose de default one'
+							}, {
+								xtype: 'fieldcontainer',
+								fieldLabel: 'Starting Location',
+								qtipHtml: 'The starting location of the map. Longitude and latitude indicate the centre of the map and the zoom indicate the resolution;<br/>'+
+									'<ul>'+
+										'<li>0 for a resolution of 1:221M</li>'+
+										'<li>1 for a resolution of 1:111M</li>'+
+										'<li>...</li>'+
+										'<li>15 for a resolution of 1:6759</li>'+
+									'</ul>'+
+									'Example: longitude: 148.0, latitude: -18.0, zoom: 6',
+								combineErrors: true,
+								msgTarget: 'side',
+								layout: 'hbox',
+								defaults: {
+									xtype: 'numberfield',
+									// Remove spinner buttons, and arrow key and mouse wheel listeners
+									hideTrigger: true,
+									keyNavEnabled: false,
 
-						labelWidth: 35,
-						margin: '0 0 0 5',
-						flex: 1
-					},
-					items: [
-						{
-							name: 'longitude',
-							fieldLabel: 'Lon',
-							decimalPrecision: 5
-						}, {
-							name: 'latitude',
-							fieldLabel: 'Lat',
-							decimalPrecision: 5
-						}, {
-							name: 'zoom',
-							fieldLabel: 'Zoom',
-							allowDecimals: false
-						}
-					]
-				}, {
-					fieldLabel: 'Default Layers',
-					qtipHtml: 'List of layer ids, separated by coma or new line. The list define the layers that come up when the client is loaded.',
-					name: 'defaultLayers',
-					xtype: 'textareafield',
-					resizable: {transparent: true}, resizeHandles: 's',
-					height: 75
-				}, {
-					fieldLabel: 'Comment',
-					qtipHtml: 'Comment for administrators. This field is not display anywhere else.',
-					name: 'comment',
-					xtype: 'textareafield',
-					resizable: {transparent: true}, resizeHandles: 's',
-					height: 50
-				}, {
-					title: 'Advanced options',
-					xtype:'fieldsetresize',
-					defaultType: 'textfield',
-					collapsible: true,
-					collapsed: true,
-					items: [
-						Ext.apply({
-								fieldLabel: 'Layers\' manual override (<a href="manualOverrideDoc.html" target="_blank">doc</a>)',
-								qtipTitle: 'Layers\' manual override',
-								qtipHtml: 'JSON configuration used to override the layers information retrived from the GetCapabilities documents. These changes only affect the current client. They are apply over the <i>Layers\' global manual override</i> of the <i>Global configuration</i>.<br/>See the documentation for more information.',
-								vtype: 'jsonfield',
-								name: 'manualOverride',
-								height: 300
-							}, browserSpecificEditAreaConfig
-						), {
-							fieldLabel: 'Proxy URL',
-							qtipHtml: 'The AtlasMapper clients have to send Ajax request (using javascript) for different features such as <em>feature requests</em>. '+
-								'This server application is bundle with such a proxy.<br/>'+
-								'<ul>'+
-									'<li>If you want to use the integrated proxy, <strong>leave this field blank</strong>.</li>'+
-									'<li>If you want to use a standalone proxy, you can use the one provided by OpenLayer in their example folder. In this case, the URL should looks like this:<br/><em>/cgi-bin/proxy.cgi?url=</em></li>'+
-								'</ul>',
-							name: 'proxyUrl'
-						}, {
-							fieldLabel: 'Generated file location',
-							qtipHtml: 'Absolute file path, on the server\'s, to the folder where the client has to be generated. The application will try to create the folder if it doesn\'t exists.<br/>'+
-								'<strong>Warning:</strong> Only set this field if you are setting a client outside the application. If you set this field, you will also have to set the <i>Client base URL</i> with the URL that allow users to access the folder.'+
-								notAvailableInDemoMode,
-							name: 'generatedFileLocation',
-							id: 'generatedFileLocation',
-							disabled: demoMode,
-							validator: validateDependencies,
-							dependencies: ['baseUrl']
-						}, {
-							fieldLabel: 'Client base URL',
-							qtipHtml: 'URL to the client. This field is only needed to create the link to the client, in the Administration Interface. Failing to provide this information will not have any effect in the client itself. Default URL for this field is atlasmapper/client/<Client name>/'+
-								'<strong>Warning:</strong> Only set this field if you are setting a client outside the application.'+
-								notAvailableInDemoMode,
-							name: 'baseUrl',
-							id: 'baseUrl',
-							disabled: demoMode,
-							validator: validateDependencies,
-							dependencies: ['generatedFileLocation']
-						}, {
-							fieldLabel: 'Layer info service URL',
-							qtipHtml: 'URL used by the client to get information about layers. The default URL is: atlasmapper/public/layersInfo.jsp'+
-								notAvailableInDemoMode,
-							name: 'layerInfoServiceUrl',
-							disabled: demoMode
-						}, {
-							fieldLabel: ' ', labelSeparator: '',
-							boxLabel: 'Use layer service.',
-							qtipHtml: 'Uncheck this box to save the configuration of all layers in the configuration file. This allow the client to run without any AtlasMapper server support. It\'s useful for server that do not have tomcat installed.<br/>'+
-								'<b>Note:</b> Disabling the <i>layer service</i> also disable the <i>client preview</i> in the server and the <i>WMS Feature Requests</i> on the client, for layers that are from a different domain name to the client.',
-							margin: '0 0 15 0',
-							xtype: 'checkboxfield',
-							name: 'useLayerService'
-						}, {
-							fieldLabel: 'Configuration Standard Version',
-							qtipHtml: 'Version of the configuration used by the client, for backward compatibilities.<br/>'+
-								'<strong>Warning:</strong> Only set this field if this application has to generate a configuration for a old AtlasMapper client.',
-							name: 'version',
-							anchor: null,
-							hidden: true, // TODO Delete this once this field is implemented
-							width: 200
-						}, {
-							fieldLabel: ' ', labelSeparator: '',
-							margin: '0 0 15 0',
-							boxLabel: 'Show <i>Base layers</i> in a separate tab, in <i>add layers</i> window.',
-							qtipHtml: 'Check this box to show all <em>Base layers</em> in a separate tab, in the <em>add layers</em> window of this AtlasMapper client. Uncheck it to let the base layers appear in the tab of their appropriate server.',
-							xtype: 'checkboxfield',
-							name: 'baseLayersInTab'
-						}
-					]
-				}
-			]
+									labelWidth: 35,
+									margin: '0 0 0 5',
+									flex: 1
+								},
+								items: [
+									{
+										name: 'longitude',
+										fieldLabel: 'Lon',
+										decimalPrecision: 5
+									}, {
+										name: 'latitude',
+										fieldLabel: 'Lat',
+										decimalPrecision: 5
+									}, {
+										name: 'zoom',
+										fieldLabel: 'Zoom',
+										allowDecimals: false
+									}
+								]
+							}, {
+								fieldLabel: 'Default Layers',
+								qtipHtml: 'List of layer ids, separated by coma or new line. The list define the layers that come up when the client is loaded.',
+								name: 'defaultLayers',
+								xtype: 'textareafield',
+								resizable: {transparent: true}, resizeHandles: 's',
+								height: 75
+							}, {
+								fieldLabel: 'Comment',
+								qtipHtml: 'Comment for administrators. This field is not display anywhere else.',
+								name: 'comment',
+								xtype: 'textareafield',
+								resizable: {transparent: true}, resizeHandles: 's',
+								height: 50
+							}
+						]
+					}, {
+						// Advanced config options
+						title: 'Advanced',
+						items: [
+							Ext.apply({
+									fieldLabel: 'Layers\' manual override (<a href="manualOverrideDoc.html" target="_blank">doc</a>)',
+									qtipTitle: 'Layers\' manual override',
+									qtipHtml: 'JSON configuration used to override the layers information retrived from the GetCapabilities documents. These changes only affect the current client. They are apply over the <i>Layers\' global manual override</i> of the <i>Global configuration</i>.<br/>See the documentation for more information.',
+									vtype: 'jsonfield',
+									name: 'manualOverride',
+									height: 300
+								}, browserSpecificEditAreaConfig
+							), {
+							/*
+								fieldLabel: 'Legend parameters',
+								qtipHtml: 'List of URL parameters <i>key=value</i>, separated by coma or new line. Those parameters are added to the URL sent to request the legend graphics.',
+								name: 'legendParameters',
+								xtype: 'textareafield',
+								resizable: {transparent: true}, resizeHandles: 's',
+								height: 100
+							}, {
+							*/
+								fieldLabel: 'Proxy URL',
+								qtipHtml: 'The AtlasMapper clients have to send Ajax request (using javascript) for different features such as <em>feature requests</em>. '+
+									'This server application is bundle with such a proxy.<br/>'+
+									'<ul>'+
+										'<li>If you want to use the integrated proxy, <strong>leave this field blank</strong>.</li>'+
+										'<li>If you want to use a standalone proxy, you can use the one provided by OpenLayer in their example folder. In this case, the URL should looks like this:<br/><em>/cgi-bin/proxy.cgi?url=</em></li>'+
+									'</ul>',
+								name: 'proxyUrl'
+							}, {
+								fieldLabel: 'Generated file location',
+								qtipHtml: 'Absolute file path, on the server\'s, to the folder where the client has to be generated. The application will try to create the folder if it doesn\'t exists.<br/>'+
+									'<strong>Warning:</strong> Only set this field if you are setting a client outside the application. If you set this field, you will also have to set the <i>Client base URL</i> with the URL that allow users to access the folder.'+
+									notAvailableInDemoMode,
+								name: 'generatedFileLocation',
+								id: 'generatedFileLocation',
+								disabled: demoMode,
+								validator: validateDependencies,
+								dependencies: ['baseUrl']
+							}, {
+								fieldLabel: 'Client base URL',
+								qtipHtml: 'URL to the client. This field is only needed to create the link to the client, in the Administration Interface. Failing to provide this information will not have any effect in the client itself. Default URL for this field is atlasmapper/client/<Client name>/'+
+									'<strong>Warning:</strong> Only set this field if you are setting a client outside the application.'+
+									notAvailableInDemoMode,
+								name: 'baseUrl',
+								id: 'baseUrl',
+								disabled: demoMode,
+								validator: validateDependencies,
+								dependencies: ['generatedFileLocation']
+							}, {
+								fieldLabel: 'Layer info service URL',
+								qtipHtml: 'URL used by the client to get information about layers. The default URL is: atlasmapper/public/layersInfo.jsp'+
+									notAvailableInDemoMode,
+								name: 'layerInfoServiceUrl',
+								disabled: demoMode
+							}, {
+								fieldLabel: ' ', labelSeparator: '',
+								boxLabel: 'Use layer service.',
+								qtipHtml: 'Uncheck this box to save the configuration of all layers in the configuration file. This allow the client to run without any AtlasMapper server support. It\'s useful for server that do not have tomcat installed.<br/>'+
+									'<b>Note:</b> Disabling the <i>layer service</i> also disable the <i>client preview</i> in the server and the <i>WMS Feature Requests</i> on the client, for layers that are from a different domain name to the client.',
+								margin: '0 0 15 0',
+								xtype: 'checkboxfield',
+								name: 'useLayerService'
+							}, {
+								fieldLabel: 'Configuration Standard Version',
+								qtipHtml: 'Version of the configuration used by the client, for backward compatibilities.<br/>'+
+									'<strong>Warning:</strong> Only set this field if this application has to generate a configuration for a old AtlasMapper client.',
+								name: 'version',
+								anchor: null,
+								hidden: true, // TODO Delete this once this field is implemented
+								width: 200
+							}, {
+								fieldLabel: ' ', labelSeparator: '',
+								margin: '0 0 15 0',
+								boxLabel: 'Show <i>Base layers</i> in a separate tab, in <i>add layers</i> window.',
+								qtipHtml: 'Check this box to show all <em>Base layers</em> in a separate tab, in the <em>add layers</em> window of this AtlasMapper client. Uncheck it to let the base layers appear in the tab of their appropriate server.',
+								xtype: 'checkboxfield',
+								name: 'baseLayersInTab'
+							}
+						]
+					/*
+					}, {
+						// Advanced config options
+						title: 'Appearance',
+						items: [
+							{
+								fieldLabel: 'Theme',
+								qtipHtml: 'ExtJS Theme',
+								name: 'theme',
+								xtype: 'combobox',
+								forceSelection: true, // Force the user to choose something from the list (do not allow random value)
+								valueField: 'name',
+								displayField: 'title',
+								allowBlank: false,
+								store: {
+									fields: ['name', 'title'],
+									data : [
+										{"name": "", "title": "Blue (ExtJS default)"},
+										// {"name": "xtheme-blue", "title": "Blue"}, // Same as default
+										{"name": "xtheme-gray", "title": "Grey"},
+										{"name": "xtheme-access", "title": "Accessibility"}
+									]
+								},
+								queryMode: 'local'
+							}, {
+								fieldLabel: 'Background',
+								qtipHtml: 'TODO',
+								name: 'background',
+								xtype: 'displayfield',
+								value: 'Coming soon...'
+							}, {
+								fieldLabel: 'Fonts',
+								qtipHtml: 'TODO',
+								name: 'fonts',
+								xtype: 'displayfield',
+								value: 'Coming soon...'
+							}
+						]
+					*/
+					}
+				]
+			}]
 		});
 		this.callParent();
 	},
@@ -1037,7 +1099,7 @@ Ext.define('Writer.ClientConfigGrid', {
 		return Ext.create('Ext.window.Window', {
 			title: 'Client configuration',
 			width: 700,
-			height: 570,
+			height: 500,
 			maxHeight: Ext.getBody().getViewSize().height,
 			layout: 'fit',
 			constrainHeader: true,
@@ -1045,7 +1107,6 @@ Ext.define('Writer.ClientConfigGrid', {
 
 			items: [{
 				xtype: 'writerclientconfigform',
-				bodyPadding: 5,
 				listeners: {
 					scope: this,
 					create: function(form, data){
@@ -1370,6 +1431,7 @@ Ext.define('Writer.ClientConfig', {
 		'embededClientModules', // String or Array<String>
 
 		'manualOverride',
+		'legendParameters',
 		'clientUrl',
 		'previewClientUrl',
 		'generatedFileLocation',
@@ -1385,6 +1447,7 @@ Ext.define('Writer.ClientConfig', {
 		'version',
 		{name: 'useLayerService', type: 'boolean', defaultValue: false},
 		{name: 'enable', type: 'boolean', defaultValue: false},
+		'theme',
 		'comment'
 	]/*,
 	validations: [{

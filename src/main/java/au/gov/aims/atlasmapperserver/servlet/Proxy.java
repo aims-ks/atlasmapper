@@ -23,6 +23,7 @@ package au.gov.aims.atlasmapperserver.servlet;
 
 import au.gov.aims.atlasmapperserver.ConfigHelper;
 import au.gov.aims.atlasmapperserver.ConfigManager;
+import au.gov.aims.atlasmapperserver.GetCapabilitiesExceptions;
 import au.gov.aims.atlasmapperserver.ServletUtils;
 import au.gov.aims.atlasmapperserver.Utils;
 import java.io.IOException;
@@ -88,6 +89,8 @@ public class Proxy extends HttpServlet {
 			if (foundAllowedHosts == null) {
 				LOGGER.log(Level.WARNING, "No allowed hosts found in AtlasMapperServer configuration.");
 			}
+		} catch (GetCapabilitiesExceptions ex) {
+			LOGGER.log(Level.SEVERE, "Error while retriving the Capabilities documents to generate the allowed hosts.", ex);
 		} catch (JSONException ex) {
 			LOGGER.log(Level.SEVERE, "Error while retriving the allowed hosts.", ex);
 		} catch (IOException ex) {

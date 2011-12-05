@@ -679,22 +679,22 @@ public class ConfigManager {
 	}
 	*/
 
-	public JSONObject getClientLayers(String clientId, String[] layerIds, boolean live) throws JSONException, MalformedURLException, IOException, ServiceException {
+	public JSONObject getClientLayers(String clientId, String[] layerIds, boolean live) throws JSONException, MalformedURLException, IOException, ServiceException, GetCapabilitiesExceptions {
 		if (Utils.isBlank(clientId)) { return null; }
 
 		return this.getClientLayers(this.getClientConfig(clientId), layerIds, live);
 	}
 
-	public JSONObject getClientLayers(ClientConfig clientConfig, String[] layerIds, boolean live) throws JSONException, MalformedURLException, IOException, ServiceException {
+	public JSONObject getClientLayers(ClientConfig clientConfig, String[] layerIds, boolean live) throws JSONException, MalformedURLException, IOException, ServiceException, GetCapabilitiesExceptions {
 		if (clientConfig == null) { return null; }
 
 		return this._getClientLayers(clientConfig, layerIds, live);
 	}
 
-	private JSONObject _getClientLayers(ClientConfig clientConfig, String[] layerIds, boolean live) throws JSONException, MalformedURLException, IOException, ServiceException {
+	private JSONObject _getClientLayers(ClientConfig clientConfig, String[] layerIds, boolean live) throws JSONException, MalformedURLException, IOException, ServiceException, GetCapabilitiesExceptions {
 		return _getClientLayers(clientConfig, Arrays.asList(layerIds), live);
 	}
-	private JSONObject _getClientLayers(ClientConfig clientConfig, Collection<String> layerIds, boolean live) throws JSONException, MalformedURLException, IOException, ServiceException {
+	private JSONObject _getClientLayers(ClientConfig clientConfig, Collection<String> layerIds, boolean live) throws JSONException, MalformedURLException, IOException, ServiceException, GetCapabilitiesExceptions {
 		if (clientConfig == null) { return null; }
 
 		JSONObject foundLayers = new JSONObject();
@@ -762,13 +762,13 @@ public class ConfigManager {
 	}
 
 	public List<String> getProxyAllowedHosts(String clientId, boolean live)
-			throws JSONException, FileNotFoundException, MalformedURLException, IOException, ServiceException {
+			throws JSONException, FileNotFoundException, MalformedURLException, IOException, ServiceException, GetCapabilitiesExceptions {
 
 		ClientConfig clientConfig = this.getClientConfig(clientId);
 		return this.getProxyAllowedHosts(clientConfig, live);
 	}
 	public List<String> getProxyAllowedHosts(ClientConfig clientConfig, boolean live)
-			throws JSONException, FileNotFoundException, MalformedURLException, IOException, ServiceException {
+			throws JSONException, FileNotFoundException, MalformedURLException, IOException, ServiceException, GetCapabilitiesExceptions {
 
 		List<String> allowedHosts = new ArrayList<String>();
 
@@ -897,7 +897,7 @@ public class ConfigManager {
 	}
 
 	public void generateAllClients(boolean complete)
-			throws JSONException, MalformedURLException, IOException, ServiceException, FileNotFoundException, TemplateException {
+			throws JSONException, MalformedURLException, IOException, ServiceException, FileNotFoundException, TemplateException, GetCapabilitiesExceptions {
 
 		// Emplty the capabilities cache before regenerating the configs
 		WMSCapabilitiesWrapper.clearCapabilitiesDocumentsCache();
@@ -908,7 +908,7 @@ public class ConfigManager {
 	}
 
 	public void generateClient(Integer clientId, boolean complete)
-			throws JSONException, MalformedURLException, IOException, ServiceException, FileNotFoundException, TemplateException {
+			throws JSONException, MalformedURLException, IOException, ServiceException, FileNotFoundException, TemplateException, GetCapabilitiesExceptions {
 
 		if (clientId == null) {
 			return;
@@ -921,7 +921,7 @@ public class ConfigManager {
 	}
 
 	public void generateClient(ClientConfig clientConfig, boolean complete)
-			throws JSONException, MalformedURLException, IOException, ServiceException, FileNotFoundException, TemplateException {
+			throws JSONException, MalformedURLException, IOException, ServiceException, FileNotFoundException, TemplateException, GetCapabilitiesExceptions {
 
 		// Emplty the capabilities cache before regenerating the configs
 		WMSCapabilitiesWrapper.clearCapabilitiesDocumentsCache();
@@ -930,7 +930,7 @@ public class ConfigManager {
 	}
 
 	private void _generateClient(ClientConfig clientConfig, boolean complete)
-			throws JSONException, MalformedURLException, IOException, ServiceException, FileNotFoundException, TemplateException {
+			throws JSONException, MalformedURLException, IOException, ServiceException, FileNotFoundException, TemplateException, GetCapabilitiesExceptions {
 
 		if (clientConfig == null) {
 			return;
@@ -998,6 +998,7 @@ public class ConfigManager {
 			indexValues.put("version", ProjectInfo.getVersion());
 			indexValues.put("clientId", clientConfig.getClientId());
 			indexValues.put("clientName", clientConfig.getClientName() != null ? clientConfig.getClientName() : clientConfig.getClientId());
+			indexValues.put("theme", clientConfig.getTheme());
 			indexValues.put("timestamp", ""+Utils.getCurrentTimestamp());
 			indexValues.put("useGoogle", useGoogle);
 			Utils.processTemplate(templatesConfig, "index.html", indexValues, atlasMapperClientFolder);
@@ -1036,6 +1037,7 @@ public class ConfigManager {
 				previewValues.put("version", ProjectInfo.getVersion());
 				previewValues.put("clientId", clientConfig.getClientId());
 				previewValues.put("clientName", clientConfig.getClientName() != null ? clientConfig.getClientName() : clientConfig.getClientId());
+				previewValues.put("theme", clientConfig.getTheme());
 				previewValues.put("useGoogle", useGoogle);
 				Utils.processTemplate(templatesConfig, "preview.html", previewValues, atlasMapperClientFolder);
 			} catch (URISyntaxException ex) {
@@ -1068,7 +1070,7 @@ public class ConfigManager {
 	 * @throws JSONException
 	 */
 	public JSONObject debugClientConfigJSon(ClientConfig clientConfig)
-			throws JSONException, MalformedURLException, IOException, ServiceException {
+			throws JSONException, MalformedURLException, IOException, ServiceException, GetCapabilitiesExceptions {
 
 		if (clientConfig == null) {
 			return null;
@@ -1096,7 +1098,7 @@ public class ConfigManager {
 	}
 
 	public JSONObject getClientConfigFileJSon(ClientConfig clientConfig, ConfigType configType, boolean live, boolean generate)
-			throws JSONException, MalformedURLException, IOException, ServiceException {
+			throws JSONException, MalformedURLException, IOException, ServiceException, GetCapabilitiesExceptions {
 
 		if (clientConfig == null || configType == null) { return null; }
 		switch (configType) {
@@ -1160,7 +1162,7 @@ public class ConfigManager {
 
 	// Use as a base for Full and Embeded config
 	private JSONObject _generateAbstractClientConfig(ClientConfig clientConfig)
-			throws JSONException, MalformedURLException, IOException, ServiceException {
+			throws JSONException, MalformedURLException, IOException, ServiceException, GetCapabilitiesExceptions {
 
 		if (clientConfig == null) { return null; }
 
@@ -1217,6 +1219,7 @@ public class ConfigManager {
 
 		MultiKeyHashMap<Integer, String, DatasourceConfig> configs = this.getDatasourceConfigs();
 		JSONArray datasourcesArray = clientConfig.getDatasources();
+		GetCapabilitiesExceptions errors = new GetCapabilitiesExceptions();
 		if (datasourcesArray != null && datasourcesArray.length() > 0) {
 			JSONObject datasources = new JSONObject();
 			for (int i=0; i<datasourcesArray.length(); i++) {
@@ -1226,33 +1229,42 @@ public class ConfigManager {
 					DatasourceConfig datasourceConfig =
 							configs.get2(datasourceName);
 					if (datasourceConfig != null) {
-						DatasourceConfig overridenDatasourceConfig = datasourceConfig;
+						try {
+							DatasourceConfig overridenDatasourceConfig = datasourceConfig;
 
-						// Apply overrides from the capabilities document
-						if (Utils.isNotBlank(datasourceConfig.getWmsServiceUrl())) {
-							WMSCapabilitiesWrapper wmsCaps = WMSCapabilitiesWrapper.getInstance(
-									datasourceConfig.getWmsServiceUrl());
-							if (wmsCaps != null) {
-								overridenDatasourceConfig = wmsCaps.applyOverrides(
-												datasourceConfig);
+							// Apply overrides from the capabilities document
+							if (Utils.isNotBlank(datasourceConfig.getWmsServiceUrl())) {
+								WMSCapabilitiesWrapper wmsCaps = WMSCapabilitiesWrapper.getInstance(
+										datasourceConfig.getWmsServiceUrl());
+								if (wmsCaps != null) {
+									overridenDatasourceConfig = wmsCaps.applyOverrides(
+													datasourceConfig);
+								}
 							}
-						}
 
-						if (overridenDatasourceConfig != null) {
-							// Apply overrides from the datasource
-							overridenDatasourceConfig =
-									overridenDatasourceConfig.applyOverrides();
-						}
-
-						if (overridenDatasourceConfig != null) {
-							JSONObject datasource =
-									this.generateDatasource(overridenDatasourceConfig);
-							if (datasource != null) {
-								datasources.put(overridenDatasourceConfig.getDatasourceId(), datasource);
+							if (overridenDatasourceConfig != null) {
+								// Apply overrides from the datasource
+								overridenDatasourceConfig =
+										overridenDatasourceConfig.applyOverrides();
 							}
+
+							if (overridenDatasourceConfig != null) {
+								JSONObject datasource =
+										this.generateDatasource(overridenDatasourceConfig, clientConfig);
+								if (datasource != null) {
+									datasources.put(overridenDatasourceConfig.getDatasourceId(), datasource);
+								}
+							}
+						} catch(IOException ex) {
+							// Collect all errors
+							errors.add(datasourceConfig, ex);
 						}
 					}
 				}
+			}
+
+			if (!errors.isEmpty()) {
+				throw errors;
 			}
 
 			if (datasources.length() > 0) {
@@ -1285,7 +1297,7 @@ public class ConfigManager {
 		}
 	}
 
-	private JSONObject getClientDefaultLayers(String clientId) throws JSONException, MalformedURLException, IOException, ServiceException {
+	private JSONObject getClientDefaultLayers(String clientId) throws JSONException, MalformedURLException, IOException, ServiceException, GetCapabilitiesExceptions {
 		if (Utils.isBlank(clientId)) { return null; }
 
 		return this._getClientLayers(
@@ -1303,7 +1315,7 @@ public class ConfigManager {
 		return clientConfig.getDefaultLayersSet();
 	}
 
-	private JSONObject generateDatasource(DatasourceConfig datasourceConfig) throws JSONException {
+	private JSONObject generateDatasource(DatasourceConfig datasourceConfig, ClientConfig clientConfig) throws JSONException {
 
 		JSONObject datasource = new JSONObject();
 
@@ -1342,6 +1354,40 @@ public class ConfigManager {
 		}
 
 		JSONObject legendParameters = datasourceConfig.getLegendParametersJson();
+		// merge with client legend parameters, if any
+		if (clientConfig != null) {
+			JSONObject clientLegendParameters = clientConfig.getLegendParametersJson();
+			if (clientLegendParameters != null) {
+				JSONObject mergeParameters = new JSONObject();
+				if (legendParameters != null) {
+					Iterator<String> keys = legendParameters.keys();
+					while(keys.hasNext()) {
+						String key = keys.next();
+						if (!legendParameters.isNull(key)) {
+							Object value = legendParameters.opt(key);
+							if (value != null) {
+								mergeParameters.put(key, value);
+							}
+						}
+					}
+				}
+				Iterator<String> keys = clientLegendParameters.keys();
+				while(keys.hasNext()) {
+					String key = keys.next();
+					if (clientLegendParameters.isNull(key)) {
+						if (mergeParameters.has(key)) {
+							mergeParameters.remove(key);
+						}
+					} else {
+						Object value = clientLegendParameters.opt(key);
+						if (value != null) {
+							mergeParameters.put(key, value);
+						}
+					}
+				}
+				legendParameters = mergeParameters;
+			}
+		}
 		if (legendParameters != null && legendParameters.length() > 0) {
 			datasource.put("legendParameters", legendParameters);
 		}
@@ -1385,7 +1431,7 @@ public class ConfigManager {
 
 	private JSONObject generateLayer(LayerConfig layerConfig) throws JSONException {
 		// LayerConfig extends DatasourceConfig
-		JSONObject jsonLayer = this.generateDatasource(layerConfig);
+		JSONObject jsonLayer = this.generateDatasource(layerConfig, null);
 
 		jsonLayer.put(CONFIG_VERSION_KEY, CURRENT_CONFIG_VERSION);
 
