@@ -20,7 +20,7 @@
  */
 // http://dev.sencha.com/deploy/ext-4.0.2/examples/writer/writer.html
 
-var datasourceTypes = {
+var dataSourceTypes = {
 	'WMS': {
 		display: 'WMS',
 		qtipHtml: 'Web Map Service (WMS) is a standard protocol for serving georeferenced map images provided by geospatial data applications such as <strong>GeoServer</strong>. This is the most common protocol. You will be asked to provide a GetCapabilities document URL.',
@@ -33,7 +33,7 @@ var datasourceTypes = {
 	},
 	'NCWMS': {
 		display: 'ncWMS',
-		qtipHtml: 'ncWMS is a Web Map Service for geospatial data that are stored in <strong>CF-compliant NetCDF</strong> files. This type of datasource is not very common. You will be asked to provide a GetCapabilities document URL.'
+		qtipHtml: 'ncWMS is a Web Map Service for geospatial data that are stored in <strong>CF-compliant NetCDF</strong> files. This type of data source is not very common. You will be asked to provide a GetCapabilities document URL.'
 	},
 	'ARCGISWMS': {
 		display: 'ArcGIS WMS',
@@ -51,7 +51,7 @@ var datasourceTypes = {
 	},
 	'KML': {
 		display: 'KML',
-		qtipHtml: 'KML is the file format used to display geographic data in Earth browser such as <strong>Google Earth</strong>, <strong>Google Maps</strong>, and <strong>Google Maps for mobile</strong>. This application has basic support for this type of datasource.'
+		qtipHtml: 'KML is the file format used to display geographic data in Earth browser such as <strong>Google Earth</strong>, <strong>Google Maps</strong>, and <strong>Google Maps for mobile</strong>. This application has basic support for this type of data source.'
 	},
 	'tiles': {
 		display: 'Static tiles',
@@ -65,6 +65,69 @@ var datasourceTypes = {
 	}
 };
 
+// Validation type usually used with EditArea
+Ext.apply(Ext.form.field.VTypes, {
+	uniquedatasourceid: function(val) {
+		if (val == null || val == '') {
+			// The form will return an error for this field if it doesn't allow null value.
+			return false;
+		}
+
+		Ext.Ajax.request({
+			url: 'dataSourcesConfig.jsp?action=validateNewId',
+			method: 'POST',
+			params: 'dataSourceId=' + val,
+			success: function(o) {
+				if (o.responseText === 'true') {
+					resetDataSourceIdValidator(true);
+				} else {
+					Ext.apply(Ext.form.VTypes, {
+						uniquedatasourceidText: 'Data source ID already in use.'
+					});
+					resetDataSourceIdValidator(false);
+				}
+			},
+			failure: function(o) {
+				Ext.apply(Ext.form.VTypes, {
+					uniquedatasourceidText: 'Communication with the server failed.'
+				});
+				resetDataSourceIdValidator(false);
+			}
+		});
+
+		uniquedatasourceidText: 'Validation in progress. Please wait...'
+		return false;
+	},
+
+	uniquedatasourceidText: 'Invalid data source ID.'
+});
+
+function resetDataSourceIdValidator(is_error) {
+	Ext.apply(Ext.form.VTypes, {
+		uniquedatasourceid : function(val) {
+			Ext.Ajax.request({
+				url: 'dataSourcesConfig.jsp?action=validateNewId',
+				method: 'POST',
+				params: 'dataSourceId=' + val,
+
+				success: function(o) {
+console.log('SUCCESS!!!');
+					if (o.responseText === 'true') {
+						resetDataSourceIdValidator(true);
+					} else {
+						resetDataSourceIdValidator(false);
+					}
+				},
+				failure: function(o) {
+console.log('FAIL!!!');
+					resetDataSourceIdValidator(false);
+				}
+			});
+			return is_error;
+		}
+	});
+}
+
 var frameset = null;
 
 Ext.define('Writer.LayerServerConfigForm', {
@@ -72,13 +135,13 @@ Ext.define('Writer.LayerServerConfigForm', {
 	alias: 'widget.writerlayerserverconfigform',
 
 	requires: ['Ext.form.field.Text'],
-	datasourceType: null,
+	dataSourceType: null,
 
 	defaultValues: null,
 
 	initComponent: function() {
 		this.defaultValues = Ext.create('Writer.LayerServerConfig', {
-			'datasourceType': 'WMS',
+			'dataSourceType': 'WMS',
 			'showInLegend': true,
 			'legendParameters': 'FORMAT=image/png\nHEIGHT=10\nWIDTH=20',
 			'webCacheParameters': 'LAYERS, TRANSPARENT, SERVICE, VERSION, REQUEST, EXCEPTIONS, FORMAT, SRS, BBOX, WIDTH, HEIGHT'
@@ -86,7 +149,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 		this.addEvents('create');
 
 
-		/** Define items that appair on all Datasource Types **/
+		/** Define items that appair on all Data Source Types **/
 
 		var items = [
 			{
@@ -94,24 +157,30 @@ Ext.define('Writer.LayerServerConfigForm', {
 				name: 'id',
 				xtype: 'hiddenfield'
 			}, {
-				fieldLabel: 'Datasource type',
-				qtipHtml: 'Protocol used by the server to provide the layers. The datasource type can not be modified. If you have to change it, you have to create a new datasource entry using the values of this one.',
+				fieldLabel: 'Data source type',
+				qtipHtml: 'Protocol used by the server to provide the layers. The data source type can not be modified. If you have to change it, you have to create a new data source entry using the values of this one.',
 				xtype: 'displayfield',
-				value: datasourceTypes[this.datasourceType].display
+				value: dataSourceTypes[this.dataSourceType].display
 			}, {
-				name: 'datasourceType',
+				name: 'dataSourceType',
 				xtype: 'hiddenfield',
-				value: this.datasourceType
+				value: this.dataSourceType
 			}, {
-				fieldLabel: 'Datasource ID',
-				qtipHtml: 'This field is used internally to associate layers with a datasource. It must be short, to minimise data transfer, and unique amount the other <em>Datasource ID</em>. It\'s a good practice to only use lower case letters and number for this field.',
-				name: 'datasourceId',
+				fieldLabel: 'Data source ID',
+				qtipHtml: 'This field is used internally to associate layers with a data source. It must be short, to minimise data transfer, and unique amount the other <em>Data source ID</em>. It\'s a good practice to only use lower case letters and number for this field.',
+				name: 'dataSourceId',
+				xtype: 'ajaxtextfield',
+				ajax: {
+					url: 'dataSourcesConfig.jsp',
+					params: { action: 'validateId' },
+					formValues: ['id'], formPanel: this
+				},
 				anchor: null, size: 15,
 				allowBlank: false
 			}, {
-				fieldLabel: 'Datasource Name',
-				qtipHtml: 'A human readable name for this datasource. Must be short and descriptive. This field is used as a title for the tab in the <em>Add layer</em> window',
-				name: 'datasourceName',
+				fieldLabel: 'Data source name',
+				qtipHtml: 'A human readable name for this data source. Must be short and descriptive. This field is used as a title for the tab in the <em>Add layer</em> window',
+				name: 'dataSourceName',
 				allowBlank: false
 			}
 		];
@@ -119,7 +188,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 		var advancedItems = [];
 
 
-		/** Define items that appair on some Datasource Types **/
+		/** Define items that appair on some Data Source Types **/
 
 		var browserSpecificEditAreaConfig = {
 			xtype: 'editareafield',
@@ -162,7 +231,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 		};
 		var showInLegend = {
 			fieldLabel: ' ', labelSeparator: '',
-			qtipHtml: 'Uncheck this box to disable the legend for all layers provided by this datasource. This mean that the layers will not have its legend displayed in the AtlasMapper clients, and they will not have a check box in the layer <em>Options</em> to show its legend.',
+			qtipHtml: 'Uncheck this box to disable the legend for all layers provided by this data source. This mean that the layers will not have its legend displayed in the AtlasMapper clients, and they will not have a check box in the layer <em>Options</em> to show its legend.',
 			boxLabel: 'Show layers in legend',
 			name: 'showInLegend',
 			xtype: 'checkboxfield'
@@ -171,15 +240,15 @@ Ext.define('Writer.LayerServerConfigForm', {
 			fieldLabel: 'Legend URL',
 			qtipHtml: 'This field override the legend URL provided by the capabilities document. It\'s possible to override this URL by doing one of these:'+
 				'<ul>'+
-					'<li>leaving this field blank and setting a legend URL (attribute <i>legendUrl</i>) for each layer of this datasource, using the <em>Layers\' global manual override</em> field</li>'+
-					'<li>providing a legend URL to a static image here, that will be used for each layers of this datasource</li>'+
+					'<li>leaving this field blank and setting a legend URL (attribute <i>legendUrl</i>) for each layer of this data source, using the <em>Layers\' global manual override</em> field</li>'+
+					'<li>providing a legend URL to a static image here, that will be used for each layers of this data source</li>'+
 				'</ul>',
 			name: 'legendUrl'
 		};
 
 		var wmsServiceUrl = {
 			fieldLabel: 'WMS service URL',
-			qtipHtml: 'URL to the WMS service. This URL is used by a java library to download the WMS capabilities document. Setting this field alone with <em>Datasource ID</em> and <em>Datasource name</em> is usually enough. Note that a full URL to the capabilities document can also be provided, including additional parameters.',
+			qtipHtml: 'URL to the WMS service. This URL is used by a java library to download the WMS capabilities document. Setting this field alone with <em>Data source ID</em> and <em>Data source name</em> is usually enough. Note that a full URL to the capabilities document can also be provided, including additional parameters.',
 			name: 'wmsServiceUrl'
 		};
 		var baseLayers = {
@@ -237,8 +306,8 @@ Ext.define('Writer.LayerServerConfigForm', {
 		};
 
 
-		// Set the Form items for the different datasource types
-		switch(this.datasourceType) {
+		// Set the Form items for the different data source types
+		switch(this.dataSourceType) {
 			case 'WMS':
 				items.push(wmsServiceUrl);
 				items.push(baseLayers);
@@ -353,11 +422,11 @@ Ext.define('Writer.LayerServerConfigForm', {
 			this.activeRecord = null;
 			form.reset();
 		}
-		// The defaultValues record (and the reset) also change the datasourceType.
+		// The defaultValues record (and the reset) also change the dataSourceType.
 		// It seems to be no way to prevent that (I can't remove the value
 		// from the defaultValues instance since the model is unmutable),
 		// but it can be restore here.
-		form.setValues({datasourceType: this.datasourceType});
+		form.setValues({dataSourceType: this.dataSourceType});
 	},
 
 	onSave: function(){
@@ -374,7 +443,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 			// NOTE: The "active" instance become out of sync everytime the grid get refresh; by creating an instance or updating an other one, for example. The instance can not be saved when it's out of sync.
 			active = active.store.getById(active.internalId);
 			form.updateRecord(active);
-			frameset.setSavedMessage('Datasource saved', 500);
+			frameset.setSavedMessage('Data source saved', 500);
 			return true;
 		}
 		frameset.setError('Some fields contains errors.');
@@ -388,7 +457,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 		if (form.isValid()) {
 			this.fireEvent('create', this, form.getValues());
 			form.reset();
-			frameset.setSavedMessage('Datasource created', 500);
+			frameset.setSavedMessage('Data source created', 500);
 			return true;
 		}
 		frameset.setError('Some fields contains errors.');
@@ -440,15 +509,15 @@ Ext.define('Writer.LayerServerConfigGrid', {
 			],
 			columns: [
 				{
-					header: 'Datasource ID',
+					header: 'Data source ID',
 					width: 100,
 					sortable: true,
-					dataIndex: 'datasourceId'
+					dataIndex: 'dataSourceId'
 				}, {
-					header: 'Datasource Name',
+					header: 'Data source name',
 					flex: 1,
 					sortable: true,
-					dataIndex: 'datasourceName'
+					dataIndex: 'dataSourceName'
 				}, {
 					// http://docs.sencha.com/ext-js/4-0/#/api/Ext.grid.column.Action
 					header: 'Actions',
@@ -469,15 +538,15 @@ Ext.define('Writer.LayerServerConfigGrid', {
 							handler: function(grid, rowIndex, colIndex) {
 								var rec = grid.getStore().getAt(rowIndex);
 								if (rec) {
-									var datasourceType = rec.data.datasourceType;
-									if (datasourceType) {
+									var dataSourceType = rec.data.dataSourceType;
+									if (dataSourceType) {
 										// Close the all windows and show the edit window.
-										var window = this.getLayerConfigFormWindow(datasourceType, 'save');
+										var window = this.getLayerConfigFormWindow(dataSourceType, 'save');
 										if (window) {
 											window.child('.form').setActiveRecord(rec);
 											window.show();
 										} else {
-											frameset.setError('Unsupported dataset type ['+datasourceType+']');
+											frameset.setError('Unsupported data source type ['+dataSourceType+']');
 										}
 									}
 								} else {
@@ -493,26 +562,26 @@ Ext.define('Writer.LayerServerConfigGrid', {
 		this.getSelectionModel().on('selectionchange', this.onSelectChange, this);
 	},
 
-	getDatasourceTypeFormWindow: function() {
+	getDataSourceTypeFormWindow: function() {
 		// Create the radio buttons for each layer type
-		var datasourceTypesItems = [];
-		for (var datasourceType in datasourceTypes) {
-			if (datasourceTypes.hasOwnProperty(datasourceType)) {
+		var dataSourceTypesItems = [];
+		for (var dataSourceType in dataSourceTypes) {
+			if (dataSourceTypes.hasOwnProperty(dataSourceType)) {
 				var item = {
-					name: 'datasourceType',
-					boxLabel: datasourceTypes[datasourceType].display,
-					inputValue: datasourceType
+					name: 'dataSourceType',
+					boxLabel: dataSourceTypes[dataSourceType].display,
+					inputValue: dataSourceType
 				};
 				// Apply the other fields to the item
 				// qtipHtml, checked, style, disabled, etc.
-				Ext.apply(item, datasourceTypes[datasourceType]);
-				datasourceTypesItems.push(item);
+				Ext.apply(item, dataSourceTypes[dataSourceType]);
+				dataSourceTypesItems.push(item);
 			}
 		}
 
 		var that = this;
 		return Ext.create('Ext.window.Window', {
-			title: 'New datasource',
+			title: 'New data source',
 			width: 300,
 			layout: 'fit',
 			constrainHeader: true,
@@ -531,12 +600,12 @@ Ext.define('Writer.LayerServerConfigGrid', {
 					items: [
 						{
 							xtype: 'displayfield',
-							value: 'This window configure the type of the new datasource. It\'s used by the application to know which protocol to use to get the layers from the server.'
+							value: 'This window configure the type of the new data source. It\'s used by the application to know which protocol to use to get the layers from the server.'
 						}, {
 							xtype: 'radiogroup',
-							fieldLabel: 'Datasource type',
+							fieldLabel: 'Data source type',
 							columns: 1,
-							items: datasourceTypesItems
+							items: dataSourceTypesItems
 						}
 					]
 				}
@@ -550,14 +619,14 @@ Ext.define('Writer.LayerServerConfigGrid', {
 						if (form.isValid()) {
 							// Close the current form window and show the next one
 							var values = form.getFieldValues();
-							var newWindow = that.getLayerConfigFormWindow(values.datasourceType, 'add');
+							var newWindow = that.getLayerConfigFormWindow(values.dataSourceType, 'add');
 							if (newWindow) {
 								// Apply default values
 								newWindow.child('.form').reset();
 								newWindow.show();
 								window.close();
 							} else {
-								frameset.setError('Unsupported dataset type ['+datasourceType+']');
+								frameset.setError('Unsupported dataset type ['+dataSourceType+']');
 							}
 						} else {
 							frameset.setError('Some fields contains errors.');
@@ -574,8 +643,8 @@ Ext.define('Writer.LayerServerConfigGrid', {
 		});
 	},
 
-	getLayerConfigFormWindow: function(datasourceType, action) {
-		if (!datasourceTypes[datasourceType]) { return null; }
+	getLayerConfigFormWindow: function(dataSourceType, action) {
+		if (!dataSourceTypes[dataSourceType]) { return null; }
 
 		var that = this;
 		var buttons = [];
@@ -605,7 +674,7 @@ Ext.define('Writer.LayerServerConfigGrid', {
 					//iconCls: 'icon-back',
 					text: 'Back',
 					handler: function() {
-						that.getDatasourceTypeFormWindow().show();
+						that.getDataSourceTypeFormWindow().show();
 						this.ownerCt.ownerCt.close();
 					}
 				}, {
@@ -629,19 +698,19 @@ Ext.define('Writer.LayerServerConfigGrid', {
 		}
 
 		return Ext.create('Ext.window.Window', {
-			title: 'Datasource configuration',
+			title: 'Data source configuration',
 			width: 700,
 			height: 430,
 			maxHeight: Ext.getBody().getViewSize().height,
 			layout: 'fit',
 			constrainHeader: true,
 			closeAction: 'hide',
-			datasourceType: datasourceType,
+			dataSourceType: dataSourceType,
 
 			items: [
 				{
 					xtype: 'writerlayerserverconfigform',
-					datasourceType: datasourceType,
+					dataSourceType: dataSourceType,
 					listeners: {
 						scope: this,
 						create: function(form, data){
@@ -662,20 +731,20 @@ Ext.define('Writer.LayerServerConfigGrid', {
 	},
 
 	onAddClick: function(){
-		this.getDatasourceTypeFormWindow().show();
+		this.getDataSourceTypeFormWindow().show();
 	},
 
 	onDeleteClick: function() {
 		var selection = this.getView().getSelectionModel().getSelection()[0];
 		if (selection) {
-			var datasourceName = (selection.data ? selection.data.datasourceName : 'UNKNOWN');
+			var dataSourceName = (selection.data ? selection.data.dataSourceName : 'UNKNOWN');
 			var confirm = Ext.MessageBox.confirm(
 				'Confirm',
-				'The layers provided by this datasource will still be available '+
+				'The layers provided by this data source will still be available '+
 				'for the clients that are using it, until those clients are re-generated.<br/>'+
 				'This operation can not be undone.<br/>'+
 				'<br/>'+
-				'Are you sure you want to delete the datasource <b>'+datasourceName+'</b>?',
+				'Are you sure you want to delete the data source <b>'+dataSourceName+'</b>?',
 				function(btn) {
 					if (btn == 'yes') {
 						this.onDeleteConfirmed();
@@ -691,14 +760,14 @@ Ext.define('Writer.LayerServerConfigGrid', {
 	},
 
 	onDeleteConfirmed: function() {
-		frameset.setSavingMessage('Deleting a datasource...');
+		frameset.setSavingMessage('Deleting a data source...');
 		var selection = this.getView().getSelectionModel().getSelection()[0];
 		if (selection) {
-			var datasourceName = (selection.data ? selection.data.datasourceName : 'UNKNOWN');
+			var dataSourceName = (selection.data ? selection.data.dataSourceName : 'UNKNOWN');
 			this.store.remove(selection);
-			frameset.setSavedMessage('Datasource <b>'+datasourceName+'</b> deleted');
+			frameset.setSavedMessage('Data source <b>'+dataSourceName+'</b> deleted');
 		} else {
-			frameset.setError('Can not find the datasource to delete');
+			frameset.setError('Can not find the data source to delete');
 		}
 	}
 });
@@ -714,9 +783,9 @@ Ext.define('Writer.LayerServerConfig', {
 	// forcing the model to set them to their 'model default value'.
 	fields: [
 		{name: 'id', type: 'int', useNull: true},
-		{name: 'datasourceId', sortType: 'asUCString'},
-		{name: 'datasourceName', sortType: 'asUCString'},
-		{name: 'datasourceType', type: 'string'},
+		{name: 'dataSourceId', sortType: 'asUCString'},
+		{name: 'dataSourceName', sortType: 'asUCString'},
+		{name: 'dataSourceType', type: 'string'},
 		'wmsServiceUrl',
 		'extraWmsServiceUrls',
 		'kmlUrls',
@@ -732,15 +801,15 @@ Ext.define('Writer.LayerServerConfig', {
 		'comment'
 	],
 	validations: [{
-		field: 'datasourceId',
+		field: 'dataSourceId',
 		type: 'length',
 		min: 1
 	}, {
-		field: 'datasourceName',
+		field: 'dataSourceName',
 		type: 'length',
 		min: 1
 	}, {
-		field: 'datasourceType',
+		field: 'dataSourceType',
 		type: 'length',
 		min: 1
 	}]
@@ -757,7 +826,7 @@ Ext.onReady(function(){
 	Ext.tip.QuickTipManager.init();
 
 	frameset = new Frameset();
-	frameset.setContentTitle('Datasources configuration');
+	frameset.setContentTitle('Data sources configuration');
 	frameset.addContentDescription('<img src="../resources/images/json-small.jpg" style="float:right; width: 200px; height: 132px"> Each <i>data source</i> specifies a set of layers that can be used in one or more of the <i>clients</i>. It specifies the type (<i>WMS</i>, <i>ncWMS</i>, <i>Google</i>, <i>KML</i>, etc) and source of the data as well as any manual settings for the layers, such as modifying the <i>title</i>, <i>description</i> or <i>path</i> in the tree. For <i>WMS</i> data sources a <i>tile cache service</i> can be linked with a full <i>WMS service</i> so that imagery is requested from the tile server, but feature requests are sent to the full <i>WMS</i>.');
 	frameset.render(document.body);
 
@@ -768,10 +837,10 @@ Ext.onReady(function(){
 		proxy: {
 			type: 'ajax',
 			api: {
-				read: 'datasourcesConfig.jsp?action=read',
-				create: 'datasourcesConfig.jsp?action=create',
-				update: 'datasourcesConfig.jsp?action=update',
-				destroy: 'datasourcesConfig.jsp?action=destroy'
+				read: 'dataSourcesConfig.jsp?action=read',
+				create: 'dataSourcesConfig.jsp?action=create',
+				update: 'dataSourcesConfig.jsp?action=update',
+				destroy: 'dataSourcesConfig.jsp?action=destroy'
 			},
 			reader: {
 				type: 'json',
@@ -797,7 +866,7 @@ Ext.onReady(function(){
 					}
 					var operStr = 'UNKNOWN';
 					if (operation && operation.action) { operStr = operation.action; }
-					frameset.setErrors('An error occured while executing the operation ['+operStr+'] on datasources.', responseObj, statusCode);
+					frameset.setErrors('An error occured while executing the operation ['+operStr+'] on data sources.', responseObj, statusCode);
 				}
 			}
 		}

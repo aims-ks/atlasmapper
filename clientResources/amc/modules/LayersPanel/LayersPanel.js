@@ -31,8 +31,14 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 	layout: "border",
 
 	initComponent: function() {
-		if (typeof(this.split) === 'undefined') {
-			this.split = true; // Resizable
+		if (Ext.isIE6) {
+			// IE6 can't display the input widgets if the width is smaller than 300
+			this.width = 300;
+		}
+
+		// Resizable - On IE 6, resize this panel to a smaller size cause some inner items to disapear.
+		if (!Ext.isIE6 && typeof(this.split) === 'undefined') {
+			this.split = true;
 		}
 		if (typeof(this.collapsible) === 'undefined') {
 			this.collapsible = true;
@@ -214,7 +220,7 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 			title: 'Information',
 			border: false, // No border for this element
 			hideBorders: true, // No border for his tabs
-			autoScroll: true,
+			autoScroll: false,
 
 			layout: 'anchor',
 			items: [tabPanel]

@@ -34,6 +34,12 @@ import org.json.JSONObject;
 	description="Display layers information is a separate panel."
 )
 public class Info extends AbstractModule {
+
+	@Override
+	public String getVersion() {
+		return "1.0";
+	}
+
 	@Override
 	public JSONObject getJSONConfiguration(ClientConfig clientConfig) throws JSONException {
 		JSONObject layerTabConfig = new JSONObject();
@@ -50,9 +56,6 @@ public class Info extends AbstractModule {
 		tabsConfig.put("Layer", layerTabConfig);
 		tabsConfig.put("Options", optionsTabConfig);
 
-		JSONObject config = new JSONObject();
-		config.put("tabs", tabsConfig);
-
-		return config;
+		return tabsConfig;
 	}
 }

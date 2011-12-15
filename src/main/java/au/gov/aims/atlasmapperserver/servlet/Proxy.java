@@ -121,16 +121,16 @@ public class Proxy extends HttpServlet {
 	}
 
 	@Override
-	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		this.performTask(request, response);
 	}
 
 	@Override
-	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		this.performTask(request, response);
 	}
 
-	private void performTask(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+	private void performTask(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		String liveStr = request.getParameter("live");
 		boolean live = liveStr != null && Boolean.parseBoolean(liveStr);
 
@@ -159,69 +159,84 @@ public class Proxy extends HttpServlet {
 					} else if (protocol.equals("http") || protocol.equals("https")) {
 						URLConnection conn = url.openConnection();
 
-						if (conn != null) {
-							HttpURLConnection httpConn = (HttpURLConnection)conn;
-							int responseCode = httpConn.getResponseCode();
+						if (conn == null) {
+							response.setContentType("text/plain");
+							response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 
-							if (responseCode > 0) {
-								response.setStatus(responseCode);
-							}
+							String responseTxt = "Can not open the URL connection.";
+							LOGGER.log(Level.WARNING, responseTxt);
 
-							if (responseCode < 400) {
-								// -1: Unknown status code
-								// 1XX: Informational
-								// 2XX: Successful
-								// 3XX: Redirection
-								String contentType = conn.getContentType();
-								if (contentType == null || contentType.isEmpty()) {
-									response.setContentType("text/plain");
-									LOGGER.log(Level.INFO, "Can not retrieved the content type, falling back to: {0}", response.getContentType());
-								} else {
-									response.setContentType(contentType);
-									LOGGER.log(Level.INFO, "Set content type using URL connection content type: {0}", response.getContentType());
-								}
-
-								InputStream inputStream = null;
-								try {
-									inputStream = conn.getInputStream();
-									ServletUtils.sendResponse(request, response, inputStream);
-								} finally {
-									if (inputStream != null) {
-										try { inputStream.close(); } catch (Exception e) { LOGGER.log(Level.WARNING, "Cant close the URL input stream.", e); }
-									}
-								}
-							} else if (responseCode == HttpServletResponse.SC_BAD_REQUEST) {
-								// 400: Bad Request
-								response.setContentType("text/plain");
-								String responseTxt = "Error "+responseCode+" - Bad Request: "+decodedUrl;
-								LOGGER.log(Level.WARNING, responseTxt);
-
-								ServletUtils.sendResponse(request, response, responseTxt);
-							} else if (responseCode == HttpServletResponse.SC_NOT_FOUND) {
-								// 404: Not Found
-								response.setContentType("text/plain");
-								String responseTxt = "Error "+responseCode+" - Not Found: "+decodedUrl;
-								LOGGER.log(Level.WARNING, responseTxt);
-
-								ServletUtils.sendResponse(request, response, responseTxt);
-							} else if (responseCode == HttpServletResponse.SC_INTERNAL_SERVER_ERROR) {
-								// 500: Internal Server Error
-								response.setContentType("text/plain");
-								String responseTxt = "Error "+responseCode+" - Internal Server Error: "+decodedUrl;
-								LOGGER.log(Level.WARNING, responseTxt);
-
-								ServletUtils.sendResponse(request, response, responseTxt);
-							} else {
-								// Any other errors
-								response.setContentType("text/plain");
-								String responseTxt = "Error "+responseCode+": "+decodedUrl;
-								LOGGER.log(Level.WARNING, responseTxt);
-
-								ServletUtils.sendResponse(request, response, responseTxt);
-							}
+							ServletUtils.sendResponse(request, response, responseTxt);
 						} else {
-							LOGGER.log(Level.WARNING, "Can not open the URL connection.");
-							throw new ServletException("Can not open the URL connection.");
+							try {
+								HttpURLConnection httpConn = (HttpURLConnection)conn;
+								int responseCode = httpConn.getResponseCode();
+
+								if (responseCode > 0) {
+									response.setStatus(responseCode);
+								}
+
+								if (responseCode < 400) {
+									// -1: Unknown status code
+									// 1XX: Informational
+									// 2XX: Successful
+									// 3XX: Redirection
+									String contentType = conn.getContentType();
+									if (contentType == null || contentType.isEmpty()) {
+										response.setContentType("text/plain");
+										LOGGER.log(Level.INFO, "Can not retrieved the content type, falling back to: {0}", response.getContentType());
+									} else {
+										response.setContentType(contentType);
+										LOGGER.log(Level.INFO, "Set content type using URL connection content type: {0}", response.getContentType());
+									}
+
+									InputStream inputStream = null;
+									try {
+										inputStream = conn.getInputStream();
+										ServletUtils.sendResponse(request, response, inputStream);
+									} finally {
+										if (inputStream != null) {
+											try { inputStream.close(); } catch (Exception e) { LOGGER.log(Level.WARNING, "Cant close the URL input stream.", e); }
+										}
+									}
+								} else if (responseCode == HttpServletResponse.SC_BAD_REQUEST) {
+									// 400: Bad Request
+									response.setContentType("text/plain");
+									String responseTxt = "Error "+responseCode+" - Bad Request: "+decodedUrl;
+									LOGGER.log(Level.WARNING, responseTxt);
+
+									ServletUtils.sendResponse(request, response, responseTxt);
+								} else if (responseCode == HttpServletResponse.SC_NOT_FOUND) {
+									// 404: Not Found
+									response.setContentType("text/plain");
+									String responseTxt = "Error "+responseCode+" - Not Found: "+decodedUrl;
+									LOGGER.log(Level.WARNING, responseTxt);
+
+									ServletUtils.sendResponse(request, response, responseTxt);
+								} else if (responseCode == HttpServletResponse.SC_INTERNAL_SERVER_ERROR) {
+									// 500: Internal Server Error
+									response.setContentType("text/plain");
+									String responseTxt = "Error "+responseCode+" - Internal Server Error: "+decodedUrl;
+									LOGGER.log(Level.WARNING, responseTxt);
+
+									ServletUtils.sendResponse(request, response, responseTxt);
+								} else {
+									// Any other errors
+									response.setContentType("text/plain");
+									String responseTxt = "Error "+responseCode+": "+decodedUrl;
+									LOGGER.log(Level.WARNING, responseTxt);
+
+									ServletUtils.sendResponse(request, response, responseTxt);
+								}
+							} catch (Exception ex) {
+								response.setContentType("text/plain");
+								response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+
+								String responseTxt = "An error occurred while opening the URL connection: ";
+								LOGGER.log(Level.WARNING, responseTxt, ex);
+
+								ServletUtils.sendResponse(request, response, responseTxt + ex.getMessage());
+							}
 						}
 					} else {
 						response.setContentType("text/plain");
@@ -237,14 +252,19 @@ public class Proxy extends HttpServlet {
 				response.setContentType("text/plain");
 				response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 
-				String responseTxt = "An unexpected error occurred: " + e.getMessage();
+				String responseTxt = "An unexpected error occurred: ";
 				LOGGER.log(Level.WARNING, responseTxt, e);
 
-				ServletUtils.sendResponse(request, response, responseTxt);
+				ServletUtils.sendResponse(request, response, responseTxt + e.getMessage());
 			}
 		} else {
-			LOGGER.log(Level.WARNING, "Can't get url value from request.");
-			throw new ServletException("Can't get url value from request.");
+			response.setContentType("text/plain");
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+
+			String responseTxt = "Can't get url value from request.";
+			LOGGER.log(Level.WARNING, responseTxt);
+
+			ServletUtils.sendResponse(request, response, responseTxt);
 		}
 	}
 }

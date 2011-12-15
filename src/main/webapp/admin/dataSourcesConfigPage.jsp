@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-	Document   : datasourcesConfigPage
+	Document   : dataSourcesConfigPage
 	Created on : 28/06/2011, 3:57:23 PM
 	Author     : glafond
 --%>
@@ -38,12 +38,13 @@
 		<script type="text/javascript" src="../extjs/4.0.2/ext-4.0.2/ext-all-debug.js"></script>
 		<link rel="stylesheet" type="text/css" href="../extjs/4.0.2/ext-4.0.2/resources/css/ext-all.css" />
 
+		<script type="text/javascript" src="../javascript/extjs_ux/AjaxTextField.js"></script>
 		<script type="text/javascript" src="../javascript/extjs_ux/StatusBar.js"></script>
 		<script type="text/javascript" src="../javascript/extjs_ux/FieldSetResize.js"></script>
 		<script type="text/javascript" src="../javascript/extjs_ux/FieldWithQTip.js"></script>
 		<script type="text/javascript" src="../javascript/extjs_ux/Checkbox.js"></script>
 		<script type="text/javascript" src="../javascript/Frameset.js"></script>
-		<script type="text/javascript" src="../javascript/datasourcesConfigPage.js"></script>
+		<script type="text/javascript" src="../javascript/dataSourcesConfigPage.js"></script>
 
 		<link rel="stylesheet" type="text/css" href="../resources/statusbar.css" />
 		<link rel="stylesheet" type="text/css" href="../resources/style.css" />

@@ -69,22 +69,22 @@ public class ConfigHelperTest extends TestCase {
 						"GBR_JCU_Bathymetry-3DGBR_Land-and-sea,"+
 						"nasa:nasa-world-blue_marble_next_generation-2005-dec_nb-d1v1m1"+
 					"\","+
-					"\"datasources\":["+
+					"\"dataSources\":["+
 						"{"+
 							"\"id\":\"1\","+
 							"\"serverUrls\":\"http://aaa.com\","+
-							"\"datasourceType\":\"WMS\","+
+							"\"dataSourceType\":\"WMS\","+
 							"\"enable\":true,"+
-							"\"datasourceId\":\"test\","+
-							"\"datasourceName\":\"Test\","+
+							"\"dataSourceId\":\"test\","+
+							"\"dataSourceName\":\"Test\","+
 							"\"showInLegend\":false"+
 						"},{"+
 							"\"id\":\"2\","+
 							"\"serverUrls\":\"http://aaa2.com\","+
-							"\"datasourceType\":\"NCWMS\","+
+							"\"dataSourceType\":\"NCWMS\","+
 							"\"enable\":true,"+
-							"\"datasourceId\":\"test2\","+
-							"\"datasourceName\":\"Test2\","+
+							"\"dataSourceId\":\"test2\","+
+							"\"dataSourceName\":\"Test2\","+
 							"\"showInLegend\":false"+
 						"}"+
 					"],"+

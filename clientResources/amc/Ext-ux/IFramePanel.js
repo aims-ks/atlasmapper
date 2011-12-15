@@ -64,8 +64,8 @@ Ext.ux.IFramePanel = function(config){
 						// The default display has problem with the height calculation
 						'display:block">'+
 				'</iframe>';
-		} else if (defaultContent) {
-			newContent = defaultContent;
+		} else if (this.defaultContent) {
+			newContent = this.defaultContent;
 		}
 		return newContent;
 	}
@@ -83,7 +83,7 @@ Ext.ux.IFramePanel = function(config){
 	}
 
 	this.setContent = function(newContent) {
-		content = newContent ? newContent : defaultContent;
+		content = newContent ? newContent : this.defaultContent;
 
 		if (that.isVisible()) {
 			that.update();

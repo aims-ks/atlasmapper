@@ -85,7 +85,7 @@ public class ConfigManager {
 	private String clientLayersConfigFilename = null;
 	private File applicationFolder = null;
 
-	private static final String DATASOURCES_KEY = "datasources";
+	private static final String DATASOURCES_KEY = "dataSources";
 	private static final String CLIENTS_KEY = "clients";
 
 	// Demo: Atlas Mapper can run as a Demo application, with limited feature for better security.
@@ -97,11 +97,11 @@ public class ConfigManager {
 	private String defaultProxyUrl = null;
 	private String defaultLayerInfoServiceUrl = null;
 
-	private int lastDatasourceId;
+	private int lastDataSourceId;
 	private int lastClientId;
 
 	private Map<String, User> users = null;
-	private MultiKeyHashMap<Integer, String, DatasourceConfig> datasourceConfigs = null;
+	private MultiKeyHashMap<Integer, String, DataSourceConfig> dataSourceConfigs = null;
 	private MultiKeyHashMap<Integer, String, ClientConfig> clientConfigs = null;
 
 	public ConfigManager(File serverConfigFile, File usersConfigFile) {
@@ -203,7 +203,7 @@ public class ConfigManager {
 	}
 
 	private synchronized void reloadServerConfig() throws JSONException, FileNotFoundException {
-		this.datasourceConfigs = null;
+		this.dataSourceConfigs = null;
 		this.clientConfigs = null;
 
 		if (this.serverConfigFile != null) {
@@ -213,7 +213,9 @@ public class ConfigManager {
 					serverConfigReader = new FileReader(this.serverConfigFile);
 					this.reloadServerConfig(serverConfigReader);
 				} finally {
-					try { serverConfigReader.close(); } catch(Exception e) {}
+					try {
+						if (serverConfigReader != null) { serverConfigReader.close(); }
+					} catch(Exception e) {}
 				}
 			} else {
 				LOGGER.log(Level.SEVERE, "{0} is not readable", this.serverConfigFile.getAbsolutePath());
@@ -222,9 +224,9 @@ public class ConfigManager {
 			LOGGER.log(Level.SEVERE, "Undefined server configuration file");
 		}
 
-		if ((this.datasourceConfigs == null || this.datasourceConfigs.isEmpty()) &&
+		if ((this.dataSourceConfigs == null || this.dataSourceConfigs.isEmpty()) &&
 				(this.clientConfigs == null || this.clientConfigs.isEmpty())) {
-			LOGGER.log(Level.WARNING, "No datasources nor clients defined; fall back to default.");
+			LOGGER.log(Level.WARNING, "No data sources nor clients defined; fall back to default.");
 			this.reloadDefaultServerConfig();
 		}
 	}
@@ -244,25 +246,26 @@ public class ConfigManager {
 		this.demoMode = jsonObj.optBoolean(DEMO_KEY, false);
 		this.configVersion = jsonObj.optString(CONFIG_VERSION_KEY, CURRENT_CONFIG_VERSION);
 
-		this.datasourceConfigs = new MultiKeyHashMap<Integer, String, DatasourceConfig>();
-		this.lastDatasourceId = 0;
-		JSONArray datasourceConfigsArray = jsonObj.optJSONArray(DATASOURCES_KEY);
-		if (datasourceConfigsArray != null) {
-			for (int i=0; i<datasourceConfigsArray.length(); i++) {
-				JSONObject rawDatasourceConfig = datasourceConfigsArray.optJSONObject(i);
-				if (rawDatasourceConfig != null) {
-					DatasourceConfig datasourceConfig = new DatasourceConfig(this);
-					datasourceConfig.update(rawDatasourceConfig);
-					Integer datasourceId = datasourceConfig.getId();
-					if (datasourceId != null && datasourceId > this.lastDatasourceId) {
-						this.lastDatasourceId = datasourceId;
+		this.dataSourceConfigs = new MultiKeyHashMap<Integer, String, DataSourceConfig>();
+		this.lastDataSourceId = 0;
+		JSONArray dataSourceConfigsArray = jsonObj.optJSONArray(DATASOURCES_KEY);
+
+		if (dataSourceConfigsArray != null) {
+			for (int i=0; i<dataSourceConfigsArray.length(); i++) {
+				JSONObject rawDataSourceConfig = dataSourceConfigsArray.optJSONObject(i);
+				if (rawDataSourceConfig != null) {
+					DataSourceConfig dataSourceConfig = new DataSourceConfig(this);
+					dataSourceConfig.update(rawDataSourceConfig);
+					Integer dataSourceId = dataSourceConfig.getId();
+					if (dataSourceId != null && dataSourceId > this.lastDataSourceId) {
+						this.lastDataSourceId = dataSourceId;
 					}
-					this.datasourceConfigs.put(
-							datasourceId,
-							datasourceConfig.getDatasourceId(),
-							datasourceConfig);
+					this.dataSourceConfigs.put(
+							dataSourceId,
+							dataSourceConfig.getDataSourceId(),
+							dataSourceConfig);
 				} else {
-					LOGGER.log(Level.WARNING, "Malformated AtlasMapper JSON config file: a datasource is not set properly [{0}]", rawDatasourceConfig);
+					LOGGER.log(Level.WARNING, "Malformated AtlasMapper JSON config file: a data source is not set properly [{0}]", rawDataSourceConfig);
 				}
 			}
 		}
@@ -293,7 +296,7 @@ public class ConfigManager {
 		}
 
 		// Prevent memory leak
-		WMSCapabilitiesWrapper.cleanupCapabilitiesDocumentsCache(this.datasourceConfigs.values());
+		WMSCapabilitiesWrapper.cleanupCapabilitiesDocumentsCache(this.dataSourceConfigs.values());
 	}
 
 	protected synchronized void reloadDefaultServerConfig() throws JSONException {
@@ -336,7 +339,9 @@ public class ConfigManager {
 					usersConfigReader = new FileReader(this.usersConfigFile);
 					this.reloadUsersConfig(usersConfigReader);
 				} finally {
-					try { usersConfigReader.close(); } catch(Exception e) {}
+					try {
+						if (usersConfigReader != null) { usersConfigReader.close(); }
+					} catch(Exception e) {}
 				}
 			} else {
 				LOGGER.log(Level.WARNING, "{0} is not readable.", this.usersConfigFile.getAbsolutePath());
@@ -355,18 +360,16 @@ public class ConfigManager {
 		this.users = new HashMap<String, User>();
 		if (usersConfigReader != null) {
 			JSONObject usersConfig = new JSONObject(new JSONTokener(usersConfigReader));
-			if (usersConfig != null) {
-				this.usersConfigVersion = usersConfig.optString(CONFIG_VERSION_KEY, CURRENT_CONFIG_VERSION);
-				JSONArray jsonUsers = usersConfig.optJSONArray("users");
+			this.usersConfigVersion = usersConfig.optString(CONFIG_VERSION_KEY, CURRENT_CONFIG_VERSION);
+			JSONArray jsonUsers = usersConfig.optJSONArray("users");
 
-				if (jsonUsers != null) {
-					for (int i=0; i<jsonUsers.length(); i++) {
-						JSONObject jsonUser = jsonUsers.optJSONObject(i);
-						if (jsonUser != null) {
-							User user = new User(this);
-							user.update(jsonUser);
-							this.users.put(user.getLoginName(), user);
-						}
+			if (jsonUsers != null) {
+				for (int i=0; i<jsonUsers.length(); i++) {
+					JSONObject jsonUser = jsonUsers.optJSONObject(i);
+					if (jsonUser != null) {
+						User user = new User(this);
+						user.update(jsonUser);
+						this.users.put(user.getLoginName(), user);
 					}
 				}
 			}
@@ -408,7 +411,9 @@ public class ConfigManager {
 				this.saveServerConfig(writer);
 				this.serverConfigFileLastModified = this.serverConfigFile.lastModified();
 			} finally {
-				try { writer.close(); } catch(Exception e) {}
+				try {
+					if (writer != null) { writer.close(); }
+				} catch(Exception e) {}
 				// Reload the configuration to refresh the state of the server with the config that is in the file
 				try { this.reloadServerConfig(); } catch(Exception e) {}
 			}
@@ -429,13 +434,13 @@ public class ConfigManager {
 		}
 
 		config.put(CONFIG_VERSION_KEY, CURRENT_CONFIG_VERSION);
-		config.put(DATASOURCES_KEY, this._getDatasourceConfigsJSon(false));
+		config.put(DATASOURCES_KEY, this._getDataSourceConfigsJSon(false));
 		config.put(CLIENTS_KEY, this._getClientConfigsJSon(false));
 
 		this.saveJSONConfig(config, serverConfigWriter);
 
 		// Prevent memory leak
-		WMSCapabilitiesWrapper.cleanupCapabilitiesDocumentsCache(this.datasourceConfigs.values());
+		WMSCapabilitiesWrapper.cleanupCapabilitiesDocumentsCache(this.dataSourceConfigs.values());
 	}
 
 	public synchronized void saveUsersConfig() throws JSONException, IOException {
@@ -450,7 +455,9 @@ public class ConfigManager {
 				this.saveUsersConfig(writer);
 				this.usersConfigFileLastModified = this.usersConfigFile.lastModified();
 			} finally {
-				try { writer.close(); } catch(Exception e) {}
+				try {
+					if (writer != null) { writer.close(); }
+				} catch(Exception e) {}
 				// Reload the configuration to refresh the state of the server with the config that is in the file
 				try { this.reloadUsersConfig(); } catch(Exception e) {}
 			}
@@ -488,71 +495,127 @@ public class ConfigManager {
 		return this.demoMode;
 	}
 
-	public synchronized List<DatasourceConfig> createDatasourceConfig(ServletRequest request) throws JSONException, FileNotFoundException {
+	public synchronized List<DataSourceConfig> createDataSourceConfig(ServletRequest request) throws JSONException, FileNotFoundException {
 		if (request == null) {
 			return null;
 		}
 
-		MultiKeyHashMap<Integer, String, DatasourceConfig> configs = this.getDatasourceConfigs();
-		List<DatasourceConfig> newDatasourceConfigs = new ArrayList<DatasourceConfig>();
+		MultiKeyHashMap<Integer, String, DataSourceConfig> configs = this.getDataSourceConfigs();
+		List<DataSourceConfig> newDataSourceConfigs = new ArrayList<DataSourceConfig>();
 		JSONArray dataJSonArr = this.getPostedData(request);
 		if (dataJSonArr != null) {
 			for (int i=0; i<dataJSonArr.length(); i++) {
 				JSONObject dataJSonObj = dataJSonArr.optJSONObject(i);
 				if (dataJSonObj != null) {
 					if (dataJSonObj.isNull("id") || dataJSonObj.optString("id", "").length() <= 0) {
-						dataJSonObj.put("id", this.getNextDatasourceId());
+						dataJSonObj.put("id", this.getNextDataSourceId());
 					}
-					DatasourceConfig datasourceConfig = new DatasourceConfig(this);
-					datasourceConfig.update(dataJSonObj);
-					if (datasourceConfig != null) {
-						configs.put(datasourceConfig.getId(),
-								datasourceConfig.getDatasourceId(),
-								datasourceConfig);
-						newDatasourceConfigs.add(datasourceConfig);
-					}
+					DataSourceConfig dataSourceConfig = new DataSourceConfig(this);
+					dataSourceConfig.update(dataJSonObj);
+
+					this.ensureUniqueness(dataSourceConfig);
+
+					configs.put(dataSourceConfig.getId(),
+							dataSourceConfig.getDataSourceId(),
+							dataSourceConfig);
+					newDataSourceConfigs.add(dataSourceConfig);
 				}
 			}
 		}
-		return newDatasourceConfigs;
+		return newDataSourceConfigs;
 	}
-	public synchronized void updateDatasourceConfig(ServletRequest request) throws JSONException, FileNotFoundException {
+	public synchronized void updateDataSourceConfig(ServletRequest request) throws JSONException, FileNotFoundException {
 		if (request == null) {
 			return;
 		}
 
-		MultiKeyHashMap<Integer, String, DatasourceConfig> configs = this.getDatasourceConfigs();
+		MultiKeyHashMap<Integer, String, DataSourceConfig> configs = this.getDataSourceConfigs();
 		JSONArray dataJSonArr = this.getPostedData(request);
 		if (dataJSonArr != null) {
 			for (int i=0; i<dataJSonArr.length(); i++) {
 				JSONObject dataJSonObj = dataJSonArr.optJSONObject(i);
 				if (dataJSonObj != null) {
-					Integer datasourceId = dataJSonObj.optInt("id", -1);
-					DatasourceConfig datasourceConfig = configs.get1(datasourceId);
-					if (datasourceConfig != null) {
-						datasourceConfig.update(dataJSonObj, true);
+					Integer dataSourceId = dataJSonObj.optInt("id", -1);
+					DataSourceConfig dataSourceConfig = configs.get1(dataSourceId);
+					if (dataSourceConfig != null) {
+						// Update the object using the value from the form
+						dataSourceConfig.update(dataJSonObj, true);
+
+						this.ensureUniqueness(dataSourceConfig);
 					}
 				}
 			}
 		}
 	}
-	public synchronized void destroyDatasourceConfig(ServletRequest request) throws JSONException, FileNotFoundException {
+	public synchronized void destroyDataSourceConfig(ServletRequest request) throws JSONException, FileNotFoundException {
 		if (request == null) {
 			return;
 		}
 
-		MultiKeyHashMap<Integer, String, DatasourceConfig> configs = this.getDatasourceConfigs();
+		MultiKeyHashMap<Integer, String, DataSourceConfig> configs = this.getDataSourceConfigs();
 		JSONArray dataJSonArr = this.getPostedData(request);
 		if (dataJSonArr != null) {
 			for (int i=0; i<dataJSonArr.length(); i++) {
 				JSONObject dataJSonObj = dataJSonArr.optJSONObject(i);
 
 				if (dataJSonObj != null) {
-					Integer datasourceId = dataJSonObj.optInt("id", -1);
-					configs.remove1(datasourceId);
+					Integer dataSourceId = dataJSonObj.optInt("id", -1);
+					configs.remove1(dataSourceId);
 				}
 			}
 		}
+	}
+
+	private void ensureUniqueness(DataSourceConfig dataSource) throws FileNotFoundException, JSONException {
+		MultiKeyHashMap<Integer, String, DataSourceConfig> _dataSourceConfigs = getDataSourceConfigs();
+
+		// Ensure the data source has a unique Integer ID (used in grid)
+		if (dataSource.getId() == null) {
+			dataSource.setId(this.getNextDataSourceId());
+		}
+
+		// Ensure the data source ID is unique (Note: there is a client side validation to avoid this problem)
+		if (_dataSourceConfigs != null && this.dataSourceExists(dataSource.getDataSourceId(), dataSource.getId())) {
+			// The data source exists, try to find a new data source ID.
+			String dataSourceId = dataSource.getDataSourceId();
+			String newDataSourceId = dataSourceId;
+			if (newDataSourceId == null) {
+				newDataSourceId = dataSource.getId().toString();
+			}
+
+			int suffix = 0;
+			while (_dataSourceConfigs.get2(newDataSourceId) != null) {
+				newDataSourceId = dataSourceId + "_" + ++suffix;
+			}
+			dataSource.setDataSourceId(newDataSourceId);
+		}
+	}
+
+	/**
+	 * Return true if there is an other data source (a data source with a
+	 * different Integer ID) with the same data source ID.
+	 * @param dataSourceId The chosen data source ID
+	 * @param id The Integer ID used in the Grid, or null for new entries
+	 * @return True if there is an other data source (a data source with a
+	 * different Integer ID) with the same data source ID.
+	 * @throws FileNotFoundException
+	 * @throws JSONException
+	 */
+	public boolean dataSourceExists(String dataSourceId, Integer id) throws FileNotFoundException, JSONException {
+		MultiKeyHashMap<Integer, String, DataSourceConfig> _dataSourceConfigs = getDataSourceConfigs();
+		DataSourceConfig found = _dataSourceConfigs.get2(dataSourceId);
+
+		// Most common case, the data source is new or it's data source ID has changed.
+		if (found == null) { return false; }
+
+		// Security: This case should not happen as long as the server.conf file is valid.
+		if (found.getId() == null) { return true; }
+
+		// Same data source ID AND Integer ID => Same data source
+		if (found.getId().equals(id)) { return false; }
+
+		// We found a data source with the same data source ID but with a different Integer ID.
+		return true;
 	}
 
 	public synchronized List<ClientConfig> createClientConfig(ServletRequest request) throws JSONException, FileNotFoundException {
@@ -572,19 +635,19 @@ public class ConfigManager {
 					}
 					ClientConfig clientConfig = new ClientConfig(this);
 					clientConfig.update(dataJSonObj);
-					if (clientConfig != null) {
-						configs.put(clientConfig.getId(),
-								clientConfig.getClientId(),
-								clientConfig);
-						newClientConfigs.add(clientConfig);
-					}
+					this.ensureUniqueness(clientConfig);
+
+					configs.put(clientConfig.getId(),
+							clientConfig.getClientId(),
+							clientConfig);
+					newClientConfigs.add(clientConfig);
 				}
 			}
 		}
 
 		return newClientConfigs;
 	}
-	public synchronized void updateClientConfig(ServletRequest request) throws JSONException, IOException, FileNotFoundException, TemplateException {
+	public synchronized void updateClientConfig(ServletRequest request) throws JSONException, IOException, TemplateException {
 		if (request == null) {
 			return;
 		}
@@ -598,25 +661,18 @@ public class ConfigManager {
 					Integer clientId = dataJSonObj.optInt("id", -1);
 					ClientConfig clientConfig = configs.get1(clientId);
 					if (clientConfig != null) {
-						File oldClientFolder = null;
-						File oldConfigFolder = null;
-						if (clientConfig != null) {
-							oldClientFolder = FileFinder.getAtlasMapperClientFolder(this.applicationFolder, clientConfig, false);
-							oldConfigFolder = FileFinder.getAtlasMapperClientConfigFolder(this.applicationFolder, clientConfig, false);
-						}
+						File oldClientFolder = FileFinder.getAtlasMapperClientFolder(this.applicationFolder, clientConfig, false);
+						File oldConfigFolder = FileFinder.getAtlasMapperClientConfigFolder(this.applicationFolder, clientConfig, false);
 
 						clientConfig.update(dataJSonObj, true);
+						this.ensureUniqueness(clientConfig);
 
-						File newClientFolder = null;
-						File newConfigFolder = null;
-						if (clientConfig != null) {
-							newClientFolder = FileFinder.getAtlasMapperClientFolder(this.applicationFolder, clientConfig, false);
-							newConfigFolder = FileFinder.getAtlasMapperClientConfigFolder(this.applicationFolder, clientConfig, false);
-						}
+						File newClientFolder = FileFinder.getAtlasMapperClientFolder(this.applicationFolder, clientConfig, false);
+						File newConfigFolder = FileFinder.getAtlasMapperClientConfigFolder(this.applicationFolder, clientConfig, false);
 
 						if (oldClientFolder != null && !oldClientFolder.equals(newClientFolder)) {
 							// The project generation path has changed. The client folder has to be move.
-							if (oldClientFolder != null && newClientFolder != null && oldClientFolder.exists()) {
+							if (newClientFolder != null && oldClientFolder.exists()) {
 								File parentFolder = newClientFolder.getParentFile();
 								if (parentFolder != null && !parentFolder.exists()) {
 									parentFolder.mkdirs();
@@ -626,7 +682,7 @@ public class ConfigManager {
 						}
 						if (oldConfigFolder != null && !oldConfigFolder.equals(newConfigFolder)) {
 							// The project generation path has changed. The client folder has to be move.
-							if (oldConfigFolder != null && newConfigFolder != null && oldConfigFolder.exists()) {
+							if (newConfigFolder != null && oldConfigFolder.exists()) {
 								File parentFolder = newConfigFolder.getParentFile();
 								if (parentFolder != null && !parentFolder.exists()) {
 									parentFolder.mkdirs();
@@ -667,6 +723,58 @@ public class ConfigManager {
 		return success;
 	}
 
+	private void ensureUniqueness(ClientConfig client) throws FileNotFoundException, JSONException {
+		MultiKeyHashMap<Integer, String, ClientConfig> _clientConfigs = getClientConfigs();
+
+		// Ensure the client has a unique Integer ID (used in grid)
+		if (client.getId() == null) {
+			client.setId(this.getNextClientId());
+		}
+
+		// Ensure the client ID is unique (Note: there is a client side validation to avoid this problem)
+		if (_clientConfigs != null && this.clientExists(client.getClientId(), client.getId())) {
+			// The client exists, try to find a new client ID.
+			String clientId = client.getClientId();
+			String newClientId = clientId;
+			if (newClientId == null) {
+				newClientId = client.getId().toString();
+			}
+
+			int suffix = 0;
+			while (_clientConfigs.get2(newClientId) != null) {
+				newClientId = clientId + "_" + ++suffix;
+			}
+			client.setClientId(newClientId);
+		}
+	}
+
+	/**
+	 * Return true if there is an other client (a client with a
+	 * different Integer ID) with the same client ID.
+	 * @param clientId The chosen client ID
+	 * @param id The Integer ID used in the Grid, or null for new entries
+	 * @return True if there is an other client (a client with a
+	 * different Integer ID) with the same client ID.
+	 * @throws FileNotFoundException
+	 * @throws JSONException
+	 */
+	public boolean clientExists(String clientId, Integer id) throws FileNotFoundException, JSONException {
+		MultiKeyHashMap<Integer, String, ClientConfig> _clientConfigs = getClientConfigs();
+		ClientConfig found = _clientConfigs.get2(clientId);
+
+		// Most common case, the client is new or it's client ID has changed.
+		if (found == null) { return false; }
+
+		// Security: This case should not happen as long as the server.conf file is valid.
+		if (found.getId() == null) { return true; }
+
+		// Same client ID AND Integer ID => Same client
+		if (found.getId().equals(id)) { return false; }
+
+		// We found a client with the same client ID but with a different Integer ID.
+		return true;
+	}
+
 	/*
 	public GlobalConfig getGlobalConfig() {
 		return this.globalConfig;
@@ -679,22 +787,22 @@ public class ConfigManager {
 	}
 	*/
 
-	public JSONObject getClientLayers(String clientId, String[] layerIds, boolean live) throws JSONException, MalformedURLException, IOException, ServiceException, GetCapabilitiesExceptions {
+	public JSONObject getClientLayers(String clientId, String[] layerIds, boolean live) throws JSONException, IOException, ServiceException, GetCapabilitiesExceptions {
 		if (Utils.isBlank(clientId)) { return null; }
 
 		return this.getClientLayers(this.getClientConfig(clientId), layerIds, live);
 	}
 
-	public JSONObject getClientLayers(ClientConfig clientConfig, String[] layerIds, boolean live) throws JSONException, MalformedURLException, IOException, ServiceException, GetCapabilitiesExceptions {
+	public JSONObject getClientLayers(ClientConfig clientConfig, String[] layerIds, boolean live) throws JSONException, IOException, ServiceException, GetCapabilitiesExceptions {
 		if (clientConfig == null) { return null; }
 
 		return this._getClientLayers(clientConfig, layerIds, live);
 	}
 
-	private JSONObject _getClientLayers(ClientConfig clientConfig, String[] layerIds, boolean live) throws JSONException, MalformedURLException, IOException, ServiceException, GetCapabilitiesExceptions {
+	private JSONObject _getClientLayers(ClientConfig clientConfig, String[] layerIds, boolean live) throws JSONException, IOException, ServiceException, GetCapabilitiesExceptions {
 		return _getClientLayers(clientConfig, Arrays.asList(layerIds), live);
 	}
-	private JSONObject _getClientLayers(ClientConfig clientConfig, Collection<String> layerIds, boolean live) throws JSONException, MalformedURLException, IOException, ServiceException, GetCapabilitiesExceptions {
+	private JSONObject _getClientLayers(ClientConfig clientConfig, Collection<String> layerIds, boolean live) throws JSONException, IOException, ServiceException, GetCapabilitiesExceptions {
 		if (clientConfig == null) { return null; }
 
 		JSONObject foundLayers = new JSONObject();
@@ -711,23 +819,35 @@ public class ConfigManager {
 		return foundLayers;
 	}
 
-	public MultiKeyHashMap<Integer, String, DatasourceConfig> getDatasourceConfigs() throws JSONException, FileNotFoundException {
+	public MultiKeyHashMap<Integer, String, DataSourceConfig> getDataSourceConfigs() throws JSONException, FileNotFoundException {
 		this.reloadServerConfigIfNeeded();
-		return this.datasourceConfigs;
+		return this.dataSourceConfigs;
 	}
 
-	public JSONArray getDatasourceConfigsJSon() throws JSONException, FileNotFoundException {
-		return this._getDatasourceConfigsJSon(true);
-	}
-	private JSONArray _getDatasourceConfigsJSon(boolean reload) throws JSONException, FileNotFoundException {
-		JSONArray datasourceConfigArray = null;
-		datasourceConfigArray = new JSONArray();
-
-		MultiKeyHashMap<Integer, String, DatasourceConfig> configs = reload ? this.getDatasourceConfigs() : this.datasourceConfigs;
-		for (DatasourceConfig datasourceConfig : configs.values()) {
-			datasourceConfigArray.put(datasourceConfig.toJSonObject());
+	public DataSourceConfig getDataSourceConfig(String dataSourceId) throws JSONException, FileNotFoundException {
+		if (Utils.isBlank(dataSourceId)) {
+			return null;
 		}
-		return datasourceConfigArray;
+
+		MultiKeyHashMap<Integer, String, DataSourceConfig> configs = this.getDataSourceConfigs();
+		if (configs == null) {
+			return null;
+		}
+
+		return configs.get2(dataSourceId);
+	}
+
+	public JSONArray getDataSourceConfigsJSon() throws JSONException, FileNotFoundException {
+		return this._getDataSourceConfigsJSon(true);
+	}
+	private JSONArray _getDataSourceConfigsJSon(boolean reload) throws JSONException, FileNotFoundException {
+		JSONArray dataSourceConfigArray = new JSONArray();
+
+		MultiKeyHashMap<Integer, String, DataSourceConfig> configs = reload ? this.getDataSourceConfigs() : this.dataSourceConfigs;
+		for (DataSourceConfig dataSourceConfig : configs.values()) {
+			dataSourceConfigArray.put(dataSourceConfig.toJSonObject());
+		}
+		return dataSourceConfigArray;
 	}
 
 	public MultiKeyHashMap<Integer, String, ClientConfig> getClientConfigs() throws JSONException, FileNotFoundException {
@@ -762,28 +882,28 @@ public class ConfigManager {
 	}
 
 	public List<String> getProxyAllowedHosts(String clientId, boolean live)
-			throws JSONException, FileNotFoundException, MalformedURLException, IOException, ServiceException, GetCapabilitiesExceptions {
+			throws JSONException, IOException, ServiceException, GetCapabilitiesExceptions {
 
 		ClientConfig clientConfig = this.getClientConfig(clientId);
 		return this.getProxyAllowedHosts(clientConfig, live);
 	}
 	public List<String> getProxyAllowedHosts(ClientConfig clientConfig, boolean live)
-			throws JSONException, FileNotFoundException, MalformedURLException, IOException, ServiceException, GetCapabilitiesExceptions {
+			throws JSONException, IOException, ServiceException, GetCapabilitiesExceptions {
 
 		List<String> allowedHosts = new ArrayList<String>();
 
 		JSONObject clientJSON = this.getClientConfigFileJSon(clientConfig, ConfigType.FULL, live, live);
-		if (clientJSON != null && clientJSON.has("datasources")) {
-			JSONObject datasources = clientJSON.optJSONObject("datasources");
-			Iterator<String> keys = datasources.keys();
+		if (clientJSON != null && clientJSON.has("dataSources")) {
+			JSONObject dataSources = clientJSON.optJSONObject("dataSources");
+			Iterator<String> keys = dataSources.keys();
 			if (keys != null) {
 				while (keys.hasNext()) {
-					JSONObject datasource = datasources.optJSONObject(keys.next());
+					JSONObject dataSource = dataSources.optJSONObject(keys.next());
 
 					// Only add the first one that successed
 					boolean success =
-							this.addProxyAllowedHost(allowedHosts, datasource.optString("featureRequestsUrl")) ||
-							this.addProxyAllowedHost(allowedHosts, datasource.optString("wmsServiceUrl"));
+							this.addProxyAllowedHost(allowedHosts, dataSource.optString("featureRequestsUrl")) ||
+							this.addProxyAllowedHost(allowedHosts, dataSource.optString("wmsServiceUrl"));
 				}
 			}
 		}
@@ -835,8 +955,7 @@ public class ConfigManager {
 	 * @throws IOException
 	 */
 	public JSONArray getClientConfigsJSonWithClientUrls(ServletContext context) throws JSONException, IOException {
-		JSONArray clientConfigArray = null;
-		clientConfigArray = new JSONArray();
+		JSONArray clientConfigArray = new JSONArray();
 		for (ClientConfig clientConfig : this.getClientConfigs().values()) {
 			clientConfigArray.put(clientConfig.toJSonObjectWithClientUrls(context));
 		}
@@ -847,8 +966,7 @@ public class ConfigManager {
 		return this._getClientConfigsJSon(true);
 	}
 	private JSONArray _getClientConfigsJSon(boolean reload) throws JSONException, FileNotFoundException {
-		JSONArray clientConfigArray = null;
-		clientConfigArray = new JSONArray();
+		JSONArray clientConfigArray = new JSONArray();
 
 		MultiKeyHashMap<Integer, String, ClientConfig> configs = reload ? this.getClientConfigs() : this.clientConfigs;
 		for (ClientConfig clientConfig : configs.values()) {
@@ -897,7 +1015,7 @@ public class ConfigManager {
 	}
 
 	public void generateAllClients(boolean complete)
-			throws JSONException, MalformedURLException, IOException, ServiceException, FileNotFoundException, TemplateException, GetCapabilitiesExceptions {
+			throws JSONException, IOException, ServiceException, TemplateException, GetCapabilitiesExceptions {
 
 		// Emplty the capabilities cache before regenerating the configs
 		WMSCapabilitiesWrapper.clearCapabilitiesDocumentsCache();
@@ -908,7 +1026,7 @@ public class ConfigManager {
 	}
 
 	public void generateClient(Integer clientId, boolean complete)
-			throws JSONException, MalformedURLException, IOException, ServiceException, FileNotFoundException, TemplateException, GetCapabilitiesExceptions {
+			throws JSONException, IOException, ServiceException, TemplateException, GetCapabilitiesExceptions {
 
 		if (clientId == null) {
 			return;
@@ -921,7 +1039,7 @@ public class ConfigManager {
 	}
 
 	public void generateClient(ClientConfig clientConfig, boolean complete)
-			throws JSONException, MalformedURLException, IOException, ServiceException, FileNotFoundException, TemplateException, GetCapabilitiesExceptions {
+			throws JSONException, IOException, ServiceException, TemplateException, GetCapabilitiesExceptions {
 
 		// Emplty the capabilities cache before regenerating the configs
 		WMSCapabilitiesWrapper.clearCapabilitiesDocumentsCache();
@@ -930,7 +1048,7 @@ public class ConfigManager {
 	}
 
 	private void _generateClient(ClientConfig clientConfig, boolean complete)
-			throws JSONException, MalformedURLException, IOException, ServiceException, FileNotFoundException, TemplateException, GetCapabilitiesExceptions {
+			throws JSONException, IOException, ServiceException, TemplateException, GetCapabilitiesExceptions {
 
 		if (clientConfig == null) {
 			return;
@@ -975,7 +1093,7 @@ public class ConfigManager {
 	}
 
 	// Create all files that required a template processing
-	private void parseTemplates(ClientConfig clientConfig, boolean useGoogle) throws IOException, FileNotFoundException, TemplateException {
+	private void parseTemplates(ClientConfig clientConfig, boolean useGoogle) throws IOException, TemplateException {
 		if (clientConfig == null) { return; }
 
 		File atlasMapperClientFolder =
@@ -1017,7 +1135,7 @@ public class ConfigManager {
 		}
 	}
 
-	private void parsePreviewTemplate(ClientConfig clientConfig, boolean useGoogle) throws IOException, FileNotFoundException, TemplateException {
+	private void parsePreviewTemplate(ClientConfig clientConfig, boolean useGoogle) throws IOException, TemplateException {
 		if (clientConfig == null) { return; }
 
 		File atlasMapperClientFolder =
@@ -1052,7 +1170,7 @@ public class ConfigManager {
 	 * *WARNING* This function return a lot of data and should only be used
 	 * when the user want to debug the config!
 	 *
-	 * @param clientId
+	 * @param clientConfig
 	 * @return A JSONObject containing all the config for the current
 	 * configuration and the generated one, in the following format:
 	 * "fullClient": {
@@ -1070,7 +1188,7 @@ public class ConfigManager {
 	 * @throws JSONException
 	 */
 	public JSONObject debugClientConfigJSon(ClientConfig clientConfig)
-			throws JSONException, MalformedURLException, IOException, ServiceException, GetCapabilitiesExceptions {
+			throws JSONException, IOException, ServiceException, GetCapabilitiesExceptions {
 
 		if (clientConfig == null) {
 			return null;
@@ -1098,7 +1216,7 @@ public class ConfigManager {
 	}
 
 	public JSONObject getClientConfigFileJSon(ClientConfig clientConfig, ConfigType configType, boolean live, boolean generate)
-			throws JSONException, MalformedURLException, IOException, ServiceException, GetCapabilitiesExceptions {
+			throws JSONException, IOException, ServiceException, GetCapabilitiesExceptions {
 
 		if (clientConfig == null || configType == null) { return null; }
 		switch (configType) {
@@ -1162,7 +1280,7 @@ public class ConfigManager {
 
 	// Use as a base for Full and Embeded config
 	private JSONObject _generateAbstractClientConfig(ClientConfig clientConfig)
-			throws JSONException, MalformedURLException, IOException, ServiceException, GetCapabilitiesExceptions {
+			throws JSONException, IOException, ServiceException, GetCapabilitiesExceptions {
 
 		if (clientConfig == null) { return null; }
 
@@ -1217,47 +1335,47 @@ public class ConfigManager {
 			json.put("startingLocation", startingLocation);
 		}
 
-		MultiKeyHashMap<Integer, String, DatasourceConfig> configs = this.getDatasourceConfigs();
-		JSONArray datasourcesArray = clientConfig.getDatasources();
+		MultiKeyHashMap<Integer, String, DataSourceConfig> configs = this.getDataSourceConfigs();
+		JSONArray dataSourcesArray = clientConfig.getDataSources();
 		GetCapabilitiesExceptions errors = new GetCapabilitiesExceptions();
-		if (datasourcesArray != null && datasourcesArray.length() > 0) {
-			JSONObject datasources = new JSONObject();
-			for (int i=0; i<datasourcesArray.length(); i++) {
+		if (dataSourcesArray != null && dataSourcesArray.length() > 0) {
+			JSONObject dataSources = new JSONObject();
+			for (int i=0; i<dataSourcesArray.length(); i++) {
 				// https://github.com/douglascrockford/JSON-java/issues/24
-				String datasourceName = datasourcesArray.optString(i, null);
-				if (datasourceName != null) {
-					DatasourceConfig datasourceConfig =
-							configs.get2(datasourceName);
-					if (datasourceConfig != null) {
+				String dataSourceName = dataSourcesArray.optString(i, null);
+				if (dataSourceName != null) {
+					DataSourceConfig dataSourceConfig =
+							configs.get2(dataSourceName);
+					if (dataSourceConfig != null) {
 						try {
-							DatasourceConfig overridenDatasourceConfig = datasourceConfig;
+							DataSourceConfig overridenDataSourceConfig = dataSourceConfig;
 
 							// Apply overrides from the capabilities document
-							if (Utils.isNotBlank(datasourceConfig.getWmsServiceUrl())) {
+							if (Utils.isNotBlank(dataSourceConfig.getWmsServiceUrl())) {
 								WMSCapabilitiesWrapper wmsCaps = WMSCapabilitiesWrapper.getInstance(
-										datasourceConfig.getWmsServiceUrl());
+										dataSourceConfig.getWmsServiceUrl());
 								if (wmsCaps != null) {
-									overridenDatasourceConfig = wmsCaps.applyOverrides(
-													datasourceConfig);
+									overridenDataSourceConfig = wmsCaps.applyOverrides(
+											dataSourceConfig);
 								}
 							}
 
-							if (overridenDatasourceConfig != null) {
-								// Apply overrides from the datasource
-								overridenDatasourceConfig =
-										overridenDatasourceConfig.applyOverrides();
+							if (overridenDataSourceConfig != null) {
+								// Apply overrides from the data source
+								overridenDataSourceConfig =
+										overridenDataSourceConfig.applyOverrides();
 							}
 
-							if (overridenDatasourceConfig != null) {
-								JSONObject datasource =
-										this.generateDatasource(overridenDatasourceConfig, clientConfig);
-								if (datasource != null) {
-									datasources.put(overridenDatasourceConfig.getDatasourceId(), datasource);
+							if (overridenDataSourceConfig != null) {
+								JSONObject dataSource =
+										this.generateDataSource(overridenDataSourceConfig, clientConfig);
+								if (dataSource != null) {
+									dataSources.put(overridenDataSourceConfig.getDataSourceId(), dataSource);
 								}
 							}
 						} catch(IOException ex) {
 							// Collect all errors
-							errors.add(datasourceConfig, ex);
+							errors.add(dataSourceConfig, ex);
 						}
 					}
 				}
@@ -1267,8 +1385,8 @@ public class ConfigManager {
 				throw errors;
 			}
 
-			if (datasources.length() > 0) {
-				json.put("datasources", datasources);
+			if (dataSources.length() > 0) {
+				json.put("dataSources", dataSources);
 			}
 		}
 
@@ -1297,7 +1415,7 @@ public class ConfigManager {
 		}
 	}
 
-	private JSONObject getClientDefaultLayers(String clientId) throws JSONException, MalformedURLException, IOException, ServiceException, GetCapabilitiesExceptions {
+	private JSONObject getClientDefaultLayers(String clientId) throws JSONException, IOException, ServiceException, GetCapabilitiesExceptions {
 		if (Utils.isBlank(clientId)) { return null; }
 
 		return this._getClientLayers(
@@ -1306,7 +1424,7 @@ public class ConfigManager {
 				true);
 	}
 
-	private Set<String> _getClientDefaultLayerIds(String clientId) throws JSONException, MalformedURLException, IOException, ServiceException {
+	private Set<String> _getClientDefaultLayerIds(String clientId) throws JSONException, IOException, ServiceException {
 		if (Utils.isBlank(clientId)) { return null; }
 
 		ClientConfig clientConfig = this.getClientConfig(clientId);
@@ -1315,45 +1433,45 @@ public class ConfigManager {
 		return clientConfig.getDefaultLayersSet();
 	}
 
-	private JSONObject generateDatasource(DatasourceConfig datasourceConfig, ClientConfig clientConfig) throws JSONException {
+	private JSONObject generateDataSource(DataSourceConfig dataSourceConfig, ClientConfig clientConfig) throws JSONException {
 
-		JSONObject datasource = new JSONObject();
+		JSONObject dataSource = new JSONObject();
 
-		if (Utils.isNotBlank(datasourceConfig.getFeatureRequestsUrl())) {
-			datasource.put("featureRequestsUrl", datasourceConfig.getFeatureRequestsUrl());
+		if (Utils.isNotBlank(dataSourceConfig.getFeatureRequestsUrl())) {
+			dataSource.put("featureRequestsUrl", dataSourceConfig.getFeatureRequestsUrl());
 		}
 
-		if (Utils.isNotBlank(datasourceConfig.getWmsServiceUrl())) {
-			datasource.put("wmsServiceUrl", datasourceConfig.getWmsServiceUrl());
+		if (Utils.isNotBlank(dataSourceConfig.getWmsServiceUrl())) {
+			dataSource.put("wmsServiceUrl", dataSourceConfig.getWmsServiceUrl());
 		}
 
-		if (Utils.isNotBlank(datasourceConfig.getExtraWmsServiceUrls())) {
-			datasource.put("extraWmsServiceUrls", datasourceConfig.getExtraWmsServiceUrls());
+		if (Utils.isNotBlank(dataSourceConfig.getExtraWmsServiceUrls())) {
+			dataSource.put("extraWmsServiceUrls", dataSourceConfig.getExtraWmsServiceUrls());
 		}
 
-		if (Utils.isNotBlank(datasourceConfig.getWebCacheUrl())) {
-			datasource.put("webCacheUrl", datasourceConfig.getWebCacheUrl());
+		if (Utils.isNotBlank(dataSourceConfig.getWebCacheUrl())) {
+			dataSource.put("webCacheUrl", dataSourceConfig.getWebCacheUrl());
 		}
 
-		if (Utils.isNotBlank(datasourceConfig.getLegendUrl())) {
-			datasource.put("legendUrl", datasourceConfig.getLegendUrl());
+		if (Utils.isNotBlank(dataSourceConfig.getLegendUrl())) {
+			dataSource.put("legendUrl", dataSourceConfig.getLegendUrl());
 		}
 
-		if (Utils.isNotBlank(datasourceConfig.getDatasourceName())) {
-			datasource.put("datasourceName", datasourceConfig.getDatasourceName());
+		if (Utils.isNotBlank(dataSourceConfig.getDataSourceName())) {
+			dataSource.put("dataSourceName", dataSourceConfig.getDataSourceName());
 		}
 
-		String[] webCacheParametersArray = datasourceConfig.getWebCacheParametersArray();
+		String[] webCacheParametersArray = dataSourceConfig.getWebCacheParametersArray();
 		if (webCacheParametersArray != null && webCacheParametersArray.length > 0) {
 			JSONArray webCacheParameters = new JSONArray(webCacheParametersArray);
-			datasource.put("webCacheSupportedParameters", webCacheParameters);
+			dataSource.put("webCacheSupportedParameters", webCacheParameters);
 		}
 
-		if (Utils.isNotBlank(datasourceConfig.getDatasourceType())) {
-			datasource.put("datasourceType", datasourceConfig.getDatasourceType());
+		if (Utils.isNotBlank(dataSourceConfig.getDataSourceType())) {
+			dataSource.put("dataSourceType", dataSourceConfig.getDataSourceType());
 		}
 
-		JSONObject legendParameters = datasourceConfig.getLegendParametersJson();
+		JSONObject legendParameters = dataSourceConfig.getLegendParametersJson();
 		// merge with client legend parameters, if any
 		if (clientConfig != null) {
 			JSONObject clientLegendParameters = clientConfig.getLegendParametersJson();
@@ -1389,14 +1507,14 @@ public class ConfigManager {
 			}
 		}
 		if (legendParameters != null && legendParameters.length() > 0) {
-			datasource.put("legendParameters", legendParameters);
+			dataSource.put("legendParameters", legendParameters);
 		}
 
-		if (Utils.isNotBlank(datasourceConfig.getWmsVersion())) {
-			datasource.put("wmsVersion", datasourceConfig.getWmsVersion());
+		if (Utils.isNotBlank(dataSourceConfig.getWmsVersion())) {
+			dataSource.put("wmsVersion", dataSourceConfig.getWmsVersion());
 		}
 
-		return datasource;
+		return dataSource;
 	}
 
 	private JSONObject generateModules(JSONArray modulesArray, ClientConfig clientConfig) throws JSONException {
@@ -1430,8 +1548,8 @@ public class ConfigManager {
 	}
 
 	private JSONObject generateLayer(LayerConfig layerConfig) throws JSONException {
-		// LayerConfig extends DatasourceConfig
-		JSONObject jsonLayer = this.generateDatasource(layerConfig, null);
+		// LayerConfig extends DataSourceConfig
+		JSONObject jsonLayer = this.generateDataSource(layerConfig, null);
 
 		jsonLayer.put(CONFIG_VERSION_KEY, CURRENT_CONFIG_VERSION);
 
@@ -1448,8 +1566,8 @@ public class ConfigManager {
 		}
 
 		// serverId
-		if (Utils.isNotBlank(layerConfig.getDatasourceId())) {
-			jsonLayer.put("datasourceId", layerConfig.getDatasourceId());
+		if (Utils.isNotBlank(layerConfig.getDataSourceId())) {
+			jsonLayer.put("dataSourceId", layerConfig.getDataSourceId());
 		}
 
 		double[] boundingBox = layerConfig.getLayerBoundingBox();
@@ -1519,7 +1637,7 @@ public class ConfigManager {
 		// Browsers do not have to keep the order in JavaScript objects, but they often do.
 		if (styles != null && !styles.isEmpty()) {
 			JSONObject jsonStyles = new JSONObject();
-			if (styles != null && !styles.isEmpty()) {
+			if (!styles.isEmpty()) {
 				boolean firstStyle = true;
 				for (LayerStyleConfig style : styles) {
 					String styleName = style.getName();
@@ -1693,7 +1811,9 @@ public class ConfigManager {
 				writer = new FileWriter(file);
 				this.saveJSONConfig(config, writer);
 			} finally {
-				try { writer.close(); } catch(Exception e) {}
+				try {
+					if (writer != null) { writer.close(); }
+				} catch(Exception e) {}
 			}
 		} else {
 			LOGGER.log(Level.SEVERE, "The application can not write in the configuration file [{0}].", file.getAbsolutePath());
@@ -1713,7 +1833,9 @@ public class ConfigManager {
 				bw.write(jsonStr);
 			}
 		} finally {
-			try { bw.close(); } catch (Exception e) {}
+			try {
+				if (bw != null) { bw.close(); }
+			} catch (Exception e) {}
 		}
 	}
 
@@ -1729,11 +1851,13 @@ public class ConfigManager {
 				bw.write(jsonStr);
 			}
 		} finally {
-			try { bw.close(); } catch (Exception e) {}
+			try {
+				if (bw != null) { bw.close(); }
+			} catch (Exception e) {}
 		}
 	}
 
-	private JSONObject loadExistingConfig(File configFile) throws JSONException, FileNotFoundException, IOException {
+	private JSONObject loadExistingConfig(File configFile) throws JSONException, IOException {
 		if (configFile == null) {
 			return null;
 		}
@@ -1745,7 +1869,9 @@ public class ConfigManager {
 				reader = new FileReader(configFile);
 				existingConfig = new JSONObject(new JSONTokener(reader));
 			} finally {
-				try { reader.close(); } catch(Exception e) {}
+				try {
+					if (reader != null) {reader.close();}
+				} catch(Exception e) {}
 			}
 		} else {
 			LOGGER.log(Level.SEVERE, "Can read the configuration file [{0}]", configFile.getAbsolutePath());
@@ -1754,11 +1880,11 @@ public class ConfigManager {
 		return existingConfig;
 	}
 
-	private Integer getNextDatasourceId() throws JSONException, FileNotFoundException {
-		while (this.datasourceConfigs.containsKey1(this.lastDatasourceId)) {
-			this.lastDatasourceId++;
+	private Integer getNextDataSourceId() throws JSONException, FileNotFoundException {
+		while (this.dataSourceConfigs.containsKey1(this.lastDataSourceId)) {
+			this.lastDataSourceId++;
 		}
-		return this.lastDatasourceId;
+		return this.lastDataSourceId;
 	}
 	private Integer getNextClientId() {
 		while (this.clientConfigs.containsKey1(this.lastClientId)) {
@@ -1794,7 +1920,9 @@ public class ConfigManager {
 		} catch (Exception ex) {
 			Logger.getLogger(ConfigManager.class.getName()).log(Level.SEVERE, null, ex);
 		} finally {
-			try { reader.close(); } catch (Exception ex) {}
+			try {
+				if (reader != null) { reader.close(); }
+			} catch (Exception ex) {}
 		}
 
 		JSONObject jsonObj = null;

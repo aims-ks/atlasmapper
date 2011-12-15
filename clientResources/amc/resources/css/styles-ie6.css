@@ -1,0 +1,7 @@
+.x-legend-delete {
+	background-position: 0; /* IE6: Always show the first sprite, the light X */
+}
+.legend-group {
+	/* IE6 do not understand ExtJS overflow strategy */
+	overflow: hidden;
+}

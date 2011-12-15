@@ -38,7 +38,7 @@ Ext.namespace("Ext.ux.form");
  *     it's the default date format used in almost every application an libraries
  *     Worldwide used.
  */
-Ext.ux.form.DateField = Ext.extend(Ext.form.DateField,  {
+Ext.ux.form.DateField = Ext.extend(Ext.form.DateField, {
 	/**
 	 * @cfg {String} format
 	 * The default date format string used to display the date in the User Interface, which can be overridden for localisation support. The format must be

@@ -67,7 +67,7 @@
 		<p>
 			The attributes for a layer are build from the capabilities document,
 			for WMS layers, after applying the manual overrides from the layer
-			datasource than the manual overrides from the client.
+			data source than the manual overrides from the client.
 		</p>
 		<h2>Examples</h2>
 		<p>
@@ -139,9 +139,9 @@
 				<td class="desc">A HTML description of the layer, shown in the layer info panel of the client.</td>
 			</tr>
 			<tr>
-				<td class="attr">datasourceId</td>
+				<td class="attr">dataSourceId</td>
 				<td class="type">String</td>
-				<td class="desc">The ID of the datasource, as specified in the datasource page. This field can be used to specified which URL to use to get the tiles, legend, feature requests, etc.</td>
+				<td class="desc">The ID of the data source, as specified in the data source page. This field can be used to specified which URL to use to get the tiles, legend, feature requests, etc.</td>
 			</tr>
 			<tr>
 				<td class="attr">layerBoundingBox</td> <!-- TODO Is this field work? -->
@@ -161,7 +161,7 @@
 			<tr>
 				<td class="attr">isBaseLayer</td>
 				<td class="type">Boolean</td>
-				<td class="desc"><i>true</i> to make this layer a base layer, <i>false</i> otherwise. Note that it is better to use the <i>Base layers</i> field in the <i>Datasources</i> configuration page.</td>
+				<td class="desc"><i>true</i> to make this layer a base layer, <i>false</i> otherwise. Note that it is better to use the <i>Base layers</i> field in the <i>Data sources</i> configuration page.</td>
 			</tr>
 			<tr>
 				<td class="attr">hasLegend</td>
@@ -214,12 +214,12 @@
 				<td class="desc">List of the parameters supported by the WebCache server.</td>
 			</tr>
 			<tr>
-				<td class="attr">datasourceName</td> <!-- TODO Is this field work? -->
+				<td class="attr">dataSourceName</td> <!-- TODO Is this field work? -->
 				<td class="type">String</td>
-				<td class="desc">Specified a different datasource name for this layer, to display it in a different tab in the <i>Add layers</i> window.</td>
+				<td class="desc">Specified a different data source name for this layer, to display it in a different tab in the <i>Add layers</i> window.</td>
 			</tr>
 			<tr>
-				<td class="attr">datasourceType</td>
+				<td class="attr">dataSourceType</td>
 				<td class="type">String</td>
 				<td class="desc">Override the type of layer. This option should not be used in normals circumstances.</td>
 			</tr>
@@ -287,12 +287,24 @@
 				</td>
 			</tr>
 			<tr>
-				<td class="attr">layerOptions</td>
+				<td class="attr">options</td>
 				<td class="type">JSON Object</td>
 				<td class="desc">
 					Define extra options to be added in the options panel of this layer.<br/>
+					Each options is defined by it's name as a key and an object of values as its value.<br/>
+					Example:<br/>
+<pre>
+"ea:bluemarble" : {
+	"options": {
+		"comment": {
+			"title": "Comment",
+			"type": "textarea"
+		}
+	}
+}
+</pre>
 					<b>WARNING</b> this attribute is under development and may be unstable or change considerably between versions.<br/>
-					List of available options for layerOptions:
+					List of available values for this field:
 					<table>
 						<tr>
 							<th class="attr">Attribute</th>

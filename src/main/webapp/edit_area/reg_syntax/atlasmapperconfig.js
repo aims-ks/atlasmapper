@@ -27,18 +27,18 @@ editAreaLoader.load_syntax["atlasmapperconfig"] = {
 	'KEYWORD_CASE_SENSITIVE': true,
 	'KEYWORDS': {
  		'layers': [
-			'kmlUrl', 'title', 'description', 'datasourceId', 'layerBoundingBox',
+			'kmlUrl', 'title', 'description', 'dataSourceId', 'layerBoundingBox',
 			'wmsQueryable', 'wmsVersion', 'isBaseLayer', 'hasLegend',
 			'legendUrl', 'legendGroup', 'legendTitle', 'infoHtmlUrls',
 			'aliasIds', 'serverUrls', 'wmsRequestMimeType',
 			'wmsFeatureRequestLayers', 'wmsTransectable', 'default',
-			'styles', 'layerOptions', 'name',
+			'styles', 'options', 'name',
 			'type', 'mandatory', 'defaultValue'
 		],
-		// Layers can override any datasource entry
-		'datasources': [
+		// Layers can override any data source entry
+		'dataSources': [
 			'featureRequestsUrl', 'serverUrls', 'webCacheUrl', 'legendUrl',
-			'datasourceName', 'webCacheSupportedParameters', 'datasourceType',
+			'dataSourceName', 'webCacheSupportedParameters', 'dataSourceType',
 			'legendParameters', 'wmsVersion'
 		],
 		'modules': [
@@ -50,7 +50,7 @@ editAreaLoader.load_syntax["atlasmapperconfig"] = {
 		'main': [
 			'modules', 'clientId', 'clientName', 'defaultLayers', 'projection',
 			'layerInfoServiceUrl', 'proxyUrl', 'version', 'startingLocation',
-			'datasources'
+			'dataSources'
 		]
 	},
 	'OPERATORS': [],
@@ -63,7 +63,7 @@ editAreaLoader.load_syntax["atlasmapperconfig"] = {
 		'KEYWORDS': {
 			'main': 'color: #FF0000;', // Red - Main config keyword should not be used
 			'layers': 'color: #0000FF;', // Blue
-			'datasources': 'color: #3333FF;', // Blue (similar to layers)
+			'dataSources': 'color: #3333FF;', // Blue (similar to layers)
 			'modules': 'color: #FFB442;', // Orange
 			'keywords' : 'color: #147F00;' // Green
 		},

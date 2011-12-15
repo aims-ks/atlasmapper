@@ -123,14 +123,14 @@ Ext.define('Writer.ClientConfigForm', {
 		});
 		this.addEvents('create');
 
-		var datasourcesItems = [];
-		// NOTE: datasources variable is set in clientsConfigPage.jsp
+		var dataSourcesItems = [];
+		// NOTE: data sources variable is set in clientsConfigPage.jsp
 		// I don't want to do an Ajax query to get those...
-		Ext.iterate(datasources, function(datasourceId, datasourceName) {
-			datasourcesItems.push({
-				name: 'datasources',
-				boxLabel: datasourceName,
-				inputValue: datasourceId
+		Ext.iterate(dataSources, function(dataSourceId, dataSourceName) {
+			dataSourcesItems.push({
+				name: 'dataSources',
+				boxLabel: dataSourceName,
+				inputValue: dataSourceId
 			});
 		});
 
@@ -219,6 +219,12 @@ Ext.define('Writer.ClientConfigForm', {
 								fieldLabel: 'Client ID',
 								name: 'clientId',
 								qtipHtml: 'This field is used for the client folder and as a reference in this interface, for the administrator.',
+								xtype: 'ajaxtextfield',
+								ajax: {
+									url: 'clientsConfig.jsp',
+									params: { action: 'validateId' },
+									formValues: ['id'], formPanel: this
+								},
 								allowBlank: false
 							}, {
 								fieldLabel: 'Client Name',
@@ -226,9 +232,9 @@ Ext.define('Writer.ClientConfigForm', {
 								qtipHtml: 'A human readable name for this client. This field is used as a title for the Atlas Mapper client and in error/warnning messages.'
 							}, {
 								xtype: 'checkboxgroup',
-								fieldLabel: 'Datasource type',
+								fieldLabel: 'Data source type',
 								columns: 2,
-								items: datasourcesItems
+								items: dataSourcesItems
 							}, {
 								title: 'Modules for the full client(s)',
 								qtipTitle: 'Full client',
@@ -1424,7 +1430,7 @@ Ext.define('Writer.ClientConfig', {
 		{name: 'clientId', sortType: 'asUCString'},
 		{name: 'clientName', sortType: 'asUCString'},
 
-		'datasources', // String or Array<String>
+		'dataSources', // String or Array<String>
 		{name: 'fullClientEnable', type: 'boolean', defaultValue: false},
 		'fullClientModules', // String or Array<String>
 		{name: 'embededClientEnable', type: 'boolean', defaultValue: false},

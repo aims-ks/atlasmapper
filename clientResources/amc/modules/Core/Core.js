@@ -511,20 +511,20 @@ Atlas.Core = OpenLayers.Class({
 	},
 
 	normalizeConfiguration: function() {
-		var datasources = Atlas.conf['datasources'];
-		for (var datasourceId in datasources) {
-			if (datasources.hasOwnProperty(datasourceId)) {
-				datasourceData = datasources[datasourceId];
+		var dataSources = Atlas.conf['dataSources'];
+		for (var dataSourceId in dataSources) {
+			if (dataSources.hasOwnProperty(dataSourceId)) {
+				dataSourceData = dataSources[dataSourceId];
 
-				if (!datasourceData['datasourceType']) {
-					datasourceData['datasourceType'] = "WMS";
+				if (!dataSourceData['dataSourceType']) {
+					dataSourceData['dataSourceType'] = "WMS";
 				} else {
-					datasourceData['datasourceType'] = datasourceData['datasourceType'].toUpperCase();
+					dataSourceData['dataSourceType'] = dataSourceData['dataSourceType'].toUpperCase();
 				}
 
-				if (datasourceData['datasourceType'] == 'WMS' || datasourceData['datasourceType'] == 'NCWMS') {
-					if (!datasourceData['featureRequestsUrl'] && datasourceData['wmsServiceUrl']) {
-						datasourceData['featureRequestsUrl'] = datasourceData['wmsServiceUrl'];
+				if (dataSourceData['dataSourceType'] == 'WMS' || dataSourceData['dataSourceType'] == 'NCWMS') {
+					if (!dataSourceData['featureRequestsUrl'] && dataSourceData['wmsServiceUrl']) {
+						dataSourceData['featureRequestsUrl'] = dataSourceData['wmsServiceUrl'];
 					}
 				}
 			}
@@ -535,16 +535,16 @@ Atlas.Core = OpenLayers.Class({
 	 * Set the default values and execute basic correction of values
 	 */
 	normalizeLayerJSon: function(layerJSon) {
-		// Normalise "datasourceId"
-		if (!layerJSon['datasourceId']) {
-			layerJSon['datasourceId'] = 'default'; // TODO get the "first" ID found in Atlas.conf['datasources']
+		// Normalise "dataSourceId"
+		if (!layerJSon['dataSourceId']) {
+			layerJSon['dataSourceId'] = 'default'; // TODO get the "first" ID found in Atlas.conf['dataSources']
 		}
 
-		var layerDatasource =
-			Atlas.conf['datasources'][layerJSon['datasourceId']];
-		if (!layerDatasource) {
-			layerJSon['datasourceId'] = 'default'; // TODO get the "first" ID found in Atlas.conf['datasources']
-			layerDatasource = Atlas.conf['datasources'][layerJSon['datasourceId']];
+		var layerDataSource =
+			Atlas.conf['dataSources'][layerJSon['dataSourceId']];
+		if (!layerDataSource) {
+			layerJSon['dataSourceId'] = 'default'; // TODO get the "first" ID found in Atlas.conf['dataSources']
+			layerDataSource = Atlas.conf['dataSources'][layerJSon['dataSourceId']];
 		}
 
 		// Normalise legend fields
@@ -553,8 +553,8 @@ Atlas.Core = OpenLayers.Class({
 			!((layerJSon['hasLegend'] === 'false') ||
 			(layerJSon['hasLegend'] === false));
 
-		if (!layerJSon['legendUrl'] && layerDatasource && layerDatasource['legendUrl']) {
-			layerJSon['legendUrl'] = layerDatasource['legendUrl'];
+		if (!layerJSon['legendUrl'] && layerDataSource && layerDataSource['legendUrl']) {
+			layerJSon['legendUrl'] = layerDataSource['legendUrl'];
 		}
 
 		// Initial State
@@ -595,13 +595,13 @@ Atlas.Core = OpenLayers.Class({
 		// Normalise "wmsFeatureRequestLayers"
 		// Ensure they all looks like this:
 		// [{layerId: featureRequestsUrl}, ...]
-		if (layerDatasource) {
+		if (layerDataSource) {
 			if (!layerJSon['wmsFeatureRequestLayers']) {
 				// Create 'wmsFeatureRequestLayers': [{layerId: featureRequestsUrl}]
 				// for layer without wmsFeatureRequestLayers field.
 				layerJSon['wmsFeatureRequestLayers'] = [{}];
 				layerJSon['wmsFeatureRequestLayers'][0][layerJSon['layerId']] =
-					layerDatasource['featureRequestsUrl'];
+					layerDataSource['featureRequestsUrl'];
 			} else {
 				// Replace 'wmsFeatureRequestLayers': [layerId, layerId, ...]
 				// by 'wmsFeatureRequestLayers': [{layerId: featureRequestsUrl}, ...]
@@ -611,7 +611,7 @@ Atlas.Core = OpenLayers.Class({
 						var layerId = requestLayers[i];
 						requestLayers[i] = {};
 						requestLayers[i][layerId] =
-							layerDatasource['featureRequestsUrl'];
+							layerDataSource['featureRequestsUrl'];
 					}
 				}
 			}
@@ -623,11 +623,11 @@ Atlas.Core = OpenLayers.Class({
 		}
 
 		// Apply all server config to the layer, to allow easy override in the layer.
-		for(var datasourceProp in layerDatasource){
-			if(layerDatasource.hasOwnProperty(datasourceProp)
-					&& typeof(layerJSon[datasourceProp]) == 'undefined'){
+		for(var dataSourceProp in layerDataSource){
+			if(layerDataSource.hasOwnProperty(dataSourceProp)
+					&& typeof(layerJSon[dataSourceProp]) == 'undefined'){
 
-				layerJSon[datasourceProp] = layerDatasource[datasourceProp];
+				layerJSon[dataSourceProp] = layerDataSource[dataSourceProp];
 			}
 		}
 

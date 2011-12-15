@@ -41,21 +41,21 @@ public class GoogleLayers {
 	 * @param clientConfig
 	 * @return
 	 */
-	public static synchronized Map<String, LayerConfig> getGoogleLayerConfigs(ClientConfig clientConfig, DatasourceConfig datasourceConfig) {
+	public static synchronized Map<String, LayerConfig> getGoogleLayerConfigs(ClientConfig clientConfig, DataSourceConfig dataSourceConfig) {
 		if (googleLayersCache == null) {
 			googleLayersCache = new HashMap<String, LayerConfig>();
 
 			googleLayersCache.put("TERRAIN",
-					createGoogleLayer(datasourceConfig, "TERRAIN", "Google Physical", null));
+					createGoogleLayer(dataSourceConfig, "TERRAIN", "Google Physical", null));
 
 			googleLayersCache.put("ROADMAP",
-					createGoogleLayer(datasourceConfig, "ROADMAP", "Google Streets", null));
+					createGoogleLayer(dataSourceConfig, "ROADMAP", "Google Streets", null));
 
 			googleLayersCache.put("HYBRID",
-					createGoogleLayer(datasourceConfig, "HYBRID", "Google Hybrid", null));
+					createGoogleLayer(dataSourceConfig, "HYBRID", "Google Hybrid", null));
 
 			googleLayersCache.put("SATELLITE",
-					createGoogleLayer(datasourceConfig, "SATELLITE", "Google Satellite", null));
+					createGoogleLayer(dataSourceConfig, "SATELLITE", "Google Satellite", null));
 			/*
 			var gphy = new OpenLayers.Layer.Google(
 				"Google Physical",
@@ -79,9 +79,9 @@ public class GoogleLayers {
 		return googleLayersCache;
 	}
 
-	private static LayerConfig createGoogleLayer(DatasourceConfig datasourceConfig, String googleLayerType, String name, String description) {
-		LayerConfig layerConfig = new LayerConfig(datasourceConfig.getConfigManager());
-		layerConfig.setDatasourceId(datasourceConfig.getDatasourceId());
+	private static LayerConfig createGoogleLayer(DataSourceConfig dataSourceConfig, String googleLayerType, String name, String description) {
+		LayerConfig layerConfig = new LayerConfig(dataSourceConfig.getConfigManager());
+		layerConfig.setDataSourceId(dataSourceConfig.getDataSourceId());
 
 		layerConfig.setLayerId(googleLayerType);
 		layerConfig.setTitle(name);

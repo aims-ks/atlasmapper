@@ -128,3 +128,16 @@ div.messageWindow .error {
 #about table, #about th, #about td {
 	border: 1px solid black;
 }
+
+/* Class for the AjaxTextField */
+div.ajaxLoading {
+	position: absolute;
+	top: 0;
+	right: 2px;
+	width: 22px;
+	height: 100%;
+	background-image: url('icons/statusbar/loading.gif');
+	background-repeat: no-repeat;
+	background-position: right center;
+	cursor: wait;
+}

@@ -26,7 +26,6 @@ import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -37,12 +36,7 @@ import java.lang.reflect.Modifier;
 import java.net.URLEncoder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.json.JSONArray;
@@ -108,7 +102,7 @@ public class Utils {
 	/**
 	 * Make String safe to use in as a JavaScript String by
 	 * replacing [\] by [\\], ['] by [\'] and ["] by [\"].
-	 * @param jsStr
+	 * @param jsObj
 	 * @return
 	 */
 	public static String safeJsStr(Object jsObj) {
@@ -258,7 +252,7 @@ public class Utils {
 		return config;
 	}
 
-	public static void processTemplate(Configuration templatesConfig, String templateName, Map<String, ? extends Object> values, File destFolder) throws FileNotFoundException, IOException, TemplateException {
+	public static void processTemplate(Configuration templatesConfig, String templateName, Map<String, Object> values, File destFolder) throws IOException, TemplateException {
 		String templateFilename = templateName + ".ftl";
 		File outputFile = new File(destFolder, templateName);
 		OutputStreamWriter output = null;
@@ -386,7 +380,19 @@ public class Utils {
 		return projections;
 	}
 
-	public static JSONObject getMapOptions(String projectionCode) {
-		return SUPPORTED_PROJECTIONS.get(projectionCode);
+	public static JSONObject getMapOptions(String projectionCode) throws JSONException {
+		JSONObject projection = SUPPORTED_PROJECTIONS.get(projectionCode);
+		JSONObject mapOptions = new JSONObject();
+
+		// Clone the JSONObject and remove the projection name
+		Iterator<String> keys = projection.keys();
+		while(keys.hasNext()) {
+			String key = keys.next();
+			if (!"projectionName".equals(key) && !projection.isNull(key)) {
+				mapOptions.put(key, projection.opt(key));
+			}
+		}
+
+		return mapOptions;
 	}
 }

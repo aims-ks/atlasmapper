@@ -43,6 +43,9 @@ GeoExt.ux.LegendGroup = Ext.extend(Ext.Panel, {
 	doLayout: function(shallow, force) {
 		this.hideGroupIfEmpty();
 		GeoExt.ux.LegendGroup.superclass.doLayout.call(this, shallow, force);
+		if (Ext.isIE6) {
+			this.setWidth(parseInt(this.ownerCt.getEl().dom.style.width) - 15);
+		}
 	},
 
 	hideGroupIfEmpty: function() {

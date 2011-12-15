@@ -94,7 +94,7 @@ Ext.define('Frameset', {
 				cmargins: '0 0 5 0'
 			}, {
 				html: '<ul class="bullet-list">'+
-						'<li><a href="../admin/datasourcesConfigPage.jsp">Datasources</a></li>'+
+						'<li><a href="../admin/dataSourcesConfigPage.jsp">Data sources</a></li>'+
 						'<li><a href="../admin/clientsConfigPage.jsp">AtlasMapper clients</a></li>'+
 						'<li><a href="../admin/aboutPage.jsp">About</a></li>'+
 					'</ul>',

@@ -22,7 +22,7 @@
 package au.gov.aims.atlasmapperserver.module;
 
 import au.gov.aims.atlasmapperserver.ClientConfig;
-import au.gov.aims.atlasmapperserver.DatasourceConfig;
+import au.gov.aims.atlasmapperserver.DataSourceConfig;
 import au.gov.aims.atlasmapperserver.LayerConfig;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.Module;
@@ -42,17 +42,22 @@ public class Tree extends AbstractModule {
 	private static final String BASE_LAYER_TAB_LABEL = "Base layers";
 
 	@Override
+	public String getVersion() {
+		return "1.0";
+	}
+
+	@Override
 	public JSONObject getJSONConfiguration(ClientConfig clientConfig) throws JSONException {
 		try {
-			List<DatasourceConfig> datasources = clientConfig.getDatasourceConfigs(clientConfig.getConfigManager());
-			if (datasources != null) {
+			List<DataSourceConfig> dataSources = clientConfig.getDataSourceConfigs(clientConfig.getConfigManager());
+			if (dataSources != null) {
 				JSONObject treeConfig = new JSONObject();
-				for (DatasourceConfig datasourceConfig : datasources) {
-					Map<String, LayerConfig> layers = datasourceConfig.getLayerConfigs(clientConfig);
+				for (DataSourceConfig dataSourceConfig : dataSources) {
+					Map<String, LayerConfig> layers = dataSourceConfig.getLayerConfigs(clientConfig);
 
 					if (layers != null) {
 						for (LayerConfig layerConfig : layers.values()) {
-							this.addLayer(treeConfig, clientConfig, datasourceConfig, layerConfig);
+							this.addLayer(treeConfig, clientConfig, dataSourceConfig, layerConfig);
 						}
 					}
 				}
@@ -68,17 +73,17 @@ public class Tree extends AbstractModule {
 	private void addLayer(
 			JSONObject treeRoot,
 			ClientConfig clientConfig,
-			DatasourceConfig datasourceConfig,
+			DataSourceConfig dataSourceConfig,
 			LayerConfig layerConfig) throws JSONException {
 
 		JSONObject currentBranch = treeRoot;
 
-		// Find the Datasource tab OR Base Layer tab
+		// Find the data source tab OR Base Layer tab
 		if (clientConfig.isBaseLayersInTab() && layerConfig.isIsBaseLayer() != null && layerConfig.isIsBaseLayer()) {
 			currentBranch = this.getTreeBranch(currentBranch, BASE_LAYER_TAB_LABEL);
 		} else {
-			if (datasourceConfig != null) {
-				currentBranch = this.getTreeBranch(currentBranch, datasourceConfig.getDatasourceName());
+			if (dataSourceConfig != null) {
+				currentBranch = this.getTreeBranch(currentBranch, dataSourceConfig.getDataSourceName());
 			}
 		}
 

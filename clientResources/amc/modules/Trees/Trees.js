@@ -34,9 +34,9 @@ Atlas.Trees = Ext.extend(Ext.Component, {
 		// Used to call local method in anonymous functions without loosing the "this" reference.
 		var that = this;
 
-		if (Atlas.conf && Atlas.conf['modules'] && Atlas.conf['modules']['Tree']) {
+		if (Atlas.conf && Atlas.conf['modules'] && Atlas.conf['modules']['Tree'] && Atlas.conf['modules']['Tree']['config']) {
 			var orderedTrees = [];
-			Ext.iterate(Atlas.conf['modules']['Tree'], function(treeName, tree) {
+			Ext.iterate(Atlas.conf['modules']['Tree']['config'], function(treeName, tree) {
 				orderedTrees.push({
 					name: treeName,
 					tree: tree

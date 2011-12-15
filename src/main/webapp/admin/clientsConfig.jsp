@@ -41,6 +41,7 @@
 	ConfigManager configManager = ConfigHelper.getConfigManager(this.getServletContext());
 
 	String actionStr = request.getParameter("action");
+	String clientId = request.getParameter("clientId");
 	String idStr = request.getParameter("id");
 	String completeStr = request.getParameter("complete");
 
@@ -152,6 +153,31 @@
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						jsonObj.put("success", false);
 						jsonObj.put("errors", new JSONArray().put("An error occured while deleting the client. Check your server log."));
+					}
+					break;
+
+				case VALIDATEID:
+					try {
+						Integer id = null;
+						if (idStr != null && idStr.length() > 0) {
+							id = Integer.parseInt(idStr);
+						}
+						boolean exists = configManager.clientExists(clientId, id);
+						if (!exists) {
+							// The client do not exists (or, in case of an update, it represent the same client), the client ID is valid
+							response.setStatus(HttpServletResponse.SC_OK);
+							jsonObj.put("success", true);
+							jsonObj.put("message", "The client ID is valid");
+						} else {
+							response.setStatus(HttpServletResponse.SC_OK);
+							jsonObj.put("success", false);
+							jsonObj.put("errors", new JSONArray().put("The client ID '"+clientId+"' is already in used."));
+						}
+					} catch (Exception e) {
+						LOGGER.log(Level.SEVERE, "An error occurred while validating the client ID.", e);
+						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+						jsonObj.put("success", false);
+						jsonObj.put("errors", new JSONArray().put("An error occurred while validating the client ID. Check your server log."));
 					}
 					break;
 

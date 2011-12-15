@@ -80,6 +80,7 @@ public class ReflexionTest extends TestCase {
 		System.out.println("Map Parameter: " + parameter);
 	}
 
+	// TODO Implement
 	public Collection<Boolean> getCollection() { return null; }
 	public Map<String, Boolean> getMap() { return null; }
 	public Collection<List<Boolean>> getCollectionList() { return null; }

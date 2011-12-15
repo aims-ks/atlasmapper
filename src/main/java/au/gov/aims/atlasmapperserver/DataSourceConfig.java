@@ -23,7 +23,6 @@ package au.gov.aims.atlasmapperserver;
 
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -39,21 +38,21 @@ import org.json.JSONObject;
  *
  * @author glafond
  */
-public class DatasourceConfig extends AbstractConfig implements Comparable<DatasourceConfig>, Cloneable {
-	private static final Logger LOGGER = Logger.getLogger(DatasourceConfig.class.getName());
+public class DataSourceConfig extends AbstractConfig implements Comparable<DataSourceConfig>, Cloneable {
+	private static final Logger LOGGER = Logger.getLogger(DataSourceConfig.class.getName());
 
 	// Grids records must have an unmutable ID
 	@ConfigField
 	private Integer id;
 
 	@ConfigField
-	private String datasourceId;
+	private String dataSourceId;
 
 	@ConfigField
-	private String datasourceName;
+	private String dataSourceName;
 
 	@ConfigField
-	private String datasourceType;
+	private String dataSourceType;
 
 	@ConfigField
 	private String wmsServiceUrl;
@@ -114,20 +113,20 @@ public class DatasourceConfig extends AbstractConfig implements Comparable<Datas
 	@ConfigField
 	private String comment;
 
-	public DatasourceConfig(ConfigManager configManager) {
+	public DataSourceConfig(ConfigManager configManager) {
 		super(configManager);
 	}
 
 	@Override
 	public void setJSONObjectKey(String key) {
-		if (Utils.isBlank(this.datasourceId)) {
-			this.datasourceId = key;
+		if (Utils.isBlank(this.dataSourceId)) {
+			this.dataSourceId = key;
 		}
 	}
 
 	@Override
 	public String getJSONObjectKey() {
-		return this.datasourceId;
+		return this.dataSourceId;
 	}
 
 	public Integer getId() {
@@ -165,12 +164,12 @@ public class DatasourceConfig extends AbstractConfig implements Comparable<Datas
 		this.globalManualOverride = globalManualOverride;
 	}
 
-	public String getDatasourceType() {
-		return datasourceType;
+	public String getDataSourceType() {
+		return dataSourceType;
 	}
 
-	public void setDatasourceType(String datasourceType) {
-		this.datasourceType = datasourceType;
+	public void setDataSourceType(String dataSourceType) {
+		this.dataSourceType = dataSourceType;
 	}
 
 	public String getFeatureRequestsUrl() {
@@ -234,24 +233,24 @@ public class DatasourceConfig extends AbstractConfig implements Comparable<Datas
 		return this.legendParametersJson;
 	}
 			
-	public String getDatasourceId() {
+	public String getDataSourceId() {
 		// Error protection against erronous manual config file edition
-		if (this.datasourceId == null && this.id != null) {
+		if (this.dataSourceId == null && this.id != null) {
 			return this.id.toString();
 		}
-		return this.datasourceId;
+		return this.dataSourceId;
 	}
 
-	public void setDatasourceId(String datasourceId) {
-		this.datasourceId = datasourceId;
+	public void setDataSourceId(String dataSourceId) {
+		this.dataSourceId = dataSourceId;
 	}
 
-	public String getDatasourceName() {
-		return datasourceName;
+	public String getDataSourceName() {
+		return dataSourceName;
 	}
 
-	public void setDatasourceName(String datasourceName) {
-		this.datasourceName = datasourceName;
+	public void setDataSourceName(String dataSourceName) {
+		this.dataSourceName = dataSourceName;
 	}
 
 	public String getExtraWmsServiceUrls() {
@@ -397,7 +396,7 @@ public class DatasourceConfig extends AbstractConfig implements Comparable<Datas
 			}
 		}
 
-		if (this.blacklistedLayerIdsSet.contains(layerId)) {
+		if (this.blacklistedLayerIdsSet != null && this.blacklistedLayerIdsSet.contains(layerId)) {
 			return true;
 		}
 		for (Pattern pattern : this.blacklistedLayerRegexesSet) {
@@ -435,20 +434,20 @@ public class DatasourceConfig extends AbstractConfig implements Comparable<Datas
 	}
 
 	// Helper
-	public Map<String, LayerConfig> getLayerConfigs(ClientConfig clientConfig) throws MalformedURLException, IOException, ServiceException, JSONException {
+	public Map<String, LayerConfig> getLayerConfigs(ClientConfig clientConfig) throws IOException, ServiceException, JSONException {
 		Map<String, LayerConfig> overridenLayerConfigs = new HashMap<String, LayerConfig>();
 
 		JSONObject globalOverrides = this.globalManualOverride;
 		JSONObject clientOverrides = clientConfig.getManualOverride();
 
-		// Retrieved raw layers, according to the datasource type
+		// Retrieved raw layers, according to the data source type
 		Map<String, LayerConfig> layersConfig = null;
 
 		// 'WMS', 'NCWMS', 'ARCGISWMS', 'GOOGLE', 'WMTS', 'KML', 'tiles', 'XYZ'
-		if ("GOOGLE".equals(this.datasourceType)) {
+		if ("GOOGLE".equals(this.dataSourceType)) {
 			layersConfig = GoogleLayers.getGoogleLayerConfigs(clientConfig, this);
 
-		} else if ("KML".equals(this.datasourceType)) {
+		} else if ("KML".equals(this.dataSourceType)) {
 			Set<String> _kmlUrlsSet = this.getKmlUrlsSet();
 			if (_kmlUrlsSet != null && !_kmlUrlsSet.isEmpty()) {
 				for (String kmlUrl : _kmlUrlsSet) {
@@ -459,7 +458,7 @@ public class DatasourceConfig extends AbstractConfig implements Comparable<Datas
 						String layerId = kmlUrl.substring(layerIdStart, layerIdEnd);
 
 						LayerConfig layer = new LayerConfig(this.getConfigManager());
-						layer.setDatasourceId(this.datasourceId);
+						layer.setDataSourceId(this.dataSourceId);
 						layer.setLayerId(layerId);
 						layer.setTitle(layerId);
 						layer.setKmlUrl(kmlUrl);
@@ -491,7 +490,6 @@ public class DatasourceConfig extends AbstractConfig implements Comparable<Datas
 				if (layerConfig != null && !this.isBlacklisted(layerConfig.getLayerId())) {
 					LayerConfig overridenLayerConfig =
 							layerConfig.applyOverrides(
-									this,
 									globalOverrides,
 									clientOverrides);
 
@@ -502,7 +500,7 @@ public class DatasourceConfig extends AbstractConfig implements Comparable<Datas
 			}
 		}
 
-		// Create manual layers defined for this datasource
+		// Create manual layers defined for this data source
 		if (globalOverrides != null && globalOverrides.length() > 0) {
 			Iterator<String> layerIds = globalOverrides.keys();
 			while (layerIds.hasNext()) {
@@ -522,9 +520,9 @@ public class DatasourceConfig extends AbstractConfig implements Comparable<Datas
 							}
 						}
 
-						// Add datasource info if omitted
-						if (Utils.isBlank(manualLayer.getDatasourceId())) {
-							manualLayer.setDatasourceId(this.datasourceId);
+						// Add data source info if omitted
+						if (Utils.isBlank(manualLayer.getDataSourceId())) {
+							manualLayer.setDataSourceId(this.dataSourceId);
 						}
 
 						overridenLayerConfigs.put(
@@ -539,15 +537,15 @@ public class DatasourceConfig extends AbstractConfig implements Comparable<Datas
 	}
 
 	@Override
-	// Order datasources by datasource name
-	public int compareTo(DatasourceConfig o) {
+	// Order data sources by data source name
+	public int compareTo(DataSourceConfig o) {
 		// Compare memory address and both null value
-		if (this == o || this.getDatasourceName() == o.getDatasourceName()) {
+		if (this == o || this.getDataSourceName() == o.getDataSourceName()) {
 			return 0;
 		}
 
-		String srvName = this.getDatasourceName();
-		String othName = o.getDatasourceName();
+		String srvName = this.getDataSourceName();
+		String othName = o.getDataSourceName();
 		// Move null a the end of the list. (Just in case; Null values should not append...)
 		if (srvName == null) { return -1; }
 		if (othName == null) { return 1; }
@@ -556,7 +554,7 @@ public class DatasourceConfig extends AbstractConfig implements Comparable<Datas
 	}
 
 	// Nothing to do here
-	public DatasourceConfig applyOverrides() {
+	public DataSourceConfig applyOverrides() {
 		return this;
 	}
 
@@ -571,11 +569,11 @@ public class DatasourceConfig extends AbstractConfig implements Comparable<Datas
 
 	@Override
 	public String toString() {
-		return "DatasourceConfig {\n" +
+		return "DataSourceConfig {\n" +
 				(id==null ? "" :                           "	id=" + id + "\n") +
-				(Utils.isBlank(datasourceId) ? "" :        "	datasourceId=" + datasourceId + "\n") +
-				(Utils.isBlank(datasourceName) ? "" :      "	datasourceName=" + datasourceName + "\n") +
-				(Utils.isBlank(datasourceType) ? "" :      "	datasourceType=" + datasourceType + "\n") +
+				(Utils.isBlank(dataSourceId) ? "" :        "	dataSourceId=" + dataSourceId + "\n") +
+				(Utils.isBlank(dataSourceName) ? "" :      "	dataSourceName=" + dataSourceName + "\n") +
+				(Utils.isBlank(dataSourceType) ? "" :      "	dataSourceType=" + dataSourceType + "\n") +
 				(Utils.isBlank(extraWmsServiceUrls) ? "" : "	serverUrls=" + extraWmsServiceUrls + "\n") +
 				(Utils.isBlank(kmlUrls) ? "" :             "	kmlUrls=" + kmlUrls + "\n") +
 				(Utils.isBlank(wmsServiceUrl) ? "" :       "	wmsServiceUrl=" + wmsServiceUrl + "\n") +
@@ -583,7 +581,7 @@ public class DatasourceConfig extends AbstractConfig implements Comparable<Datas
 				(Utils.isBlank(webCacheParameters) ? "" :  "	webCacheParameters=" + webCacheParameters + "\n") +
 				(Utils.isBlank(featureRequestsUrl) ? "" :  "	featureRequestsUrl=" + featureRequestsUrl + "\n") +
 				(Utils.isBlank(legendUrl) ? "" :           "	legendUrl=" + legendUrl + "\n") +
-				(legendParameters==null ? "" :             "	legendParameters=" + legendParameters.toString() + "\n") +
+				(legendParameters==null ? "" :             "	legendParameters=" + legendParameters + "\n") +
 				(Utils.isBlank(blacklistedLayers) ? "" :   "	blacklistedLayers=" + blacklistedLayers + "\n") +
 				(showInLegend==null ? "" :                 "	showInLegend=" + showInLegend + "\n") +
 				(Utils.isBlank(wmsRequestMimeType) ? "" :  "	wmsRequestMimeType=" + wmsRequestMimeType + "\n") +

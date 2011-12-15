@@ -22,6 +22,8 @@
 package au.gov.aims.atlasmapperserver;
 
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
+
+import java.util.Arrays;
 import java.util.List;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -30,8 +32,8 @@ import org.json.JSONObject;
  *
  * @author glafond
  */
-// NOTE Layers can override any fields of it's Datasource
-public class LayerConfig extends DatasourceConfig {
+// NOTE Layers can override any fields of it's data source
+public class LayerConfig extends DataSourceConfig {
 	// The id is not a ConfigField to avoid having it in the JSon object
 	private String layerId;
 
@@ -241,7 +243,6 @@ public class LayerConfig extends DatasourceConfig {
 	}
 
 	public LayerConfig applyOverrides(
-			DatasourceConfig datasource,
 			JSONObject globalOverrides,
 			JSONObject clientOverrides) throws JSONException {
 
@@ -261,11 +262,10 @@ public class LayerConfig extends DatasourceConfig {
 			}
 		}
 
-		return applyOverrides(datasource, layerGlobalOverride, layerClientOverride);
+		return applyOverrides(layerGlobalOverride, layerClientOverride);
 	}
 
 	public LayerConfig applyOverrides(
-			DatasourceConfig datasource,
 			LayerConfig globalOverride,
 			LayerConfig clientOverride) throws JSONException {
 
@@ -283,21 +283,21 @@ public class LayerConfig extends DatasourceConfig {
 	public String toString() {
 		return "LayerConfig {\n" +
 				(Utils.isBlank(layerId) ? "" :         "	layerId=" + layerId + "\n") +
-				(aliasIds==null ? "" :                 "	aliasIds=" + aliasIds + "\n") +
+				(aliasIds==null ? "" :                 "	aliasIds=" + Arrays.toString(aliasIds) + "\n") +
 				(Utils.isBlank(title) ? "" :           "	title=" + title + "\n") +
 				(Utils.isBlank(description) ? "" :     "	description=" + description + "\n") +
-				(layerBoundingBox==null ? "" :         "	layerBoundingBox=" + layerBoundingBox + "\n") +
-				(infoHtmlUrls==null ? "" :             "	infoHtmlUrls=" + infoHtmlUrls + "\n") +
+				(layerBoundingBox==null ? "" :         "	layerBoundingBox=" + Arrays.toString(layerBoundingBox) + "\n") +
+				(infoHtmlUrls==null ? "" :             "	infoHtmlUrls=" + Arrays.toString(infoHtmlUrls) + "\n") +
 				(isBaseLayer==null ? "" :              "	isBaseLayer=" + isBaseLayer + "\n") +
 				(hasLegend==null ? "" :                "	hasLegend=" + hasLegend + "\n") +
 				(Utils.isBlank(legendGroup) ? "" :     "	legendGroup=" + legendGroup + "\n") +
 				(Utils.isBlank(legendTitle) ? "" :     "	legendTitle=" + legendTitle + "\n") +
 				(wmsQueryable==null ? "" :             "	wmsQueryable=" + wmsQueryable + "\n") +
 				(Utils.isBlank(wmsPath) ? "" :         "	wmsPath=" + wmsPath + "\n") +
-				(wmsFeatureRequestLayers==null ? "" :  "	wmsFeatureRequestLayers=" + wmsFeatureRequestLayers + "\n") +
+				(wmsFeatureRequestLayers==null ? "" :  "	wmsFeatureRequestLayers=" + Arrays.toString(wmsFeatureRequestLayers) + "\n") +
 				(styles==null ? "" :                   "	styles=" + styles + "\n") +
 				(options==null ? "" :                  "	options=" + options + "\n") +
-				"	datasource=" + super.toString() + "\n" +
+				"	dataSource=" + super.toString() + "\n" +
 			'}';
 	}
 }

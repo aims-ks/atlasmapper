@@ -75,6 +75,8 @@ Ext.ux.form.NCDatetimeField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 	timeField: null,
 
 	initComponent: function() {
+		var that = this;
+
 		if (this.layer && !this.disabledDates) {
 			// Disable all dates until the service answer which dates are available.
 			this.disabledDates = ["^.*$"];
@@ -90,29 +92,6 @@ Ext.ux.form.NCDatetimeField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 			disabledDates: this.disabledDates,
 			disabledDatesText: this.disabledDatesText
 		};
-		if (typeof(this.width) != 'undefined') {
-			dateConfig.width = this.width;
-		}
-		if (typeof(this.anchor) != 'undefined') {
-			dateConfig.anchor = this.anchor;
-		}
-		if (typeof(this.minValue) != 'undefined') {
-			dateConfig.minValue = this.minValue;
-		}
-		if (typeof(this.maxValue) != 'undefined') {
-			dateConfig.maxValue = this.maxValue;
-		}
-		this.dateField = new Ext.ux.form.DateField(dateConfig);
-
-		var that = this;
-		// Override the dateField setValue method to reload timeField values at the same time
-		this.dateField.setValue = function(date) {
-			// NOTE: "this" refer to the dateField instance
-			var dateObj = this.parseDate(date);
-			that.reloadTimes(dateObj, false);
-			Ext.ux.form.DateField.superclass.setValue.call(this, date);
-		}
-
 
 		var timeConfig = {
 			fieldLabel: "Time",
@@ -127,12 +106,40 @@ Ext.ux.form.NCDatetimeField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 				fields: [0,1]
 			}
 		};
-		if (typeof(this.width) != 'undefined') {
-			timeConfig.width = this.width;
+
+		if (typeof(this.minValue) != 'undefined') {
+			dateConfig.minValue = this.minValue;
 		}
-		if (typeof(this.anchor) != 'undefined') {
-			timeConfig.anchor = this.anchor;
+		if (typeof(this.maxValue) != 'undefined') {
+			dateConfig.maxValue = this.maxValue;
 		}
+
+		if (typeof(this.itemsWidth) != 'undefined') {
+			if (Ext.isIE6) {
+				// IE6 need smaller widgets
+				this.itemsWidth = this.itemsWidth - 5;
+			}
+			dateConfig.width = this.itemsWidth;
+			timeConfig.width = this.itemsWidth;
+		} else {
+			if (typeof(this.itemsAnchor) == 'undefined') {
+				// IE6 can't display this widgets if its width is as large as the panel.
+				this.itemsAnchor = (Ext.isIE6 ? '-5' : '100%');
+			}
+			dateConfig.anchor = this.itemsAnchor;
+			timeConfig.anchor = this.itemsAnchor;
+		}
+
+		this.dateField = new Ext.ux.form.DateField(dateConfig);
+
+		// Override the dateField setValue method to reload timeField values at the same time
+		this.dateField.setValue = function(date) {
+			// NOTE: "this" refer to the dateField instance
+			var dateObj = this.parseDate(date);
+			that.reloadTimes(dateObj, false);
+			Ext.ux.form.DateField.superclass.setValue.call(this, date);
+		}
+
 		this.timeField = new Ext.form.TimeField(timeConfig);
 
 		this.items = [this.dateField, this.timeField];
@@ -140,7 +147,6 @@ Ext.ux.form.NCDatetimeField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 		function onChange() {
 			that.fireEvent('change', arguments);
 		}
-		this.dateField.on('select', onChange);
 		this.timeField.on('select', onChange);
 
 		Ext.ux.form.NCDatetimeField.superclass.initComponent.call(this);
@@ -149,6 +155,17 @@ Ext.ux.form.NCDatetimeField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 			// Load the dates as soon as the field is ready
 			that.reloadDates();
 		});
+	},
+
+	// override
+	destroy: function() {
+		if (this.dateField != null) {
+			this.dateField.destroy(); this.dateField = null;
+		}
+		if (this.timeField != null) {
+			this.timeField.destroy(); this.timeField = null;
+		}
+		Ext.ux.form.NCDatetimeField.superclass.destroy.call(this);
 	},
 
 	setLayer: function(layer) {
@@ -198,9 +215,14 @@ Ext.ux.form.NCDatetimeField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 				that._setAvailableDates(result, request);
 			},
 			function (result, request) {
+				var resultMessage = 'Unknown error';
+				try {
+					var jsonData = Ext.util.JSON.decode(result.responseText);
+					resultMessage = jsonData.data.result;
+				} catch (err) {
+					resultMessage = result.responseText;
+				}
 				// TODO Error on the page
-				var jsonData = Ext.util.JSON.decode(result.responseText);
-				var resultMessage = jsonData.data.result;
 				alert('Error while loading the calendar: ' + resultMessage);
 
 				that.dateField.setDisabledDates([]);
@@ -214,7 +236,27 @@ Ext.ux.form.NCDatetimeField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 			return;
 		}
 
-		var jsonData = Ext.util.JSON.decode(result.responseText);
+		var jsonData = null;
+		try {
+			jsonData = Ext.util.JSON.decode(result.responseText);
+		} catch (err) {
+			var resultMessage = result.responseText;
+			// TODO Error on the page
+			alert('Error while loading the calendar: ' + resultMessage);
+			return;
+		}
+		
+		if (jsonData == null) {
+			return;
+		}
+
+		if (jsonData.exception) {
+			// TODO Error on the page
+			alert('Error while loading the calendar: ' +
+				(jsonData.exception.message ? jsonData.exception.message : jsonData.exception));
+			return;
+		}
+
 		var dateArray = [];
 
 		if (jsonData['datesWithData']) {
@@ -279,10 +321,17 @@ Ext.ux.form.NCDatetimeField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 				that._setAvailableTimes(result, request, date, setTime);
 			},
 			function (result, request) {
+				var resultMessage = 'Unknown error';
+				try {
+					var jsonData = Ext.util.JSON.decode(result.responseText);
+					resultMessage = jsonData.data.result;
+				} catch (err) {
+					resultMessage = result.responseText;
+				}
 				// TODO Error on the page
-				var jsonData = Ext.util.JSON.decode(result.responseText);
-				var resultMessage = jsonData.data.result;
 				alert('Error while loading the times: ' + resultMessage);
+
+				that.dateField.setDisabledDates([]);
 			}
 		);
 	},
@@ -293,7 +342,27 @@ Ext.ux.form.NCDatetimeField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 			return;
 		}
 
-		var jsonData = Ext.util.JSON.decode(result.responseText);
+		var jsonData = null;
+		try {
+			jsonData = Ext.util.JSON.decode(result.responseText);
+		} catch (err) {
+			var resultMessage = result.responseText;
+			// TODO Error on the page
+			alert('Error while loading the times: ' + resultMessage);
+			return;
+		}
+		
+		if (jsonData == null) {
+			return;
+		}
+
+		if (jsonData.exception) {
+			// TODO Error on the page
+			alert('Error while loading the times: ' +
+				(jsonData.exception.message ? jsonData.exception.message : jsonData.exception));
+			return;
+		}
+
 		var timesArray = [];
 
 		var selectedTimeStr = selectedTime.format(this.timeFormat);
@@ -330,6 +399,7 @@ Ext.ux.form.NCDatetimeField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 			//this.timeField.hide();
 			this.timeField.disable();
 		}
+		this.fireEvent('change', arguments);
 	},
 
 	getValue: function() {

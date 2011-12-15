@@ -29,10 +29,10 @@ import java.util.List;
  * @author Gael Lafond <g.lafond@aims.org.au>
  */
 public class GetCapabilitiesExceptions extends Throwable {
-	private List<DatasourceException> exceptions;
+	private List<DataSourceException> exceptions;
 
 	public GetCapabilitiesExceptions() {
-		this.exceptions = new ArrayList<DatasourceException>();
+		this.exceptions = new ArrayList<DataSourceException>();
 	}
 
 	@Override
@@ -41,25 +41,25 @@ public class GetCapabilitiesExceptions extends Throwable {
 		errorMsg.append(this.exceptions.size());
 		errorMsg.append(" capabilities document(s):\n");
 		boolean first = true;
-		for (DatasourceException datasourceException : this.exceptions) {
+		for (DataSourceException dataSourceException : this.exceptions) {
 			if (!first) { errorMsg.append("\n"); }
 			first = false;
 			errorMsg.append("- ");
-			errorMsg.append(datasourceException.datasource.getDatasourceName());
+			errorMsg.append(dataSourceException.dataSource.getDataSourceName());
 			errorMsg.append(" [");
-			errorMsg.append(datasourceException.datasource.getWmsServiceUrl());
+			errorMsg.append(dataSourceException.dataSource.getWmsServiceUrl());
 			errorMsg.append("]: ");
-			errorMsg.append(datasourceException.errorMessage);
+			errorMsg.append(dataSourceException.errorMessage);
 		}
 		return errorMsg.toString();
 	}
 
-	private class DatasourceException {
-		public DatasourceConfig datasource;
+	private class DataSourceException {
+		public DataSourceConfig dataSource;
 		public String errorMessage;
 
-		public DatasourceException(DatasourceConfig datasource, String errorMessage) {
-			this.datasource = datasource;
+		public DataSourceException(DataSourceConfig dataSource, String errorMessage) {
+			this.dataSource = dataSource;
 			this.errorMessage = errorMessage;
 		}
 	}
@@ -74,11 +74,11 @@ public class GetCapabilitiesExceptions extends Throwable {
 		return this.exceptions.isEmpty();
 	}
 
-	public void add(DatasourceConfig datasource, Exception ex) {
-		this.exceptions.add(new DatasourceException(datasource, ex.getMessage()));
+	public void add(DataSourceConfig dataSource, Exception ex) {
+		this.exceptions.add(new DataSourceException(dataSource, ex.getMessage()));
 	}
-	public void add(DatasourceConfig datasource, String errorMessage) {
-		this.exceptions.add(new DatasourceException(datasource, errorMessage));
+	public void add(DataSourceConfig dataSource, String errorMessage) {
+		this.exceptions.add(new DataSourceException(dataSource, errorMessage));
 	}
 
 	public void clear() {

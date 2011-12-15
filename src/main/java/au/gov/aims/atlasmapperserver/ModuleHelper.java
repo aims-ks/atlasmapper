@@ -48,9 +48,12 @@ public class ModuleHelper {
 	 * @throws JSONException
 	 */
 	public static JSONObject generateModuleConfiguration(String moduleName, ClientConfig clientConfig) throws JSONException {
-		AbstractModule moduleClass = getModules().get(moduleName);
-		if (moduleClass != null) {
-			return moduleClass.getJSONConfiguration(clientConfig);
+		AbstractModule moduleObj = getModules().get(moduleName);
+		if (moduleObj != null) {
+			JSONObject moduleJSon = new JSONObject();
+			moduleJSon.put("version", moduleObj.getVersion());
+			moduleJSon.put("config", moduleObj.getJSONConfiguration(clientConfig));
+			return moduleJSon;
 		}
 		return null;
 	}

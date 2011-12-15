@@ -110,6 +110,44 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 			]
 		});
 
+		// Determine if the layer need a reload by comparing the values
+		// of the new parameters with the one in the layer URL.
+		// layer: OpenLayers layer
+		// newParams: Map of key value pairs
+		// private
+		this.changeLayerParams = function(layer, newParams) {
+			// Change the URL of the layer to use the appropriate server
+			// NOTE: setUrl must be called before mergeNewParams (mergeNewParams reload the tiles, setUrl don't; when called in wrong order, tiles are requested against the wrong server)
+			var needReload = false;
+
+			var newUrl = that.mapPanel.getWMSServiceUrl(layer.json, that._mergeParams(layer.params, newParams));
+			if (newUrl != layer.url) {
+				layer.setUrl(newUrl);
+				needReload = true;
+			}
+
+			// Loop through all params and check if it's value is the
+			// same as the one set for the layer. If not, ask for a
+			// layer reload (stop as soon as one is different)
+			if (!needReload) {
+				var currentValue = null;
+				Ext.iterate(newParams, function(key, value) {
+					currentValue = that.getParameterActualValue(layer, key, null);
+					if (currentValue != value) {
+						needReload = true;
+						// Stop the iteration
+						return false;
+					}
+				});
+			}
+
+			if (needReload) {
+				// Merge params add the new params or change the values
+				// of existing one and reload the tiles.
+				layer.mergeNewParams(newParams);
+			}
+		};
+
 		this.onExtraOptionChange = function() {
 			if (that.extraOptionsFieldSet && that.extraOptionsFieldSet.items) {
 				var layer = that.currentLayer;
@@ -124,17 +162,15 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 							// Set the new parameter, or unset it if it has a null value (don't remove STYLES - it's mandatory).
 							if (optionName != 'STYLES' && (typeof(optionValue) == 'undefined' || optionValue == null || optionValue == '')) {
 								// Remove the param from the URL - Some server don't like to have en empty parameter
-								delete layer.params[optionName];
+								// NOTE: OpenLayers filter null values
+								newParams[optionName] = null;
 							} else {
 								newParams[optionName] = optionValue;
 							}
 						}
 					});
 
-					// Change the URL of the layer to use the appropriate server
-					// NOTE: setUrl must be called before mergeNewParams (mergeNewParams reload the tiles, setUrl don't; when called in wrong order, tiles are requested against the wrong server)
-					layer.setUrl(that.mapPanel.getWMSServiceUrl(layer.json, that._mergeParams(layer.params, newParams)));
-					layer.mergeNewParams(newParams);
+					that.changeLayerParams(layer, newParams);
 				}
 			}
 		};
@@ -161,17 +197,15 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 							// Set the new parameter, or unset it if it has a null value (don't remove STYLES - it's mandatory).
 							if (optionName != 'STYLES' && (typeof(optionValue) == 'undefined' || optionValue == null || optionValue == '')) {
 								// Remove the param from the URL - Some server don't like to have en empty parameter
-								delete layer.params[optionName];
+								// NOTE: OpenLayers filter null values
+								newParams[optionName] = null;
 							} else {
 								newParams[optionName] = optionValue;
 							}
 						}
 					});
 
-					// Change the URL of the layer to use the appropriate server
-					// NOTE: setUrl must be called before mergeNewParams (mergeNewParams reload the tiles, setUrl don't; when called in wrong order, tiles are requested against the wrong server)
-					layer.setUrl(that.mapPanel.getWMSServiceUrl(layer.json, that._mergeParams(layer.params, newParams)));
-					layer.mergeNewParams(newParams);
+					that.changeLayerParams(layer, newParams);
 				}
 			}
 		};
@@ -237,12 +271,12 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 		var hasLegendEnabled = false;
 		var opacityEnabled = false;
 
-		// Delete previous extra options, if any
+		// Delete (remove & destroy) previous extra options, if any
 		this.extraOptionsFieldSet.hide();
-		this.extraOptionsFieldSet.removeAll();
+		this.extraOptionsFieldSet.removeAll(true);
 
 		this.ncwmsOptionsFieldSet.hide();
-		this.ncwmsOptionsFieldSet.removeAll();
+		this.ncwmsOptionsFieldSet.removeAll(true);
 
 		this.currentLayer = layer;
 
@@ -320,7 +354,7 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 				}
 
 				// Set ncWMS options
-				if (layer.json['datasourceType'] == 'NCWMS') {
+				if (layer.json['dataSourceType'] == 'NCWMS') {
 					var serviceUrl = layer.json['wmsServiceUrl'];
 
 					var url = serviceUrl + '?' + Ext.urlEncode({
@@ -338,9 +372,14 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 							that._setNCWMSOptions(result, request, layer);
 						},
 						function (result, request) {
+							var resultMessage = 'Unknown error';
+							try {
+								var jsonData = Ext.util.JSON.decode(result.responseText);
+								resultMessage = jsonData.data.result;
+							} catch (err) {
+								resultMessage = result.responseText;
+							}
 							// TODO Error on the page
-							var jsonData = Ext.util.JSON.decode(result.responseText);
-							var resultMessage = jsonData.data.result;
 							alert('Error while loading ncWMS options: ' + resultMessage);
 						}
 					);
@@ -414,119 +453,137 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 	},
 
 	/**
-	 * Inspired from godiva2.js
+	 * Inspired on godiva2.js
 	 * http://localhost:13080/ncWMS/js/godiva2.js
 	 */
 	_setNCWMSOptions: function(result, request, layer) {
-		var layerDetails = Ext.util.JSON.decode(result.responseText);
-
-		// TODO Do something with those
-		var units = layerDetails.units;
-		var copyright = layerDetails.copyright;
-		var palettes = layerDetails.palettes;
-
-		// Z Axis (Elevation/Depth) option
-		var zAxis = layerDetails.zaxis;
-		if (zAxis != null) {
-			var zAxisParam = 'ELEVATION';
-
-			// Currently selected value.
-			var zValue =
-				this.getParameterActualValue(layer, zAxisParam, 0);
-
-			var zAxisOptions = [];
-			var zAxisLabel = (zAxis.positive ? 'Elevation' : 'Depth') + ' (' + zAxis.units + ')';
-			// Populate the drop-down list of z values
-			// Make z range selector invisible if there are no z values
-			var zValues = zAxis.values;
-			var zDiff = 1e10; // Set to some ridiculously-high value
-			var defaultValue = 0;
-			for (var j = 0; j < zValues.length; j++) {
-				// Create an item in the drop-down list for this z level
-				var zLabel = zAxis.positive ? zValues[j] : -zValues[j];
-				zAxisOptions[j] = [zValues[j], zLabel];
-				// Find the nearest value to the currently-selected
-				// depth level
-				var diff = Math.abs(parseFloat(zValues[j]) - zValue);
-				if (diff < zDiff) {
-					zDiff = diff;
-					defaultValue = zValues[j];
-				}
+		if (layer == this.currentLayer) {
+			var layerDetails = null;
+			try {
+				layerDetails = Ext.util.JSON.decode(result.responseText);
+			} catch (err) {
+				var resultMessage = result.responseText;
+				// TODO Error on the page
+				alert('Error while loading ncWMS options: ' + resultMessage);
+				return;
+			}
+			
+			if (layerDetails == null) {
+				return;
 			}
 
-			if (zAxisOptions.length > 1) {
-				var zAxisSelect = {
-					xtype: "combo",
-					name: zAxisParam,
-					fieldLabel: zAxisLabel,
-					value: defaultValue,
-					typeAhead: false,
-					triggerAction: 'all',
-					lazyRender: true,
-					mode: 'local',
-					store: new Ext.data.ArrayStore({
-						id: 0,
-						fields: [
-							'name',
-							'title'
-						],
-						data: zAxisOptions
-					}),
-					valueField: 'name',
-					displayField: 'title',
-					allowBlank: false,
-					listeners: {
-						select: this.onNCWMSExtraOptionChange
+			if (layerDetails.exception) {
+				// TODO Error on the page
+				alert('Error while loading ncWMS options: ' +
+					(layerDetails.exception.message ? layerDetails.exception.message : layerDetails.exception));
+				return;
+			}
+
+			// TODO Do something with those
+			var units = layerDetails.units;
+			var copyright = layerDetails.copyright;
+			var palettes = layerDetails.palettes;
+
+			// Z Axis (Elevation/Depth) option
+			var zAxis = layerDetails.zaxis;
+			if (zAxis != null) {
+				var zAxisParam = 'ELEVATION';
+
+				// Currently selected value.
+				var zValue =
+					this.getParameterActualValue(layer, zAxisParam, 0);
+
+				var zAxisOptions = [];
+				var zAxisLabel = (zAxis.positive ? 'Elevation' : 'Depth') + ' (' + zAxis.units + ')';
+				// Populate the drop-down list of z values
+				// Make z range selector invisible if there are no z values
+				var zValues = zAxis.values;
+				var zDiff = 1e10; // Set to some ridiculously-high value
+				var defaultValue = 0;
+				for (var j = 0; j < zValues.length; j++) {
+					// Create an item in the drop-down list for this z level
+					var zLabel = zAxis.positive ? zValues[j] : -zValues[j];
+					zAxisOptions[j] = [zValues[j], zLabel];
+					// Find the nearest value to the currently-selected
+					// depth level
+					var diff = Math.abs(parseFloat(zValues[j]) - zValue);
+					if (diff < zDiff) {
+						zDiff = diff;
+						defaultValue = zValues[j];
 					}
-				};
-				this.ncwmsOptionsFieldSet.add(zAxisSelect);
-			}
-		}
-
-		// Set the scale value if this is present in the metadata
-		if (typeof layerDetails.scaleRange != 'undefined' &&
-				layerDetails.scaleRange != null &&
-				layerDetails.scaleRange.length > 1 &&
-				layerDetails.scaleRange[0] != layerDetails.scaleRange[1]) {
-			var scaleParam = 'COLORSCALERANGE';
-
-			var scaleMinVal = null;
-			var scaleMaxVal = null;
-
-			var minmaxField = new Ext.ux.form.MinMaxField({
-				fieldLabel: 'Color ranges',
-				name: scaleParam,
-				decimalPrecision: 4,
-				listeners: {
-					change: this.onNCWMSExtraOptionChange
 				}
-			});
 
-			var actualValue =
-				this.getParameterActualValue(layer, scaleParam, null);
-
-			if (actualValue != null) {
-				var values = actualValue.split(minmaxField.spacer);
-				scaleMinVal = values[0];
-				scaleMaxVal = values[1];
+				if (zAxisOptions.length > 1) {
+					var zAxisSelect = {
+						xtype: "combo",
+						name: zAxisParam,
+						fieldLabel: zAxisLabel,
+						value: defaultValue,
+						typeAhead: false,
+						triggerAction: 'all',
+						lazyRender: true,
+						mode: 'local',
+						store: new Ext.data.ArrayStore({
+							id: 0,
+							fields: [
+								'name',
+								'title'
+							],
+							data: zAxisOptions
+						}),
+						valueField: 'name',
+						displayField: 'title',
+						allowBlank: false,
+						listeners: {
+							select: this.onNCWMSExtraOptionChange
+						}
+					};
+					this.ncwmsOptionsFieldSet.add(zAxisSelect);
+				}
 			}
 
-			if (scaleMinVal == null) {
-				scaleMinVal = parseFloat(layerDetails.scaleRange[0]);
-			}
-			if (scaleMaxVal == null) {
-				scaleMaxVal = parseFloat(layerDetails.scaleRange[1]);
+			// Set the scale value if this is present in the metadata
+			if (typeof layerDetails.scaleRange != 'undefined' &&
+					layerDetails.scaleRange != null &&
+					layerDetails.scaleRange.length > 1 &&
+					layerDetails.scaleRange[0] != layerDetails.scaleRange[1]) {
+				var scaleParam = 'COLORSCALERANGE';
+
+				var scaleMinVal = null;
+				var scaleMaxVal = null;
+
+				var minmaxField = new Ext.ux.form.MinMaxField({
+					fieldLabel: 'Color ranges',
+					name: scaleParam,
+					decimalPrecision: 4,
+					listeners: {
+						change: this.onNCWMSExtraOptionChange
+					}
+				});
+
+				var actualValue =
+					this.getParameterActualValue(layer, scaleParam, null);
+
+				if (actualValue != null) {
+					var values = actualValue.split(minmaxField.spacer);
+					scaleMinVal = values[0];
+					scaleMaxVal = values[1];
+				}
+
+				if (scaleMinVal == null) {
+					scaleMinVal = parseFloat(layerDetails.scaleRange[0]);
+				}
+				if (scaleMaxVal == null) {
+					scaleMaxVal = parseFloat(layerDetails.scaleRange[1]);
+				}
+
+				minmaxField.setValue(scaleMinVal, scaleMaxVal);
+
+				this.ncwmsOptionsFieldSet.add(minmaxField);
 			}
 
-			minmaxField.setValue(scaleMinVal, scaleMaxVal);
-
-			this.ncwmsOptionsFieldSet.add(minmaxField);
+			this.showHideNcwmsOptions(layer);
 		}
-
-		this.showHideNcwmsOptions(layer);
-
-		// NCDateTimeField
-		// minValue maxValue
 	},
 
 	/**
@@ -577,6 +634,10 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 			if (this.isRendered(layer)) {
 				this.opacitySlider.setLayer(layer);
 			}
+
+			if (!Ext.isIE6) {
+				this.doLayout();
+			}
 		} else {
 			// There is no layer
 
@@ -616,6 +677,10 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 					this.ncwmsOptionsFieldSet.disable();
 				}
 			}
+
+			if (!Ext.isIE6) {
+				this.doLayout();
+			}
 		}
 	},
 
@@ -628,14 +693,25 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 	},
 
 	getParameterActualValue: function(layer, param, defaultValue) {
-		if (layer.params && typeof(layer.params[param]) !== 'undefined') {
+		if (!layer.params) {
+			return defaultValue;
+		}
+
+		if (typeof(layer.params[param]) !== 'undefined') {
 			return layer.params[param];
 		}
+
+		// Try with to uppercase the parameter; OpenLayers usually put all parameters in uppercase.
+		var uppercaseParam = param.toUpperCase();
+		if (typeof(layer.params[uppercaseParam]) !== 'undefined') {
+			return layer.params[uppercaseParam];
+		}
+
 		return defaultValue;
 	},
 
 	isRendered: function(layer) {
-		return (layer.id ? true : false);
+		return (typeof(layer.id) === 'undefined' ? false : true);
 	}
 });
 

@@ -41,15 +41,15 @@ public class DefaultConfigFilesTest extends TestCase  {
 		assertEquals("1.0", cm.getConfigVersion());
 
 
-		MultiKeyHashMap<Integer, String, DatasourceConfig> datasourceConfigs = cm.getDatasourceConfigs();
-		assertNotNull(datasourceConfigs);
-		assertEquals(2, datasourceConfigs.size());
+		MultiKeyHashMap<Integer, String, DataSourceConfig> dataSourceConfigs = cm.getDataSourceConfigs();
+		assertNotNull(dataSourceConfigs);
+		assertEquals(2, dataSourceConfigs.size());
 
-		DatasourceConfig eatlas = datasourceConfigs.get2("ea");
-		assertEquals("e-Atlas", eatlas.getDatasourceName());
+		DataSourceConfig eatlas = dataSourceConfigs.get2("ea");
+		assertEquals("e-Atlas", eatlas.getDataSourceName());
 
-		DatasourceConfig opengeo = datasourceConfigs.get2("og");
-		assertEquals("OpenGeo", opengeo.getDatasourceName());
+		DataSourceConfig opengeo = dataSourceConfigs.get2("og");
+		assertEquals("OpenGeo", opengeo.getDataSourceName());
 
 
 		MultiKeyHashMap<Integer, String, ClientConfig> clientConfigs = cm.getClientConfigs();

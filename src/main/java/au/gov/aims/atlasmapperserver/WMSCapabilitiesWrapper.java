@@ -21,16 +21,8 @@
 
 package au.gov.aims.atlasmapperserver;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
@@ -41,14 +33,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.zip.GZIPInputStream;
+
 import org.geotools.data.ows.CRSEnvelope;
 import org.geotools.data.ows.GetCapabilitiesRequest;
 import org.geotools.data.ows.GetCapabilitiesResponse;
 import org.geotools.data.ows.Layer;
 import org.geotools.data.ows.OperationType;
 import org.geotools.data.ows.Request;
-import org.geotools.data.ows.Response;
 import org.geotools.data.ows.Service;
 import org.geotools.data.ows.StyleImpl;
 import org.geotools.data.ows.WMSCapabilities;
@@ -85,7 +76,7 @@ public class WMSCapabilitiesWrapper {
 	private URL webCacheUrl = null;
 	private URL legendUrl = null;
 
-	public static WMSCapabilitiesWrapper getInstance(String getCapabilitiesURL) throws MalformedURLException, IOException, ServiceException {
+	public static WMSCapabilitiesWrapper getInstance(String getCapabilitiesURL) throws IOException, ServiceException {
 		if (getCapabilitiesURL == null) { return null; }
 
 		if (capabilitiesDocumentsCache == null) {
@@ -103,7 +94,7 @@ public class WMSCapabilitiesWrapper {
 		return capabilitiesDocumentsCache.get(getCapabilitiesURL);
 	}
 
-	private WMSCapabilitiesWrapper(String getCapabilitiesURL) throws MalformedURLException, IOException, ServiceException {
+	private WMSCapabilitiesWrapper(String getCapabilitiesURL) throws IOException, ServiceException {
 		this.wmsCapabilities = this.getWMSCapabilities(getCapabilitiesURL);
 		this.layerConfigsCache = new HashMap<String, Map<String, LayerConfig>>();
 		this.instanceTimestamp = Utils.getCurrentTimestamp();
@@ -135,7 +126,7 @@ public class WMSCapabilitiesWrapper {
 		// TODO Find a nicer way to detect if the URL is a complete URL to a GetCapabilities document
 		if (urlStr.startsWith("file://")) {
 			GetCapabilitiesRequest req = getCapRequest(url);
-			GetCapabilitiesResponse resp = (GetCapabilitiesResponse)this.issueFileRequest(req);
+			GetCapabilitiesResponse resp = this.issueFileRequest(req);
 			return (WMSCapabilities)resp.getCapabilities();
 
 		} else if (urlStr.contains("?")) {
@@ -179,14 +170,14 @@ public class WMSCapabilitiesWrapper {
 	/**
 	 * Remove capabilities documents that are not in use anymore.
 	 * This method avoid the cache to represent a memory leak.
-	 * @param datasources
+	 * @param dataSources
 	 */
-	protected static synchronized void cleanupCapabilitiesDocumentsCache(Collection<DatasourceConfig> datasources) {
+	protected static synchronized void cleanupCapabilitiesDocumentsCache(Collection<DataSourceConfig> dataSources) {
 		if (capabilitiesDocumentsCache != null) {
 			long timeout = Utils.getCurrentTimestamp() - WMS_CAPABILITIES_CACHE_TIMEOUT;
 			Map<String, WMSCapabilitiesWrapper> cleanCache = new HashMap<String, WMSCapabilitiesWrapper>();
-			for (DatasourceConfig datasource : datasources) {
-				String capUrl = datasource.getWmsServiceUrl();
+			for (DataSourceConfig dataSource : dataSources) {
+				String capUrl = dataSource.getWmsServiceUrl();
 				WMSCapabilitiesWrapper cap = capabilitiesDocumentsCache.get(capUrl);
 				if (cap != null && cap.instanceTimestamp > timeout) {
 					cleanCache.put(capUrl, cap);
@@ -203,11 +194,11 @@ public class WMSCapabilitiesWrapper {
 		return op.getGet();
 	}
 
-	public Map<String, LayerConfig> getLayerConfigs(ClientConfig clientConfig, DatasourceConfig datasourceConfig) {
+	public Map<String, LayerConfig> getLayerConfigs(ClientConfig clientConfig, DataSourceConfig dataSourceConfig) {
 		Map<String, LayerConfig> configs = this.layerConfigsCache.get(clientConfig.getClientId());
 		if (configs == null) {
 			// API: http://docs.geotools.org/latest/javadocs/org/geotools/data/ows/WMSCapabilities.html
-			configs = this.getLayersInfoFromCaps(clientConfig, datasourceConfig);
+			configs = this.getLayersInfoFromCaps(clientConfig, dataSourceConfig);
 			this.layerConfigsCache.put(clientConfig.getClientId(), configs);
 		}
 		return configs;
@@ -247,7 +238,7 @@ public class WMSCapabilitiesWrapper {
 
 	private Map<String, LayerConfig> getLayersInfoFromCaps(
 			ClientConfig clientConfig,        // Client's specific layers information (base layers list override, etc.)
-			DatasourceConfig datasourceConfig // Datasource of layers (to link the layer to its datasource)
+			DataSourceConfig dataSourceConfig // Data source of layers (to link the layer to its data source)
 	) {
 
 		// http://docs.geotools.org/stable/javadocs/org/geotools/data/wms/WebMapServer.html
@@ -256,17 +247,17 @@ public class WMSCapabilitiesWrapper {
 		Map<String, LayerConfig> layerInfos = new HashMap<String, LayerConfig>();
 		// Can add it in the config if some users think it's usefull to see the root...
 
-		return this._getLayersInfoFromGeoToolRootLayer(layerInfos, rootLayer, new LinkedList<String>(), clientConfig, datasourceConfig, true);
+		return this._getLayersInfoFromGeoToolRootLayer(layerInfos, rootLayer, new LinkedList<String>(), clientConfig, dataSourceConfig, true);
 	}
 
-	public DatasourceConfig applyOverrides(DatasourceConfig datasourceConfig) {
-		DatasourceConfig clone = (DatasourceConfig)datasourceConfig.clone();
+	public DataSourceConfig applyOverrides(DataSourceConfig dataSourceConfig) {
+		DataSourceConfig clone = (DataSourceConfig) dataSourceConfig.clone();
 
 		if (this.featureRequestsUrl != null && Utils.isBlank(clone.getFeatureRequestsUrl())) {
 			clone.setFeatureRequestsUrl(this.featureRequestsUrl.toString());
 		}
 
-		// The wmsServiceUrl set in the DatasourceConfig is the one set in the
+		// The wmsServiceUrl set in the DataSourceConfig is the one set in the
 		// AtlasMapper server GUI. It may contains the capabilities URL.
 		// The GetMap URL found in the capabilities document is always safer.
 		if (this.wmsServiceUrl != null) {
@@ -307,7 +298,7 @@ public class WMSCapabilitiesWrapper {
 			Layer layer,
 			List<String> wmsPath,
 			ClientConfig clientConfig,
-			DatasourceConfig datasourceConfig,
+			DataSourceConfig dataSourceConfig,
 			boolean isRoot) {
 
 		if (layer == null) {
@@ -335,7 +326,7 @@ public class WMSCapabilitiesWrapper {
 			}
 
 			for (Layer childLayer : children) {
-				layerConfigs = _getLayersInfoFromGeoToolRootLayer(layerConfigs, childLayer, childrenWmsPath, clientConfig, datasourceConfig, false);
+				layerConfigs = _getLayersInfoFromGeoToolRootLayer(layerConfigs, childLayer, childrenWmsPath, clientConfig, dataSourceConfig, false);
 			}
 		} else {
 			// The layer do not have any children, so it is a real layer
@@ -351,7 +342,7 @@ public class WMSCapabilitiesWrapper {
 				}
 			}
 
-			LayerConfig layerConfig = this.layerToLayerConfig(layer, wmsPathBuf.toString(), clientConfig, datasourceConfig);
+			LayerConfig layerConfig = this.layerToLayerConfig(layer, wmsPathBuf.toString(), clientConfig, dataSourceConfig);
 			if (layerConfig != null) {
 				layerConfigs.put(layerConfig.getLayerId(), layerConfig);
 			}
@@ -364,12 +355,12 @@ public class WMSCapabilitiesWrapper {
 			Layer layer,
 			String wmsPath,
 			ClientConfig clientConfig,
-			DatasourceConfig datasourceConfig) {
+			DataSourceConfig dataSourceConfig) {
 
 		LayerConfig layerConfig = new LayerConfig(clientConfig.getConfigManager());
 
-		// Link the layer to it's datasource
-		layerConfig.setDatasourceId(datasourceConfig.getDatasourceId());
+		// Link the layer to it's data source
+		layerConfig.setDataSourceId(dataSourceConfig.getDataSourceId());
 
 		String layerId = layer.getName();
 		if (Utils.isBlank(layerId)) {
@@ -394,11 +385,11 @@ public class WMSCapabilitiesWrapper {
 		}
 
 		// Set Baselayer flag if the layer is defined as a base layer in the client OR the client do not define any base layers and the layer is defined as a baselayer is the global config
-		if (clientConfig != null && clientConfig.isOverrideBaseLayers() != null && clientConfig.isOverrideBaseLayers()) {
+		if (clientConfig.isOverrideBaseLayers() != null && clientConfig.isOverrideBaseLayers()) {
 			if (clientConfig.isBaseLayer(layerId)) {
 				layerConfig.setIsBaseLayer(true);
 			}
-		} else if (datasourceConfig != null && datasourceConfig.isBaseLayer(layerId)) {
+		} else if (dataSourceConfig.isBaseLayer(layerId)) {
 			layerConfig.setIsBaseLayer(true);
 		}
 
@@ -417,8 +408,7 @@ public class WMSCapabilitiesWrapper {
 			}
 		}
 
-		CRSEnvelope boundingBox = null;
-		boundingBox = layer.getLatLonBoundingBox();
+		CRSEnvelope boundingBox = layer.getLatLonBoundingBox();
 		if (boundingBox != null) {
 			double[] boundingBoxArray = {
 					boundingBox.getMinX(), boundingBox.getMinY(),

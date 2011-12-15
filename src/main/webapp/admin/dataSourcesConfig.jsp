@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-	Document   : datasourcesConfig
+	Document   : dataSourcesConfig
 	Created on : 28/06/2011, 4:08:39 PM
 	Author     : glafond
 --%>
@@ -28,18 +28,20 @@
 <%@page import="java.util.logging.Level"%>
 <%@page import="java.util.logging.Logger"%>
 <%@page import="org.json.JSONArray"%>
-<%@page import="au.gov.aims.atlasmapperserver.DatasourceConfig"%>
+<%@page import="au.gov.aims.atlasmapperserver.DataSourceConfig"%>
 <%@page import="au.gov.aims.atlasmapperserver.ConfigHelper"%>
 <%@page import="org.json.JSONObject"%>
 <%@page import="au.gov.aims.atlasmapperserver.ConfigManager"%>
 <%@page import="au.gov.aims.atlasmapperserver.ActionType"%>
 <%@page contentType="application/json" pageEncoding="UTF-8"%>
 <%
-	Logger LOGGER = Logger.getLogger("datasourcesConfig.jsp");
+	Logger LOGGER = Logger.getLogger("dataSourcesConfig.jsp");
 
 	ConfigManager configManager = ConfigHelper.getConfigManager(this.getServletContext());
 
 	String actionStr = request.getParameter("action");
+	String dataSourceId = request.getParameter("dataSourceId");
+	String idStr = request.getParameter("id");
 
 	JSONObject jsonObj = new JSONObject();
 
@@ -60,25 +62,25 @@
 						response.setStatus(HttpServletResponse.SC_OK);
 						jsonObj.put("success", true);
 						jsonObj.put("message", "Loaded data");
-						jsonObj.put("data", configManager.getDatasourceConfigsJSon());
+						jsonObj.put("data", configManager.getDataSourceConfigsJSon());
 					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "An error occured while retriving the datasource configuration.", e);
+						LOGGER.log(Level.SEVERE, "An error occurred while retrieving the data source configuration.", e);
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						jsonObj.put("success", false);
-						jsonObj.put("errors", new JSONArray().put("An error occured while retriving the datasource configuration. Check your server log."));
+						jsonObj.put("errors", new JSONArray().put("An error occurred while retrieving the data source configuration. Check your server log."));
 					}
 					break;
 
 				case CREATE:
 					// Get data from the form, create the config entry, save it, display the result
 					try {
-						List<DatasourceConfig> datasourceConfigs = configManager.createDatasourceConfig(request);
-						JSONArray datasourceJSonArr = new JSONArray();;
-						if (datasourceConfigs != null) {
-							for (DatasourceConfig datasourceConfig : datasourceConfigs) {
-								JSONObject datasourceJSon = datasourceConfig.toJSonObject();
-								if (datasourceJSon != null) {
-									datasourceJSonArr.put(datasourceJSon);
+						List<DataSourceConfig> dataSourceConfigs = configManager.createDataSourceConfig(request);
+						JSONArray dataSourceJSonArr = new JSONArray();;
+						if (dataSourceConfigs != null) {
+							for (DataSourceConfig dataSourceConfig : dataSourceConfigs) {
+								JSONObject dataSourceJSon = dataSourceConfig.toJSonObject();
+								if (dataSourceJSon != null) {
+									dataSourceJSonArr.put(dataSourceJSon);
 								}
 							}
 						}
@@ -86,46 +88,71 @@
 						response.setStatus(HttpServletResponse.SC_OK);
 						jsonObj.put("success", true);
 						jsonObj.put("message", "Created record");
-						jsonObj.put("data", datasourceJSonArr);
+						jsonObj.put("data", dataSourceJSonArr);
 					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "An error occured while creating a new datasource.", e);
+						LOGGER.log(Level.SEVERE, "An error occurred while creating a new data source.", e);
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						jsonObj.put("success", false);
-						jsonObj.put("errors", new JSONArray().put("An error occured while creating a new datasource. Check your server log."));
+						jsonObj.put("errors", new JSONArray().put("An error occurred while creating a new data source. Check your server log."));
 					}
 					break;
 
 				case UPDATE:
 					// Get data from the form, update the config entry, save it, display the result
 					try {
-						configManager.updateDatasourceConfig(request);
+						configManager.updateDataSourceConfig(request);
 						ConfigHelper.save();
 						response.setStatus(HttpServletResponse.SC_OK);
 						jsonObj.put("success", true);
 						jsonObj.put("message", "Updated record");
-						jsonObj.put("data", configManager.getDatasourceConfigsJSon());
+						jsonObj.put("data", configManager.getDataSourceConfigsJSon());
 					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "An error occured while updating the datasource.", e);
+						LOGGER.log(Level.SEVERE, "An error occurred while updating the data source.", e);
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						jsonObj.put("success", false);
-						jsonObj.put("errors", new JSONArray().put("An error occured while updating the datasource. Check your server log."));
+						jsonObj.put("errors", new JSONArray().put("An error occurred while updating the data source. Check your server log."));
 					}
 					break;
 
 				case DESTROY:
 					// Get data from the form, delete the config entry, save it, display the result
 					try {
-						configManager.destroyDatasourceConfig(request);
+						configManager.destroyDataSourceConfig(request);
 						ConfigHelper.save();
 						response.setStatus(HttpServletResponse.SC_OK);
 						jsonObj.put("success", true);
 						jsonObj.put("message", "Deleted record");
-						jsonObj.put("data", configManager.getDatasourceConfigsJSon());
+						jsonObj.put("data", configManager.getDataSourceConfigsJSon());
 					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "An error occured while deleting the datasource.", e);
+						LOGGER.log(Level.SEVERE, "An error occurred while deleting the data source.", e);
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						jsonObj.put("success", false);
-						jsonObj.put("errors", new JSONArray().put("An error occured while deleting the datasource. Check your server log."));
+						jsonObj.put("errors", new JSONArray().put("An error occurred while deleting the data source. Check your server log."));
+					}
+					break;
+
+				case VALIDATEID:
+					try {
+						Integer id = null;
+						if (idStr != null && idStr.length() > 0) {
+							id = Integer.parseInt(idStr);
+						}
+						boolean exists = configManager.dataSourceExists(dataSourceId, id);
+						if (!exists) {
+							// The data source do not exists (or, in case of an update, it represent the same data source), the data source ID is valid
+							response.setStatus(HttpServletResponse.SC_OK);
+							jsonObj.put("success", true);
+							jsonObj.put("message", "The data source ID is valid");
+						} else {
+							response.setStatus(HttpServletResponse.SC_OK);
+							jsonObj.put("success", false);
+							jsonObj.put("errors", new JSONArray().put("The data source ID '"+dataSourceId+"' is already in used."));
+						}
+					} catch (Exception e) {
+						LOGGER.log(Level.SEVERE, "An error occurred while validating the data source ID.", e);
+						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+						jsonObj.put("success", false);
+						jsonObj.put("errors", new JSONArray().put("An error occurred while validating the data source ID. Check your server log."));
 					}
 					break;
 

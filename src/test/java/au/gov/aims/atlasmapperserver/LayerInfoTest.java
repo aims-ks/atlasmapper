@@ -46,7 +46,7 @@ public class LayerInfoTest extends TestCase {
 
 	public void testToJsonObject() {
 		try {
-			LayerConfig layerInfo = new LayerConfig((ConfigManager)null);
+			LayerConfig layerInfo = new LayerConfig(null);
 
 			double[] layerBoundingBox = {141.116, -29.384, 160.884, -9.616};
 
@@ -59,7 +59,7 @@ public class LayerInfoTest extends TestCase {
 
 			layerInfo.setTitle("Test layer title");
 			layerInfo.setDescription("Test layer description");
-			layerInfo.setDatasourceId("test-srv-id");
+			layerInfo.setDataSourceId("test-srv-id");
 			layerInfo.setLayerBoundingBox(layerBoundingBox);
 			layerInfo.setIsBaseLayer(true);
 			layerInfo.setHasLegend(false);

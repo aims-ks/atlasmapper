@@ -35,9 +35,9 @@ Atlas.Info = Ext.extend(Ext.Component, {
 		if (Atlas.conf
 				&& Atlas.conf['modules']
 				&& Atlas.conf['modules']['Info']
-				&& Atlas.conf['modules']['Info']['tabs']) {
+				&& Atlas.conf['modules']['Info']['config']) {
 
-			Ext.iterate(Atlas.conf['modules']['Info']['tabs'], function(tabName, tab) {
+			Ext.iterate(Atlas.conf['modules']['Info']['config'], function(tabName, tab) {
 				var tabObj = tab;
 				if (typeof(tab) == 'string') {
 					tabObj = {"defaultContent": tab};

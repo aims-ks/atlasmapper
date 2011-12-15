@@ -102,7 +102,9 @@ Atlas.AbstractMapPanel = {
 				new OpenLayers.Control.PanZoomBar(),    // Pan and Zoom (with a zoom bar) controls, in the top left corner
 				new OpenLayers.Control.ScaleLine(),     // Displays a small line indicator representing the current map scale on the map.
 				//new OpenLayers.Control.Scale(),         // Displays the map scale (example: 1:1M).
-				new OpenLayers.Control.MousePosition(), // Displays geographic coordinates of the mouse pointer
+				new OpenLayers.Control.MousePosition({
+					displayProjection: this.defaultLonLatProjection
+				}), // Displays geographic coordinates of the mouse pointer
 				new OpenLayers.Control.Navigation(),
 				//new OpenLayers.Control.OverviewMap(), // Creates a small overview map
 				new OpenLayers.Control.KeyboardDefaults(), // Adds panning and zooming functions, controlled with the keyboard.  By default arrow keys pan, +/- keys zoom & Page Up/Page Down/Home/End scroll by three quarters of a page.
@@ -539,7 +541,7 @@ Atlas.AbstractMapPanel = {
 		}
 
 		var layer = null;
-		switch (layerJSon['datasourceType']) {
+		switch (layerJSon['dataSourceType']) {
 			case 'NCWMS':
 				layer = this._createNCWMSLayer(layerJSon);
 				break;
@@ -559,7 +561,7 @@ Atlas.AbstractMapPanel = {
 				layer = this._createXYZLayer(layerJSon);
 				break;
 			default:
-				alert('Layer type '+layerJSon['datasourceType']+' is not implemented.');
+				alert('Layer type '+layerJSon['dataSourceType']+' is not implemented.');
 		}
 		if (!layer) {
 			// TODO THROW EXCEPTION

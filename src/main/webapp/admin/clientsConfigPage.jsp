@@ -31,7 +31,7 @@
 <%@page import="java.util.ArrayList"%>
 <%@page import="java.util.List"%>
 <%@page import="java.util.Collections"%>
-<%@page import="au.gov.aims.atlasmapperserver.DatasourceConfig"%>
+<%@page import="au.gov.aims.atlasmapperserver.DataSourceConfig"%>
 <%@page import="au.gov.aims.atlasmapperserver.ConfigManager"%>
 <%@page import="au.gov.aims.atlasmapperserver.ConfigHelper"%>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
@@ -47,6 +47,7 @@
 		<script type="text/javascript" src="../extjs/4.0.2/ext-4.0.2/ext-all-debug.js"></script>
 		<link rel="stylesheet" type="text/css" href="../extjs/4.0.2/ext-4.0.2/resources/css/ext-all.css" />
 
+		<script type="text/javascript" src="../javascript/extjs_ux/AjaxTextField.js"></script>
 		<script type="text/javascript" src="../javascript/extjs_ux/StatusBar.js"></script>
 		<script type="text/javascript" src="../javascript/extjs_ux/CheckColumn.js"></script>
 		<script type="text/javascript" src="../javascript/extjs_ux/FieldSetResize.js"></script>
@@ -59,15 +60,15 @@
 
 			var userName = '<%=Utils.safeJsStr(request.getAttribute("loggedUser.name")) %>';
 			var demoMode = <%=manager.isDemoMode() %>;
-			var datasources = {
+			var dataSources = {
 				<%
-					List<DatasourceConfig> datasourceConfigs = new ArrayList<DatasourceConfig>(manager.getDatasourceConfigs().values());
-					Collections.sort(datasourceConfigs);
+					List<DataSourceConfig> dataSourceConfigs = new ArrayList<DataSourceConfig>(manager.getDataSourceConfigs().values());
+					Collections.sort(dataSourceConfigs);
 
 					boolean first = true;
-					for (DatasourceConfig cfg : datasourceConfigs) {
+					for (DataSourceConfig cfg : dataSourceConfigs) {
 						if (cfg != null) {
-							%><%=(first?"":",\n") + "'" + Utils.safeJsStr(cfg.getDatasourceId()) + "': '" + Utils.safeJsStr(cfg.getDatasourceName()) + "'" %><%
+							%><%=(first?"":",\n") + "'" + Utils.safeJsStr(cfg.getDataSourceId()) + "': '" + Utils.safeJsStr(cfg.getDataSourceName()) + "'" %><%
 							first = false;
 						}
 					}

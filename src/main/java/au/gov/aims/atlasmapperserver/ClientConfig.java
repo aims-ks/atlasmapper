@@ -25,7 +25,6 @@ import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 import au.gov.aims.atlasmapperserver.servlet.FileFinder;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -58,7 +57,7 @@ public class ClientConfig extends AbstractConfig {
 	private String clientName;
 
 	@ConfigField
-	private JSONArray datasources;
+	private JSONArray dataSources;
 
 	@ConfigField
 	private boolean fullClientEnable;
@@ -201,12 +200,12 @@ public class ClientConfig extends AbstractConfig {
 		this.clientName = clientName;
 	}
 
-	public JSONArray getDatasources() {
-		return datasources;
+	public JSONArray getDataSources() {
+		return dataSources;
 	}
 
-	public void setDatasources(JSONArray datasources) {
-		this.datasources = datasources;
+	public void setDataSources(JSONArray dataSources) {
+		this.dataSources = dataSources;
 	}
 
 	public boolean isEmbededClientEnable() {
@@ -486,14 +485,14 @@ public class ClientConfig extends AbstractConfig {
 
 	// Helper
 	public boolean useGoogle(ConfigManager configManager) throws JSONException, FileNotFoundException {
-		JSONArray datasourcesArray = this.getDatasources();
-		if (datasourcesArray != null) {
-			for (int i=0; i < datasourcesArray.length(); i++) {
-				String clientDatasourceId = datasourcesArray.optString(i, null);
-				if (Utils.isNotBlank(clientDatasourceId)) {
-					DatasourceConfig datasourceConfig =
-							configManager.getDatasourceConfigs().get2(clientDatasourceId);
-					if (datasourceConfig != null && "GOOGLE".equalsIgnoreCase(datasourceConfig.getDatasourceType())) {
+		JSONArray dataSourcesArray = this.getDataSources();
+		if (dataSourcesArray != null) {
+			for (int i=0; i < dataSourcesArray.length(); i++) {
+				String clientDataSourceId = dataSourcesArray.optString(i, null);
+				if (Utils.isNotBlank(clientDataSourceId)) {
+					DataSourceConfig dataSourceConfig =
+							configManager.getDataSourceConfigs().get2(clientDataSourceId);
+					if (dataSourceConfig != null && "GOOGLE".equalsIgnoreCase(dataSourceConfig.getDataSourceType())) {
 						return true;
 					}
 				}
@@ -503,39 +502,39 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	// Helper
-	public List<DatasourceConfig> getDatasourceConfigs(ConfigManager configManager) throws JSONException, FileNotFoundException {
-		List<DatasourceConfig> datasourceConfigs = new ArrayList<DatasourceConfig>();
-		JSONArray datasourcesArray = this.getDatasources();
-		if (datasourcesArray != null) {
-			for (int i=0; i < datasourcesArray.length(); i++) {
-				String clientDatasourceId = datasourcesArray.optString(i, null);
-				if (Utils.isNotBlank(clientDatasourceId)) {
-					DatasourceConfig datasourceConfig =
-							configManager.getDatasourceConfigs().get2(clientDatasourceId);
-					if (datasourceConfig != null) {
-						datasourceConfigs.add(datasourceConfig);
+	public List<DataSourceConfig> getDataSourceConfigs(ConfigManager configManager) throws JSONException, FileNotFoundException {
+		List<DataSourceConfig> dataSourceConfigs = new ArrayList<DataSourceConfig>();
+		JSONArray dataSourcesArray = this.getDataSources();
+		if (dataSourcesArray != null) {
+			for (int i=0; i < dataSourcesArray.length(); i++) {
+				String clientDataSourceId = dataSourcesArray.optString(i, null);
+				if (Utils.isNotBlank(clientDataSourceId)) {
+					DataSourceConfig dataSourceConfig =
+							configManager.getDataSourceConfigs().get2(clientDataSourceId);
+					if (dataSourceConfig != null) {
+						dataSourceConfigs.add(dataSourceConfig);
 					}
 				}
 			}
 		}
-		return datasourceConfigs;
+		return dataSourceConfigs;
 	}
 
 	// Helper
-	public Map<String, LayerConfig> getLayerConfigs(ConfigManager configManager) throws MalformedURLException, IOException, ServiceException, JSONException, GetCapabilitiesExceptions {
+	public Map<String, LayerConfig> getLayerConfigs(ConfigManager configManager) throws IOException, ServiceException, JSONException, GetCapabilitiesExceptions {
 		Map<String, LayerConfig> overridenLayerConfigs = new HashMap<String, LayerConfig>();
 
-		// Retrieved all layers for all datasources of this client
+		// Retrieved all layers for all data sources of this client
 		GetCapabilitiesExceptions errors = new GetCapabilitiesExceptions();
-		for (DatasourceConfig datasourceConfig : this.getDatasourceConfigs(configManager)) {
+		for (DataSourceConfig dataSourceConfig : this.getDataSourceConfigs(configManager)) {
 			try {
-				if (datasourceConfig != null) {
+				if (dataSourceConfig != null) {
 					overridenLayerConfigs.putAll(
-							datasourceConfig.getLayerConfigs(this));
+							dataSourceConfig.getLayerConfigs(this));
 				}
 			} catch(IOException ex) {
 				// Collect all errors
-				errors.add(datasourceConfig, ex);
+				errors.add(dataSourceConfig, ex);
 			}
 		}
 

@@ -107,7 +107,7 @@ Atlas.MapPanel.MultiWMSGetFeatureInfo = OpenLayers.Class(OpenLayers.Control.WMSG
 					var url = urls[j];
 					var wmsOptions = null;
 
-					if (layer.json['datasourceType'] == 'NCWMS') {
+					if (layer.json['dataSourceType'] == 'NCWMS') {
 						wmsOptions = this.buildWMSOptions(url, layer,
 							clickPosition, layer.params.FORMAT, true);
 					} else {
@@ -166,7 +166,7 @@ Atlas.MapPanel.MultiWMSGetFeatureInfo = OpenLayers.Class(OpenLayers.Control.WMSG
 			}
 
 			// Analyse the response
-			if (this.responses[i].layer.json['datasourceType'] == 'NCWMS') {
+			if (this.responses[i].layer.json['dataSourceType'] == 'NCWMS') {
 				// Keep it if it has a value.
 				var value = evt.request.responseXML.getElementsByTagName('value')[0].childNodes[0].nodeValue;
 				if (typeof(value) != undefined && value != 'none') {
