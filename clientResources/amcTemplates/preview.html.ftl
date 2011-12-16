@@ -34,15 +34,12 @@
 	<!--[if lte IE 6 ]>
 		<link rel="stylesheet" type="text/css" href="resources/css/styles-ie6.css" />
 	<![endif]-->
-	<#--
 	<#if (theme?? && theme != "")>
 		<link rel="stylesheet" type="text/css" href="extjs/3.3.0/ext-3.3.0/resources/css/ext-all-notheme.css" />
 		<link rel="stylesheet" type="text/css" href="extjs/3.3.0/ext-3.3.0/resources/css/${theme}.css" />
 	<#else>
 		<link rel="stylesheet" type="text/css" href="extjs/3.3.0/ext-3.3.0/resources/css/ext-all.css" />
 	</#if>
-	-->
-	<link rel="stylesheet" type="text/css" href="extjs/3.3.0/ext-3.3.0/resources/css/ext-all.css" />
 	<style type="text/css">
 		html, body, #loading { height: 100% }
 		#loading {

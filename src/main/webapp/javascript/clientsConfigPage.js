@@ -426,9 +426,8 @@ Ext.define('Writer.ClientConfigForm', {
 								name: 'baseLayersInTab'
 							}
 						]
-					/*
 					}, {
-						// Advanced config options
+						// Config options to modify the apparence of the client
 						title: 'Appearance',
 						items: [
 							{
@@ -464,7 +463,6 @@ Ext.define('Writer.ClientConfigForm', {
 								value: 'Coming soon...'
 							}
 						]
-					*/
 					}
 				]
 			}]
