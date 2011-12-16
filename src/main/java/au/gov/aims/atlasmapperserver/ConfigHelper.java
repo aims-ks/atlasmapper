@@ -54,7 +54,7 @@ public class ConfigHelper {
 
 			configManager.setApplicationFolder(FileFinder.getApplicationFolder(context));
 			configManager.setClientFullConfigFilename("main.js");
-			configManager.setClientEmbededConfigFilename("embeded.js");
+			configManager.setClientEmbeddedConfigFilename("embedded.js");
 			configManager.setClientLayersConfigFilename("layers.js");
 		}
 	}

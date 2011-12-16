@@ -66,10 +66,10 @@ public class ClientConfig extends AbstractConfig {
 	private JSONArray fullClientModules;
 
 	@ConfigField
-	private boolean embededClientEnable;
+	private boolean embeddedClientEnable;
 
 	@ConfigField
-	private JSONArray embededClientModules;
+	private JSONArray embeddedClientModules;
 
 	@ConfigField
 	private JSONObject manualOverride;
@@ -208,20 +208,20 @@ public class ClientConfig extends AbstractConfig {
 		this.dataSources = dataSources;
 	}
 
-	public boolean isEmbededClientEnable() {
-		return embededClientEnable;
+	public boolean isEmbeddedClientEnable() {
+		return embeddedClientEnable;
 	}
 
-	public void setEmbededClientEnable(boolean embededClientEnable) {
-		this.embededClientEnable = embededClientEnable;
+	public void setEmbeddedClientEnable(boolean embeddedClientEnable) {
+		this.embeddedClientEnable = embeddedClientEnable;
 	}
 
-	public JSONArray getEmbededClientModules() {
-		return embededClientModules;
+	public JSONArray getEmbeddedClientModules() {
+		return embeddedClientModules;
 	}
 
-	public void setEmbededClientModules(JSONArray embededClientModules) {
-		this.embededClientModules = embededClientModules;
+	public void setEmbeddedClientModules(JSONArray embeddedClientModules) {
+		this.embeddedClientModules = embeddedClientModules;
 	}
 
 	public boolean isFullClientEnable() {

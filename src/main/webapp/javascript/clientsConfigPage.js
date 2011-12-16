@@ -93,7 +93,7 @@ var projectionsStore = Ext.create('Ext.data.Store', {
 				}
 				var operStr = 'UNKNOWN';
 				if (operation && operation.action) { operStr = operation.action; }
-				frameset.setErrors('An error occured while executing the operation ['+operStr+'] on clients.', responseObj, statusCode);
+				frameset.setErrors('An error occurred while executing the operation ['+operStr+'] on clients.', responseObj, statusCode);
 			}
 		}
 	}
@@ -135,7 +135,7 @@ Ext.define('Writer.ClientConfigForm', {
 		});
 
 		var fullClientModules = [];
-		var embededClientModules = [];
+		var embeddedClientModules = [];
 		// NOTE: modules variable is set in clientsConfigPage.jsp
 		// I don't want to do an Ajax query to get those...
 		Ext.iterate(modules, function(moduleId, moduleConfig) {
@@ -143,8 +143,8 @@ Ext.define('Writer.ClientConfigForm', {
 				name: 'fullClientModules',
 				inputValue: moduleId
 			}, moduleConfig));
-			embededClientModules.push(Ext.apply({
-				name: 'embededClientModules',
+			embeddedClientModules.push(Ext.apply({
+				name: 'embeddedClientModules',
 				inputValue: moduleId
 			}, moduleConfig));
 		});
@@ -229,7 +229,7 @@ Ext.define('Writer.ClientConfigForm', {
 							}, {
 								fieldLabel: 'Client Name',
 								name: 'clientName',
-								qtipHtml: 'A human readable name for this client. This field is used as a title for the Atlas Mapper client and in error/warnning messages.'
+								qtipHtml: 'A human readable name for this client. This field is used as a title for the Atlas Mapper client and in error/warning messages.'
 							}, {
 								xtype: 'checkboxgroup',
 								fieldLabel: 'Data source type',
@@ -254,11 +254,11 @@ Ext.define('Writer.ClientConfigForm', {
 									}
 								]
 							}, {
-								title: 'Modules for the embeded client(s)',
-								qtipTitle: 'Embeded client',
-								qtipHtml: 'Selected modules will appear in the embeded client.',
+								title: 'Modules for the embedded client(s)',
+								qtipTitle: 'Embedded client',
+								qtipHtml: 'Selected modules will appear in the embedded client.',
 								checkboxToggle: true,
-								checkboxName: 'embededClientEnable',
+								checkboxName: 'embeddedClientEnable',
 								xtype:'fieldsetresize',
 								defaultType: 'textfield',
 								collapsible: true,
@@ -268,7 +268,7 @@ Ext.define('Writer.ClientConfigForm', {
 									{
 										xtype: 'checkboxgroup',
 										columns: 2,
-										items: embededClientModules
+										items: embeddedClientModules
 									}
 								]
 							}, {
@@ -833,7 +833,7 @@ Ext.define('Writer.ClientConfigGrid', {
 							]
 						}, {
 							// Layout that display items horizontally
-							title: 'Embeded client configuration',
+							title: 'Embedded client configuration',
 							xtype: 'fieldcontainer',
 							layout: {
 								type: 'hbox',
@@ -859,14 +859,14 @@ Ext.define('Writer.ClientConfigGrid', {
 											value: 'Current config'
 										}, {
 											xtype: 'displayfield',
-											id: 'displayLinkCurrentEmbededConf',
+											id: 'displayLinkCurrentEmbeddedConf',
 											style: { border: 'solid 1px #888888' },
 											height: '100%',
 											padding: 5,
 											hidden: true
 										}, Ext.apply(
 											{
-												id: 'jsonEditAreaCurrentEmbededConf',
+												id: 'jsonEditAreaCurrentEmbeddedConf',
 												readOnly: true
 											}, browserSpecificEditAreaConfig
 										)
@@ -886,14 +886,14 @@ Ext.define('Writer.ClientConfigGrid', {
 											value: 'New config'
 										}, {
 											xtype: 'displayfield',
-											id: 'displayLinkNewEmbededConf',
+											id: 'displayLinkNewEmbeddedConf',
 											style: { border: 'solid 1px #888888' },
 											height: '100%',
 											padding: 5,
 											hidden: true
 										}, Ext.apply(
 											{
-												id: 'jsonEditAreaNewEmbededConf',
+												id: 'jsonEditAreaNewEmbeddedConf',
 												readOnly: true
 											}, browserSpecificEditAreaConfig
 										)
@@ -987,13 +987,13 @@ Ext.define('Writer.ClientConfigGrid', {
 			}
 			_setLoading(Ext.getCmp('jsonEditAreaCurrentFullConf'), load);
 			_setLoading(Ext.getCmp('jsonEditAreaNewFullConf'), load);
-			_setLoading(Ext.getCmp('jsonEditAreaCurrentEmbededConf'), load);
-			_setLoading(Ext.getCmp('jsonEditAreaNewEmbededConf'), load);
+			_setLoading(Ext.getCmp('jsonEditAreaCurrentEmbeddedConf'), load);
+			_setLoading(Ext.getCmp('jsonEditAreaNewEmbeddedConf'), load);
 			_setLoading(Ext.getCmp('jsonEditAreaCurrentLayers'), load);
 			_setLoading(Ext.getCmp('jsonEditAreaNewLayers'), load);
 		};
 		debugWindow.setEditAreasData = function(jsonData, clientId) {
-			if (jsonData && jsonData.fullClient && jsonData.embededClient && jsonData.layers) {
+			if (jsonData && jsonData.fullClient && jsonData.embeddedClient && jsonData.layers) {
 				debugWindow.setEditAreaData(
 						Ext.getCmp('jsonEditAreaCurrentFullConf'),
 						Ext.getCmp('displayLinkCurrentFullConf'),
@@ -1006,15 +1006,15 @@ Ext.define('Writer.ClientConfigGrid', {
 						jsonData.fullClient.generated);
 
 				debugWindow.setEditAreaData(
-						Ext.getCmp('jsonEditAreaCurrentEmbededConf'),
-						Ext.getCmp('displayLinkCurrentEmbededConf'),
-						'getClientConfigFile.jsp?configType=embeded&clientId='+clientId,
-						jsonData.embededClient.current);
+						Ext.getCmp('jsonEditAreaCurrentEmbeddedConf'),
+						Ext.getCmp('displayLinkCurrentEmbeddedConf'),
+						'getClientConfigFile.jsp?configType=embedded&clientId='+clientId,
+						jsonData.embeddedClient.current);
 				debugWindow.setEditAreaData(
-						Ext.getCmp('jsonEditAreaNewEmbededConf'),
-						Ext.getCmp('displayLinkNewEmbededConf'),
-						'getClientConfigFile.jsp?configType=embeded&live=true&clientId='+clientId,
-						jsonData.embededClient.generated);
+						Ext.getCmp('jsonEditAreaNewEmbeddedConf'),
+						Ext.getCmp('displayLinkNewEmbeddedConf'),
+						'getClientConfigFile.jsp?configType=embedded&live=true&clientId='+clientId,
+						jsonData.embeddedClient.generated);
 
 				debugWindow.setEditAreaData(
 						Ext.getCmp('jsonEditAreaCurrentLayers'),
@@ -1433,8 +1433,8 @@ Ext.define('Writer.ClientConfig', {
 		'dataSources', // String or Array<String>
 		{name: 'fullClientEnable', type: 'boolean', defaultValue: false},
 		'fullClientModules', // String or Array<String>
-		{name: 'embededClientEnable', type: 'boolean', defaultValue: false},
-		'embededClientModules', // String or Array<String>
+		{name: 'embeddedClientEnable', type: 'boolean', defaultValue: false},
+		'embeddedClientModules', // String or Array<String>
 
 		'manualOverride',
 		'legendParameters',

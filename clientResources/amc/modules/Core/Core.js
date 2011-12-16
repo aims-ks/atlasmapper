@@ -23,7 +23,7 @@
 window["Atlas"] = window["Atlas"] || {};
 
 // The core play the role of an Event manager
-// Core can't use any ExtJS object since it may be use in an embeded map.
+// Core can't use any ExtJS object since it may be use in an embedded map.
 Atlas.Core = OpenLayers.Class({
 	// Main event types, used by modules that are usually loaded.
 	EVENT_TYPES: [
@@ -178,11 +178,11 @@ Atlas.Core = OpenLayers.Class({
 		return this._addMapPanel(newMapPanel, true);
 	},
 
-	createNewEmbededMapPanel: function(renderTo) {
+	createNewEmbeddedMapPanel: function(renderTo) {
 		// TODO KML_ALLOW_JAVASCRIPT IN CONFIG
 		var newMapPanel = new Atlas.MapPanel({
 			renderTo: renderTo,
-			embeded: true,
+			embedded: true,
 			mapId: 'map'+this.mapPanels.length, // *WARNING*: Create "Map0" & "Map1", Delete "Map0", Create new Map will try to call it "Map1" (duplicated ID)
 			KML_ALLOW_JAVASCRIPT: true
 		});

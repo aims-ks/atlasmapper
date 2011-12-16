@@ -22,7 +22,7 @@
 // Namespace declaration (equivalent to Ext.namespace("Atlas");)
 window["Atlas"] = window["Atlas"] || {};
 
-// TODO Also extends from a class that is independent of ExtJS (for embeded maps)
+// TODO Also extends from a class that is independent of ExtJS (for embedded maps)
 Atlas.AbstractMapPanel = {
 	// Event types specific to the Map.
 	EVENT_TYPES: [
@@ -44,7 +44,7 @@ Atlas.AbstractMapPanel = {
 	zoom: 0,
 
 	renderTo: null,
-	embeded: false,
+	embedded: false,
 
 	// The feature request manager
 	wmsFeatureInfo: null,
@@ -91,7 +91,7 @@ Atlas.AbstractMapPanel = {
 		 * OpenLayers.Control.Attribution // Adds attribution from layers to the map display
 		 */
 		var controls = [];
-		if (this.embeded) {
+		if (this.embedded) {
 			controls = [
 				new OpenLayers.Control.PanZoom(),       // Pan and Zoom (minimalist) controls, in the top left corner
 				new OpenLayers.Control.Navigation(),
@@ -144,7 +144,7 @@ Atlas.AbstractMapPanel = {
 		if (typeof(mapOptions['maxResolution']) == 'undefined') { mapOptions['maxResolution'] = 0.703125; }
 		if (typeof(mapOptions['numZoomLevels']) == 'undefined') { mapOptions['numZoomLevels'] = 16; }
 
-		if (this.embeded) {
+		if (this.embedded) {
 			//mapOptions.zoom = this.zoom; // BUG: This properties is ignored: http://trac.osgeo.org/openlayers/ticket/3362
 			mapOptions.center = new OpenLayers.LonLat(this.center[0], this.center[1]);
 		}
@@ -179,7 +179,7 @@ Atlas.AbstractMapPanel = {
 		this.map.addLayer(dummyBaseLayer);
 
 		// Work around the zoom bug: http://trac.osgeo.org/openlayers/ticket/3362
-		if (this.embeded) {
+		if (this.embedded) {
 			this.map.zoomTo(this.zoom);
 		}
 

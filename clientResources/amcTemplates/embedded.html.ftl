@@ -31,7 +31,7 @@
 
 	<script type="text/javascript" src="modules/Core/Core.js"></script>
 	<script type="text/javascript" src="modules/MapPanel/AbstractMapPanel.js"></script>
-	<script type="text/javascript" src="modules/MapPanel/EmbededMapPanel.js"></script>
+	<script type="text/javascript" src="modules/MapPanel/EmbeddedMapPanel.js"></script>
 
 	<script type="text/javascript" src="config/generated.js"></script>
 
@@ -52,7 +52,7 @@
 
 			Atlas.core = new Atlas.Core();
 
-			var embMap = Atlas.core.createNewEmbededMapPanel('embMap');
+			var embMap = Atlas.core.createNewEmbeddedMapPanel('embMap');
 			embMap.addLayersById(customLayers);
 
 			window.setTimeout(function() {
@@ -73,7 +73,7 @@
 
 			Atlas.core = new Atlas.Core();
 
-			var embMap2 = Atlas.core.createNewEmbededMapPanel('embMap2');
+			var embMap2 = Atlas.core.createNewEmbeddedMapPanel('embMap2');
 			embMap2.addLayersById(customLayers);
 
 			window.setTimeout(function() {

@@ -81,7 +81,7 @@ public class ConfigManager {
 
 	// Set by the ConfigHelper
 	private String clientFullConfigFilename = null;
-	private String clientEmbededConfigFilename = null;
+	private String clientEmbeddedConfigFilename = null;
 	private String clientLayersConfigFilename = null;
 	private File applicationFolder = null;
 
@@ -132,15 +132,15 @@ public class ConfigManager {
 		return this.usersConfigVersion;
 	}
 
-	public File getClientEmbededConfigFile(ClientConfig clientConfig) {
-		if (this.clientEmbededConfigFilename == null) {
+	public File getClientEmbeddedConfigFile(ClientConfig clientConfig) {
+		if (this.clientEmbeddedConfigFilename == null) {
 			return null;
 		}
 		File clientConfigFolder = this.getClientConfigFolder(clientConfig);
 		if (clientConfigFolder == null) {
 			return null;
 		}
-		return new File(clientConfigFolder, this.clientEmbededConfigFilename);
+		return new File(clientConfigFolder, this.clientEmbeddedConfigFilename);
 	}
 
 	public File getClientFullConfigFile(ClientConfig clientConfig) {
@@ -181,8 +181,8 @@ public class ConfigManager {
 		this.applicationFolder = applicationFolder;
 	}
 
-	public void setClientEmbededConfigFilename(String clientEmbededConfigFilename) {
-		this.clientEmbededConfigFilename = clientEmbededConfigFilename;
+	public void setClientEmbeddedConfigFilename(String clientEmbeddedConfigFilename) {
+		this.clientEmbeddedConfigFilename = clientEmbeddedConfigFilename;
 	}
 
 	public void setClientFullConfigFilename(String clientFullConfigFilename) {
@@ -1058,10 +1058,10 @@ public class ConfigManager {
 
 		this.copyClientFilesIfNeeded(clientConfig, complete);
 		JSONObject generatedFullConfig = this.getClientConfigFileJSon(clientConfig, ConfigType.FULL, false, true);
-		JSONObject generatedEmbededConfig = this.getClientConfigFileJSon(clientConfig, ConfigType.EMBEDED, false, true);
+		JSONObject generatedEmbeddedConfig = this.getClientConfigFileJSon(clientConfig, ConfigType.EMBEDDED, false, true);
 		JSONObject generatedLayers = this.getClientConfigFileJSon(clientConfig, ConfigType.LAYERS, false, true);
 		this.parseTemplates(clientConfig, useGoogle);
-		this.saveGeneratedConfigs(clientConfig, generatedFullConfig, generatedEmbededConfig, generatedLayers);
+		this.saveGeneratedConfigs(clientConfig, generatedFullConfig, generatedEmbeddedConfig, generatedLayers);
 	}
 
 	/**
@@ -1121,13 +1121,13 @@ public class ConfigManager {
 			indexValues.put("useGoogle", useGoogle);
 			Utils.processTemplate(templatesConfig, "index.html", indexValues, atlasMapperClientFolder);
 
-			Map<String, Object> embededValues = new HashMap<String, Object>();
-			embededValues.put("version", ProjectInfo.getVersion());
-			embededValues.put("clientId", clientConfig.getClientId());
-			embededValues.put("clientName", clientConfig.getClientName() != null ? clientConfig.getClientName() : clientConfig.getClientId());
-			embededValues.put("timestamp", ""+Utils.getCurrentTimestamp());
-			embededValues.put("useGoogle", useGoogle);
-			Utils.processTemplate(templatesConfig, "embeded.html", embededValues, atlasMapperClientFolder);
+			Map<String, Object> embeddedValues = new HashMap<String, Object>();
+			embeddedValues.put("version", ProjectInfo.getVersion());
+			embeddedValues.put("clientId", clientConfig.getClientId());
+			embeddedValues.put("clientName", clientConfig.getClientName() != null ? clientConfig.getClientName() : clientConfig.getClientId());
+			embeddedValues.put("timestamp", "" + Utils.getCurrentTimestamp());
+			embeddedValues.put("useGoogle", useGoogle);
+			Utils.processTemplate(templatesConfig, "embedded.html", embeddedValues, atlasMapperClientFolder);
 
 			this.parsePreviewTemplate(clientConfig, useGoogle);
 		} catch (URISyntaxException ex) {
@@ -1177,7 +1177,7 @@ public class ConfigManager {
 	 *     "current": {...},
 	 *     "generated": {...}
 	 * },
-	 * "embededClient": {
+	 * "embeddedClient": {
 	 *     "current": {...},
 	 *     "generated": {...}
 	 * },
@@ -1200,16 +1200,16 @@ public class ConfigManager {
 		fullClientConfigs.put("current", Utils.jsonToStr(this.getClientConfigFileJSon(clientConfig, ConfigType.FULL, false, false)));
 		fullClientConfigs.put("generated", Utils.jsonToStr(this.getClientConfigFileJSon(clientConfig, ConfigType.FULL, true, true)));
 
-		JSONObject embededClientConfigs = new JSONObject();
-		embededClientConfigs.put("current", Utils.jsonToStr(this.getClientConfigFileJSon(clientConfig, ConfigType.EMBEDED, false, false)));
-		embededClientConfigs.put("generated", Utils.jsonToStr(this.getClientConfigFileJSon(clientConfig, ConfigType.EMBEDED, true, true)));
+		JSONObject embeddedClientConfigs = new JSONObject();
+		embeddedClientConfigs.put("current", Utils.jsonToStr(this.getClientConfigFileJSon(clientConfig, ConfigType.EMBEDDED, false, false)));
+		embeddedClientConfigs.put("generated", Utils.jsonToStr(this.getClientConfigFileJSon(clientConfig, ConfigType.EMBEDDED, true, true)));
 
 		JSONObject layers = new JSONObject();
 		layers.put("current", Utils.jsonToStr(this.getClientConfigFileJSon(clientConfig, ConfigType.LAYERS, false, false)));
 		layers.put("generated", Utils.jsonToStr(this.getClientConfigFileJSon(clientConfig, ConfigType.LAYERS, true, true)));
 
 		debug.put("fullClient", fullClientConfigs);
-		debug.put("embededClient", embededClientConfigs);
+		debug.put("embeddedClient", embeddedClientConfigs);
 		debug.put("layers", layers);
 
 		return debug;
@@ -1239,23 +1239,23 @@ public class ConfigManager {
 				this._setProxyUrl(fullConfig, clientConfig, live);
 				return fullConfig;
 
-			case EMBEDED:
-				JSONObject embededConfig = null;
+			case EMBEDDED:
+				JSONObject embeddedConfig = null;
 				if (generate) {
-					embededConfig = this._generateAbstractClientConfig(clientConfig);
+					embeddedConfig = this._generateAbstractClientConfig(clientConfig);
 
 					JSONObject modules = this.generateModules(
-							clientConfig.getEmbededClientModules(),
+							clientConfig.getEmbeddedClientModules(),
 							clientConfig);
 					if (modules != null && modules.length() > 0) {
-						embededConfig.put("modules", modules);
+						embeddedConfig.put("modules", modules);
 					}
 				} else {
-					embededConfig = this.loadExistingConfig(this.getClientEmbededConfigFile(clientConfig));
+					embeddedConfig = this.loadExistingConfig(this.getClientEmbeddedConfigFile(clientConfig));
 				}
 
-				this._setProxyUrl(embededConfig, clientConfig, live);
-				return embededConfig;
+				this._setProxyUrl(embeddedConfig, clientConfig, live);
+				return embeddedConfig;
 
 			case LAYERS:
 				if (generate) {
@@ -1278,7 +1278,7 @@ public class ConfigManager {
 		return null;
 	}
 
-	// Use as a base for Full and Embeded config
+	// Use as a base for Full and Embedded config
 	private JSONObject _generateAbstractClientConfig(ClientConfig clientConfig)
 			throws JSONException, IOException, ServiceException, GetCapabilitiesExceptions {
 
@@ -1773,7 +1773,7 @@ public class ConfigManager {
 	private void saveGeneratedConfigs(
 			ClientConfig clientConfig,
 			JSONObject fullConfig,
-			JSONObject embededConfig,
+			JSONObject embeddedConfig,
 			JSONObject layers) throws JSONException, IOException {
 
 		File fullClientFile = this.getClientFullConfigFile(clientConfig);
@@ -1783,11 +1783,11 @@ public class ConfigManager {
 			this.saveJSONConfig(fullConfig, fullClientFile);
 		}
 
-		File embededClientFile = this.getClientEmbededConfigFile(clientConfig);
-		if (embededClientFile == null) {
-			throw new IllegalArgumentException("No file provided for the Embeded client configuration.");
+		File embeddedClientFile = this.getClientEmbeddedConfigFile(clientConfig);
+		if (embeddedClientFile == null) {
+			throw new IllegalArgumentException("No file provided for the Embedded client configuration.");
 		} else {
-			this.saveJSONConfig(embededConfig, embededClientFile);
+			this.saveJSONConfig(embeddedConfig, embeddedClientFile);
 		}
 
 		File layersClientFile = this.getClientLayersConfigFile(clientConfig);
