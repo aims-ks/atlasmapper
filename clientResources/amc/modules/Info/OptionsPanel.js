@@ -60,8 +60,9 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 			html: this.defaultContent
 		});
 
+		// TODO layerNameLabel
 		this.layernameLabel = new Ext.form.Label({
-			cls: 'lanernameLabel',
+			cls: 'layerNameLabel',
 			html: '',
 			hidden: true
 		});
@@ -270,6 +271,19 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 	setLayerOptions: function(layer) {
 		var hasLegendEnabled = false;
 		var opacityEnabled = false;
+		// Greg's ux-ncplotpanel dependency
+		// TODO ux-ncplotpanel depend on ux-ncdatetimefield... Maybe ux-ncplotpanel should extend ux-ncdatetimefield instead
+		var ncDatetimeField = null;
+
+		// Greg's ux-ncplotpanel addition, probably useless now that the options are automatically cleaned
+		// TODO Remove if useless
+		if (this.extraOptionsFieldSet.items) {
+			this.extraOptionsFieldSet.items.each(function(option) {
+				if (option.cleanup) {
+					option.cleanup();
+				}
+			});
+		}
 
 		// Delete (remove & destroy) previous extra options, if any
 		this.extraOptionsFieldSet.hide();
@@ -307,7 +321,7 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 						// Sort styles
 						styleOptions.sort(this._sortByName);
 
-						// Fancy style name formating
+						// Fancy style name formatting
 						Ext.each(styleOptions, function(style, index) {
 							// Highlight the default style (can not add any HTML inside input element...)
 							if (style[0] === '') {
@@ -412,7 +426,27 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 							inputConfig.layer = layer;
 						}
 
+						// Greg's ux-ncplotpanel configuration
+						if (option['type'] === 'ux-ncplotpanel') {
+							inputConfig.format = 'd/m/Y'; // TODO Get displayFormat from config
+							inputConfig.layer = layer;
+							inputConfig.mapPanel = that.mapPanel;
+						}
+
 						inputObj = this.extraOptionsFieldSet.add(inputConfig);
+
+
+						// Greg's ux-ncplotpanel dependency
+						// TODO ux-ncplotpanel extend ux-ncdatetimefield
+						// if a layer has a ux-ncplotpanel it must also have a ux-ncdatetimefield and the ux-ncdatetimefield must be listed first
+						// the calendars on the ux-ncplotpanel will be populated from the calendar on the ux-ncdatetimefield
+						if ((option['type'] === 'ux-ncdatetimefield')) {
+							ncDatetimeField = inputObj;
+						}
+						if ((option['type'] === 'ux-ncplotpanel') && ncDatetimeField != null) {
+							ncDatetimeField.plotPanel = inputObj;
+						}
+
 
 						var extraOptionName = option['name'].toUpperCase();
 						var actualValue =

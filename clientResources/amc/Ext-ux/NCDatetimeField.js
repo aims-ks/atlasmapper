@@ -73,6 +73,8 @@ Ext.ux.form.NCDatetimeField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 	// private
 	dateField: null,
 	timeField: null,
+	// Greg's NcWMS plot panel
+	plotPanel:null,
 
 	initComponent: function() {
 		var that = this;
@@ -279,11 +281,17 @@ Ext.ux.form.NCDatetimeField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 		}
 
 		this.dateField.setDisabledDates(["^(?!"+dateArray.join("|")+").*$"]);
+		var defaultDate = jsonData['nearestTimeIso'];
 
 		// If there is no value set, set the default value.
 		if (!this.dateField.getValue()) {
-			var defaultDate = jsonData['nearestTimeIso'];
 			this.setValue(defaultDate);
+		}
+
+		// Greg's NcWMS plot panel
+		if (this.plotPanel) {
+			this.plotPanel.setDisabledDates(["^(?!"+dateArray.join("|")+").*$"]);
+			this.plotPanel.setDefaultDate(this.dateField.parseDate(defaultDate));
 		}
 	},
 
@@ -400,6 +408,12 @@ Ext.ux.form.NCDatetimeField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 			this.timeField.disable();
 		}
 		this.fireEvent('change', arguments);
+
+		// Greg's field dependency..
+		// TODO extend NCDatetimeField and hook on change event
+		if (this.plotPanel) {
+			this.plotPanel.setTime(this.getValue());
+		}
 	},
 
 	getValue: function() {

@@ -382,25 +382,24 @@ Atlas.MapPanel.MultiWMSGetFeatureInfo = OpenLayers.Class(OpenLayers.Control.WMSG
 			format: format
 		};
 
-		if (isNcwms) {
-			if (parseFloat(layer.params.VERSION) >= 1.3) {
-				params.crs = this.map.getProjection();
-			} else {
-				params.srs = this.map.getProjection();
-			}
+		if (parseFloat(layer.params.VERSION) >= 1.3) {
+			params.crs = this.map.getProjection();
 			params.i = clickPosition.x;
 			params.j = clickPosition.y;
-			params.info_format = 'text/xml';
 		} else {
-			if (parseFloat(layer.params.VERSION) >= 1.3) {
-				params.crs = this.map.getProjection();
+			params.srs = this.map.getProjection();
+			params.x = clickPosition.x;
+			params.y = clickPosition.y;
+			if (isNcwms) {
+				// Some NCWMS server has an issue with X, Y vs I, J
 				params.i = clickPosition.x;
 				params.j = clickPosition.y;
-			} else {
-				params.srs = this.map.getProjection();
-				params.x = clickPosition.x;
-				params.y = clickPosition.y;
 			}
+		}
+
+		if (isNcwms) {
+			params.info_format = 'text/xml';
+		} else {
 			params.feature_count = this.maxFeatures;
 			params.info_format = this.infoFormat;
 		}

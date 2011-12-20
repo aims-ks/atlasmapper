@@ -55,6 +55,8 @@
 
 	<script type="text/javascript" src="OpenLayers/OpenLayers-2.11/OpenLayers.js"></script>
 	<script type="text/javascript" src="OpenLayers-ux/NCWMS.js"></script>
+	<script type="text/javascript" src="OpenLayers-ux/NCTimeSeriesClickControl.js"></script>
+	<script type="text/javascript" src="OpenLayers-ux/NCTransectDrawControl.js"></script>
 
 	<#if (useGoogle)>
 		<!-- If the client use any Google Layers -->
@@ -77,6 +79,7 @@
 	<script type="text/javascript" src="Ext-ux/MinMaxField.js"></script>
 	<script type="text/javascript" src="Ext-ux/DateField.js"></script>
 	<script type="text/javascript" src="Ext-ux/NCDatetimeField.js"></script>
+	<script type="text/javascript" src="Ext-ux/NCPlotPanel.js"></script>
 
 	<!-- Personal addition to GeoExt -->
 	<script type="text/javascript" src="GeoExt-ux/LayerLegend.js"></script>

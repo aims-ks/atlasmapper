@@ -19,7 +19,9 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-OpenLayers.Layer.ux = {};
+if (typeof(OpenLayers.Layer.ux) == 'undefined') {
+	OpenLayers.Layer.ux = {};
+}
 
 OpenLayers.Layer.ux.NCWMS = OpenLayers.Class(OpenLayers.Layer.WMS, {
 	CLASS_NAME: "OpenLayers.Layer.ux.NCWMS"

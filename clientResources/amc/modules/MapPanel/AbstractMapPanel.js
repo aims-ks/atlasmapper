@@ -224,6 +224,7 @@ Atlas.AbstractMapPanel = {
 
 		// Add default layers to the map
 		var defaultLayers = Atlas.conf['defaultLayers'];
+		var layerOrder = Atlas.conf['layerOrder'];
 		// Normalise the layers and load them in the core cache.
 		Atlas.core.loadNewLayersCache(defaultLayers);
 		for(var layerId in defaultLayers){

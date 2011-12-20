@@ -32,11 +32,10 @@ Ext.namespace("Ext.ux.form");
  * Author's angry note about middle endian format:
  *     This class allow the "d/m/y" date format and other similar format but not the
  *     illogical and confusing middle indian format (m/d/y) that is only used
- *     in USA (and Belize). It is also supported in Canada and a few other countries
- *     (see: http://en.wikipedia.org/wiki/Date_format_by_country), but only USA
- *     and Belize use only this date format, and for some USA selfish reasons,
- *     it's the default date format used in almost every application an libraries
- *     Worldwide used.
+ *     in USA (and Belize) and supported in a few countries
+ *     (see: http://en.wikipedia.org/wiki/Date_format_by_country). For some "unknown"
+ *     reasons, it's the default date format used in almost every application and
+ *     libraries used Worldwide.
  */
 Ext.ux.form.DateField = Ext.extend(Ext.form.DateField, {
 	/**

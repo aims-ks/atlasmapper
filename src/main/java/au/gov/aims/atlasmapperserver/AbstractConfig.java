@@ -820,7 +820,7 @@ public abstract class AbstractConfig implements Cloneable {
 						Object rawValue = getter.invoke(overrides);
 						if (rawValue != null) {
 
-							if(rawValue instanceof Collection) {
+							if (rawValue instanceof Collection) {
 								// Merge Collection values
 								Collection newColl = (Collection)rawValue;
 								Collection curColl = (Collection)getter.invoke(this);
