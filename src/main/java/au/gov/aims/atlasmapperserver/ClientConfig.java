@@ -125,6 +125,18 @@ public class ClientConfig extends AbstractConfig {
 	@ConfigField
 	private String theme;
 
+	@ConfigField
+	private String pageHeader;
+
+	@ConfigField
+	private String pageFooter;
+
+	@ConfigField
+	private String layerPanelHeader;
+
+	@ConfigField
+	private String layerPanelFooter;
+
 	// Read only values also need to be disabled in the form (clientsConfigPage.js)
 	@ConfigField(demoReadOnly = true)
 	private String generatedFileLocation;
@@ -390,8 +402,40 @@ public class ClientConfig extends AbstractConfig {
 		this.theme = theme;
 	}
 
+	public String getPageHeader() {
+		return this.pageHeader;
+	}
+
+	public void setPageHeader(String pageHeader) {
+		this.pageHeader = pageHeader;
+	}
+
+	public String getPageFooter() {
+		return this.pageFooter;
+	}
+
+	public void setPageFooter(String pageFooter) {
+		this.pageFooter = pageFooter;
+	}
+
+	public String getLayerPanelHeader() {
+		return this.layerPanelHeader;
+	}
+
+	public void setLayerPanelHeader(String layerPanelHeader) {
+		this.layerPanelHeader = layerPanelHeader;
+	}
+
+	public String getLayerPanelFooter() {
+		return this.layerPanelFooter;
+	}
+
+	public void setLayerPanelFooter(String layerPanelFooter) {
+		this.layerPanelFooter = layerPanelFooter;
+	}
+
 	public String getGeneratedFileLocation() {
-		return generatedFileLocation;
+		return this.generatedFileLocation;
 	}
 
 	public void setGeneratedFileLocation(String generatedFileLocation) {

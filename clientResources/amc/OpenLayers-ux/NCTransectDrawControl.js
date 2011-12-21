@@ -33,6 +33,8 @@ OpenLayers.Control.ux.NCTransectDrawControl = OpenLayers.Class(OpenLayers.Contro
 	time: null,
 	ncLayer: null,
 
+	displayDateFormat: 'd/m/Y H:i:s',
+
 	initialize: function() {
 		var that = this;
 
@@ -44,23 +46,36 @@ OpenLayers.Control.ux.NCTransectDrawControl = OpenLayers.Class(OpenLayers.Contro
 				lineString = lineString + points[i].x + " " + points[i].y + ",";
 			}
 
+			var extraParams = {
+				REQUEST: "GetTransect",
+				LINESTRING: lineString,
+				FORMAT: "image/png",
+				CRS: that.ncLayer.projection.toString()
+			}
+
+			var title = '';
+			if (typeof(that.time) !== 'undefined' && that.time !== null && that.time !== '') {
+				title = Date.parseDate(that.time, that.ncLayer.outputFormat).format(that.displayDateFormat);
+				extraParams['TIME'] = that.time;
+			}
+
 			var url = that.ncLayer.getFullRequestString (
-				{
-					REQUEST: "GetTransect",
-					TIME: that.time,
-					LINESTRING: lineString,
-					FORMAT: "image/png",
-					CRS: that.ncLayer.projection.toString()
-				},
+				extraParams,
 				null
 			);
 			url = url.replace("LAYERS=", "LAYER=");
 
-			var win = new Ext.Window({
+			new Ext.Window({
+				title: title,
+				bodyStyle: {
+					// Set window body size to the size of the image
+					width: '400px',
+					height: '300px',
+					// Waiting image
+					background: "#FFFFFF url('resources/images/loading.gif') no-repeat center center"
+				},
 				html: '<img src="' + url + '" />'
-			});
-
-			win.show();
+			}).show();
 		};
 
 		//this.renderer = OpenLayers.Util.getParameters(window.location.href).renderer;

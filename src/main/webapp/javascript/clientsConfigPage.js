@@ -352,13 +352,14 @@ Ext.define('Writer.ClientConfigForm', {
 							Ext.apply({
 									fieldLabel: 'Layers\' manual override (<a href="manualOverrideDoc.html" target="_blank">doc</a>)',
 									qtipTitle: 'Layers\' manual override',
-									qtipHtml: 'JSON configuration used to override the layers information retrived from the GetCapabilities documents. These changes only affect the current client. They are apply over the <i>Layers\' global manual override</i> of the <i>Global configuration</i>.<br/>See the documentation for more information.',
+									qtipHtml: 'JSON configuration used to override the layers information retrieved from the GetCapabilities documents. These changes only affect the current client. They are apply over the <i>Layers\' global manual override</i> of the <i>Global configuration</i>.<br/>See the documentation for more information.',
 									vtype: 'jsonfield',
 									name: 'manualOverride',
 									height: 300
 								}, browserSpecificEditAreaConfig
 							), {
-							/*
+								// For special GeoServer legend params, see:
+								// http://docs.geoserver.org/latest/en/user/services/wms/get_legend_graphic/legendgraphic.html#raster-legends-explained
 								fieldLabel: 'Legend parameters',
 								qtipHtml: 'List of URL parameters <i>key=value</i>, separated by coma or new line. Those parameters are added to the URL sent to request the legend graphics.',
 								name: 'legendParameters',
@@ -366,7 +367,6 @@ Ext.define('Writer.ClientConfigForm', {
 								resizable: {transparent: true}, resizeHandles: 's',
 								height: 100
 							}, {
-							*/
 								fieldLabel: 'Proxy URL',
 								qtipHtml: 'The AtlasMapper clients have to send Ajax request (using javascript) for different features such as <em>feature requests</em>. '+
 									'This server application is bundle with such a proxy.<br/>'+
@@ -450,17 +450,25 @@ Ext.define('Writer.ClientConfigForm', {
 								},
 								queryMode: 'local'
 							}, {
-								fieldLabel: 'Background',
+								fieldLabel: 'Page header',
 								qtipHtml: 'TODO',
-								name: 'background',
-								xtype: 'displayfield',
-								value: 'Coming soon...'
+								name: 'pageHeader',
+								xtype: 'textareafield'
 							}, {
-								fieldLabel: 'Fonts',
+								fieldLabel: 'Page footer',
 								qtipHtml: 'TODO',
-								name: 'fonts',
-								xtype: 'displayfield',
-								value: 'Coming soon...'
+								name: 'pageFooter',
+								xtype: 'textareafield'
+							}, {
+								fieldLabel: 'Layer panel header',
+								qtipHtml: 'TODO',
+								name: 'layerPanelHeader',
+								xtype: 'textareafield'
+							}, {
+								fieldLabel: 'Layer panel footer',
+								qtipHtml: 'TODO',
+								name: 'layerPanelFooter',
+								xtype: 'textareafield'
 							}
 						]
 					}
@@ -704,7 +712,7 @@ Ext.define('Writer.ClientConfigGrid', {
 											debugWindow.setEditAreasLoading(false);
 											frameset.clearStatus();
 										} else {
-											frameset.setErrors('An error occured while loading the client configurations.', responseObj, statusCode);
+											frameset.setErrors('An error occurred while loading the client configurations.', responseObj, statusCode);
 										}
 									},
 									failure: function(response) {
@@ -717,7 +725,7 @@ Ext.define('Writer.ClientConfigGrid', {
 												responseObj = {errors: [err.toString()]};
 											}
 										}
-										frameset.setErrors('An error occured while loading the client configurations.', responseObj, statusCode);
+										frameset.setErrors('An error occurred while loading the client configurations.', responseObj, statusCode);
 									}
 								});
 							}
@@ -1235,7 +1243,7 @@ Ext.define('Writer.ClientConfigGrid', {
 					frameset.setSavedMessage('client configuration generated successfully.');
 					that.onReload();
 				} else {
-					frameset.setErrors('An error occured while generating the client configuration.', responseObj, statusCode);
+					frameset.setErrors('An error occurred while generating the client configuration.', responseObj, statusCode);
 				}
 			},
 			failure: function(response) {
@@ -1248,7 +1256,7 @@ Ext.define('Writer.ClientConfigGrid', {
 						responseObj = {errors: [err.toString()]};
 					}
 				}
-				frameset.setErrors('An error occured while generating the client configuration.', responseObj, statusCode);
+				frameset.setErrors('An error occurred while generating the client configuration.', responseObj, statusCode);
 			}
 		});
 	},
@@ -1341,13 +1349,13 @@ Ext.define('Writer.ClientConfigGrid', {
 					frameset.setSavedMessage('Configuration files successfully generated');
 					that.onReload();
 				} else {
-					frameset.setErrors('An error occured while generating the configuration files.', responseObj, statusCode);
+					frameset.setErrors('An error occurred while generating the configuration files.', responseObj, statusCode);
 				}
 			},
 			failure: function(response) {
 				var responseObj = Ext.decode(response.responseText);
 				var statusCode = response ? response.status : null;
-				frameset.setErrors('An error occured while generating the configuration files.', responseObj, statusCode);
+				frameset.setErrors('An error occurred while generating the configuration files.', responseObj, statusCode);
 			}
 		});
 	},
@@ -1452,6 +1460,10 @@ Ext.define('Writer.ClientConfig', {
 		{name: 'useLayerService', type: 'boolean', defaultValue: false},
 		{name: 'enable', type: 'boolean', defaultValue: false},
 		'theme',
+		'pageHeader',
+		'pageFooter',
+		'layerPanelHeader',
+		'layerPanelFooter',
 		'comment'
 	]/*,
 	validations: [{
@@ -1512,7 +1524,7 @@ Ext.onReady(function(){
 					}
 					var operStr = 'UNKNOWN';
 					if (operation && operation.action) { operStr = operation.action; }
-					frameset.setErrors('An error occured while executing the operation ['+operStr+'] on clients.', responseObj, statusCode);
+					frameset.setErrors('An error occurred while executing the operation ['+operStr+'] on clients.', responseObj, statusCode);
 				}
 			}
 		}

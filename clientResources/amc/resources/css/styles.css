@@ -92,3 +92,8 @@
 div.olControlMousePosition {
 	color: #FFFFFF;
 }
+
+/* Some ExtJS theme change the color of the text in the OpenLayers popups. */
+div.olFramedCloudPopupContent {
+	color: #000000;
+}

@@ -1390,6 +1390,22 @@ public class ConfigManager {
 			}
 		}
 
+		// Appearance
+		// NOTE The ExtJS theme is used to generate the template,
+		// the client do not need to know which theme it is using.
+		if (Utils.isNotBlank(clientConfig.getPageHeader())) {
+			json.put("pageHeader", clientConfig.getPageHeader());
+		}
+		if (Utils.isNotBlank(clientConfig.getPageFooter())) {
+			json.put("pageFooter", clientConfig.getPageFooter());
+		}
+		if (Utils.isNotBlank(clientConfig.getLayerPanelHeader())) {
+			json.put("layerPanelHeader", clientConfig.getLayerPanelHeader());
+		}
+		if (Utils.isNotBlank(clientConfig.getLayerPanelFooter())) {
+			json.put("layerPanelFooter", clientConfig.getLayerPanelFooter());
+		}
+
 		return json;
 	}
 

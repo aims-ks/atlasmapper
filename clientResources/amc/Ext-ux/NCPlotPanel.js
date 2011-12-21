@@ -38,9 +38,38 @@ Ext.ux.NCPlotPanel = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 	timeSeriesButton: null,
 	transectButton: null,
 	transectDrawControl: null,
+	
+	// private
+	_timeSeriesEnabled: false,
 
 	initComponent: function() {
 		var that = this;
+
+		// Possible events: loadstart, tileloaded, loadend
+		if (that.layer.getCurrentTime) {
+			this.layer.events.register("loadstart", this.layer, function() {
+				that.transectDrawControl.time = that.layer.getCurrentTime();
+			});
+		}
+
+		if (that.layer.getAvailableDates) {
+			this.on('render', function() {
+				that.layer.getAvailableDates(
+					function(availableDates, defaultDate) {
+						if (availableDates != null && availableDates.length > 0) {
+							that._timeSeriesEnabled = true;
+							that.timeSeriesButton.setVisible(true);
+							that.setDisabledDates(["^(?!"+availableDates.join("|")+").*$"]);
+						}
+						that.setDefaultDate(Date.parseDate(defaultDate, that.layer.outputFormat));
+					},
+					function(errorMessage) {
+						// TODO Error on page
+						alert(errorMessage);
+					}
+				);
+			});
+		}
 
 		this.timeSeriesClickControl = new OpenLayers.Control.ux.NCTimeSeriesClickControl();
 
@@ -60,6 +89,9 @@ Ext.ux.NCPlotPanel = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 
 		this.timeSeriesButton = new Ext.Button({
 			text: 'Time Series Plot',
+			// Hidden the time series button on start, switch the
+			// visibility when there is dates for it
+			hidden: !this._timeSeriesEnabled,
 			handler: function() {
 				if (that.mode == "TS") {
 					that.timeSeriesClickControl.deactivate();
@@ -88,7 +120,9 @@ Ext.ux.NCPlotPanel = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 					that.transectButton.setText("Transect Plot");
 					that.transectDrawControl.hideTransect();
 					that.mode = "";
-					that.timeSeriesButton.setVisible(true);
+					if (that._timeSeriesEnabled) {
+						that.timeSeriesButton.setVisible(true);
+					}
 				} else {
 					that.transectDrawControl.activate();
 					that.transectDrawControl.showTransect();
@@ -131,98 +165,37 @@ Ext.ux.NCPlotPanel = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 
 		this.fromDateField.setValue = function(date) {
 			// NOTE: "this" refer to the dateField instance
-
 			Ext.ux.form.DateField.superclass.setValue.call(this, date);
-
-			var serviceUrl = that.layer.json['wmsServiceUrl'];
-			var dateStr = that.fromDateField.getValue();;
-
-			var url = serviceUrl + '?' + Ext.urlEncode({
-				item: 'timesteps',
-				layerName: that.layer.json['layerId'],
-				day: dateStr,
-				request: 'GetMetadata'
-			});
-
-			/**
-				Parameters
-					uri         {String} URI of source doc
-					params      {String} Params on get (doesnt seem to work)
-					caller      {Object} object which gets callbacks
-					onComplete  {Function} callback for success
-					onFailure   {Function} callback for failure
-				Both callbacks optional (though silly)
-			*/
-			OpenLayers.loadURL(
-				url,
-				"",
-				this,
-				function (result, request) {
-					that._setFromDateTime(result, request, date, true);
-				},
-				function (result, request) {
-					// TODO Error on the page
-					var jsonData = Ext.util.JSON.decode(result.responseText);
-					var resultMessage = jsonData.data.result;
-					alert('Error while loading the times: ' + resultMessage);
+			if (date != null) {
+				if (typeof(that.layer.getAvailableTimes) === 'function') {
+					that.layer.getAvailableTimes(
+						date,
+						that._setFromDateTime,
+						function(errorMessage) {
+							// TODO Error on the page
+							alert('Error while loading the times: ' + errorMessage);
+						},
+						that
+					);
 				}
-			);
-		};
-
-		this._setFromDateTime = function(result, request, selectedDate, setTime) {
-			var jsonData = Ext.util.JSON.decode(result.responseText);
-			if (jsonData['timesteps'][0]) {
-				that.timeSeriesClickControl.fromDate = that.fromDateField.getValue() + 'T' + jsonData['timesteps'][0];
-			} else {
-				that.timeSeriesClickControl.fromDate = that.fromDateField.getValue();
 			}
 		};
 
 		this.thruDateField.setValue = function(date) {
 			// NOTE: "this" refer to the dateField instance
 			Ext.ux.form.DateField.superclass.setValue.call(this, date);
-
-			var serviceUrl = that.layer.json['wmsServiceUrl'];
-			var dateStr = that.thruDateField.getValue();;
-
-			var url = serviceUrl + '?' + Ext.urlEncode({
-				item: 'timesteps',
-				layerName: that.layer.json['layerId'],
-				day: dateStr,
-				request: 'GetMetadata'
-			});
-
-			/**
-				Parameters
-					uri         {String} URI of source doc
-					params      {String} Params on get (doesnt seem to work)
-					caller      {Object} object which gets callbacks
-					onComplete  {Function} callback for success
-					onFailure   {Function} callback for failure
-				Both callbacks optional (though silly)
-			*/
-			OpenLayers.loadURL(
-				url,
-				"",
-				this,
-				function (result, request) {
-					that._setThruDateTime(result, request, date, true);
-				},
-				function (result, request) {
-					// TODO Error on the page
-					var jsonData = Ext.util.JSON.decode(result.responseText);
-					var resultMessage = jsonData.data.result;
-					alert('Error while loading the times: ' + resultMessage);
+			if (date != null) {
+				if (typeof(that.layer.getAvailableTimes) === 'function') {
+					that.layer.getAvailableTimes(
+						date,
+						that._setThruDateTime,
+						function(errorMessage) {
+							// TODO Error on the page
+							alert('Error while loading the times: ' + errorMessage);
+						},
+						that
+					);
 				}
-			);
-		};
-
-		this._setThruDateTime = function(result, request, selectedDate, setTime) {
-			var jsonData = Ext.util.JSON.decode(result.responseText);
-			if (jsonData['timesteps'][0]) {
-				that.timeSeriesClickControl.thruDate = that.thruDateField.getValue() + 'T' + jsonData['timesteps'][0];
-			} else {
-				that.timeSeriesClickControl.thruDate = that.thruDateField.getValue();
 			}
 		};
 
@@ -254,6 +227,24 @@ Ext.ux.NCPlotPanel = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 		this.timeSeriesPanel.setVisible(false);
 	},
 
+	// private
+	_setFromDateTime: function(availableTimes) {
+		if (availableTimes !== null && availableTimes.length > 0) {
+			this.timeSeriesClickControl.fromDate = this.fromDateField.getValue() + 'T' + availableTimes[0][0];
+		} else {
+			this.timeSeriesClickControl.fromDate = this.fromDateField.getValue();
+		}
+	},
+
+	// private
+	_setThruDateTime: function(availableTimes) {
+		if (availableTimes !== null && availableTimes.length > 0) {
+			this.timeSeriesClickControl.thruDate = this.thruDateField.getValue() + 'T' + availableTimes[0][0];
+		} else {
+			this.timeSeriesClickControl.thruDate = this.thruDateField.getValue();
+		}
+	},
+
 	setLayer: function(layer) {
 		this.layer = layer;
 	},
@@ -262,22 +253,30 @@ Ext.ux.NCPlotPanel = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 		this.mapPanel = mapPanel;
 	},
 
-	setTime: function(time) {
-		this.transectDrawControl.time=time;
-	},
-
 	setDisabledDates: function(disabledDates) {
 		this.fromDateField.setDisabledDates(disabledDates);
 		this.thruDateField.setDisabledDates(disabledDates);
 	},
 
 	setDefaultDate: function(defaultDate) {
-		if (!this.fromDateField.getValue()) {
-			this.thruDateField.setValue(defaultDate);
-			this.fromDateField.setValue(defaultDate.add(Date.MONTH, -1));
+		if (typeof(defaultDate) === 'undefined' || defaultDate === null || defaultDate === '') {
+			return;
+		}
 
-			this.timeSeriesClickControl.fromDate = this.fromDateField.getValue();
-			this.timeSeriesClickControl.thruDate = this.thruDateField.getValue();
+		if (typeof(this.transectDrawControl.time) === 'undefined' || this.transectDrawControl.time === null || this.transectDrawControl.time === '') {
+			this.transectDrawControl.time = defaultDate.format(this.layer.outputFormat);
+		}
+
+		var thruDate = this.thruDateField.getValue();
+		if (typeof(thruDate) === 'undefined' || thruDate === null || thruDate === '') {
+			this.thruDateField.setValue(defaultDate);
+			this.timeSeriesClickControl.thruDate = thruDate;
+		}
+
+		var fromDate = this.fromDateField.getValue();
+		if (typeof(fromDate) === 'undefined' || fromDate === null || fromDate === '') {
+			this.fromDateField.setValue(defaultDate.add(Date.MONTH, -1));
+			this.timeSeriesClickControl.fromDate = fromDate;
 		}
 	},
 

@@ -271,9 +271,6 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 	setLayerOptions: function(layer) {
 		var hasLegendEnabled = false;
 		var opacityEnabled = false;
-		// Greg's ux-ncplotpanel dependency
-		// TODO ux-ncplotpanel depend on ux-ncdatetimefield... Maybe ux-ncplotpanel should extend ux-ncdatetimefield instead
-		var ncDatetimeField = null;
 
 		// Greg's ux-ncplotpanel addition, probably useless now that the options are automatically cleaned
 		// TODO Remove if useless
@@ -421,7 +418,8 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 							inputConfig.outputFormat = 'Y-m-d'; // TODO Get valueFormat from config
 						}
 						if (option['type'] === 'ux-ncdatetimefield') {
-							inputConfig.format = 'd/m/Y'; // TODO Get displayFormat from config
+							inputConfig.dateFormat = 'd/m/Y'; // TODO Get displayFormat from config
+							inputConfig.timeFormat = 'H:i:s'; // TODO Get displayFormat from config
 							// Set the URLs to load the available dates & times
 							inputConfig.layer = layer;
 						}
@@ -434,19 +432,6 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 						}
 
 						inputObj = this.extraOptionsFieldSet.add(inputConfig);
-
-
-						// Greg's ux-ncplotpanel dependency
-						// TODO ux-ncplotpanel extend ux-ncdatetimefield
-						// if a layer has a ux-ncplotpanel it must also have a ux-ncdatetimefield and the ux-ncdatetimefield must be listed first
-						// the calendars on the ux-ncplotpanel will be populated from the calendar on the ux-ncdatetimefield
-						if ((option['type'] === 'ux-ncdatetimefield')) {
-							ncDatetimeField = inputObj;
-						}
-						if ((option['type'] === 'ux-ncplotpanel') && ncDatetimeField != null) {
-							ncDatetimeField.plotPanel = inputObj;
-						}
-
 
 						var extraOptionName = option['name'].toUpperCase();
 						var actualValue =

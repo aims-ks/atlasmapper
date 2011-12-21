@@ -111,7 +111,6 @@ function resetDataSourceIdValidator(is_error) {
 				params: 'dataSourceId=' + val,
 
 				success: function(o) {
-console.log('SUCCESS!!!');
 					if (o.responseText === 'true') {
 						resetDataSourceIdValidator(true);
 					} else {
@@ -119,7 +118,6 @@ console.log('SUCCESS!!!');
 					}
 				},
 				failure: function(o) {
-console.log('FAIL!!!');
 					resetDataSourceIdValidator(false);
 				}
 			});
@@ -206,13 +204,15 @@ Ext.define('Writer.LayerServerConfigForm', {
 		var globalManualOverride = Ext.apply({
 				fieldLabel: 'Layers\' global manual override (<a href="manualOverrideDoc.html" target="_blank">doc</a>)',
 				qtipTitle: 'Layers\' global manual override',
-				qtipHtml: 'JSON configuration used to override the layers information retrived from the GetCapabilities documents. Every Atlas Mapper clients are affected by these changes.<br/>See the documentation for more information.',
+				qtipHtml: 'JSON configuration used to override the layers information retrieved from the GetCapabilities documents. Every Atlas Mapper clients are affected by these changes.<br/>See the documentation for more information.',
 				vtype: 'jsonfield',
 				name: 'globalManualOverride',
 				height: 400
 			}, browserSpecificEditAreaConfig
 		);
 		var legendParameters = {
+			// For special GeoServer legend params, see:
+			// http://docs.geoserver.org/latest/en/user/services/wms/get_legend_graphic/legendgraphic.html#raster-legends-explained
 			fieldLabel: 'Legend parameters',
 			qtipHtml: 'List of URL parameters <i>key=value</i>, separated by coma or new line. Those parameters are added to the URL sent to request the legend graphics.',
 			name: 'legendParameters',
@@ -261,7 +261,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 		};
 		var extraWmsServiceUrls = {
 			fieldLabel: 'Secondary WMS service URLs',
-			qtipHtml: 'List of URLs, separated by coma or new line. This field can be used to provide additionnal URLs to access the tiles, which is usefull for doing server load balancing and allow the client\'s browser to download more tiles simultaneously.',
+			qtipHtml: 'List of URLs, separated by coma or new line. This field can be used to provide additional URLs to access the tiles, which is useful for doing server load balancing and allow the client\'s browser to download more tiles simultaneously.',
 			name: 'extraWmsServiceUrls'
 		};
 		var webCacheUrl = {
@@ -866,7 +866,7 @@ Ext.onReady(function(){
 					}
 					var operStr = 'UNKNOWN';
 					if (operation && operation.action) { operStr = operation.action; }
-					frameset.setErrors('An error occured while executing the operation ['+operStr+'] on data sources.', responseObj, statusCode);
+					frameset.setErrors('An error occurred while executing the operation ['+operStr+'] on data sources.', responseObj, statusCode);
 				}
 			}
 		}

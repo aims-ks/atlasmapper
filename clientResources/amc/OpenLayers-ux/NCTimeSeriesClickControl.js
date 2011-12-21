@@ -40,6 +40,8 @@ OpenLayers.Control.ux.NCTimeSeriesClickControl = OpenLayers.Class(OpenLayers.Con
 	fromDate: "",
 	thruDate: "",
 
+	displayDateFormat: 'd/m/Y H:i:s',
+
 	initialize: function(options) {
 		// TODO Do we really need to call extend here?? If yes, add a comment
 		this.handlerOptions = OpenLayers.Util.extend(
@@ -75,6 +77,9 @@ OpenLayers.Control.ux.NCTimeSeriesClickControl = OpenLayers.Class(OpenLayers.Con
 		url = url.replace("LAYERS=", "QUERY_LAYERS=");
 
 		new Ext.Window({
+
+			title: Date.parseDate(this.fromDate, this.layer.outputFormat).format(this.displayDateFormat) + " - " +
+					Date.parseDate(this.thruDate, this.layer.outputFormat).format(this.displayDateFormat),
 			bodyStyle: {
 				// Set window body size to the size of the image
 				width: '400px',

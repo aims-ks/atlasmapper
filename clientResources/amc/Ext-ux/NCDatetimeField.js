@@ -48,23 +48,10 @@ Ext.ux.form.NCDatetimeField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 	//     See: http://en.wikipedia.org/wiki/Date_notation_by_country
 
 	// Date format used to display the date after selecting it from the calendar.
-	format: "d/m/Y",
+	dateFormat: "d/m/Y",
 
 	// Date format used to display the times in the dropdown.
 	timeFormat: "H:i:s",
-
-	// Date format used to format the date used to request the times.
-	dateRequestFormat: 'Y-m-d',
-
-	// Date format used to parse the times returned by the request.
-	// NOTE: the literal 'Z' is used to avoid using javascript timezone.
-	// Example: "14:00:00.000Z"
-	timeResponseFormat: 'H:i:s.u\\Z',
-
-	// Date format used to request the ncWMS layer.
-	// NOTE: the literal 'Z' is used to avoid using javascript timezone.
-	// Example: "2010-01-12T14:00:00.000Z"
-	outputFormat: 'Y-m-d\\TH:i:s.u\\Z',
 
 	layer: null,
 
@@ -73,8 +60,6 @@ Ext.ux.form.NCDatetimeField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 	// private
 	dateField: null,
 	timeField: null,
-	// Greg's NcWMS plot panel
-	plotPanel:null,
 
 	initComponent: function() {
 		var that = this;
@@ -86,8 +71,8 @@ Ext.ux.form.NCDatetimeField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 
 		var dateConfig = {
 			fieldLabel: "Date",
-			format: this.format,
-			outputFormat: this.outputFormat,
+			format: this.dateFormat,
+			outputFormat: this.layer.outputFormat,
 			style: {
 				marginBottom: '4px'
 			},
@@ -187,112 +172,22 @@ Ext.ux.form.NCDatetimeField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 			// The component has not been initialised yet
 			return;
 		}
-		if (!this.layer) {
-			// This should not append
-			return;
-		}
 
-		var serviceUrl = this.layer.json['wmsServiceUrl'];
-
-		var url = serviceUrl + '?' + Ext.urlEncode({
-			item: 'layerDetails',
-			layerName: this.layer.json['layerId'],
-			request: 'GetMetadata'
-		});
-		/**
-			Parameters
-				uri         {String} URI of source doc
-				params      {String} Params on get (doesnt seem to work)
-				caller      {Object} object which gets callbacks
-				onComplete  {Function} callback for success
-				onFailure   {Function} callback for failure
-			Both callbacks optional (though silly)
-		*/
 		var that = this;
-		OpenLayers.loadURL(
-			url,
-			"",
-			this,
-			function (result, request) {
-				that._setAvailableDates(result, request);
-			},
-			function (result, request) {
-				var resultMessage = 'Unknown error';
-				try {
-					var jsonData = Ext.util.JSON.decode(result.responseText);
-					resultMessage = jsonData.data.result;
-				} catch (err) {
-					resultMessage = result.responseText;
-				}
-				// TODO Error on the page
-				alert('Error while loading the calendar: ' + resultMessage);
+		this.layer.getAvailableDates(
+			function(availableDates, defaultDate) {
+				that.dateField.setDisabledDates(["^(?!"+availableDates.join("|")+").*$"]);
 
-				that.dateField.setDisabledDates([]);
+				// If there is no value set, set the default value.
+				if (!that.dateField.getValue()) {
+					that.setValue(defaultDate);
+				}
+			},
+			function(errorMessage) {
+				// TODO Error on page
+				alert(errorMessage);
 			}
 		);
-	},
-	// private
-	_setAvailableDates: function(result, request) {
-		if (!this.dateField) {
-			// The component has not been initialised yet
-			return;
-		}
-
-		var jsonData = null;
-		try {
-			jsonData = Ext.util.JSON.decode(result.responseText);
-		} catch (err) {
-			var resultMessage = result.responseText;
-			// TODO Error on the page
-			alert('Error while loading the calendar: ' + resultMessage);
-			return;
-		}
-		
-		if (jsonData == null) {
-			return;
-		}
-
-		if (jsonData.exception) {
-			// TODO Error on the page
-			alert('Error while loading the calendar: ' +
-				(jsonData.exception.message ? jsonData.exception.message : jsonData.exception));
-			return;
-		}
-
-		var dateArray = [];
-
-		if (jsonData['datesWithData']) {
-			Ext.iterate(jsonData.datesWithData, function(year, months) {
-				Ext.iterate(months, function(month, days) {
-					Ext.each(days, function(day) {
-						// Create a date object to format it in the desire format.
-
-						// Month is from 0-11 instead of 1-12.
-						var monthInt = (parseInt(month, 10)) + 1;
-
-						// Y-m-d, without leading zeros => Y-n-j
-						var date = Date.parseDate(year+'-'+monthInt+'-'+day, 'Y-n-j');
-
-						// Available dates format must match the display date format.
-						dateArray.push(date.format(this.format));
-					}, this);
-				}, this);
-			}, this);
-		}
-
-		this.dateField.setDisabledDates(["^(?!"+dateArray.join("|")+").*$"]);
-		var defaultDate = jsonData['nearestTimeIso'];
-
-		// If there is no value set, set the default value.
-		if (!this.dateField.getValue()) {
-			this.setValue(defaultDate);
-		}
-
-		// Greg's NcWMS plot panel
-		if (this.plotPanel) {
-			this.plotPanel.setDisabledDates(["^(?!"+dateArray.join("|")+").*$"]);
-			this.plotPanel.setDefaultDate(this.dateField.parseDate(defaultDate));
-		}
 	},
 
 	reloadTimes: function(date, setTime) {
@@ -301,119 +196,43 @@ Ext.ux.form.NCDatetimeField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 			return;
 		}
 
-		var serviceUrl = this.layer.json['wmsServiceUrl'];
-		var dateStr = date.format(this.dateRequestFormat).trim();
-
-		var url = serviceUrl + '?' + Ext.urlEncode({
-			item: 'timesteps',
-			layerName: this.layer.json['layerId'],
-			day: dateStr,
-			request: 'GetMetadata'
-		});
-
-		/**
-			Parameters
-				uri         {String} URI of source doc
-				params      {String} Params on get (doesnt seem to work)
-				caller      {Object} object which gets callbacks
-				onComplete  {Function} callback for success
-				onFailure   {Function} callback for failure
-			Both callbacks optional (though silly)
-		*/
 		var that = this;
-		OpenLayers.loadURL(
-			url,
-			"",
-			this,
-			function (result, request) {
-				that._setAvailableTimes(result, request, date, setTime);
-			},
-			function (result, request) {
-				var resultMessage = 'Unknown error';
-				try {
-					var jsonData = Ext.util.JSON.decode(result.responseText);
-					resultMessage = jsonData.data.result;
-				} catch (err) {
-					resultMessage = result.responseText;
-				}
-				// TODO Error on the page
-				alert('Error while loading the times: ' + resultMessage);
+		this.layer.getAvailableTimes(
+			date,
+			function(times) {
+				var selectedTimeStr = date.format(that.timeFormat);
+				var timeFound = false;
+				var firstTimeStr = null;
+				Ext.each(times, function(timeArr) {
+					if (firstTimeStr == null) {
+						firstTimeStr = timeArr[1];
+					}
+					if (timeArr[1] == selectedTimeStr) {
+						timeFound = true;
+					}
+				});
+				that.timeField.getStore().loadData(times);
 
-				that.dateField.setDisabledDates([]);
+				if (timeFound) {
+					if (setTime) {
+						that.timeField.setValue(selectedTimeStr);
+					}
+				} else if (firstTimeStr) {
+					that.timeField.setValue(firstTimeStr);
+				}
+
+				if (times.length > 1) {
+					that.timeField.enable();
+				} else {
+					that.timeField.disable();
+				}
+				that.fireEvent('change', arguments);
+			},
+			function(errorMessage) {
+				// TODO Error on page
+				alert(errorMessage);
 			}
 		);
-	},
-	// private
-	_setAvailableTimes: function(result, request, selectedTime, setTime) {
-		if (!this.timeField || !this.timeField.getStore()) {
-			// The component has not been initialised yet
-			return;
-		}
-
-		var jsonData = null;
-		try {
-			jsonData = Ext.util.JSON.decode(result.responseText);
-		} catch (err) {
-			var resultMessage = result.responseText;
-			// TODO Error on the page
-			alert('Error while loading the times: ' + resultMessage);
-			return;
-		}
-		
-		if (jsonData == null) {
-			return;
-		}
-
-		if (jsonData.exception) {
-			// TODO Error on the page
-			alert('Error while loading the times: ' +
-				(jsonData.exception.message ? jsonData.exception.message : jsonData.exception));
-			return;
-		}
-
-		var timesArray = [];
-
-		var selectedTimeStr = selectedTime.format(this.timeFormat);
-		var timeFound = false;
-		var firstTimeStr = null;
-
-		if (jsonData['timesteps']) {
-			Ext.each(jsonData['timesteps'], function(time) {
-				var timeObj = Date.parseDate(time, this.timeResponseFormat);
-				var timeStr = timeObj.format(this.timeFormat);
-				if (firstTimeStr == null) {
-					firstTimeStr = timeStr;
-				}
-				if (timeStr == selectedTimeStr) {
-					timeFound = true;
-				}
-				timesArray.push([time, timeStr]);
-			}, this);
-		}
-		this.timeField.getStore().loadData(timesArray);
-
-		if (timeFound) {
-			if (setTime) {
-				this.timeField.setValue(selectedTimeStr);
-			}
-		} else if (firstTimeStr) {
-			this.timeField.setValue(firstTimeStr);
-		}
-
-		if (jsonData['timesteps'].length > 1) {
-			//this.timeField.show();
-			this.timeField.enable();
-		} else {
-			//this.timeField.hide();
-			this.timeField.disable();
-		}
-		this.fireEvent('change', arguments);
-
-		// Greg's field dependency..
-		// TODO extend NCDatetimeField and hook on change event
-		if (this.plotPanel) {
-			this.plotPanel.setTime(this.getValue());
-		}
 	},
 
 	getValue: function() {
@@ -431,7 +250,7 @@ Ext.ux.form.NCDatetimeField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 		var datetime = null;
 		if (this.timeField) {
 			datetime = Date.parseDate(
-					dateObj.dateFormat(this.format) + ' ' + this.timeField.getValue(),
+					dateObj.dateFormat(this.dateFormat) + ' ' + this.timeField.getValue(),
 					this.format + ' ' + this.timeFormat);
 		} else {
 			// This should not append
