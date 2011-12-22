@@ -272,18 +272,6 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 		var hasLegendEnabled = false;
 		var opacityEnabled = false;
 
-/*
-		// Greg's ux-ncplotpanel addition, probably useless now that the options are automatically cleaned
-		// TODO Replace with a proper Destroy
-		if (this.extraOptionsFieldSet.items) {
-			this.extraOptionsFieldSet.items.each(function(option) {
-				if (option.cleanup) {
-					option.cleanup();
-				}
-			});
-		}
-*/
-
 		// Delete (remove & destroy) previous extra options, if any
 		this.extraOptionsFieldSet.hide();
 		this.extraOptionsFieldSet.removeAll(true);

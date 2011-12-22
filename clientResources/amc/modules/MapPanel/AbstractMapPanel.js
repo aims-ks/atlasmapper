@@ -226,12 +226,12 @@ Atlas.AbstractMapPanel = {
 		var defaultLayers = Atlas.conf['defaultLayers'];
 		var layerOrder = Atlas.conf['layerOrder'];
 		// Normalise the layers and load them in the core cache.
-		Atlas.core.loadNewLayersCache(defaultLayers);
-		for(var layerId in defaultLayers){
-			if(defaultLayers.hasOwnProperty(layerId)){
-				// Get the layer from the core cache and load it in the map
-				this.addLayerById(layerId);
-			}
+		Atlas.core.loadNewLayersCache(defaultLayers, true);
+		// Add layers in reverse order - the last added will be on top
+		for(var i=defaultLayers.length-1; i>=0; i--){
+			// Get the layer from the core cache and load it in the map
+			// NOTE The layer from the core cache is normalized.
+			this.addLayerById(defaultLayers[i].layerId);
 		}
 	},
 
@@ -571,6 +571,14 @@ Atlas.AbstractMapPanel = {
 
 		layer.json = layerJSon;
 		layer.hideInLegend = false;//!layerJSon['<initialState>']['<legendActivated>'];
+
+		// TODO Remove this after implementing Save State
+		if (typeof(layerJSon['selected']) !== 'undefined') {
+			if (!layerJSon['selected']) {
+				layer.visibility = false;
+			}
+			delete(layerJSon['selected']);
+		}
 
 		// Add the functions setHideInLegend/getHideInLegend to all layers.
 		// It would just be too much trouble if all layer class had

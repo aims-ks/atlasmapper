@@ -488,14 +488,13 @@ public class DataSourceConfig extends AbstractConfig implements Comparable<DataS
 		if (layersConfig != null) {
 			for (LayerConfig layerConfig : layersConfig.values()) {
 				if (layerConfig != null && !this.isBlacklisted(layerConfig.getLayerId())) {
-					LayerConfig overridenLayerConfig =
+					LayerConfig overriddenLayerConfig =
 							layerConfig.applyOverrides(
 									globalOverrides,
 									clientOverrides);
-
 					overridenLayerConfigs.put(
-							overridenLayerConfig.getLayerId(),
-							overridenLayerConfig);
+							overriddenLayerConfig.getLayerId(),
+							overriddenLayerConfig);
 				}
 			}
 		}

@@ -82,6 +82,10 @@ public class LayerConfig extends DataSourceConfig {
 	@ConfigField
 	private List<LayerOptionConfig> options;
 
+	// TODO remove after implementing Save State
+	@ConfigField
+	private Boolean selected;
+
 	public LayerConfig(ConfigManager configManager) {
 		super(configManager);
 	}
@@ -242,6 +246,14 @@ public class LayerConfig extends DataSourceConfig {
 		this.options = options;
 	}
 
+	public Boolean isSelected() {
+		return selected;
+	}
+
+	public void setSelected(Boolean selected) {
+		this.selected = selected;
+	}
+
 	public LayerConfig applyOverrides(
 			JSONObject globalOverrides,
 			JSONObject clientOverrides) throws JSONException {
@@ -297,6 +309,7 @@ public class LayerConfig extends DataSourceConfig {
 				(wmsFeatureRequestLayers==null ? "" :  "	wmsFeatureRequestLayers=" + Arrays.toString(wmsFeatureRequestLayers) + "\n") +
 				(styles==null ? "" :                   "	styles=" + styles + "\n") +
 				(options==null ? "" :                  "	options=" + options + "\n") +
+				(selected==null ? "" :                 "	selected=" + selected + "\n") +
 				"	dataSource=" + super.toString() + "\n" +
 			'}';
 	}

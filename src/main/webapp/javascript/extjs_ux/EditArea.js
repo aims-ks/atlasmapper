@@ -68,18 +68,29 @@ Ext.apply(Ext.form.field.VTypes, {
 
 		var json = null;
 		if (typeof(val) == 'object') {
-			json = val
+			json = val;
 		} else {
 			try {
 				json = Ext.JSON.decode(val);
 			} catch(error) {
+				this.jsonfieldText = 'Error while parsing the JSON. Ensure that you have all needed <b>coma</b>, <b>balanced brackets</b> and <b>quotes</b> surrounding keys and values. See the documentation for more info.';
 				return false;
 			}
 		}
 
-		if (!json) {
+		if (json == null) {
+			this.jsonfieldText = 'The parsed JSON is null. See the documentation for more info.';
 			return false;
 		}
+
+		// Check for duplicate entries: the client allow this, not the server
+		var parsedResult = Ext.JSON.encode(json).replace(/[\s"',]/g,'');
+		var parsedValue = val.replace(/[\s"',]/g,'');
+		if (parsedResult != parsedValue) {
+			this.jsonfieldText = 'An error occurred while parsing the JSON. Ensure that you do not have any <b>duplicate element</b>. See the documentation for more info.';
+			return false;
+		}
+
 		return true;
 	},
 

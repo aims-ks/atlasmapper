@@ -46,7 +46,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.ServletContext;
@@ -808,21 +807,38 @@ public class ConfigManager {
 	private JSONObject _getClientLayers(ClientConfig clientConfig, String[] layerIds, boolean live) throws JSONException, IOException, ServiceException, GetCapabilitiesExceptions {
 		return _getClientLayers(clientConfig, Arrays.asList(layerIds), live);
 	}
+
 	private JSONObject _getClientLayers(ClientConfig clientConfig, Collection<String> layerIds, boolean live) throws JSONException, IOException, ServiceException, GetCapabilitiesExceptions {
+		return (JSONObject)_getClientLayers(clientConfig, layerIds, live, "JSONObject");
+	}
+
+	// Sometime, layers are required to be in an Array to keep their order
+	private Object _getClientLayers(ClientConfig clientConfig, Collection<String> layerIds, boolean live, String jsonClass) throws JSONException, IOException, ServiceException, GetCapabilitiesExceptions {
 		if (clientConfig == null) { return null; }
 
-		JSONObject foundLayers = new JSONObject();
+		JSONObject foundLayersObj = new JSONObject();
+		JSONArray foundLayersArr = new JSONArray();
 
 		JSONObject clientLayers = this.getClientConfigFileJSon(clientConfig, ConfigType.LAYERS, live, live);
 
+		boolean asJSONObject = !"JSONArray".equalsIgnoreCase(jsonClass);
 		for (String rawLayerId : layerIds) {
 			String layerId = rawLayerId.trim();
 			if (clientLayers.has(layerId)) {
-				foundLayers.put(layerId, clientLayers.get(layerId));
+				JSONObject jsonLayer = clientLayers.optJSONObject(layerId);
+				if (asJSONObject) {
+					foundLayersObj.put(layerId, jsonLayer);
+				} else {
+					jsonLayer.put("layerId", layerId);
+					foundLayersArr.put(jsonLayer);
+				}
 			}
 		}
 
-		return foundLayers;
+		if (asJSONObject) {
+			return foundLayersObj;
+		}
+		return foundLayersArr;
 	}
 
 	public MultiKeyHashMap<Integer, String, DataSourceConfig> getDataSourceConfigs() throws JSONException, FileNotFoundException {
@@ -1435,22 +1451,23 @@ public class ConfigManager {
 		}
 	}
 
-	private JSONObject getClientDefaultLayers(String clientId) throws JSONException, IOException, ServiceException, GetCapabilitiesExceptions {
+	private JSONArray getClientDefaultLayers(String clientId) throws JSONException, IOException, ServiceException, GetCapabilitiesExceptions {
 		if (Utils.isBlank(clientId)) { return null; }
 
-		return this._getClientLayers(
+		return (JSONArray)this._getClientLayers(
 				this.getClientConfig(clientId),
 				this._getClientDefaultLayerIds(clientId),
-				true);
+				true,
+				"JSONArray");
 	}
 
-	private Set<String> _getClientDefaultLayerIds(String clientId) throws JSONException, IOException, ServiceException {
+	private List<String> _getClientDefaultLayerIds(String clientId) throws JSONException, IOException, ServiceException {
 		if (Utils.isBlank(clientId)) { return null; }
 
 		ClientConfig clientConfig = this.getClientConfig(clientId);
 		if (clientConfig == null) { return null; }
 
-		return clientConfig.getDefaultLayersSet();
+		return clientConfig.getDefaultLayersList();
 	}
 
 	private JSONObject generateDataSource(DataSourceConfig dataSourceConfig, ClientConfig clientConfig) throws JSONException {
@@ -1611,8 +1628,6 @@ public class ConfigManager {
 			jsonLayer.put("hasLegend", layerConfig.isHasLegend());
 		}
 
-		// Initial state is related to the Client saved state
-
 		// No need for a legend URL + Filename since there is no more Layer Groups
 		if (Utils.isNotBlank(layerConfig.getLegendUrl())) {
 			jsonLayer.put("legendUrl", layerConfig.getLegendUrl());
@@ -1694,6 +1709,11 @@ public class ConfigManager {
 			}
 		}
 
+		// Initial state is related to the Client saved state
+		// TODO delete after implementing Save State
+		if(layerConfig.isSelected() != null) {
+			jsonLayer.put("selected", layerConfig.isSelected());
+		}
 		/*
 		XmlLayer.XmlLayerInitialState initialState = xmlLayer.getInitialState();
 		if (initialState != null) {

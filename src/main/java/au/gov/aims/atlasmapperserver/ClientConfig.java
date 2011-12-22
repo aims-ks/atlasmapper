@@ -97,7 +97,7 @@ public class ClientConfig extends AbstractConfig {
 	@ConfigField
 	private String defaultLayers;
 	// Cache - avoid parsing baseLayers string every times.
-	private Set<String> defaultLayersSet = null;
+	private List<String> defaultLayersList = null;
 
 	@ConfigField
 	private String version;
@@ -258,7 +258,7 @@ public class ClientConfig extends AbstractConfig {
 
 	public void setDefaultLayers(String defaultLayers) {
 		this.defaultLayers = defaultLayers;
-		this.defaultLayersSet = null;
+		this.defaultLayersList = null;
 	}
 
 	public boolean isEnable() {
@@ -507,9 +507,9 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	// Helper
-	public Set<String> getDefaultLayersSet() {
-		if (this.defaultLayersSet == null) {
-			this.defaultLayersSet = new HashSet<String>();
+	public List<String> getDefaultLayersList() {
+		if (this.defaultLayersList == null) {
+			this.defaultLayersList = new ArrayList<String>();
 			String defaultlayersStr = this.getDefaultLayers();
 			if (Utils.isNotBlank(defaultlayersStr)) {
 				String[] defaultlayers = defaultlayersStr.split(SPLIT_PATTERN);
@@ -517,14 +517,14 @@ public class ClientConfig extends AbstractConfig {
 					for (int i=0; i<defaultlayers.length; i++) {
 						String defaultlayer = defaultlayers[i];
 						if (Utils.isNotBlank(defaultlayer)) {
-							this.defaultLayersSet.add(defaultlayer.trim());
+							this.defaultLayersList.add(defaultlayer.trim());
 						}
 					}
 				}
 			}
 		}
 
-		return this.defaultLayersSet;
+		return this.defaultLayersList;
 	}
 
 	// Helper

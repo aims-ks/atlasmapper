@@ -34,6 +34,8 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 	split: true,
 	// collapseMode mini is more stable
 	collapseMode: 'mini',
+	// Animation on collapse is not smooth because the map require a lot of resources to resize.
+	animCollapse: false,
 
 	initComponent: function() {
 		if (this.layersPanelHeader == null && Atlas.conf['layersPanelHeader'] != null) {

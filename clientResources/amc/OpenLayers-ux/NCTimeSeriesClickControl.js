@@ -76,10 +76,17 @@ OpenLayers.Control.ux.NCTimeSeriesClickControl = OpenLayers.Class(OpenLayers.Con
 		// TODO Find a safer way to do this... For example, if the parameter is already called QUERY_LAYERS, it will be change to QUERY_QUERY_LAYERS and the query will not work
 		url = url.replace("LAYERS=", "QUERY_LAYERS=");
 
-		new Ext.Window({
+		var title = '';
+		try {
+			// This will throw an exception if the date is erroneous.
+			title = Date.parseDate(this.fromDate, this.layer.outputFormat).format(this.displayDateFormat) + " - " +
+					Date.parseDate(this.thruDate, this.layer.outputFormat).format(this.displayDateFormat);
+		} catch (err) {
+			// This is just a title, no need to alarm the user.
+		}
 
-			title: Date.parseDate(this.fromDate, this.layer.outputFormat).format(this.displayDateFormat) + " - " +
-					Date.parseDate(this.thruDate, this.layer.outputFormat).format(this.displayDateFormat),
+		new Ext.Window({
+			title: title,
 			bodyStyle: {
 				// Set window body size to the size of the image
 				width: '400px',

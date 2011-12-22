@@ -288,24 +288,29 @@
 			</tr>
 			<tr>
 				<td class="attr">options</td>
-				<td class="type">JSON Object</td>
+				<td class="type">Array of JSON Object</td>
 				<td class="desc">
 					Define extra options to be added in the options panel of this layer.<br/>
-					Each options is defined by it's name as a key and an object of values as its value.<br/>
 					Example:<br/>
 <pre>
 "ea:bluemarble" : {
-	"options": {
-		"comment": {
+	"options": [
+		{
+			"name": "comment",
 			"title": "Comment",
 			"type": "textarea"
 		}
-	}
+	]
 }
 </pre>
 					<b>WARNING</b> this attribute is under development and may be unstable or change considerably between versions.<br/>
-					List of available values for this field:
+					List of available attributes for this field:
 					<table>
+						<tr>
+							<td class="attr">name</td>
+							<td class="type">String</td>
+							<td class="desc">The parameter's name, added to the request.</td>
+						</tr>
 						<tr>
 							<th class="attr">Attribute</th>
 							<th class="type">Type</th>
@@ -335,13 +340,14 @@
 									<li><b>datefield</b>: For date in format d/m/Y</li>
 									<li><b>ux-datefield</b>: For date displayed in format d/m/Y but sent to the server in format Y-m-d</li>
 									<li><b>ux-ncdatetimefield</b>: For date and time displayed in format d/m/Y and saved in the ISO format expected by NCWMS server.</li>
+									<li><b>ux-ncplotpanel</b>: To add time series and transect drawing features on NCWMS layers. NOTE: The <i>name</i> field is ignored with this type since it do not change the layer URL.</li>
 								</ul>
 							</td>
 						</tr>
 						<tr>
 							<td class="attr">mandatory</td>
 							<td class="type">Boolean</td>
-							<td class="desc"><i>true</i> to force the user to fill the option with a value, <i>false</i> otherwise. (default value: false)</td>
+							<td class="desc"><i>true</i> to force the user to fill the option with a value, <i>false</i> otherwise. (default value: <i>false</i>)</td>
 						</tr>
 						<tr>
 							<td class="attr">defaultValue</td>
@@ -349,6 +355,14 @@
 							<td class="desc">Value pre-entered in the field.</td>
 						</tr>
 					</table>
+				</td>
+			</tr>
+			<tr>
+				<td class="attr">selected</td>
+				<td class="type">Boolean</td>
+				<td class="desc">
+					<i>false</i> to add the layer in the layer switcher but not on the map (visibility false) when loaded for the first time.<br/>
+					<b>NOTE:</b> This is a temporary field that will be removed after the Save State feature has been developed.
 				</td>
 			</tr>
 			<!-- styles & layerOptions: [name, type, mandatory, defaultValue] -->

@@ -349,7 +349,6 @@ public abstract class AbstractConfig implements Cloneable {
 				collectionClass = (Class)collectionTypes[0];
 			}
 			if (collectionClass != null) {
-				JSONObject jsonObjValue = getJSONObject(jsonObj, configName);
 				Collection<Object> configValue = null;
 				if (List.class.isAssignableFrom(fieldClass)) {
 					configValue = new ArrayList<Object>();
@@ -359,6 +358,10 @@ public abstract class AbstractConfig implements Cloneable {
 					throw new IllegalAccessException("Unsupported collection type ["+fieldClass.getName()+"]");
 				}
 				if (configValue != null) {
+					JSONObject jsonObjValue = null;
+					try {
+						jsonObjValue = getJSONObject(jsonObj, configName);
+					} catch (Exception e) {}
 					if (jsonObjValue == null) {
 						JSONArray jsonArrValue = getJSONArray(jsonObj, configName);
 						if (jsonArrValue != null) {
@@ -397,7 +400,10 @@ public abstract class AbstractConfig implements Cloneable {
 			Class arrayType = fieldClass.getComponentType();
 			if (arrayType != null) {
 				// The field is an Array, the value can be a JSONObject or a JSONArray, or a String that represent a JSONObject/JSONArray.
-				JSONObject jsonObjValue = getJSONObject(jsonObj, configName);
+				JSONObject jsonObjValue = null;
+				try {
+					jsonObjValue = getJSONObject(jsonObj, configName);
+				} catch(Exception e) {}
 				ArrayList<Object> configValue = new ArrayList<Object>();
 				if (jsonObjValue == null) {
 					JSONArray jsonArrValue = getJSONArray(jsonObj, configName);
@@ -527,7 +533,6 @@ public abstract class AbstractConfig implements Cloneable {
 				collectionClass = (Class)collectionTypes[0];
 			}
 			if (collectionClass != null) {
-				JSONObject jsonObjValue = getJSONObject(jsonArr, index);
 				Collection<Object> configValue = null;
 				if (List.class.isAssignableFrom(fieldClass)) {
 					configValue = new ArrayList<Object>();
@@ -537,8 +542,15 @@ public abstract class AbstractConfig implements Cloneable {
 					throw new IllegalAccessException("Unsupported collection type ["+fieldClass.getName()+"]");
 				}
 				if (configValue != null) {
+					JSONObject jsonObjValue = null;
+					try{
+						jsonObjValue = getJSONObject(jsonArr, index);
+					} catch (Exception e) {}
 					if (jsonObjValue == null) {
-						JSONArray jsonArrValue = getJSONArray(jsonArr, index);
+						JSONArray jsonArrValue = null;
+						try {
+							jsonArrValue = getJSONArray(jsonArr, index);
+						} catch(Exception e) {}
 						if (jsonArrValue != null) {
 							for (int i=0; i<jsonArrValue.length(); i++) {
 								Object val = getValue(
@@ -638,75 +650,153 @@ public abstract class AbstractConfig implements Cloneable {
 	}
 
 
-	private static JSONObject getJSONObject(JSONObject jsonObj, String configName) {
+	private static JSONObject getJSONObject(JSONObject jsonObj, String configName) throws JSONException {
+		if (jsonObj.isNull(configName)) {
+			return null;
+		}
+
 		JSONObject jsonValue = null;
+		Exception cause = null;
 		try {
 			jsonValue = jsonObj.optJSONObject(configName);
-		} catch(Exception e) {}
+		} catch (Exception e) { cause = e; }
+
 		// The value will be a String if it come from a raw form
 		if (jsonValue == null) {
 			try {
-				jsonValue = new JSONObject(jsonObj.optString(configName, null));
-			} catch(Exception e) {}
+				String jsonStr = jsonObj.optString(configName, null);
+				if ("".equals(jsonStr)) {
+					return null;
+				}
+				jsonValue = new JSONObject(jsonStr);
+			} catch (Exception e) { cause = e; }
 		}
+
+		// If it's still null here, we have a problem.
+		if (jsonValue == null) {
+			if (cause != null) {
+				throw new JSONException("Can not parse the JSON value for: " + configName + " cause by: " + cause.getMessage());
+			}
+			throw new JSONException("Can not parse the JSON value for: " + configName);
+		}
+
 		return jsonValue;
 	}
-	private static JSONObject getJSONObject(JSONArray jsonArr, int index) {
+	private static JSONObject getJSONObject(JSONArray jsonArr, int index) throws JSONException {
+		if (jsonArr.isNull(index)) {
+			return null;
+		}
+
 		JSONObject jsonValue = null;
+		Exception cause = null;
 		try {
 			jsonValue = jsonArr.optJSONObject(index);
-		} catch(Exception e) {}
+		} catch (Exception e) { cause = e; }
+
 		// The value will be a String if it come from a raw form
 		if (jsonValue == null) {
 			try {
-				jsonValue = new JSONObject(jsonArr.optString(index, null));
-			} catch(Exception e) {}
+				String jsonStr = jsonArr.optString(index, null);
+				if ("".equals(jsonStr)) {
+					return null;
+				}
+				jsonValue = new JSONObject(jsonStr);
+			} catch (Exception e) { cause = e; }
 		}
+
+		// If it's still null here, we have a problem.
+		if (jsonValue == null) {
+			if (cause != null) {
+				throw new JSONException("Can not parse the JSON value index: " + index + " cause by: " + cause.getMessage());
+			}
+			throw new JSONException("Can not parse the JSON value index: " + index);
+		}
+
 		return jsonValue;
 	}
 
-	private static JSONArray getJSONArray(JSONObject jsonObj, String configName) {
+	private static JSONArray getJSONArray(JSONObject jsonObj, String configName) throws JSONException {
+		if (jsonObj.isNull(configName)) {
+			return null;
+		}
+
 		JSONArray value = null;
+		Exception cause = null;
 		try {
 			value = jsonObj.optJSONArray(configName);
-		} catch(Exception e) {}
+		} catch (Exception e) { cause = e; }
+
 		// The value will be a String if it come from a raw form
 		if (value == null) {
 			String valueStr = jsonObj.optString(configName, null);
-			if (valueStr != null && !valueStr.isEmpty()) {
-				try {
-					value = new JSONArray(valueStr);
-				} catch(Exception e) {}
-				if (value == null) {
-					// The value may contains only one value, returned as a single String without braquets
-					JSONArray jsonArray = new JSONArray();
-					jsonArray.put(valueStr);
-					value = jsonArray;
-				}
+			if ("".equals(valueStr)) {
+				return null;
 			}
+
+			try {
+				value = new JSONArray(valueStr);
+			} catch (Exception e) { cause = e; }
+
+			/*
+			if (value == null) {
+				// The value may contains only one value, returned as a single String without brackets
+				JSONArray jsonArray = new JSONArray();
+				jsonArray.put(valueStr);
+				value = jsonArray;
+			}
+			*/
 		}
+
+		// If it's still null here, we have a problem.
+		if (value == null) {
+			if (cause != null) {
+				throw new JSONException("Can not parse the JSON value for: " + configName + " cause by: " + cause.getMessage());
+			}
+			throw new JSONException("Can not parse the JSON value for: " + configName);
+		}
+
 		return value;
 	}
-	private static JSONArray getJSONArray(JSONArray jsonArr, int index) {
+	private static JSONArray getJSONArray(JSONArray jsonArr, int index) throws JSONException {
+		if (jsonArr.isNull(index)) {
+			return null;
+		}
+
 		JSONArray value = null;
+		Exception cause = null;
 		try {
 			value = jsonArr.optJSONArray(index);
-		} catch(Exception e) {}
+		} catch (Exception e) { cause = e; }
+
 		// The value will be a String if it come from a raw form
 		if (value == null) {
 			String valueStr = jsonArr.optString(index, null);
-			if (valueStr != null && !valueStr.isEmpty()) {
-				try {
-					value = new JSONArray(valueStr);
-				} catch(Exception e) {}
-				if (value == null) {
-					// The value may contains only one value, returned as a single String without braquets
-					JSONArray jsonArray = new JSONArray();
-					jsonArray.put(valueStr);
-					value = jsonArray;
-				}
+			if ("".equals(valueStr)) {
+				return null;
 			}
+
+			try {
+				value = new JSONArray(valueStr);
+			} catch (Exception e) { cause = e; }
+
+			/*
+			if (value == null) {
+				// The value may contains only one value, returned as a single String without brackets
+				JSONArray jsonArray = new JSONArray();
+				jsonArray.put(valueStr);
+				value = jsonArray;
+			}
+			*/
 		}
+
+		// If it's still null here, we have a problem.
+		if (value == null) {
+			if (cause != null) {
+				throw new JSONException("Can not parse the JSON value index: " + index + " cause by: " + cause.getMessage());
+			}
+			throw new JSONException("Can not parse the JSON value index: " + index);
+		}
+
 		return value;
 	}
 

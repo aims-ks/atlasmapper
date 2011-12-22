@@ -140,10 +140,13 @@
 					layout: "border",
 					hideBorders: true,
 					items: [
+						<#if (pageHeader?? && pageHeader != "")>
+							{
+								region: 'north',
+								html: "${pageHeader}"
+							},
+						</#if>
 						{
-							region: 'north',
-							html: "${pageHeader}"
-						}, {
 							region: 'center',
 							layout: "hbox",
 							layoutConfig: {
@@ -152,10 +155,13 @@
 							},
 							hideBorders: true,
 							items: mapLayoutItems
-						}, {
-							region: 'south',
-							html: "${pageFooter}"
 						}
+						<#if (pageFooter?? && pageFooter != "")>
+							,{
+								region: 'south',
+								html: "${pageFooter}"
+							}
+						</#if>
 					]
 				});
 			};

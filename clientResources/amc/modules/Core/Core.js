@@ -459,14 +459,21 @@ Atlas.Core = OpenLayers.Class({
 		}
 	},
 
-	loadNewLayersCache: function(newLayers) {
+	loadNewLayersCache: function(newLayers, isArray) {
 		// Load all layers, from the main config, in the cache
 		var defaults = newLayers['defaults'] ? newLayers['defaults'] : {};
 
-		for(var layerId in newLayers){
-			if(newLayers.hasOwnProperty(layerId) && layerId != 'defaults'){
-				var layerJSon = newLayers[layerId];
-				this.loadLayerCache(layerJSon, layerId, defaults);
+		if (isArray) {
+			for(var i=0; i<newLayers.length; i++){
+				var layerJSon = newLayers[i];
+				this.loadLayerCache(layerJSon, layerJSon.layerId, defaults);
+			}
+		} else {
+			for(var layerId in newLayers){
+				if(newLayers.hasOwnProperty(layerId) && layerId != 'defaults'){
+					var layerJSon = newLayers[layerId];
+					this.loadLayerCache(layerJSon, layerId, defaults);
+				}
 			}
 		}
 	},
