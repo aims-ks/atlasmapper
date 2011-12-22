@@ -137,13 +137,26 @@
 				}
 
 				new Ext.Viewport({
-					layout: "hbox",
-					layoutConfig: {
-						align : 'stretch',
-						pack  : 'start'
-					},
+					layout: "border",
 					hideBorders: true,
-					items: mapLayoutItems
+					items: [
+						{
+							region: 'north',
+							html: "${pageHeader}"
+						}, {
+							region: 'center',
+							layout: "hbox",
+							layoutConfig: {
+								align : 'stretch',
+								pack  : 'start'
+							},
+							hideBorders: true,
+							items: mapLayoutItems
+						}, {
+							region: 'south',
+							html: "${pageFooter}"
+						}
+					]
 				});
 			};
 		});

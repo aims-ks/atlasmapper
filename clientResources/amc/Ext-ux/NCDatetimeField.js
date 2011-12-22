@@ -251,7 +251,7 @@ Ext.ux.form.NCDatetimeField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 		if (this.timeField) {
 			datetime = Date.parseDate(
 					dateObj.dateFormat(this.dateFormat) + ' ' + this.timeField.getValue(),
-					this.format + ' ' + this.timeFormat);
+					this.dateFormat + ' ' + this.timeFormat);
 		} else {
 			// This should not append
 			datetime = dateObj;

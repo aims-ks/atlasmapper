@@ -28,17 +28,19 @@ if (typeof(OpenLayers.Control.ux) == 'undefined') {
 
 OpenLayers.Control.ux.NCTransectDrawControl = OpenLayers.Class(OpenLayers.Control.DrawFeature, {
 	renderer: null,
-	transect: null,
 	map: null,
 	time: null,
 	ncLayer: null,
 
 	displayDateFormat: 'd/m/Y H:i:s',
 
+	// private
+	_onFeatureAdded: null,
+
 	initialize: function() {
 		var that = this;
 
-		var plot = function(event) {
+		this._onFeatureAdded = function(event) {
 			var lineString = "";
 
 			var points = event.feature.geometry.getVertices();
@@ -78,14 +80,8 @@ OpenLayers.Control.ux.NCTransectDrawControl = OpenLayers.Class(OpenLayers.Contro
 			}).show();
 		};
 
-		//this.renderer = OpenLayers.Util.getParameters(window.location.href).renderer;
-		//this.renderer = (this.renderer) ? [this.renderer] : OpenLayers.Layer.Vector.prototype.renderers;
-
-		//this.transect = new OpenLayers.Layer.Vector("Transect Layer", {
-		//	renderers: this.renderer, displayInLayerSwitcher: false
-		//});
-
-		this.transect = new OpenLayers.Layer.Vector("Transect Layer", {
+		// This will become this.layer
+		var transect = new OpenLayers.Layer.Vector("Transect Layer", {
 			displayInLayerSwitcher: false,
 			styleMap: new OpenLayers.StyleMap({
 				"default": {
@@ -99,21 +95,40 @@ OpenLayers.Control.ux.NCTransectDrawControl = OpenLayers.Class(OpenLayers.Contro
 			})
 		});
 
-		this.transect.rendererOptions = { strokeColor: "#000000" };
+		transect.rendererOptions = { strokeColor: "#000000" };
 
 		var newArguments = [];
-		newArguments.push(this.transect, OpenLayers.Handler.Path, {'displayClass': 'olControlDrawFeaturePath'});
+		newArguments.push(transect, OpenLayers.Handler.Path, {'displayClass': 'olControlDrawFeaturePath'});
 
 		OpenLayers.Control.DrawFeature.prototype.initialize.apply(this, newArguments);
-		this.transect.events.register('featureadded', this.transect, plot);
+		transect.events.register('featureadded', transect, this._onFeatureAdded);
 	},
 
 	showTransect: function() {
-		this.map.addLayer(this.transect);
+		if (this.layer != null) {
+			this.map.addLayer(this.layer);
+		}
 	},
 
 	hideTransect: function() {
-		this.map.removeLayer(this.transect);
-		this.transect.removeAllFeatures();
+		if (this.layer != null) {
+			if (this.layer.map === this.map) {
+				this.map.removeLayer(this.layer);
+			}
+			this.layer.removeAllFeatures();
+		}
+	},
+
+	destroy: function() {
+		this.hideTransect();
+		if (this.layer != null) {
+			if (this._onFeatureAdded != null) {
+				this.layer.events.unregister('featureadded', this.layer, this._onFeatureAdded);
+				this._onFeatureAdded = null;
+			}
+			this.layer.destroy();
+			this.layer = null;
+		}
+		OpenLayers.Control.DrawFeature.prototype.destroy.apply(this, arguments);
 	}
 });

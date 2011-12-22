@@ -132,10 +132,10 @@ public class ClientConfig extends AbstractConfig {
 	private String pageFooter;
 
 	@ConfigField
-	private String layerPanelHeader;
+	private String layersPanelHeader;
 
 	@ConfigField
-	private String layerPanelFooter;
+	private String layersPanelFooter;
 
 	// Read only values also need to be disabled in the form (clientsConfigPage.js)
 	@ConfigField(demoReadOnly = true)
@@ -418,20 +418,20 @@ public class ClientConfig extends AbstractConfig {
 		this.pageFooter = pageFooter;
 	}
 
-	public String getLayerPanelHeader() {
-		return this.layerPanelHeader;
+	public String getLayersPanelHeader() {
+		return this.layersPanelHeader;
 	}
 
-	public void setLayerPanelHeader(String layerPanelHeader) {
-		this.layerPanelHeader = layerPanelHeader;
+	public void setLayersPanelHeader(String layersPanelHeader) {
+		this.layersPanelHeader = layersPanelHeader;
 	}
 
-	public String getLayerPanelFooter() {
-		return this.layerPanelFooter;
+	public String getLayersPanelFooter() {
+		return this.layersPanelFooter;
 	}
 
-	public void setLayerPanelFooter(String layerPanelFooter) {
-		this.layerPanelFooter = layerPanelFooter;
+	public void setLayersPanelFooter(String layersPanelFooter) {
+		this.layersPanelFooter = layersPanelFooter;
 	}
 
 	public String getGeneratedFileLocation() {

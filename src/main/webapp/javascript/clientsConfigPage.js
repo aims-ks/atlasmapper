@@ -462,12 +462,12 @@ Ext.define('Writer.ClientConfigForm', {
 							}, {
 								fieldLabel: 'Layer panel header',
 								qtipHtml: 'TODO',
-								name: 'layerPanelHeader',
+								name: 'layersPanelHeader',
 								xtype: 'textareafield'
 							}, {
 								fieldLabel: 'Layer panel footer',
 								qtipHtml: 'TODO',
-								name: 'layerPanelFooter',
+								name: 'layersPanelFooter',
 								xtype: 'textareafield'
 							}
 						]
@@ -1462,8 +1462,8 @@ Ext.define('Writer.ClientConfig', {
 		'theme',
 		'pageHeader',
 		'pageFooter',
-		'layerPanelHeader',
-		'layerPanelFooter',
+		'layersPanelHeader',
+		'layersPanelFooter',
 		'comment'
 	]/*,
 	validations: [{

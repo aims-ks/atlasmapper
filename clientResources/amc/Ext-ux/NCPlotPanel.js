@@ -41,15 +41,26 @@ Ext.ux.NCPlotPanel = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 	
 	// private
 	_timeSeriesEnabled: false,
+	_onLayerLoad: null,
 
 	initComponent: function() {
 		var that = this;
 
+		this.timeSeriesClickControl = new OpenLayers.Control.ux.NCTimeSeriesClickControl();
+		this.timeSeriesClickControl.map = this.mapPanel.map;
+		this.timeSeriesClickControl.layer = this.layer;
+
+		this.transectDrawControl = new OpenLayers.Control.ux.NCTransectDrawControl();
+		this.transectDrawControl.map = this.mapPanel.map;
+		this.transectDrawControl.ncLayer = this.layer;
+
 		// Possible events: loadstart, tileloaded, loadend
 		if (that.layer.getCurrentTime) {
-			this.layer.events.register("loadstart", this.layer, function() {
+			this._onLayerLoad = function() {
 				that.transectDrawControl.time = that.layer.getCurrentTime();
-			});
+			};
+
+			this.layer.events.register("loadstart", this.layer, this._onLayerLoad);
 		}
 
 		if (that.layer.getAvailableDates) {
@@ -70,16 +81,6 @@ Ext.ux.NCPlotPanel = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 				);
 			});
 		}
-
-		this.timeSeriesClickControl = new OpenLayers.Control.ux.NCTimeSeriesClickControl();
-
-		this.transectDrawControl = new OpenLayers.Control.ux.NCTransectDrawControl();
-
-		this.timeSeriesClickControl.map = this.mapPanel.map;
-		this.timeSeriesClickControl.layer = this.layer;
-
-		this.transectDrawControl.map = this.mapPanel.map;
-		this.transectDrawControl.ncLayer = this.layer;
 
 		this.mapPanel.map.addControl(this.timeSeriesClickControl);
 		this.timeSeriesClickControl.deactivate();
@@ -280,13 +281,62 @@ Ext.ux.NCPlotPanel = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 		}
 	},
 
-	cleanup: function() {
-		this.timeSeriesClickControl.deactivate();
-		this.mapPanel.wmsFeatureInfo.activate();
-		this.transectDrawControl.deactivate();
-		if (this.mode == "TRAN") {
-			this.transectDrawControl.hideTransect();
+	destroy: function() {
+		if (this.timeSeriesClickControl != null) {
+			this.mapPanel.map.removeControl(this.timeSeriesClickControl);
+			this.timeSeriesClickControl.deactivate();
+			this.timeSeriesClickControl.destroy();
+			this.timeSeriesClickControl = null;
 		}
+		if (this.transectDrawControl != null) {
+			if (this._onLayerLoad != null) {
+				this.layer.events.unregister("loadstart", this.layer, this._onLayerLoad);
+				this._onLayerLoad = null;
+			}
+			this.mapPanel.map.removeControl(this.transectDrawControl);
+			this.transectDrawControl.deactivate();
+			this.transectDrawControl.destroy();
+			this.transectDrawControl = null;
+		}
+
+		if (this.timeSeriesPanel != null) {
+			if (this.fromDateLabel != null) {
+				this.fromDateLabel.destroy();
+				this.fromDateLabel = null;
+			}
+			if (this.fromDateField != null) {
+				this.fromDateField.destroy();
+				this.fromDateField = null;
+			}
+			if (this.thruDateLabel != null) {
+				this.thruDateLabel.destroy();
+				this.thruDateLabel = null;
+			}
+			if (this.thruDateField != null) {
+				this.thruDateField.destroy();
+				this.thruDateField = null;
+			}
+			if (this.timeSeriesText != null) {
+				this.timeSeriesText.destroy();
+				this.timeSeriesText = null;
+			}
+
+			this.timeSeriesPanel.destroy();
+			this.timeSeriesPanel = null;
+		}
+
+		if (this.timeSeriesButton != null) {
+			this.timeSeriesButton.destroy();
+			this.timeSeriesButton = null;
+		}
+		if (this.transectButton != null) {
+			this.transectButton.destroy();
+			this.transectButton = null;
+		}
+
+		Ext.ux.NCPlotPanel.superclass.destroy.call(this);
+
+		this.mapPanel.wmsFeatureInfo.activate();
 	}
 });
 

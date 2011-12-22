@@ -26,30 +26,43 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 	addLayersWindow: null,
 
 	// Default attribute
-	title: 'Layers',
 	width: 250,
 	layout: "border",
+	layersPanelHeader: null,
+	layersPanelFooter: null,
+	// Resizable
+	split: true,
+	// collapseMode mini is more stable
+	collapseMode: 'mini',
 
 	initComponent: function() {
+		if (this.layersPanelHeader == null && Atlas.conf['layersPanelHeader'] != null) {
+			this.layersPanelHeader = Atlas.conf['layersPanelHeader'];
+		}
+		if (this.layersPanelFooter == null && Atlas.conf['layersPanelFooter'] != null) {
+			this.layersPanelFooter = Atlas.conf['layersPanelFooter'];
+		}
+
+		var layersPanel = new Ext.Panel({
+			title: 'Layers',
+			region: 'center',
+			layout: 'border',
+			border: false
+		});
+
 		if (Ext.isIE6) {
 			// IE6 can't display the input widgets if the width is smaller than 300
 			this.width = 300;
+			// Not Resizable - On IE 6, resize this panel to a smaller size cause some inner items to disapear.
+			this.split = false;
 		}
 
-		// Resizable - On IE 6, resize this panel to a smaller size cause some inner items to disapear.
-		if (!Ext.isIE6 && typeof(this.split) === 'undefined') {
-			this.split = true;
+		// The collapseMode has to be set in the initialConfig as well...
+		if (this.initialConfig == null) {
+			this.initialConfig = {};
 		}
-		if (typeof(this.collapsible) === 'undefined') {
-			this.collapsible = true;
-		}
-		// collapseMode mini is more stable
-		if (typeof(this.collapseMode) === 'undefined') {
-			this.collapseMode = 'mini';
-		}
-		if (this.initialConfig && typeof(this.initialConfig.collapseMode) === 'undefined') {
-			// The collapseMode has to be set in the initialConfig as well...
-			this.initialConfig.collapseMode = 'mini';
+		if (typeof(this.initialConfig.collapseMode) === 'undefined') {
+			this.initialConfig.collapseMode = this.collapseMode;
 		}
 
 		Atlas.LayersPanel.superclass.initComponent.call(this);
@@ -193,7 +206,7 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 			]
 		});
 
-		this.add(layersListPanel);
+		layersPanel.add(layersListPanel);
 
 		layersListPanel.getSelectionModel().addListener('selectionchange', function(selectionModel, node) {
 			// Disable / Enable the remove button
@@ -215,7 +228,7 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 			tab.doLayout();
 		});
 
-		this.add({
+		layersPanel.add({
 			region: 'center',
 			title: 'Information',
 			border: false, // No border for this element
@@ -225,6 +238,22 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 			layout: 'anchor',
 			items: [tabPanel]
 		});
+
+		if (this.layersPanelHeader != null && this.layersPanelHeader !== '') {
+			this.add({
+				region: 'north',
+				border: false,
+				html: this.layersPanelHeader
+			});
+		}
+		this.add(layersPanel); // Center region
+		if (this.layersPanelFooter != null && this.layersPanelFooter !== '') {
+			this.add({
+				region: 'south',
+				border: false,
+				html: this.layersPanelFooter
+			});
+		}
 	},
 
 	showAddLayersWindow: function() {

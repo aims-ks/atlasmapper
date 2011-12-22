@@ -369,6 +369,12 @@ public class ConfigManager {
 					if (jsonUser != null) {
 						User user = new User(this);
 						user.update(jsonUser);
+
+						String clearTextPassword = jsonUser.optString("password", null);
+						if (clearTextPassword != null) {
+							user.setPassword(clearTextPassword);
+						}
+
 						this.users.put(user.getLoginName(), user);
 					}
 				}
@@ -1117,6 +1123,8 @@ public class ConfigManager {
 			indexValues.put("clientId", clientConfig.getClientId());
 			indexValues.put("clientName", clientConfig.getClientName() != null ? clientConfig.getClientName() : clientConfig.getClientId());
 			indexValues.put("theme", clientConfig.getTheme());
+			indexValues.put("pageHeader", Utils.safeJsStr(clientConfig.getPageHeader()));
+			indexValues.put("pageFooter", Utils.safeJsStr(clientConfig.getPageFooter()));
 			indexValues.put("timestamp", ""+Utils.getCurrentTimestamp());
 			indexValues.put("useGoogle", useGoogle);
 			Utils.processTemplate(templatesConfig, "index.html", indexValues, atlasMapperClientFolder);
@@ -1156,6 +1164,8 @@ public class ConfigManager {
 				previewValues.put("clientId", clientConfig.getClientId());
 				previewValues.put("clientName", clientConfig.getClientName() != null ? clientConfig.getClientName() : clientConfig.getClientId());
 				previewValues.put("theme", clientConfig.getTheme());
+				previewValues.put("pageHeader", Utils.safeJsStr(clientConfig.getPageHeader()));
+				previewValues.put("pageFooter", Utils.safeJsStr(clientConfig.getPageFooter()));
 				previewValues.put("useGoogle", useGoogle);
 				Utils.processTemplate(templatesConfig, "preview.html", previewValues, atlasMapperClientFolder);
 			} catch (URISyntaxException ex) {
@@ -1391,19 +1401,13 @@ public class ConfigManager {
 		}
 
 		// Appearance
-		// NOTE The ExtJS theme is used to generate the template,
-		// the client do not need to know which theme it is using.
-		if (Utils.isNotBlank(clientConfig.getPageHeader())) {
-			json.put("pageHeader", clientConfig.getPageHeader());
+		// NOTE The ExtJS theme, pageHeader and pageFooter are used to generate
+		// the template, the client do not need to know those variables.
+		if (Utils.isNotBlank(clientConfig.getLayersPanelHeader())) {
+			json.put("layersPanelHeader", clientConfig.getLayersPanelHeader());
 		}
-		if (Utils.isNotBlank(clientConfig.getPageFooter())) {
-			json.put("pageFooter", clientConfig.getPageFooter());
-		}
-		if (Utils.isNotBlank(clientConfig.getLayerPanelHeader())) {
-			json.put("layerPanelHeader", clientConfig.getLayerPanelHeader());
-		}
-		if (Utils.isNotBlank(clientConfig.getLayerPanelFooter())) {
-			json.put("layerPanelFooter", clientConfig.getLayerPanelFooter());
+		if (Utils.isNotBlank(clientConfig.getLayersPanelFooter())) {
+			json.put("layersPanelFooter", clientConfig.getLayersPanelFooter());
 		}
 
 		return json;
