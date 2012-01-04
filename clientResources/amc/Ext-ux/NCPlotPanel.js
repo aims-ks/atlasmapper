@@ -72,7 +72,7 @@ Ext.ux.NCPlotPanel = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 							that.timeSeriesButton.setVisible(true);
 							that.setDisabledDates(["^(?!"+availableDates.join("|")+").*$"]);
 						}
-						that.setDefaultDate(Date.parseDate(defaultDate, that.layer.outputFormat));
+						that.setDefaultDate(Date.parseDate(defaultDate, that.layer.outputFormat), availableDates);
 					},
 					function(errorMessage) {
 						// TODO Error on page
@@ -259,7 +259,7 @@ Ext.ux.NCPlotPanel = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 		this.thruDateField.setDisabledDates(disabledDates);
 	},
 
-	setDefaultDate: function(defaultDate) {
+	setDefaultDate: function(defaultDate, availableDates) {
 		if (typeof(defaultDate) === 'undefined' || defaultDate === null || defaultDate === '') {
 			return;
 		}
@@ -270,13 +270,37 @@ Ext.ux.NCPlotPanel = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 
 		var thruDate = this.thruDateField.getValue();
 		if (typeof(thruDate) === 'undefined' || thruDate === null || thruDate === '') {
-			this.thruDateField.setValue(defaultDate);
+			thruDate = defaultDate;
+			this.thruDateField.setValue(thruDate);
 			this.timeSeriesClickControl.thruDate = thruDate;
 		}
 
 		var fromDate = this.fromDateField.getValue();
 		if (typeof(fromDate) === 'undefined' || fromDate === null || fromDate === '') {
-			this.fromDateField.setValue(defaultDate.add(Date.MONTH, -1));
+			// The thruDate is usualy the most recent date.
+			// Go back 1 month in the past for the fromDate
+			fromDate = thruDate.add(Date.MONTH, -1);
+
+			// The date found previously may not be available.
+			// Check all available dates to find the closest date
+			// to the calculated one.
+			// NOTE: A binary search could be used here since the dates
+			//     are sorted, but, since the number of available dates
+			//     is usualy small, it's easier and not to much time
+			//     consuming to do a simple linear search.
+			var closestDate = thruDate;
+			var closestDistance = Math.abs(thruDate - fromDate);
+			Ext.each(availableDates, function(availableDateStr) {
+				var newDate = Date.parseDate(availableDateStr, this.format);
+				var newDistance = Math.abs(newDate - fromDate);
+				if (newDistance < closestDistance) {
+					closestDistance = newDistance;
+					closestDate = newDate;
+				}
+			}, this);
+			fromDate = closestDate;
+
+			this.fromDateField.setValue(fromDate);
 			this.timeSeriesClickControl.fromDate = fromDate;
 		}
 	},

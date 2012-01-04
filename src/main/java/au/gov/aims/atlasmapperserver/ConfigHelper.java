@@ -38,6 +38,13 @@ import org.json.JSONException;
 public class ConfigHelper {
 	private static final Logger LOGGER = Logger.getLogger(ConfigHelper.class.getName());
 
+	private static final String CLIENT_MAIN_CONFIG = "main.json";
+	private static final String CLIENT_EMBEDDED_CONFIG = "embedded.json";
+	private static final String CLIENT_LAYERS_CONFIG = "layers.json";
+
+	private static final String SERVER_MAIN_CONFIG = "server.json";
+	private static final String SERVER_USERS_CONFIG = "users.json";
+
 	private static ConfigManager configManager;
 
 	/**
@@ -53,9 +60,9 @@ public class ConfigHelper {
 					context);
 
 			configManager.setApplicationFolder(FileFinder.getApplicationFolder(context));
-			configManager.setClientFullConfigFilename("main.js");
-			configManager.setClientEmbeddedConfigFilename("embedded.js");
-			configManager.setClientLayersConfigFilename("layers.js");
+			configManager.setClientFullConfigFilename(CLIENT_MAIN_CONFIG);
+			configManager.setClientEmbeddedConfigFilename(CLIENT_EMBEDDED_CONFIG);
+			configManager.setClientLayersConfigFilename(CLIENT_LAYERS_CONFIG);
 		}
 	}
 
@@ -106,10 +113,10 @@ public class ConfigHelper {
 	}
 
 	private static File findServerConfigFile(ServletContext context) {
-		return new File(FileFinder.getApplicationFolder(context), "server.conf");
+		return new File(FileFinder.getApplicationFolder(context), SERVER_MAIN_CONFIG);
 	}
 
 	private static File findUsersConfigFile(ServletContext context) {
-		return new File(FileFinder.getApplicationFolder(context), "users.conf");
+		return new File(FileFinder.getApplicationFolder(context), SERVER_USERS_CONFIG);
 	}
 }

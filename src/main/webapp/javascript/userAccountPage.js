@@ -37,7 +37,7 @@ Ext.apply(Ext.form.field.VTypes, {
 Ext.onReady(function() {
 	var frameset = new Frameset();
 	frameset.setContentTitle('User account');
-	frameset.addContentDescription('This page allow you to configure the information about the administrator user of this application. If the account is still using the default password, it would be a good idea to change it now. The password is store in the configuration file is encrypted, so there is no way to get it back. If you forgot your password, you can delete the <i>users.conf</i> file to reset the account to its default values.<br/><b>Note:</b> The application do not currently allow you to create new account.');
+	frameset.addContentDescription('This page allow you to configure the information about the administrator user of this application. If the account is still using the default password, it would be a good idea to change it now. The password is store in the configuration file is encrypted, so there is no way to get it back. If you forgot your password, you can delete the <i>users.json</i> file to reset the account to its default values.<br/><b>Note:</b> The application do not currently allow you to create new account.');
 	frameset.render(document.body);
 
 	var notAvailableInDemoMode = demoMode ? "<br/><strong>This function is not available in the Demo version.</strong>" : "";

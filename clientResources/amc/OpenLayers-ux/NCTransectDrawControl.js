@@ -69,6 +69,7 @@ OpenLayers.Control.ux.NCTransectDrawControl = OpenLayers.Class(OpenLayers.Contro
 
 			new Ext.Window({
 				title: title,
+				constrainHeader: true,
 				bodyStyle: {
 					// Set window body size to the size of the image
 					width: '400px',

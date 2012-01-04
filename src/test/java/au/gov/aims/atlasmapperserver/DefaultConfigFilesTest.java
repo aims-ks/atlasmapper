@@ -38,8 +38,7 @@ public class DefaultConfigFilesTest extends TestCase  {
 		cm.reloadDefaultServerConfig();
 
 		assertFalse(cm.isDemoMode());
-		assertEquals("1.0", cm.getConfigVersion());
-
+		assertEquals(1.0, cm.getConfigVersion());
 
 		MultiKeyHashMap<Integer, String, DataSourceConfig> dataSourceConfigs = cm.getDataSourceConfigs();
 		assertNotNull(dataSourceConfigs);
@@ -64,7 +63,7 @@ public class DefaultConfigFilesTest extends TestCase  {
 		ConfigManager cm = new ConfigManager(null, null);
 		cm.reloadDefaultUsersConfig();
 
-		assertEquals("1.0", cm.getUsersConfigVersion());
+		assertEquals(1.0, cm.getUsersConfigVersion());
 		Map<String, User> users = cm.getUsers();
 		assertEquals(1, users.size());
 

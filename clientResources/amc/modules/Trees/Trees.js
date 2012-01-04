@@ -25,6 +25,9 @@ Atlas.Trees = Ext.extend(Ext.Component, {
 	activeTab: 0,
 	mapPanel: null,
 
+	// NOTE: The version must match the version in the server /src/main/java/au/gov/aims/atlasmapperserver/module/Tree.java
+	CURRENT_CONFIG_VERSION: 1.0,
+
 	initComponent: function() {
 		Atlas.Trees.superclass.initComponent.call(this);
 
@@ -35,6 +38,12 @@ Atlas.Trees = Ext.extend(Ext.Component, {
 		var that = this;
 
 		if (Atlas.conf && Atlas.conf['modules'] && Atlas.conf['modules']['Tree'] && Atlas.conf['modules']['Tree']['config']) {
+			if (typeof(Atlas.conf['modules']['Tree']['version']) != 'undefined' && Atlas.conf['modules']['Tree']['version'] > this.CURRENT_CONFIG_VERSION) {
+				var err = "The version of the configuration of the Tree module ("+Atlas.conf['modules']['Tree']['version']+") is not supported by this client (support up to version: "+this.CURRENT_CONFIG_VERSION+").";
+				alert(err);
+				throw err;
+			}
+
 			var orderedTrees = [];
 			Ext.iterate(Atlas.conf['modules']['Tree']['config'], function(treeName, tree) {
 				orderedTrees.push({

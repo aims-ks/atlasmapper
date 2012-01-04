@@ -226,7 +226,7 @@ Atlas.AbstractMapPanel = {
 		var defaultLayers = Atlas.conf['defaultLayers'];
 		var layerOrder = Atlas.conf['layerOrder'];
 		// Normalise the layers and load them in the core cache.
-		Atlas.core.loadNewLayersCache(defaultLayers, true);
+		Atlas.core.loadNewLayersCache(defaultLayers);
 		// Add layers in reverse order - the last added will be on top
 		for(var i=defaultLayers.length-1; i>=0; i--){
 			// Get the layer from the core cache and load it in the map

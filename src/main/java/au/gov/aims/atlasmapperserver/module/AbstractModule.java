@@ -30,6 +30,6 @@ import org.json.JSONObject;
  * @author glafond
  */
 public abstract class AbstractModule {
-	public abstract String getVersion();
+	public abstract double getVersion();
 	public abstract JSONObject getJSONConfiguration(ClientConfig clientConfig) throws JSONException;
 }

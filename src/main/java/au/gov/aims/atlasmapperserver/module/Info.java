@@ -36,8 +36,9 @@ import org.json.JSONObject;
 public class Info extends AbstractModule {
 
 	@Override
-	public String getVersion() {
-		return "1.0";
+	// NOTE: The version must match the version in the client /clientResources/amc/modules/Info/Info.js
+	public double getVersion() {
+		return 1.0;
 	}
 
 	@Override

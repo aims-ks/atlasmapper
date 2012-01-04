@@ -31,7 +31,12 @@ Atlas.Core = OpenLayers.Class({
 	],
 	MAX_URL_LENGTH: 40,
 
-// The OpenLayers event object, set in initialize function
+	// Used to parse client config
+	// NOTE: The version must match the version in the server /src/main/java/au/gov/aims/atlasmapperserver/ConfigManager.java
+	CURRENT_MAIN_CONFIG_VERSION: 1.1,
+	CURRENT_LAYER_CONFIG_VERSION: 1.0,
+
+	// The OpenLayers event object, set in initialize function
 	events: null,
 	configFileUrl: null,
 	live: false,
@@ -91,6 +96,11 @@ Atlas.Core = OpenLayers.Class({
 		if (jsonResponse && typeof(jsonResponse.success) != 'undefined') {
 			if (jsonResponse.success) {
 				Atlas.conf = jsonResponse.data
+				if (typeof(Atlas.conf.version) != 'undefined' && Atlas.conf.version > this.CURRENT_MAIN_CONFIG_VERSION) {
+					var err = "The version of the client configuration file ("+Atlas.conf.version+") is not supported by this client (support up to version: "+this.CURRENT_MAIN_CONFIG_VERSION+").";
+					alert(err);
+					throw err;
+				}
 			} else {
 				// TODO Error on the page
 				alert('The application has failed to read its configuration.' +
@@ -459,9 +469,13 @@ Atlas.Core = OpenLayers.Class({
 		}
 	},
 
-	loadNewLayersCache: function(newLayers, isArray) {
+	loadNewLayersCache: function(newLayers) {
 		// Load all layers, from the main config, in the cache
 		var defaults = newLayers['defaults'] ? newLayers['defaults'] : {};
+
+		// The following will not work for Array across frames (not an issue here)
+		// See: http://perfectionkills.com/instanceof-considered-harmful-or-how-to-write-a-robust-isarray/
+		var isArray = newLayers.constructor == Array;
 
 		if (isArray) {
 			for(var i=0; i<newLayers.length; i++){
@@ -482,6 +496,12 @@ Atlas.Core = OpenLayers.Class({
 		if (!layerJSon) {layerJSon = {};}
 		if (typeof(layerJSon) == 'string') {
 			layerJSon = {'title': layerJSon};
+		}
+
+		if (typeof(layerJSon.version) != 'undefined' && layerJSon.version > this.CURRENT_LAYER_CONFIG_VERSION) {
+			var err = "The version of the layer configuration ("+layerJSon.version+") is not supported by this client (support up to version: "+this.CURRENT_LAYER_CONFIG_VERSION+").";
+			alert(err);
+			throw err;
 		}
 
 		// Apply default settings to the current layer

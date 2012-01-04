@@ -113,7 +113,7 @@
 		Ext.onReady(function() {
 			document.getElementById('loading').style.display = 'none';
 
-			Atlas.core = new Atlas.Core("config/main.js", "config/layers.js", "${timestamp}");
+			Atlas.core = new Atlas.Core("config/${mainConfig}", "config/${layersConfig}", "${timestamp}");
 			Atlas.core.afterLoad = function() {
 				mapLayoutItems = [];
 				for (var i=0; i<nbMaps; i++) {

@@ -187,7 +187,8 @@ Ext.define('Writer.ClientConfigForm', {
 				qtipMaxWidth: 200,
 				anchor: '100%',
 				labelAlign: 'right',
-				labelWidth: 150
+				labelWidth: 150,
+				hideEmptyLabel: false // Align fields with no label
 			},
 			items: [{
 				xtype: 'tabpanel',
@@ -210,7 +211,6 @@ Ext.define('Writer.ClientConfigForm', {
 								name: 'id',
 								xtype: 'hiddenfield'
 							}, {
-								fieldLabel: ' ', labelSeparator: '',
 								boxLabel: 'Enable this client',
 								qtipHtml: 'The application ignore the entries which has this box unchecked.',
 								name: 'enable',
@@ -387,7 +387,7 @@ Ext.define('Writer.ClientConfigForm', {
 								dependencies: ['baseUrl']
 							}, {
 								fieldLabel: 'Client base URL',
-								qtipHtml: 'URL to the client. This field is only needed to create the link to the client, in the Administration Interface. Failing to provide this information will not have any effect in the client itself. Default URL for this field is atlasmapper/client/<Client name>/'+
+								qtipHtml: 'URL to the client. This field is only needed to create the link to the client, in the Administration Interface. Failing to provide this information will not have any effect in the client itself. Default URL for this field is <i>/atlasmapper/client/&lt;Client name&gt;/</i><br/>'+
 									'<strong>Warning:</strong> Only set this field if you are setting a client outside the application.'+
 									notAvailableInDemoMode,
 								name: 'baseUrl',
@@ -402,13 +402,18 @@ Ext.define('Writer.ClientConfigForm', {
 								name: 'layerInfoServiceUrl',
 								disabled: demoMode
 							}, {
-								fieldLabel: ' ', labelSeparator: '',
 								boxLabel: 'Use layer service.',
 								qtipHtml: 'Uncheck this box to save the configuration of all layers in the configuration file. This allow the client to run without any AtlasMapper server support. It\'s useful for server that do not have tomcat installed.<br/>'+
 									'<b>Note:</b> Disabling the <i>layer service</i> also disable the <i>client preview</i> in the server and the <i>WMS Feature Requests</i> on the client, for layers that are from a different domain name to the client.',
 								margin: '0 0 15 0',
 								xtype: 'checkboxfield',
 								name: 'useLayerService'
+							}, {
+								margin: '0 0 15 0',
+								boxLabel: 'Show <i>Base layers</i> in a separate tab, in <i>add layers</i> window.',
+								qtipHtml: 'Check this box to show all <em>Base layers</em> in a separate tab, in the <em>add layers</em> window of this AtlasMapper client. Uncheck it to let the base layers appear in the tab of their appropriate server.',
+								xtype: 'checkboxfield',
+								name: 'baseLayersInTab'
 							}, {
 								fieldLabel: 'Configuration Standard Version',
 								qtipHtml: 'Version of the configuration used by the client, for backward compatibilities.<br/>'+
@@ -417,13 +422,6 @@ Ext.define('Writer.ClientConfigForm', {
 								anchor: null,
 								hidden: true, // TODO Delete this once this field is implemented
 								width: 200
-							}, {
-								fieldLabel: ' ', labelSeparator: '',
-								margin: '0 0 15 0',
-								boxLabel: 'Show <i>Base layers</i> in a separate tab, in <i>add layers</i> window.',
-								qtipHtml: 'Check this box to show all <em>Base layers</em> in a separate tab, in the <em>add layers</em> window of this AtlasMapper client. Uncheck it to let the base layers appear in the tab of their appropriate server.',
-								xtype: 'checkboxfield',
-								name: 'baseLayersInTab'
 							}
 						]
 					}, {
@@ -435,6 +433,7 @@ Ext.define('Writer.ClientConfigForm', {
 								qtipHtml: 'ExtJS Theme',
 								name: 'theme',
 								xtype: 'combobox',
+								editable: false,
 								forceSelection: true, // Force the user to choose something from the list (do not allow random value)
 								valueField: 'name',
 								displayField: 'title',

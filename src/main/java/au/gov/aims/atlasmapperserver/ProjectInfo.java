@@ -21,6 +21,7 @@
 
 package au.gov.aims.atlasmapperserver;
 
+import java.math.BigDecimal;
 import java.util.ResourceBundle;
 
 /**

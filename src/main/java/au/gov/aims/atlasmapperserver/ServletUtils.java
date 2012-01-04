@@ -100,8 +100,7 @@ public class ServletUtils {
 			while ((bytesRead = responseStream.read(buf)) != -1) {
 				out.write(buf, 0, bytesRead);
 			}
-		}
-		finally {
+		} finally {
 			if (out != null) {
 				try { out.flush(); } catch(Exception e) { LOGGER.log(Level.SEVERE, "Cant flush the output.", e); }
 				try { out.close(); } catch(Exception e) { LOGGER.log(Level.SEVERE, "Cant close the output.", e); }

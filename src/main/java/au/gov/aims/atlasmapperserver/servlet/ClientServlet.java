@@ -69,23 +69,18 @@ public class ClientServlet extends HttpServlet {
 		// QueryString: [param=value]
 		// PathTranslated: [/home/reefatlas/e-atlas_site/maps/tomcat/webapps/atlasmapperserver/images/test.jpg]  <=  Useful, but not quite what we are looking for
 		// System.out.println("RequestURI: [" + request.getRequestURI() + "]  ServletPath: [" + request.getServletPath() + "]  PathInfo: [" + request.getPathInfo() + "]  ContextPath: [" + request.getContextPath() + "]");
-
-		ServletOutputStream out = null;
 		File file = null;
 
 		// Return the file
 		try {
-			out = response.getOutputStream();
-
 			// Get the file to view
-			// TODO Convert fileRelativePath to OS file separators, if needed (try it on a different OS, if the fileRelativePath contains "/", replace "/" with System.getProperty("file.separator");)
 			String fileRelativePath = request.getPathInfo();
 			file = FileFinder.getClientFile(this.getServletContext(), fileRelativePath);
 
 			// No file, nothing to view
 			if (file == null) {
 				response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-				out.println("No file to view");
+				ServletUtils.sendResponse(request, response, "No file to view");
 				return;
 			}
 
@@ -102,9 +97,7 @@ public class ClientServlet extends HttpServlet {
 			} else {
 				LOGGER.log(Level.WARNING, "File not found - file path unknown?");
 			}
-			if (out != null) {
-				out.println("File not found");
-			}
+			ServletUtils.sendResponse(request, response, "File not found");
 		} catch (IOException e) {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			if (file != null) {
@@ -112,18 +105,7 @@ public class ClientServlet extends HttpServlet {
 			} else {
 				LOGGER.log(Level.SEVERE, "Problem sending file: ", e);
 			}
-			if (out != null) {
-				out.println("Problem sending file: " + e.getMessage());
-			}
-		} finally {
-			if (out != null) {
-				try { out.flush(); } catch(Exception e) {
-					LOGGER.log(Level.SEVERE, "Error occur while flushing the stream", e);
-				}
-				try { out.close(); } catch(Exception e) {
-					LOGGER.log(Level.SEVERE, "Error occur while closing the stream", e);
-				}
-			}
+			ServletUtils.sendResponse(request, response, "Problem sending file: " + e.getMessage());
 		}
 	}
 }

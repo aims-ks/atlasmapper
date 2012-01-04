@@ -230,7 +230,6 @@ Ext.define('Writer.LayerServerConfigForm', {
 			height: 100
 		};
 		var showInLegend = {
-			fieldLabel: ' ', labelSeparator: '',
 			qtipHtml: 'Uncheck this box to disable the legend for all layers provided by this data source. This mean that the layers will not have its legend displayed in the AtlasMapper clients, and they will not have a check box in the layer <em>Options</em> to show its legend.',
 			boxLabel: 'Show layers in legend',
 			name: 'showInLegend',
@@ -386,11 +385,12 @@ Ext.define('Writer.LayerServerConfigForm', {
 			autoScroll: true,
 			defaultType: 'textfield',
 			fieldDefaults: {
-				msgTarget: 'side', // Display an icon next to the field when it's valid
+				msgTarget: 'side', // Display an icon next to the field when it's not valid
 				anchor: '100%',
 				qtipMaxWidth: 200,
 				labelAlign: 'right',
-				labelWidth: 150
+				labelWidth: 150,
+				hideEmptyLabel: false // Align fields with no label
 			},
 			items: [{
 				xtype: 'tabpanel',

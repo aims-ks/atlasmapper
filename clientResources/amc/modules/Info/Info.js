@@ -29,6 +29,9 @@ Atlas.Info = Ext.extend(Ext.Component, {
 	descriptionTab: -1,
 	loadingLayerId: null,
 
+	// NOTE: The version must match the version in the server /src/main/java/au/gov/aims/atlasmapperserver/module/Info.java
+	CURRENT_CONFIG_VERSION: 1.0,
+
 	initComponent: function() {
 		Atlas.Info.superclass.initComponent.call(this);
 		this.tabs = [];
@@ -36,6 +39,12 @@ Atlas.Info = Ext.extend(Ext.Component, {
 				&& Atlas.conf['modules']
 				&& Atlas.conf['modules']['Info']
 				&& Atlas.conf['modules']['Info']['config']) {
+
+			if (typeof(Atlas.conf['modules']['Info']['version']) != 'undefined' && Atlas.conf['modules']['Info']['version'] > this.CURRENT_CONFIG_VERSION) {
+				var err = "The version of the configuration of the Info module ("+Atlas.conf['modules']['Tree']['version']+") is not supported by this client (support up to version: "+this.CURRENT_CONFIG_VERSION+").";
+				alert(err);
+				throw err;
+			}
 
 			Ext.iterate(Atlas.conf['modules']['Info']['config'], function(tabName, tab) {
 				var tabObj = tab;

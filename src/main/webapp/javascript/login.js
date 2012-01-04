@@ -131,7 +131,7 @@ Ext.onReady(function() {
 							modal: true,
 							title: 'Help',
 							width: 300,
-							html: 'If you forgot your password, you can delete the file <i>users.conf</i> on the server to reset the default account.',
+							html: 'If you forgot your password, you can delete the file <i>users.json</i> on the server to reset the default account.',
 							bodyPadding: 15,
 							buttons: [
 								{

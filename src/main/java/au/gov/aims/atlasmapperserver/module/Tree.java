@@ -42,8 +42,9 @@ public class Tree extends AbstractModule {
 	private static final String BASE_LAYER_TAB_LABEL = "Base layers";
 
 	@Override
-	public String getVersion() {
-		return "1.0";
+	// NOTE: The version must match the version in the client /clientResources/amc/modules/Trees/Trees.js
+	public double getVersion() {
+		return 1.0;
 	}
 
 	@Override

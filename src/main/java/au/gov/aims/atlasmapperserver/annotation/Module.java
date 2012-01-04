@@ -30,9 +30,9 @@ import java.lang.annotation.Target;
  *
  * @author glafond
  */
-// This annotation apply on fields
+// This annotation apply on classes
 @Target(ElementType.TYPE)
-// Allow access to the annotion using reflexion
+// Allow access to the annotation using reflexion
 @Retention(RetentionPolicy.RUNTIME)
 
 public @interface Module {

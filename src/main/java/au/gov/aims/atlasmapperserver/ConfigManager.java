@@ -62,15 +62,23 @@ import org.json.JSONTokener;
  */
 public class ConfigManager {
 	private static final Logger LOGGER = Logger.getLogger(ConfigManager.class.getName());
-	private static final String SERVER_DEFAULT_CONFIG_FILENAME = "defaultServer.conf";
-	private static final String USERS_DEFAULT_CONFIG_FILENAME = "defaultUsers.conf";
+	private static final String SERVER_DEFAULT_CONFIG_FILENAME = "defaultServer.json";
+	private static final String USERS_DEFAULT_CONFIG_FILENAME = "defaultUsers.json";
 
 	private static final String CONFIG_VERSION_KEY = "version";
-	private static final String CURRENT_CONFIG_VERSION = "1.0";
+
+	// Used to generate and parse server config
+	private static final double CURRENT_SERVER_CONFIG_VERSION = 1.0;
+	private static final double CURRENT_USERS_CONFIG_VERSION = 1.0;
+
+	// Used to generated clients config
+	// NOTE: The version must match the version in the client /clientResources/amc/modules/Core/Core.js
+	private static final double CURRENT_MAIN_CONFIG_VERSION = 1.1;
+	private static final double CURRENT_LAYER_CONFIG_VERSION = 1.0;
 
 	// Will eventually be used for backward compatibility
-	private String configVersion;
-	private String usersConfigVersion;
+	private double configVersion;
+	private double usersConfigVersion;
 
 	private File serverConfigFile = null;
 	private long serverConfigFileLastModified = -1;
@@ -88,7 +96,7 @@ public class ConfigManager {
 	private static final String CLIENTS_KEY = "clients";
 
 	// Demo: Atlas Mapper can run as a Demo application, with limited feature for better security.
-	// The value can only be set by modifying the "server.conf" config file manually.
+	// The value can only be set by modifying the "server.json" config file manually.
 	private static final String DEMO_KEY = "demoMode";
 
 	private Boolean demoMode = null;
@@ -120,14 +128,14 @@ public class ConfigManager {
 	public File getServerConfigFile() {
 		return this.serverConfigFile;
 	}
-	public String getConfigVersion() {
+	public double getConfigVersion() {
 		return this.configVersion;
 	}
 
 	public File getUsersConfigFile() {
 		return this.usersConfigFile;
 	}
-	public String getUsersConfigVersion() {
+	public double getUsersConfigVersion() {
 		return this.usersConfigVersion;
 	}
 
@@ -243,7 +251,11 @@ public class ConfigManager {
 		}
 
 		this.demoMode = jsonObj.optBoolean(DEMO_KEY, false);
-		this.configVersion = jsonObj.optString(CONFIG_VERSION_KEY, CURRENT_CONFIG_VERSION);
+		this.configVersion = jsonObj.optDouble(CONFIG_VERSION_KEY, CURRENT_SERVER_CONFIG_VERSION);
+
+		if (this.configVersion > CURRENT_SERVER_CONFIG_VERSION) {
+			throw new UnsupportedClassVersionError("The version of the server configuration file ("+this.configVersion+") is not supported by this server (support up to version: "+CURRENT_SERVER_CONFIG_VERSION+").");
+		}
 
 		this.dataSourceConfigs = new MultiKeyHashMap<Integer, String, DataSourceConfig>();
 		this.lastDataSourceId = 0;
@@ -264,7 +276,7 @@ public class ConfigManager {
 							dataSourceConfig.getDataSourceId(),
 							dataSourceConfig);
 				} else {
-					LOGGER.log(Level.WARNING, "Malformated AtlasMapper JSON config file: a data source is not set properly [{0}]", rawDataSourceConfig);
+					LOGGER.log(Level.WARNING, "Malformed AtlasMapper JSON config file: a data source is not set properly [{0}]", rawDataSourceConfig);
 				}
 			}
 		}
@@ -289,7 +301,7 @@ public class ConfigManager {
 							clientId,
 							clientConfig);
 				} else {
-					LOGGER.log(Level.WARNING, "Malformated AtlasMapper JSON config file: a client is not set properly [{0}]", rawClientConfig);
+					LOGGER.log(Level.WARNING, "Malformed AtlasMapper JSON config file: a client is not set properly [{0}]", rawClientConfig);
 				}
 			}
 		}
@@ -359,7 +371,12 @@ public class ConfigManager {
 		this.users = new HashMap<String, User>();
 		if (usersConfigReader != null) {
 			JSONObject usersConfig = new JSONObject(new JSONTokener(usersConfigReader));
-			this.usersConfigVersion = usersConfig.optString(CONFIG_VERSION_KEY, CURRENT_CONFIG_VERSION);
+
+			this.usersConfigVersion = usersConfig.optDouble(CONFIG_VERSION_KEY, CURRENT_USERS_CONFIG_VERSION);
+			if (this.usersConfigVersion > CURRENT_USERS_CONFIG_VERSION) {
+				throw new UnsupportedClassVersionError("The version of the users configuration file ("+this.usersConfigVersion+") is not supported by this server (support up to version: "+CURRENT_USERS_CONFIG_VERSION+").");
+			}
+
 			JSONArray jsonUsers = usersConfig.optJSONArray("users");
 
 			if (jsonUsers != null) {
@@ -438,7 +455,7 @@ public class ConfigManager {
 			config.put(DEMO_KEY, this.demoMode);
 		}
 
-		config.put(CONFIG_VERSION_KEY, CURRENT_CONFIG_VERSION);
+		config.put(CONFIG_VERSION_KEY, CURRENT_SERVER_CONFIG_VERSION);
 		config.put(DATASOURCES_KEY, this._getDataSourceConfigsJSon(false));
 		config.put(CLIENTS_KEY, this._getClientConfigsJSon(false));
 
@@ -483,7 +500,7 @@ public class ConfigManager {
 		}
 
 		JSONObject usersConfig = new JSONObject();
-		usersConfig.put(CONFIG_VERSION_KEY, CURRENT_CONFIG_VERSION);
+		usersConfig.put(CONFIG_VERSION_KEY, CURRENT_USERS_CONFIG_VERSION);
 		usersConfig.put("users", jsonUsers);
 
 		this.saveJSONConfig(usersConfig, usersConfigWriter);
@@ -613,7 +630,7 @@ public class ConfigManager {
 		// Most common case, the data source is new or it's data source ID has changed.
 		if (found == null) { return false; }
 
-		// Security: This case should not happen as long as the server.conf file is valid.
+		// Security: This case should not happen as long as the server.json file is valid.
 		if (found.getId() == null) { return true; }
 
 		// Same data source ID AND Integer ID => Same data source
@@ -770,7 +787,7 @@ public class ConfigManager {
 		// Most common case, the client is new or it's client ID has changed.
 		if (found == null) { return false; }
 
-		// Security: This case should not happen as long as the server.conf file is valid.
+		// Security: This case should not happen as long as the server.json file is valid.
 		if (found.getId() == null) { return true; }
 
 		// Same client ID AND Integer ID => Same client
@@ -1039,7 +1056,7 @@ public class ConfigManager {
 	public void generateAllClients(boolean complete)
 			throws JSONException, IOException, ServiceException, TemplateException, GetCapabilitiesExceptions {
 
-		// Emplty the capabilities cache before regenerating the configs
+		// Empty the capabilities cache before regenerating the configs
 		WMSCapabilitiesWrapper.clearCapabilitiesDocumentsCache();
 
 		for (ClientConfig clientConfig : this.getClientConfigs().values()) {
@@ -1054,7 +1071,7 @@ public class ConfigManager {
 			return;
 		}
 
-		// Emplty the capabilities cache before regenerating the configs
+		// Empty the capabilities cache before regenerating the configs
 		WMSCapabilitiesWrapper.clearCapabilitiesDocumentsCache();
 
 		this._generateClient(this.getClientConfigs().get1(clientId), complete);
@@ -1063,7 +1080,7 @@ public class ConfigManager {
 	public void generateClient(ClientConfig clientConfig, boolean complete)
 			throws JSONException, IOException, ServiceException, TemplateException, GetCapabilitiesExceptions {
 
-		// Emplty the capabilities cache before regenerating the configs
+		// Empty the capabilities cache before regenerating the configs
 		WMSCapabilitiesWrapper.clearCapabilitiesDocumentsCache();
 
 		this._generateClient(clientConfig, complete);
@@ -1136,6 +1153,8 @@ public class ConfigManager {
 			// Process all templates, one by one, because they are all unique
 			Map<String, Object> indexValues = new HashMap<String, Object>();
 			indexValues.put("version", ProjectInfo.getVersion());
+			indexValues.put("mainConfig", this.clientFullConfigFilename);
+			indexValues.put("layersConfig", this.clientLayersConfigFilename);
 			indexValues.put("clientId", clientConfig.getClientId());
 			indexValues.put("clientName", clientConfig.getClientName() != null ? clientConfig.getClientName() : clientConfig.getClientId());
 			indexValues.put("theme", clientConfig.getTheme());
@@ -1311,7 +1330,7 @@ public class ConfigManager {
 		if (clientConfig == null) { return null; }
 
 		JSONObject json = new JSONObject();
-		json.put(CONFIG_VERSION_KEY, CURRENT_CONFIG_VERSION);
+		json.put(CONFIG_VERSION_KEY, CURRENT_MAIN_CONFIG_VERSION);
 		json.put("clientId", clientConfig.getClientId());
 		json.put("clientName", clientConfig.getClientName());
 
@@ -1588,7 +1607,7 @@ public class ConfigManager {
 		// LayerConfig extends DataSourceConfig
 		JSONObject jsonLayer = this.generateDataSource(layerConfig, null);
 
-		jsonLayer.put(CONFIG_VERSION_KEY, CURRENT_CONFIG_VERSION);
+		jsonLayer.put(CONFIG_VERSION_KEY, CURRENT_LAYER_CONFIG_VERSION);
 
 		if (Utils.isNotBlank(layerConfig.getKmlUrl())) {
 			jsonLayer.put("kmlUrl", layerConfig.getKmlUrl());

@@ -225,7 +225,7 @@
 									jsonObj.put("success", false);
 									jsonObj.put("errors", new JSONArray().put("Client number ["+id+"] not found."));
 								} else {
-									configManager.generateClient(id, complete);
+									configManager.generateClient(foundClientConfig, complete);
 									response.setStatus(HttpServletResponse.SC_OK);
 									jsonObj.put("success", true);
 									jsonObj.put("message", "Config Generated");

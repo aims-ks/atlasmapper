@@ -87,6 +87,7 @@ OpenLayers.Control.ux.NCTimeSeriesClickControl = OpenLayers.Class(OpenLayers.Con
 
 		new Ext.Window({
 			title: title,
+			constrainHeader: true,
 			bodyStyle: {
 				// Set window body size to the size of the image
 				width: '400px',
