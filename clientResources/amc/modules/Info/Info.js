@@ -117,7 +117,7 @@ Atlas.Info = Ext.extend(Ext.Component, {
 			this.setTabsContent(json);
 			// Show layer options (nodes are not layers)
 			if (typeof(node.layer) != 'undefined' && node.layer != null) {
-				this.setOptions(node.layer);
+				this.setOptions(node);
 			} else {
 				this.setOptions();
 			}
@@ -155,9 +155,9 @@ Atlas.Info = Ext.extend(Ext.Component, {
 		}
 	},
 
-	setOptions: function(layer) {
+	setOptions: function(node) {
 		if (this.optionsTab > 0 && this.tabs && this.tabs[this.optionsTab]) {
-			this.tabs[this.optionsTab].setLayerOptions(layer);
+			this.tabs[this.optionsTab].setLayerOptions(node);
 		}
 	}
 });

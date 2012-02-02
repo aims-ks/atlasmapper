@@ -83,6 +83,7 @@
 	<script type="text/javascript" src="GeoExt-ux/NCWMSLegend.js"></script>
 	<script type="text/javascript" src="GeoExt-ux/VectorLegend.js"></script>
 	<script type="text/javascript" src="GeoExt-ux/LegendGroup.js"></script>
+	<script type="text/javascript" src="GeoExt-ux/GroupLayerOpacitySlider.js"></script>
 	<script type="text/javascript" src="GeoExt-ux/GroupLayerLoader.js"></script>
 
 	<script type="text/javascript" src="modules/Core/Core.js"></script>

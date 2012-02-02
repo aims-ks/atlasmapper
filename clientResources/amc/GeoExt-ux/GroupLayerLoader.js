@@ -118,14 +118,6 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 		node.on("move", this.onChildMove, this);
 
 		if (typeof(node.layer) != 'undefined' && node.layer != null) {
-			if (node.layer.map) {
-				node.layer.map.events.on({
-					'changelayer': function(event) {
-						this.onChangeLayer(event, node);
-					},
-					scope: this
-				});
-			}
 			node.layer.events.on({
 				'removed': function(event) {
 					// event.map, event.layer
@@ -148,25 +140,6 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 			node.layer.events.remove('removed');
 			if (typeof(node.layer._groupLayer) != 'undefined' && node.layer._groupLayer != null) {
 				node.un("checkchange", this.onFolderCheckChange, this);
-			}
-		}
-	},
-
-	/**
-	 * OPACITY SLIDER
-	 * Temporary solution: Set the opacity of all children
-	 * to the opacity of the parent. This is not quite what the
-	 * user expect, but it's easier to implement that calculating
-	 * the value of a layer by multiplying all parent sliders value.
-	 */
-	onChangeLayer: function(evt, node) {
-		if (evt.property === "opacity" && evt.layer == node.layer) {
-			if (evt.layer.opacity !== null && node.hasChildNodes()) {
-				node.eachChild(function(child) {
-					if (child.layer) {
-						child.layer.setOpacity(evt.layer.opacity);
-					}
-				}, this);
 			}
 		}
 	},
@@ -592,6 +565,25 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 			this._onFolderMove(tree, node, oldParent, newParent, node);
 		} else {
 			this._onChildMove(tree, node, oldParent, newParent, node);
+		}
+
+		// Adjust the opacity according to the opacity of the new parent and the opacity set by the layer slider (found by computing the opacity of the layer with the opacity of the old parent)
+		if (node.layer) {
+			var layerRealOpacity = (node.layer.opacity !== null ? node.layer.opacity : 1);
+			if (oldParent.layer && oldParent.layer.opacity != null) {
+				if (oldParent.layer.opacity > 0) {
+					layerRealOpacity = layerRealOpacity / oldParent.layer.opacity;
+				} else {
+					layerRealOpacity = 1;
+				}
+			}
+			var valueAfter = (layerRealOpacity > 0 ? ((newParent.layer && newParent.layer.opacity !== null ? newParent.layer.opacity : 1) * layerRealOpacity) : 1);
+
+			// Correction due to real value imprecision.
+			if (valueAfter > 1) { valueAfter = 1; }
+			if (valueAfter < 0) { valueAfter = 0; }
+
+			node.layer.setOpacity(valueAfter);
 		}
 
 		window.setTimeout(function() {

@@ -30,63 +30,15 @@
  * [X] Moving a layer after deleting a sub-layer make everything disapear from the tree
  *     -> Related to bad event handling, solve with previous point
  * [X] Add layer Group + layer Group config (layer override)
- * [ ] Add layer Groups to the tree
+ * [X] Add layer Groups to the tree
+ *     -> Using wmsPath of layer override - only works with datasources
  * [X] Auto select folder after add
  *     -> Was working after implementation of "Add Group"
- * [ ] Description / Options on folder (like Opacity, multi-checkbox for legend, etc.)
+ * [X] Description / Options on folder (like Opacity, multi-checkbox for legend, etc.)
+ *     -> No multi checkboxes for now
+ * [ ] Opacity slider calculate ratio of parents (layer opacity * parent opacity * grand-parent opacity * etc.)
  * [ ] The tree do not take highlight info from the map... issue when layers removed from other mean than the remove button
  * [ ] WMS Queryable for group
-
-
-main.json
-Add the location of "mangroves":
-
-					"Terrestrial biology": {"QLD: Coastal wetlands (DEEDI)": {
-						"plants": "Plants",
-						"mangroves": "Mangroves",
-						"ea:QLD_DEEDI_Coastal-wetlands_Study-regions": "QLD Coastal wetlands - Study regions",
-						"ea:QLD_DEEDI_Coastal-wetlands": "QLD Coastal wetlands (DEEDI)"
-					}},
-
-
-
-layers.json
-Add the definition of "mangroves":
-
-	"plants": {
-		"wmsQueryable": false,
-		"title": "Plants",
-		"description": "Just a global folder",
-		"dataSourceType": "GROUP",
-		"layerBoundingBox": [
-			134.91053,
-			-29.91797,
-			156.53146999999998,
-			-8.29703
-		],
-		"layers": ["mangroves"],
-		"version": 1.1
-	},
-	"mangroves": {
-		"wmsQueryable": false,
-		"title": "Mangroves",
-		"description": "Layer group for the layers \"QLD Coastal wetlands - Study regions\" and \"QLD Coastal wetlands (DEEDI)\"",
-		"dataSourceType": "GROUP",
-		"layerBoundingBox": [
-			134.91053,
-			-29.91797,
-			156.53146999999998,
-			-8.29703
-		],
-		"layers": ["ea:QLD_DEEDI_Coastal-wetlands", "ea:QLD_DEEDI_Coastal-wetlands_Study-regions"],
-		"version": 1.1
-	},
-
-
-ConfigManager.java:
-Add support for "layers" attribute
-
-
  */
 Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 	mapPanel: null,

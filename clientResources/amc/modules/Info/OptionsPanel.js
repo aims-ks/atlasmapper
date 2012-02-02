@@ -38,7 +38,7 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 	legendCheckbox: null,
 	opacitySlider: null,
 
-	currentLayer: null,
+	currentNode: null,
 
 	initComponent: function(){
 		var that = this;
@@ -51,7 +51,7 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 		var locateButton = new Ext.Button({
 			text: 'Locate',
 			handler: function() {
-				that.mapPanel.ol_fireEvent('locateLayer', {layer: that.currentLayer});
+				that.mapPanel.ol_fireEvent('locateLayer', {layer: (that.currentNode ? that.currentNode.layer : null)});
 			}
 		});
 
@@ -70,8 +70,8 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 		this.legendCheckbox = new Ext.form.Checkbox({
 			fieldLabel: 'Show in legend',
 			handler: function(checkbox, checked) {
-				if (that.currentLayer && typeof(that.currentLayer.setHideInLegend) === 'function') {
-					that.currentLayer.setHideInLegend(!checked);
+				if (that.currentNode && that.currentNode.layer && typeof(that.currentNode.layer.setHideInLegend) === 'function') {
+					that.currentNode.layer.setHideInLegend(!checked);
 				}
 			},
 			checked: true,
@@ -81,17 +81,18 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 		// Update the checkbox status when the function layer.setHideInLegend is called
 		// NOTE: layer.setHideInLegend is defined in MapPanel
 		this.mapPanel.ol_on('legendVisibilityChange', function(evt) {
-			if (that.currentLayer && evt.layer == that.currentLayer) {
-				that.legendCheckbox.setValue(!that.currentLayer.hideInLegend);
+			if (that.currentNode && that.currentNode.layer && evt.layer == that.currentNode.layer) {
+				that.legendCheckbox.setValue(!that.currentNode.layer.hideInLegend);
 			}
 		});
 
-		this.opacitySlider = new GeoExt.LayerOpacitySlider({
+		this.opacitySlider = new GeoExt.ux.GroupLayerOpacitySlider({
 			fieldLabel: 'Opacity',
-			layer: this.currentLayer,
+			node: this.currentNode,
 			aggressive: false,
 			animate: false,
-			changeVisibility: true,
+			// This option do not works with group layers
+			//changeVisibility: true,
 			value: 0,
 			plugins: new GeoExt.LayerOpacitySliderTip({template: '<div>{opacity}%</div>'})
 		});
@@ -151,7 +152,7 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 
 		this.onExtraOptionChange = function() {
 			if (that.extraOptionsFieldSet && that.extraOptionsFieldSet.items) {
-				var layer = that.currentLayer;
+				var layer = (that.currentNode ? that.currentNode.layer : null);
 				if (layer && layer.mergeNewParams) {
 					var newParams = {};
 					that.extraOptionsFieldSet.items.each(function(option) {
@@ -186,7 +187,7 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 
 		this.onNCWMSExtraOptionChange = function() {
 			if (that.ncwmsOptionsFieldSet && that.ncwmsOptionsFieldSet.items) {
-				var layer = that.currentLayer;
+				var layer = (that.currentNode ? that.currentNode.layer : null);
 				if (layer && layer.mergeNewParams) {
 					var newParams = {};
 					that.ncwmsOptionsFieldSet.items.each(function(option) {
@@ -268,7 +269,8 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 	/**
 	 * Auto-set the options for a given layer.
 	 */
-	setLayerOptions: function(layer) {
+	setLayerOptions: function(node) {
+		var layer = (node ? node.layer : null);
 		var hasLegendEnabled = false;
 		var opacityEnabled = false;
 
@@ -279,7 +281,7 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 		this.ncwmsOptionsFieldSet.hide();
 		this.ncwmsOptionsFieldSet.removeAll(true);
 
-		this.currentLayer = layer;
+		this.currentNode = node;
 
 		if (layer) {
 			if (layer.json) {
@@ -444,7 +446,7 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 			opacityEnabled = true;
 		}
 
-		this.showHideOptions(layer, hasLegendEnabled, opacityEnabled);
+		this.showHideOptions(node, hasLegendEnabled, opacityEnabled);
 	},
 
 	// Ignore case sort
@@ -466,7 +468,7 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 	 * http://localhost:13080/ncWMS/js/godiva2.js
 	 */
 	_setNCWMSOptions: function(result, request, layer) {
-		if (layer == this.currentLayer) {
+		if (layer == (this.currentNode ? this.currentNode.layer : null)) {
 			var layerDetails = null;
 			try {
 				layerDetails = Ext.util.JSON.decode(result.responseText);
@@ -598,7 +600,8 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 	/**
 	 * Show/Hide & Enable/Disable layer options
 	 */
-	showHideOptions: function(layer, hasLegendEnabled, opacityEnabled, html) {
+	showHideOptions: function(node, hasLegendEnabled, opacityEnabled, html) {
+		var layer = (node ? node.layer : null);
 		if (layer) {
 			var hasExtraOptions = (this.extraOptionsFieldSet.items.getCount() > 0);
 
@@ -641,7 +644,7 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 
 			// This can only be done once the field set and the slider are visible.
 			if (this.isRendered(layer)) {
-				this.opacitySlider.setLayer(layer);
+				this.opacitySlider.setNode(node);
 			}
 
 			if (!Ext.isIE6) {
