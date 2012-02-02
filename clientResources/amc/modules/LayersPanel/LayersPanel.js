@@ -19,6 +19,75 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/**
+ * TODO for layer groups
+ * [X] Moving layer inside folders
+ *     -> Delete the ConstrainTreePanel
+ * [X] Delete folder
+ *     -> Recursively delete layers + give a layer count in the warning window
+ * [X] Layer count also count dead layers... Weird!!
+ *     -> Added a node.remove(true); and better handling of layer removal (using ol events)
+ * [X] Moving a layer after deleting a sub-layer make everything disapear from the tree
+ *     -> Related to bad event handling, solve with previous point
+ * [X] Add layer Group + layer Group config (layer override)
+ * [ ] Add layer Groups to the tree
+ * [X] Auto select folder after add
+ *     -> Was working after implementation of "Add Group"
+ * [ ] Description / Options on folder (like Opacity, multi-checkbox for legend, etc.)
+ * [ ] The tree do not take highlight info from the map... issue when layers removed from other mean than the remove button
+ * [ ] WMS Queryable for group
+
+
+main.json
+Add the location of "mangroves":
+
+					"Terrestrial biology": {"QLD: Coastal wetlands (DEEDI)": {
+						"plants": "Plants",
+						"mangroves": "Mangroves",
+						"ea:QLD_DEEDI_Coastal-wetlands_Study-regions": "QLD Coastal wetlands - Study regions",
+						"ea:QLD_DEEDI_Coastal-wetlands": "QLD Coastal wetlands (DEEDI)"
+					}},
+
+
+
+layers.json
+Add the definition of "mangroves":
+
+	"plants": {
+		"wmsQueryable": false,
+		"title": "Plants",
+		"description": "Just a global folder",
+		"dataSourceType": "GROUP",
+		"layerBoundingBox": [
+			134.91053,
+			-29.91797,
+			156.53146999999998,
+			-8.29703
+		],
+		"layers": ["mangroves"],
+		"version": 1.1
+	},
+	"mangroves": {
+		"wmsQueryable": false,
+		"title": "Mangroves",
+		"description": "Layer group for the layers \"QLD Coastal wetlands - Study regions\" and \"QLD Coastal wetlands (DEEDI)\"",
+		"dataSourceType": "GROUP",
+		"layerBoundingBox": [
+			134.91053,
+			-29.91797,
+			156.53146999999998,
+			-8.29703
+		],
+		"layers": ["ea:QLD_DEEDI_Coastal-wetlands", "ea:QLD_DEEDI_Coastal-wetlands_Study-regions"],
+		"version": 1.1
+	},
+
+
+ConfigManager.java:
+Add support for "layers" attribute
+
+
+ */
 Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 	mapPanel: null,
 
@@ -37,7 +106,15 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 	// Animation on collapse is not smooth because the map require a lot of resources to resize.
 	animCollapse: false,
 
+	removeButton: null,
+
+	// private
+	_layersListPanel: null,
+
 	initComponent: function() {
+		// Used to call event without loosing the "this" reference.
+		var that = this;
+
 		if (this.layersPanelHeader == null && Atlas.conf['layersPanelHeader'] != null) {
 			this.layersPanelHeader = Atlas.conf['layersPanelHeader'];
 		}
@@ -46,7 +123,7 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 		}
 
 		var layersPanel = new Ext.Panel({
-			title: 'Layers',
+			title: 'Layers <div style="float:right" id="layers-ctl_'+this.mapPanel.mapId+'"></div>',
 			region: 'center',
 			layout: 'border',
 			border: false
@@ -55,7 +132,7 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 		if (Ext.isIE6) {
 			// IE6 can't display the input widgets if the width is smaller than 300
 			this.width = 300;
-			// Not Resizable - On IE 6, resize this panel to a smaller size cause some inner items to disapear.
+			// Not Resizable - On IE 6, resize this panel to a smaller size cause some inner items to disappear.
 			this.split = false;
 		}
 
@@ -79,8 +156,6 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 			allowDrag: false
 		});
 
-		// Used to call event without loosing the "this" reference.
-		var that = this;
 		var deleteLayerFct = function(event, layer) {
 			Ext.MessageBox.show({
 				title: String.format('Removing "{0}"', layer.name),
@@ -106,6 +181,11 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 		var overlayList = new GeoExt.tree.OverlayLayerContainer({
 			text: 'Overlays',
 			layerStore: this.mapPanel.layers,
+			loader: new GeoExt.ux.tree.GroupLayerLoader({
+				// Do not show the base layers
+				filterBaseLayers: true,
+				store: this.mapPanel.layers
+			}),
 			deleteLayerFunction: deleteLayerFct,
 			leaf: false,
 			parentNode: layerTree,
@@ -115,19 +195,28 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 		});
 		// Remove the icons and auto-select layers when needed
 		overlayList.loader.createNode = function(attr) {
-			attr.cls = 'x-tree-noicon';
+			attr.cls += ' x-tree-noicon';
 			var layerNode = GeoExt.tree.LayerLoader.prototype.createNode.call(this, attr);
 
 			// Select the node when it check box get checked
 			layerNode.on("checkchange", onCheckChange, that);
 			// Select the node after it is added
-			Ext.defer(layerNode.select, 1, layerNode);
+			Ext.defer(function() {
+				if (layerNode.ui && layerNode.ui.rendered) {
+					layerNode.select();
+				}
+			}, 1);
 			return layerNode;
 		};
 
 		var baselayerList = new GeoExt.tree.BaseLayerContainer({
 			text: 'Base Layers',
 			layerStore: this.mapPanel.layers,
+			loader: new GeoExt.ux.tree.GroupLayerLoader({
+				// Do not show the overlay layers
+				filterOverlays: true,
+				store: this.mapPanel.layers
+			}),
 			deleteLayerFunction: deleteLayerFct,
 			leaf: false,
 			parentNode: layerTree,
@@ -138,13 +227,17 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 		});
 		// Remove the icons and auto-select layers when needed
 		baselayerList.loader.createNode = function(attr) {
-			attr.cls = 'x-tree-noicon';
+			attr.cls += ' x-tree-noicon';
 			var layerNode = GeoExt.tree.LayerLoader.prototype.createNode.call(this, attr);
 
 			// Select the node when it check box get checked
 			layerNode.on("checkchange", onCheckChange, that);
 			// Select the node after it is added
-			Ext.defer(layerNode.select, 1, layerNode);
+			Ext.defer(function() {
+				if (layerNode.ui && layerNode.ui.rendered) {
+					layerNode.select();
+				}
+			}, 1);
 			return layerNode;
 		};
 
@@ -159,7 +252,7 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 		// For TreeGrid, see: http://max-bazhenov.com/dev/ux.maximgb.tg/index.php
 		// The other TreeGrid (http://dev.sencha.com/deploy/dev/examples/treegrid/treegrid.html)
 		// is difficult to used without external config
-		var layersListPanel = new Ext.ux.tree.ConstrainTreePanel({
+		this._layersListPanel = new Ext.tree.TreePanel({
 			// The title of this element goes with the
 			// main one to have the title in the same row
 			// as the collapse button.
@@ -171,48 +264,17 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 			autoScroll: true,
 
 			enableDD: true,
-			// Ensure the node do not get drag outside its parent node.
-			constrainDDParent: true,
 
-			root: layerTree,
-
-			buttons: [
-				{
-					text: "Add layers",
-					handler: function() {that.showAddLayersWindow();}
-				}, {
-					text: 'Remove',
-					id: 'remove',
-					disabled: true,
-					handler: function() {
-						var layer = (layersListPanel && layersListPanel.getSelectionModel() && layersListPanel.getSelectionModel().getSelectedNode() ? layersListPanel.getSelectionModel().getSelectedNode().layer : null);
-						if (layer) {
-							Ext.MessageBox.show({
-								title: String.format('Removing "{0}"', layer.name),
-								msg: String.format('Are you sure you want to remove the layer {0} '+
-									'from your list of layers?', '<i><b>' + layer.name + '</b></i>'),
-								buttons: Ext.Msg.YESNO,
-								fn: function(btn){
-									if(btn == 'yes'){
-										that.mapPanel.ol_fireEvent('removeLayer', {layer: layer});
-									}
-								},
-								icon: Ext.MessageBox.QUESTION,
-								maxWidth: 300
-							});
-						} else {
-							// TODO Show an error - No layer selected
-						}
-					}
-				}
-			]
+			root: layerTree
 		});
 
-		layersPanel.add(layersListPanel);
+		layersPanel.add(this._layersListPanel);
 
-		layersListPanel.getSelectionModel().addListener('selectionchange', function(selectionModel, node) {
+		this._layersListPanel.getSelectionModel().addListener('selectionchange', function(selectionModel, node) {
 			// Disable / Enable the remove button
-			Ext.getCmp('remove').setDisabled(!node || !node.layer);
+			if (that.removeButton != null) {
+				that.removeButton.setDisabled(!node || !node.layer);
+			}
 			// Change the content of the layer info panel
 			infoObj.selectionChange(node);
 		});
@@ -232,7 +294,7 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 
 		layersPanel.add({
 			region: 'center',
-			title: 'Information',
+			//title: 'Information',
 			border: false, // No border for this element
 			hideBorders: true, // No border for his tabs
 			autoScroll: false,
@@ -262,7 +324,125 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 		if (!this.addLayersWindow) {
 			this.addLayersWindow = new Atlas.AddLayersWindow({mapPanel: this.mapPanel});
 		}
-		this.addLayersWindow.show();
+		var that = this;
+		this.addLayersWindow.show(null, function(){
+			// Center the window in the map (including the LayerPanel); useful for multimaps.
+			this.alignTo(that.ownerCt.getEl(), 'c-c');
+		});
+	},
+
+	// Override
+	afterRender: function() {
+		Atlas.LayersPanel.superclass.afterRender.call(this, arguments);
+		var that = this;
+
+		// Wait to be sure the 'layers-ctl' element is present in the DOM.
+		Ext.defer(function() {
+			var el = Ext.get('layers-ctl_'+that.mapPanel.mapId);
+
+			new Ext.Button({
+				renderTo: el,
+				iconCls: 'add',
+				cls: 'layers-btn',
+				handler: function() {that.showAddLayersWindow();}
+			});
+			that.removeButton = new Ext.Button({
+				renderTo: el,
+				iconCls: 'remove',
+				cls: 'layers-btn',
+				disabled: true,
+				handler: function() {
+					var node = (that._layersListPanel && that._layersListPanel.getSelectionModel() ? that._layersListPanel.getSelectionModel().getSelectedNode() : null);
+					if (node) {
+						var layer = node.layer;
+						if (layer) {
+							// Special message for Group Layers
+							if (layer._groupLayer) {
+								var nbLayers = that._countRealLayers(node);
+								var msg = 'Are you sure you want to remove the ';
+								if (nbLayers > 1) {
+									msg += 'folder {0}, and its '+nbLayers+' layers, from your list of layers?';
+								} else if (nbLayers > 0) {
+									msg += 'folder {0}, and its '+nbLayers+' layer, from your list of layers?';
+								} else {
+									msg += 'empty folder {0} from your list of layers?';
+								}
+
+								Ext.MessageBox.show({
+									title: String.format('Removing folder "{0}"', layer.name),
+									msg: String.format(msg, '<i><b>' + layer.name + '</b></i>'),
+									buttons: Ext.Msg.YESNO,
+									fn: function(btn){
+										if(btn == 'yes'){
+//											that._deleteLayerNode(node);
+											that.mapPanel.ol_fireEvent('removeLayer', {layer: layer});
+										}
+									},
+									icon: Ext.MessageBox.QUESTION,
+									maxWidth: 300
+								});
+							} else {
+								Ext.MessageBox.show({
+									title: String.format('Removing layer "{0}"', layer.name),
+									msg: String.format('Are you sure you want to remove the layer {0} '+
+										'from your list of layers?', '<i><b>' + layer.name + '</b></i>'),
+									buttons: Ext.Msg.YESNO,
+									fn: function(btn){
+										if(btn == 'yes'){
+//											that._deleteLayerNode(node);
+											that.mapPanel.ol_fireEvent('removeLayer', {layer: layer});
+										}
+									},
+									icon: Ext.MessageBox.QUESTION,
+									maxWidth: 300
+								});
+							}
+							// Center the window in the map (including the LayerPanel); useful for multimaps.
+							// NOTE: MessageBox in ExtJS 4 extend Window, so it can be align directly using alignTo.
+							Ext.MessageBox.getDialog().alignTo(that.ownerCt.getEl(), 'c-c');
+						} else {
+							// TODO Show an error - No layer selected
+						}
+					}
+				}
+			});
+			new Ext.Button({
+				renderTo: el,
+				iconCls: 'hide',
+				cls: 'layers-btn',
+				handler: function() {
+					that.collapse();
+				}
+			});
+		}, 1);
+	},
+
+/*
+	_deleteLayerNode: function(node) {
+		if (node.hasChildNodes()) {
+			node.eachChild(function(child) {
+				this._deleteLayerNode(child);
+			}, this);
+		}
+		if (node.layer) {
+			this.mapPanel.ol_fireEvent('removeLayer', {layer: node.layer});
+			node.layer = null;
+		}
+		node.remove(true);
+	},
+*/
+
+	_countRealLayers: function(node) {
+		var count = 0;
+		if (node.hasChildNodes()) {
+			node.eachChild(function(child) {
+				count += this._countRealLayers(child);
+			}, this);
+		}
+		if (node.layer && !node.layer._groupLayer) {
+			count += 1;
+		}
+		return count;
 	}
 });
 Ext.reg('layer-panel', Atlas.LayersPanel);

@@ -53,7 +53,7 @@ OpenLayers.Control.ux.NCTransectDrawControl = OpenLayers.Class(OpenLayers.Contro
 				LINESTRING: lineString,
 				FORMAT: "image/png",
 				CRS: that.ncLayer.projection.toString()
-			}
+			};
 
 			var title = '';
 			if (typeof(that.time) !== 'undefined' && that.time !== null && that.time !== '') {
@@ -78,7 +78,10 @@ OpenLayers.Control.ux.NCTransectDrawControl = OpenLayers.Class(OpenLayers.Contro
 					background: "#FFFFFF url('resources/images/loading.gif') no-repeat center center"
 				},
 				html: '<img src="' + url + '" />'
-			}).show();
+			}).show(null, function(){
+				// Center the window in the map; useful for multimaps.
+				this.alignTo(that.map.div, 'c-c');
+			});
 		};
 
 		// This will become this.layer

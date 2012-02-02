@@ -37,7 +37,7 @@
 <%
 	Logger LOGGER = Logger.getLogger("userAccount.jsp");
 
-	ConfigManager configManager = ConfigHelper.getConfigManager(this.getServletContext());
+	ConfigManager configManager = ConfigHelper.getConfigManager(this.getServletConfig().getServletContext());
 	User loggedUser = LoginServlet.getLoggedUser(session);
 
 	String actionStr = request.getParameter("action");

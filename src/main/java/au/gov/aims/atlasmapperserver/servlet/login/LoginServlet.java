@@ -49,7 +49,7 @@ public class LoginServlet extends HttpServlet {
 	protected static final String REDIRECT_PAGE = "../public/admin.jsp";
 
 	@Override
-	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		try {
 			this.performTask(request, response);
 		} catch (JSONException ex) {
@@ -58,7 +58,7 @@ public class LoginServlet extends HttpServlet {
 	}
 
 	@Override
-	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		try {
 			this.performTask(request, response);
 		} catch (JSONException ex) {
@@ -66,7 +66,7 @@ public class LoginServlet extends HttpServlet {
 		}
 	}
 
-	private void performTask(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException, JSONException {
+	private void performTask(HttpServletRequest request, HttpServletResponse response) throws IOException, JSONException {
 		JSONObject result = new JSONObject();
 		HttpSession session = request.getSession();
 		String actionStr = request.getParameter("action");
@@ -104,8 +104,18 @@ public class LoginServlet extends HttpServlet {
 			byte[] bytes = content.getBytes();
 			out.write(bytes);
 		} finally {
-			try { out.flush(); } catch(Exception e) {}
-			try { out.close(); } catch(Exception e) {}
+			if (out != null) {
+				try {
+					out.flush();
+				} catch(Exception e) {
+					LOGGER.log(Level.SEVERE, "Can not flush the servlet response", e);
+				}
+				try {
+					out.close();
+				} catch(Exception e) {
+					LOGGER.log(Level.SEVERE, "Can not close the servlet response", e);
+				}
+			}
 		}
 	}
 

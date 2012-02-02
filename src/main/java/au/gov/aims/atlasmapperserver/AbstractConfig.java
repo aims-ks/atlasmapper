@@ -361,7 +361,9 @@ public abstract class AbstractConfig implements Cloneable {
 					JSONObject jsonObjValue = null;
 					try {
 						jsonObjValue = getJSONObject(jsonObj, configName);
-					} catch (Exception e) {}
+					} catch (Exception e) {
+						// Exception ignored. If something is wrong, getJSONArray (bellow) will trow an exception.
+					}
 					if (jsonObjValue == null) {
 						JSONArray jsonArrValue = getJSONArray(jsonObj, configName);
 						if (jsonArrValue != null) {
@@ -403,7 +405,9 @@ public abstract class AbstractConfig implements Cloneable {
 				JSONObject jsonObjValue = null;
 				try {
 					jsonObjValue = getJSONObject(jsonObj, configName);
-				} catch(Exception e) {}
+				} catch(Exception e) {
+					// Exception ignored. If something is wrong, getJSONArray (bellow) will trow an exception.
+				}
 				ArrayList<Object> configValue = new ArrayList<Object>();
 				if (jsonObjValue == null) {
 					JSONArray jsonArrValue = getJSONArray(jsonObj, configName);
@@ -545,12 +549,16 @@ public abstract class AbstractConfig implements Cloneable {
 					JSONObject jsonObjValue = null;
 					try{
 						jsonObjValue = getJSONObject(jsonArr, index);
-					} catch (Exception e) {}
+					} catch (Exception e) {
+						// Exception ignored. If something is wrong, getValue (bellow) will trow an exception.
+					}
 					if (jsonObjValue == null) {
 						JSONArray jsonArrValue = null;
 						try {
 							jsonArrValue = getJSONArray(jsonArr, index);
-						} catch(Exception e) {}
+						} catch(Exception e) {
+							// Exception ignored. If something is wrong, getValue (bellow) will trow an exception.
+						}
 						if (jsonArrValue != null) {
 							for (int i=0; i<jsonArrValue.length(); i++) {
 								Object val = getValue(
@@ -801,10 +809,6 @@ public abstract class AbstractConfig implements Cloneable {
 	}
 
 	// Helper
-	protected String _getParameter(Map<String, String[]> parameters, String name) {
-		return parameters.get(name) == null ? null : parameters.get(name)[0];
-	}
-
 	private Method _getFieldGetter(Field field, ConfigField annotation) {
 		String getter = annotation.getter();
 		if (getter == null) {

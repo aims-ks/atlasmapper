@@ -52,8 +52,7 @@ Atlas.AddLayersWindow = Ext.extend(Ext.Window, {
 				infoObj.setLoadingLayerId(node.layerId);
 				Atlas.core.requestLayersJSon([node.layerId], function(layersJSon) {
 					if (layersJSon && layersJSon[0]) {
-						var layerJSon = layersJSon[0];
-						node.layer.json = layerJSon;
+						node.layer.json = layersJSon[0];
 						// Ensure the current Ajax response goes with the current active tab
 						if (infoObj.getLoadingLayerId() == node.layerId) {
 							infoObj.selectionChange(node);

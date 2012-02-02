@@ -29,14 +29,14 @@ import java.io.FilenameFilter;
  * @author glafond
  */
 public class MatchFilenameFilter implements FilenameFilter {
-	private String filename;
+	private final String filename;
 
-	public MatchFilenameFilter(String filename) {
+	public MatchFilenameFilter(final String filename) {
 		this.filename = filename;
 	}
 
 	@Override
-	public boolean accept(File dir, String name) {
+	public boolean accept(final File dir, final String name) {
         return (name != null) && name.equals(this.filename);
 	}
 }

@@ -38,7 +38,7 @@
 <%
 	Logger LOGGER = Logger.getLogger("clientsConfig.jsp");
 
-	ConfigManager configManager = ConfigHelper.getConfigManager(this.getServletContext());
+	ConfigManager configManager = ConfigHelper.getConfigManager(this.getServletConfig().getServletContext());
 
 	String actionStr = request.getParameter("action");
 	String clientId = request.getParameter("clientId");
@@ -61,7 +61,7 @@
 			switch(action) {
 				case READ:
 					try {
-						JSONArray clientConfigs = configManager.getClientConfigsJSonWithClientUrls(getServletContext());
+						JSONArray clientConfigs = configManager.getClientConfigsJSonWithClientUrls(this.getServletConfig().getServletContext());
 						if (clientConfigs == null) {
 							response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 							jsonObj.put("success", false);
@@ -91,7 +91,7 @@
 						} else {
 							JSONArray clientJSonArr = new JSONArray();
 							for (ClientConfig clientConfig : clientConfigs) {
-								JSONObject clientJSon = clientConfig.toJSonObjectWithClientUrls(getServletContext());
+								JSONObject clientJSon = clientConfig.toJSonObjectWithClientUrls(this.getServletConfig().getServletContext());
 								if (clientJSon != null) {
 									clientJSonArr.put(clientJSon);
 								}
@@ -124,7 +124,7 @@
 						response.setStatus(HttpServletResponse.SC_OK);
 						jsonObj.put("success", true);
 						jsonObj.put("message", "Updated record");
-						jsonObj.put("data", configManager.getClientConfigsJSonWithClientUrls(getServletContext()));
+						jsonObj.put("data", configManager.getClientConfigsJSonWithClientUrls(this.getServletConfig().getServletContext()));
 					} catch (Exception e) {
 						LOGGER.log(Level.SEVERE, "An error occured while updating the client.", e);
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
@@ -142,7 +142,7 @@
 							response.setStatus(HttpServletResponse.SC_OK);
 							jsonObj.put("success", true);
 							jsonObj.put("message", "Deleted record");
-							jsonObj.put("data", configManager.getClientConfigsJSonWithClientUrls(getServletContext()));
+							jsonObj.put("data", configManager.getClientConfigsJSonWithClientUrls(this.getServletConfig().getServletContext()));
 						} else {
 							response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 							jsonObj.put("success", false);

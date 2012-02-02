@@ -41,7 +41,7 @@
 %><%
 	Logger LOGGER = Logger.getLogger("getClientConfigFile.jsp");
 
-	ConfigManager configManager = ConfigHelper.getConfigManager(this.getServletContext());
+	ConfigManager configManager = ConfigHelper.getConfigManager(this.getServletConfig().getServletContext());
 
 	String clientIdStr = request.getParameter("clientId");
 	String client = request.getParameter("client");

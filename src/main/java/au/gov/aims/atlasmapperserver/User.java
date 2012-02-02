@@ -34,7 +34,7 @@ import org.json.JSONObject;
  */
 public class User extends AbstractConfig {
 	private static final Logger LOGGER = Logger.getLogger(User.class.getName());
-	private static String DEFAULT_PASSWORD = "admin";
+	private static final String DEFAULT_PASSWORD = "admin";
 
 	@ConfigField(demoReadOnly = true)
 	private String loginName;

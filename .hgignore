@@ -6,8 +6,10 @@ syntax: regexp
 
 # glob syntax; the dot character "." is interpreted as a dot and the star "*" mean any characters, any number of times
 syntax: glob
+
 # For Intellij
 .idea
 atlasmapper.iml
+
 # Other
 target

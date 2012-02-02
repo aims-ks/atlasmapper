@@ -95,7 +95,9 @@ Ext.apply(Ext.form.field.VTypes, {
 			}
 		});
 
-		uniquedatasourceidText: 'Validation in progress. Please wait...'
+		Ext.apply(Ext.form.VTypes, {
+			uniquedatasourceidText: 'Validation in progress. Please wait...'
+		});
 		return false;
 	},
 
@@ -193,7 +195,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 			syntax: 'atlasmapperconfig',
 			valueType: 'string',
 			resizable: {transparent: true}, resizeHandles: 's'
-		}
+		};
 		// As usual, IE required specific workaround. This time, we simply disable the feature.
 		if (Ext.isIE) {
 			browserSpecificEditAreaConfig = {

@@ -125,7 +125,7 @@ Ext.ux.form.NCDatetimeField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 			var dateObj = this.parseDate(date);
 			that.reloadTimes(dateObj, false);
 			Ext.ux.form.DateField.superclass.setValue.call(this, date);
-		}
+		};
 
 		this.timeField = new Ext.form.TimeField(timeConfig);
 

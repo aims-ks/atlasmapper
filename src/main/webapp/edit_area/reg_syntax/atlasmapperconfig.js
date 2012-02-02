@@ -27,13 +27,13 @@ editAreaLoader.load_syntax["atlasmapperconfig"] = {
 	'KEYWORD_CASE_SENSITIVE': true,
 	'KEYWORDS': {
  		'layers': [
-			'kmlUrl', 'title', 'description', 'dataSourceId', 'layerBoundingBox',
+			'kmlUrl', 'title', 'path', 'description', 'dataSourceId', 'layerBoundingBox',
 			'wmsQueryable', 'wmsVersion', 'isBaseLayer', 'hasLegend',
 			'legendUrl', 'legendGroup', 'legendTitle', 'infoHtmlUrls',
 			'aliasIds', 'serverUrls', 'wmsRequestMimeType',
 			'wmsFeatureRequestLayers', 'wmsTransectable', 'default',
 			'styles', 'options', 'name',
-			'type', 'mandatory', 'defaultValue'
+			'type', 'mandatory', 'defaultValue', 'selected'
 		],
 		// Layers can override any data source entry
 		'dataSources': [

@@ -76,10 +76,12 @@ public class Proxy extends HttpServlet {
 	}
 
 	// Don't define a constructor! Initialise the Servlet here.
+	/*
 	@Override
 	public void init(ServletConfig sc) throws ServletException {
 		super.init(sc);
 	}
+	*/
 
 	public synchronized void reloadConfig(String clientId, boolean live) {
 		List<String> foundAllowedHosts = null;
@@ -155,7 +157,7 @@ public class Proxy extends HttpServlet {
 						String responseTxt = "This proxy does not allow you to access that location (" + host + ").";
 						LOGGER.log(Level.WARNING, responseTxt);
 
-						ServletUtils.sendResponse(request, response, responseTxt);
+						ServletUtils.sendResponse(response, responseTxt);
 					} else if (protocol.equals("http") || protocol.equals("https")) {
 						URLConnection conn = url.openConnection();
 
@@ -166,7 +168,7 @@ public class Proxy extends HttpServlet {
 							String responseTxt = "Can not open the URL connection.";
 							LOGGER.log(Level.WARNING, responseTxt);
 
-							ServletUtils.sendResponse(request, response, responseTxt);
+							ServletUtils.sendResponse(response, responseTxt);
 						} else {
 							try {
 								HttpURLConnection httpConn = (HttpURLConnection)conn;
@@ -193,7 +195,7 @@ public class Proxy extends HttpServlet {
 									InputStream inputStream = null;
 									try {
 										inputStream = conn.getInputStream();
-										ServletUtils.sendResponse(request, response, inputStream);
+										ServletUtils.sendResponse(response, inputStream);
 									} finally {
 										if (inputStream != null) {
 											try { inputStream.close(); } catch (Exception e) { LOGGER.log(Level.WARNING, "Cant close the URL input stream.", e); }
@@ -205,28 +207,28 @@ public class Proxy extends HttpServlet {
 									String responseTxt = "Error "+responseCode+" - Bad Request: "+decodedUrl;
 									LOGGER.log(Level.WARNING, responseTxt);
 
-									ServletUtils.sendResponse(request, response, responseTxt);
+									ServletUtils.sendResponse(response, responseTxt);
 								} else if (responseCode == HttpServletResponse.SC_NOT_FOUND) {
 									// 404: Not Found
 									response.setContentType("text/plain");
 									String responseTxt = "Error "+responseCode+" - Not Found: "+decodedUrl;
 									LOGGER.log(Level.WARNING, responseTxt);
 
-									ServletUtils.sendResponse(request, response, responseTxt);
+									ServletUtils.sendResponse(response, responseTxt);
 								} else if (responseCode == HttpServletResponse.SC_INTERNAL_SERVER_ERROR) {
 									// 500: Internal Server Error
 									response.setContentType("text/plain");
 									String responseTxt = "Error "+responseCode+" - Internal Server Error: "+decodedUrl;
 									LOGGER.log(Level.WARNING, responseTxt);
 
-									ServletUtils.sendResponse(request, response, responseTxt);
+									ServletUtils.sendResponse(response, responseTxt);
 								} else {
 									// Any other errors
 									response.setContentType("text/plain");
 									String responseTxt = "Error "+responseCode+": "+decodedUrl;
 									LOGGER.log(Level.WARNING, responseTxt);
 
-									ServletUtils.sendResponse(request, response, responseTxt);
+									ServletUtils.sendResponse(response, responseTxt);
 								}
 							} catch (Exception ex) {
 								response.setContentType("text/plain");
@@ -235,7 +237,7 @@ public class Proxy extends HttpServlet {
 								String responseTxt = "An error occurred while opening the URL connection: ";
 								LOGGER.log(Level.WARNING, responseTxt, ex);
 
-								ServletUtils.sendResponse(request, response, responseTxt + ex.getMessage());
+								ServletUtils.sendResponse(response, responseTxt + ex.getMessage());
 							}
 						}
 					} else {
@@ -245,7 +247,7 @@ public class Proxy extends HttpServlet {
 						String responseTxt = "Error - Unsupported protocol: "+decodedUrl;
 						LOGGER.log(Level.WARNING, responseTxt);
 
-						ServletUtils.sendResponse(request, response, responseTxt);
+						ServletUtils.sendResponse(response, responseTxt);
 					}
 				}
 			} catch (Exception e) {
@@ -255,7 +257,7 @@ public class Proxy extends HttpServlet {
 				String responseTxt = "An unexpected error occurred: ";
 				LOGGER.log(Level.WARNING, responseTxt, e);
 
-				ServletUtils.sendResponse(request, response, responseTxt + e.getMessage());
+				ServletUtils.sendResponse(response, responseTxt + e.getMessage());
 			}
 		} else {
 			response.setContentType("text/plain");
@@ -264,7 +266,7 @@ public class Proxy extends HttpServlet {
 			String responseTxt = "Can't get url value from request.";
 			LOGGER.log(Level.WARNING, responseTxt);
 
-			ServletUtils.sendResponse(request, response, responseTxt);
+			ServletUtils.sendResponse(response, responseTxt);
 		}
 	}
 }

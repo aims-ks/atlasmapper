@@ -25,7 +25,7 @@
  */
 Ext.namespace("Ext.ux");
 
-Ext.ux.IFramePanel = function(config){
+Ext.ux.IFramePanel = function(config) {
 	var that = this;
 	var defaultSrc = null;
 	var defaultContent = null;
@@ -80,7 +80,7 @@ Ext.ux.IFramePanel = function(config){
 		}
 
 		that.setContent(generateContent(src));
-	}
+	};
 
 	this.setContent = function(newContent) {
 		content = newContent ? newContent : this.defaultContent;
@@ -88,7 +88,7 @@ Ext.ux.IFramePanel = function(config){
 		if (that.isVisible()) {
 			that.update();
 		}
-	}
+	};
 
 	this.update = function(htmlOrData, loadScripts, cb) {
 		if (htmlOrData || loadScripts || cb) {
@@ -99,13 +99,13 @@ Ext.ux.IFramePanel = function(config){
 				loadedContent = content;
 			}
 		}
-	}
+	};
 
 	Ext.ux.IFramePanel.superclass.constructor.call(this, config);
 
 	// ExtJS event
 	this.on("activate", function(event) {this.update()});
-}
+};
 
 Ext.extend(Ext.ux.IFramePanel, Ext.Panel, {
 	setContent: function(html) {

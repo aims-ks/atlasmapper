@@ -22,6 +22,19 @@
 // Namespace declaration (equivalent to Ext.namespace("Atlas");)
 window["Atlas"] = window["Atlas"] || {};
 
+
+function clone(obj) {
+	var target = {};
+	for (var i in obj) {
+		if (obj.hasOwnProperty(i)) {
+			target[i] = obj[i];
+		}
+	}
+	return target;
+}
+
+
+
 // TODO Also extends from a class that is independent of ExtJS (for embedded maps)
 Atlas.AbstractMapPanel = {
 	// Event types specific to the Map.
@@ -128,7 +141,16 @@ Atlas.AbstractMapPanel = {
 		}
 
 		// Designed for the GeoWebCache
-		var mapOptions = Atlas.conf['mapOptions'];
+		var mapOptions = {};
+
+		// Copy all options of Atlas.conf['mapOptions'] to mapOptions.
+		// NOTE: Do not assign mapOptions = Atlas.conf['mapOptions'] since the options of mapOptions can change and
+		// the config must remained unchanged (it will be used by the other map panels when displaying multiple maps)
+		for (optionKey in Atlas.conf['mapOptions']) {
+			if (optionKey != 'projection' && optionKey != 'maxExtent' && optionKey != 'controls' && Atlas.conf['mapOptions'].hasOwnProperty(optionKey)) {
+				mapOptions[optionKey] = Atlas.conf['mapOptions'][optionKey];
+			}
+		}
 
 		// 3 options required object instanciation
 		mapOptions['projection'] = projection;
@@ -343,11 +365,8 @@ Atlas.AbstractMapPanel = {
 			}
 		}
 
-		if (isBaseLayer) {
-			layerParams.transparent = false;
-		} else {
-			layerParams.transparent = true;
-		}
+		layerParams.transparent = !isBaseLayer;
+
 		return layerParams;
 	},
 
@@ -449,7 +468,7 @@ Atlas.AbstractMapPanel = {
 	},
 
 	_createGoogleLayer: function(layerJSon) {
-		var googleLayer = new OpenLayers.Layer.Google(
+		return new OpenLayers.Layer.Google(
 			// "Google Physical", "Google Streets", "Google Hybrid", "Google Satellite"
 			this._getTitle(layerJSon),
 			{
@@ -457,8 +476,6 @@ Atlas.AbstractMapPanel = {
 				type: google.maps.MapTypeId[layerJSon['layerId']]
 			}
 		);
-
-		return googleLayer;
 	},
 
 
@@ -509,15 +526,22 @@ Atlas.AbstractMapPanel = {
 	/**
 	 * Add layers from an array of layer IDs
 	 */
-	addLayersById: function(layerIds) {
+	addLayersById: function(layerIds, path) {
 		var that = this;
 		Atlas.core.requestLayersJSon(layerIds, function(layersJSon) {
+			if (typeof(path) != 'undefined' && path.length > 0) {
+				for (var i=0; i<layersJSon.length; i++) {
+					// Clone the object, to avoid modifying the original
+					layersJSon[i] = clone(layersJSon[i]);
+					layersJSon[i].path = path;
+				}
+			}
 			that.addLayers(layersJSon);
 		});
 	},
 
-	addLayerById: function(layerId) {
-		this.addLayersById([layerId]);
+	addLayerById: function(layerId, path) {
+		this.addLayersById([layerId], path);
 	},
 
 	/**
@@ -561,6 +585,22 @@ Atlas.AbstractMapPanel = {
 			case 'XYZ':
 				layer = this._createXYZLayer(layerJSon);
 				break;
+			case 'GROUP':
+				// Layer group
+				if (layerJSon['layers'] && layerJSon['layers'].length > 0) {
+					// Path: Array of object "id: 'groupId', title: 'Display title'". The ID is unique for this instance of the group
+					var pathSuffixId = "_" + new Date().getTime();
+					var path = [];
+					if (layerJSon['path']) {
+						// Clone the path
+						path = layerJSon['path'].slice(0);
+					}
+					var pathPart = clone(layerJSon);
+					pathPart.id = layerJSon['layerId'] + pathSuffixId;
+					path.push(pathPart);
+					this.addLayersById(layerJSon['layers'], path, pathSuffixId);
+				}
+				return;
 			default:
 				alert('Layer type '+layerJSon['dataSourceType']+' is not implemented.');
 		}
@@ -571,6 +611,10 @@ Atlas.AbstractMapPanel = {
 
 		layer.json = layerJSon;
 		layer.hideInLegend = false;//!layerJSon['<initialState>']['<legendActivated>'];
+
+		if (typeof(layerJSon['path']) !== 'undefined') {
+			layer.path = layerJSon['path'];
+		}
 
 		// TODO Remove this after implementing Save State
 		if (typeof(layerJSon['selected']) !== 'undefined') {
@@ -590,10 +634,10 @@ Atlas.AbstractMapPanel = {
 				property: "hideInLegend"
 			});
 			that.ol_fireEvent('legendVisibilityChange', {layer: layer});
-		}
+		};
 		layer.getHideInLegend = function() {
 			return layer.hideInLegend;
-		}
+		};
 
 		// Add the layer to the Map
 		this.map.addLayer(layer);
@@ -632,7 +676,7 @@ Atlas.AbstractMapPanel = {
 		var bounds = null;
 		if (layer.json && layer.json['layerBoundingBox']) {
 			// Bounds order in JSon: left, bottom, right, top
-			var boundsArray = layer.json['layerBoundingBox']
+			var boundsArray = layer.json['layerBoundingBox'];
 
 			// Bounds order as requested by OpenLayers: left, bottom, right, top
 			// NOTE: Reprojection can not work properly if the top or bottom overpass 85

@@ -55,10 +55,10 @@ public class GetCapabilitiesExceptions extends Throwable {
 	}
 
 	private class DataSourceException {
-		public DataSourceConfig dataSource;
-		public String errorMessage;
+		public final DataSourceConfig dataSource;
+		public final String errorMessage;
 
-		public DataSourceException(DataSourceConfig dataSource, String errorMessage) {
+		public DataSourceException(final DataSourceConfig dataSource, final String errorMessage) {
 			this.dataSource = dataSource;
 			this.errorMessage = errorMessage;
 		}

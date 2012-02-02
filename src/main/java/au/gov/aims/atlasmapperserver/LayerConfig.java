@@ -50,10 +50,16 @@ public class LayerConfig extends DataSourceConfig {
 	private String description;
 
 	@ConfigField
+	private String[] layers;
+
+	@ConfigField
 	private double[] layerBoundingBox;
 
 	@ConfigField
 	private String[] infoHtmlUrls;
+
+	@ConfigField
+	private String[] path;
 
 	@ConfigField
 	private Boolean isBaseLayer;
@@ -182,6 +188,14 @@ public class LayerConfig extends DataSourceConfig {
 		this.isBaseLayer = isBaseLayer;
 	}
 
+	public String[] getLayers() {
+		return this.layers;
+	}
+
+	public void setLayers(String[] layers) {
+		this.layers = layers;
+	}
+
 	public double[] getLayerBoundingBox() {
 		return layerBoundingBox;
 	}
@@ -196,6 +210,14 @@ public class LayerConfig extends DataSourceConfig {
 
 	public void setInfoHtmlUrls(String[] infoHtmlUrls) {
 		this.infoHtmlUrls = infoHtmlUrls;
+	}
+
+	public String[] getPath() {
+		return this.path;
+	}
+
+	public void setPath(String[] path) {
+		this.path = path;
 	}
 
 	public String getTitle() {
@@ -279,7 +301,7 @@ public class LayerConfig extends DataSourceConfig {
 
 	public LayerConfig applyOverrides(
 			LayerConfig globalOverride,
-			LayerConfig clientOverride) throws JSONException {
+			LayerConfig clientOverride) {
 
 		LayerConfig clone = (LayerConfig)this.clone();
 

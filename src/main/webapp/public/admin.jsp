@@ -43,11 +43,11 @@
 		// Verify it the application has access to the configuration folder.
 		// If not, a error message, saying that the application can not work
 		// properly, is displayed.
-		File applicationFolder = FileFinder.getApplicationFolder(this.getServletContext(), true);
+		File applicationFolder = FileFinder.getApplicationFolder(this.getServletConfig().getServletContext(), true);
 		boolean isWritable = Utils.recursiveIsWritable(applicationFolder);
 		if (applicationFolder == null || !isWritable) {
 			String dataDirProperty = FileFinder.DATA_DIR_PROPERTY;
-			String dataDirPropertyValue = FileFinder.getDataDirPropertyValue(this.getServletContext());
+			String dataDirPropertyValue = FileFinder.getDataDirPropertyValue(this.getServletConfig().getServletContext());
 			boolean isDefined = true;
 			if (dataDirPropertyValue == null) {
 				dataDirPropertyValue = "UNDEFINED";

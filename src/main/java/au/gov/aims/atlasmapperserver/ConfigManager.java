@@ -74,7 +74,7 @@ public class ConfigManager {
 	// Used to generated clients config
 	// NOTE: The version must match the version in the client /clientResources/amc/modules/Core/Core.js
 	private static final double CURRENT_MAIN_CONFIG_VERSION = 1.1;
-	private static final double CURRENT_LAYER_CONFIG_VERSION = 1.0;
+	private static final double CURRENT_LAYER_CONFIG_VERSION = 1.1;
 
 	// Will eventually be used for backward compatibility
 	private double configVersion;
@@ -220,9 +220,13 @@ public class ConfigManager {
 					serverConfigReader = new FileReader(this.serverConfigFile);
 					this.reloadServerConfig(serverConfigReader);
 				} finally {
-					try {
-						if (serverConfigReader != null) { serverConfigReader.close(); }
-					} catch(Exception e) {}
+					if (serverConfigReader != null) {
+						try {
+							serverConfigReader.close();
+						} catch(Exception e) {
+							LOGGER.log(Level.SEVERE, "Can not close the server config file", e);
+						}
+					}
 				}
 			} else {
 				LOGGER.log(Level.SEVERE, "{0} is not readable", this.serverConfigFile.getAbsolutePath());
@@ -350,9 +354,13 @@ public class ConfigManager {
 					usersConfigReader = new FileReader(this.usersConfigFile);
 					this.reloadUsersConfig(usersConfigReader);
 				} finally {
-					try {
-						if (usersConfigReader != null) { usersConfigReader.close(); }
-					} catch(Exception e) {}
+					if (usersConfigReader != null) {
+						try {
+							usersConfigReader.close();
+						} catch(Exception e) {
+							LOGGER.log(Level.SEVERE, "Can not close the users config file", e);
+						}
+					}
 				}
 			} else {
 				LOGGER.log(Level.WARNING, "{0} is not readable.", this.usersConfigFile.getAbsolutePath());
@@ -433,15 +441,27 @@ public class ConfigManager {
 				this.saveServerConfig(writer);
 				this.serverConfigFileLastModified = this.serverConfigFile.lastModified();
 			} finally {
-				try {
-					if (writer != null) { writer.close(); }
-				} catch(Exception e) {}
+				if (writer != null) {
+					try {
+						writer.close();
+					} catch (Exception e) {
+						LOGGER.log(Level.SEVERE, "Can not close the server config file", e);
+					}
+				}
 				// Reload the configuration to refresh the state of the server with the config that is in the file
-				try { this.reloadServerConfig(); } catch(Exception e) {}
+				try {
+					this.reloadServerConfig();
+				} catch (Exception e) {
+					LOGGER.log(Level.SEVERE, "Can not reload the server config file", e);
+				}
 			}
 		} else {
 			// Reload the configuration to refresh the state of the server with the config that is in the file
-			try { this.reloadServerConfig(); } catch(Exception e) {}
+			try {
+				this.reloadServerConfig();
+			} catch(Exception e) {
+				LOGGER.log(Level.SEVERE, "Can not reload the server config file", e);
+			}
 			throw new IOException(this.serverConfigFile.getCanonicalPath() + " is not writable.");
 		}
 	}
@@ -477,15 +497,27 @@ public class ConfigManager {
 				this.saveUsersConfig(writer);
 				this.usersConfigFileLastModified = this.usersConfigFile.lastModified();
 			} finally {
-				try {
-					if (writer != null) { writer.close(); }
-				} catch(Exception e) {}
+				if (writer != null) {
+					try {
+						writer.close();
+					} catch(Exception e) {
+						LOGGER.log(Level.SEVERE, "Can not close the users config file", e);
+					}
+				}
 				// Reload the configuration to refresh the state of the server with the config that is in the file
-				try { this.reloadUsersConfig(); } catch(Exception e) {}
+				try {
+					this.reloadUsersConfig();
+				} catch (Exception e) {
+					LOGGER.log(Level.SEVERE, "Can not reload the users config file", e);
+				}
 			}
 		} else {
 			// Reload the configuration to refresh the state of the server with the config that is in the file
-			try { this.reloadUsersConfig(); } catch(Exception e) {}
+			try {
+				this.reloadUsersConfig();
+			} catch (Exception e) {
+				LOGGER.log(Level.SEVERE, "Can not reload the users config file", e);
+			}
 			throw new IOException(this.usersConfigFile.getCanonicalPath() + " is not writable.");
 		}
 	}
@@ -1480,7 +1512,7 @@ public class ConfigManager {
 				"JSONArray");
 	}
 
-	private List<String> _getClientDefaultLayerIds(String clientId) throws JSONException, IOException, ServiceException {
+	private List<String> _getClientDefaultLayerIds(String clientId) throws JSONException, IOException {
 		if (Utils.isBlank(clientId)) { return null; }
 
 		ClientConfig clientConfig = this.getClientConfig(clientId);
@@ -1621,6 +1653,11 @@ public class ConfigManager {
 			jsonLayer.put("description", layerConfig.getDescription());
 		}
 
+		String[] groupLayers = layerConfig.getLayers();
+		if (groupLayers != null && groupLayers.length > 0) {
+			jsonLayer.put("layers", groupLayers);
+		}
+
 		// serverId
 		if (Utils.isNotBlank(layerConfig.getDataSourceId())) {
 			jsonLayer.put("dataSourceId", layerConfig.getDataSourceId());
@@ -1663,6 +1700,11 @@ public class ConfigManager {
 		String[] infoHtmlUrls = layerConfig.getInfoHtmlUrls();
 		if(infoHtmlUrls != null && infoHtmlUrls.length > 0) {
 			jsonLayer.put("infoHtmlUrls", infoHtmlUrls);
+		}
+
+		String[] path = layerConfig.getPath();
+		if(path != null && path.length > 0) {
+			jsonLayer.put("path", path);
 		}
 
 		String[] aliasIds = layerConfig.getAliasIds();
@@ -1870,9 +1912,13 @@ public class ConfigManager {
 				writer = new FileWriter(file);
 				this.saveJSONConfig(config, writer);
 			} finally {
-				try {
-					if (writer != null) { writer.close(); }
-				} catch(Exception e) {}
+				if (writer != null) {
+					try {
+						writer.close();
+					} catch(Exception e) {
+						LOGGER.log(Level.SEVERE, "Can not close the config file", e);
+					}
+				}
 			}
 		} else {
 			LOGGER.log(Level.SEVERE, "The application can not write in the configuration file [{0}].", file.getAbsolutePath());
@@ -1892,9 +1938,13 @@ public class ConfigManager {
 				bw.write(jsonStr);
 			}
 		} finally {
-			try {
-				if (bw != null) { bw.close(); }
-			} catch (Exception e) {}
+			if (bw != null) {
+				try {
+					bw.close();
+				} catch (Exception e) {
+					LOGGER.log(Level.SEVERE, "Can not close the config file", e);
+				}
+			}
 		}
 	}
 
@@ -1910,9 +1960,13 @@ public class ConfigManager {
 				bw.write(jsonStr);
 			}
 		} finally {
-			try {
-				if (bw != null) { bw.close(); }
-			} catch (Exception e) {}
+			if (bw != null) {
+				try {
+					bw.close();
+				} catch (Exception e) {
+					LOGGER.log(Level.SEVERE, "Can not close the config file", e);
+				}
+			}
 		}
 	}
 
@@ -1928,9 +1982,13 @@ public class ConfigManager {
 				reader = new FileReader(configFile);
 				existingConfig = new JSONObject(new JSONTokener(reader));
 			} finally {
-				try {
-					if (reader != null) {reader.close();}
-				} catch(Exception e) {}
+				if (reader != null) {
+					try {
+						reader.close();
+					} catch(Exception e) {
+						LOGGER.log(Level.SEVERE, "Can not close the config file", e);
+					}
+				}
 			}
 		} else {
 			LOGGER.log(Level.SEVERE, "Can read the configuration file [{0}]", configFile.getAbsolutePath());
@@ -1939,7 +1997,7 @@ public class ConfigManager {
 		return existingConfig;
 	}
 
-	private Integer getNextDataSourceId() throws JSONException, FileNotFoundException {
+	private Integer getNextDataSourceId() {
 		while (this.dataSourceConfigs.containsKey1(this.lastDataSourceId)) {
 			this.lastDataSourceId++;
 		}
@@ -1979,9 +2037,13 @@ public class ConfigManager {
 		} catch (Exception ex) {
 			Logger.getLogger(ConfigManager.class.getName()).log(Level.SEVERE, null, ex);
 		} finally {
-			try {
-				if (reader != null) { reader.close(); }
-			} catch (Exception ex) {}
+			if (reader != null) {
+				try {
+					reader.close();
+				} catch (Exception ex) {
+					LOGGER.log(Level.SEVERE, "Can not close the config file", ex);
+				}
+			}
 		}
 
 		JSONObject jsonObj = null;

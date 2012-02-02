@@ -51,7 +51,7 @@ Ext.ux.form.CompositeFieldAnchor = Ext.extend(Ext.form.CompositeField, {
 		this.fieldLabel = this.fieldLabel || this.buildLabel(labels);
 
 		/**
-		 * @property fieldErrors
+		 * @property fieldErrors (attribute of Ext.form.CompositeField)
 		 * @type Ext.util.MixedCollection
 		 * MixedCollection of current errors on the Composite's subfields. This is used internally to track when
 		 * to show and hide error messages at the Composite level. Listeners are attached to the MixedCollection's

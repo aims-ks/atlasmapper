@@ -21,7 +21,6 @@
 
 package au.gov.aims.atlasmapperserver;
 
-import java.math.BigDecimal;
 import java.util.ResourceBundle;
 
 /**
@@ -29,7 +28,7 @@ import java.util.ResourceBundle;
  * @author glafond
  */
 public class ProjectInfo {
-	private static ResourceBundle propreties = ResourceBundle.getBundle("project");
+	private static final ResourceBundle PROPERTIES = ResourceBundle.getBundle("project");
 
 	// Singleton
 	private ProjectInfo() {}
@@ -40,25 +39,25 @@ public class ProjectInfo {
 	 * @see java.lang.Package#getImplementationVersion()
 	 */
 	public static String getName() {
-		return propreties.getString("project.name");
+		return PROPERTIES.getString("project.name");
 	}
 
 	public static String getVersion() {
-		return propreties.getString("project.version");
+		return PROPERTIES.getString("project.version");
 	}
 
 	public static String getDescription() {
-		return propreties.getString("project.description");
+		return PROPERTIES.getString("project.description");
 	}
 
 	public static String getUrl() {
-		return propreties.getString("project.url");
+		return PROPERTIES.getString("project.url");
 	}
 
 	public static String getLicenseName() {
-		return propreties.getString("project.license.name");
+		return PROPERTIES.getString("project.license.name");
 	}
 	public static String getLicenseUrl() {
-		return propreties.getString("project.license.url");
+		return PROPERTIES.getString("project.license.url");
 	}
 }

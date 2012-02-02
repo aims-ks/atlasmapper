@@ -43,8 +43,6 @@
 	<style type="text/css">
 		html, body, #loading { height: 100% }
 		#loading {
-			/*position: absolute;
-			z-index: 65000;*/
 			background: #FFFFFF url('resources/images/loading.gif') no-repeat center center;
 		}
 	</style>
@@ -72,8 +70,6 @@
 	<!-- Personal addition to ExtJS -->
 	<script type="text/javascript" src="Ext-ux/CompositeFieldAnchor.js"></script>
 	<script type="text/javascript" src="Ext-ux/IFramePanel.js"></script>
-	<script type="text/javascript" src="Ext-ux/ConstrainTreePanel.js"></script>
-	<script type="text/javascript" src="Ext-ux/ConstrainTreeDropZone.js"></script>
 	<script type="text/javascript" src="Ext-ux/LayerTreeLoader.js"></script>
 	<script type="text/javascript" src="Ext-ux/LayerNode.js"></script>
 	<script type="text/javascript" src="Ext-ux/MinMaxField.js"></script>
@@ -87,6 +83,7 @@
 	<script type="text/javascript" src="GeoExt-ux/NCWMSLegend.js"></script>
 	<script type="text/javascript" src="GeoExt-ux/VectorLegend.js"></script>
 	<script type="text/javascript" src="GeoExt-ux/LegendGroup.js"></script>
+	<script type="text/javascript" src="GeoExt-ux/GroupLayerLoader.js"></script>
 
 	<script type="text/javascript" src="modules/Core/Core.js"></script>
 	<script type="text/javascript" src="modules/MapPanel/AbstractMapPanel.js"></script>

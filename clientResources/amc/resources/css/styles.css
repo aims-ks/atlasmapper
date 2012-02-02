@@ -97,3 +97,26 @@ div.olControlMousePosition {
 div.olFramedCloudPopupContent {
 	color: #000000;
 }
+
+.layers-btn {
+	font-size: 0 !important;
+	float: left;
+	margin-left: 4px;
+}
+.layers-btn .add {
+	background-image: url("http://cdn1.iconfinder.com/data/icons/diagona/icon/10/103.png") !important;
+	font-size: 0 !important;
+}
+.layers-btn .remove {
+	background-image: url("http://cdn1.iconfinder.com/data/icons/diagona/icon/10/104.png") !important;
+	font-size: 0 !important;
+}
+.layers-btn .hide {
+	background-image: url("https://helpdesk.bryan.edu/pics/left_off.png") !important;
+	font-size: 0 !important;
+}
+
+.layerGroup span {
+	font-style: italic;
+}
+

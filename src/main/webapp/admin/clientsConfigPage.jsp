@@ -56,7 +56,7 @@
 		<script type="text/javascript" src="../javascript/Frameset.js"></script>
 		<!-- Send the client name to the clients config page -->
 		<script type="text/javascript">
-			<% ConfigManager manager = ConfigHelper.getConfigManager(this.getServletContext()); %>
+			<% ConfigManager manager = ConfigHelper.getConfigManager(this.getServletConfig().getServletContext()); %>
 
 			var userName = '<%=Utils.safeJsStr(request.getAttribute("loggedUser.name")) %>';
 			var demoMode = <%=manager.isDemoMode() %>;

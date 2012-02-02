@@ -134,11 +134,7 @@ public class SecureFilter implements Filter {
 	private boolean isServerStateValid() {
 		File applicationFolder = FileFinder.getApplicationFolder(this.context, false);
 
-		if (applicationFolder == null || !Utils.recursiveIsWritable(applicationFolder)) {
-			return false;
-		}
-
-		return true;
+		return applicationFolder != null && Utils.recursiveIsWritable(applicationFolder);
 	}
 
 	private void sendJSONTimeoutError(HttpServletResponse response) throws IOException {

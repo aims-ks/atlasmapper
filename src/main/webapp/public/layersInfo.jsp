@@ -38,7 +38,7 @@
 	String layerIdsStr = request.getParameter("layerIds");
 	String clientId = request.getParameter("client");
 
-	ConfigManager configManager = ConfigHelper.getConfigManager(getServletContext());
+	ConfigManager configManager = ConfigHelper.getConfigManager(this.getServletConfig().getServletContext());
 
 	int indent = (request.getParameter("indent") != null ? Integer.parseInt(request.getParameter("indent")) : 0);
 	JSONObject jsonObj = new JSONObject();
@@ -47,7 +47,7 @@
 	//     true: Get the config from the live server (slow)
 	//     false (default): Get the config from generated config files (fast)
 	// "live" is true only when it's value is the String "true", ignoring case.
-	boolean live = (request.getParameter("live") == null ? false : Boolean.parseBoolean(request.getParameter("live")));
+	boolean live = (request.getParameter("live") != null && Boolean.parseBoolean(request.getParameter("live")));
 
 	if (Utils.isBlank(clientId)) {
 		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -108,11 +108,11 @@
 		}
 	}
 
-	String outout = "";
+	String output = "";
 	if (indent > 0) {
-		outout = jsonObj.toString(indent);
+        output = jsonObj.toString(indent);
 	} else {
-		outout = jsonObj.toString();
+        output = jsonObj.toString();
 	}
 %>
-<%=outout %>
+<%=output %>

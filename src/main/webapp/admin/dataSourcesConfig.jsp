@@ -37,7 +37,7 @@
 <%
 	Logger LOGGER = Logger.getLogger("dataSourcesConfig.jsp");
 
-	ConfigManager configManager = ConfigHelper.getConfigManager(this.getServletContext());
+	ConfigManager configManager = ConfigHelper.getConfigManager(this.getServletConfig().getServletContext());
 
 	String actionStr = request.getParameter("action");
 	String dataSourceId = request.getParameter("dataSourceId");
@@ -75,7 +75,7 @@
 					// Get data from the form, create the config entry, save it, display the result
 					try {
 						List<DataSourceConfig> dataSourceConfigs = configManager.createDataSourceConfig(request);
-						JSONArray dataSourceJSonArr = new JSONArray();;
+						JSONArray dataSourceJSonArr = new JSONArray();
 						if (dataSourceConfigs != null) {
 							for (DataSourceConfig dataSourceConfig : dataSourceConfigs) {
 								JSONObject dataSourceJSon = dataSourceConfig.toJSonObject();

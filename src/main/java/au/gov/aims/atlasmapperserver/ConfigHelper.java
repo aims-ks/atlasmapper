@@ -52,7 +52,7 @@ public class ConfigHelper {
 	 * @throws JSONException
 	 * @throws IOException
 	 */
-	public static void load(ServletContext context) throws JSONException {
+	public static void load(ServletContext context) {
 		if (configManager == null) {
 			configManager = new ConfigManager(
 					findServerConfigFile(context),
@@ -86,7 +86,7 @@ public class ConfigHelper {
 	}
 
 	// Use in test
-	public static void saveServerConfig(Writer serverConfigWriter, Reader serverConfigReader) throws JSONException, IOException {
+	public static void saveServerConfig(Writer serverConfigWriter) throws JSONException, IOException {
 		if (serverConfigWriter == null) {
 			throw new IllegalArgumentException("The server configuration writer is null.");
 		}
@@ -95,7 +95,7 @@ public class ConfigHelper {
 		}
 		configManager.saveServerConfig(serverConfigWriter);
 	}
-	public static void saveUsersConfig(Writer usersConfigWriter, Reader usersConfigReader) throws JSONException, IOException {
+	public static void saveUsersConfig(Writer usersConfigWriter) throws JSONException, IOException {
 		if (usersConfigWriter == null) {
 			throw new IllegalArgumentException("The users configuration writer is null.");
 		}

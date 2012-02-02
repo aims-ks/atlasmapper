@@ -116,7 +116,7 @@ Atlas.Info = Ext.extend(Ext.Component, {
 			//this.setTabsSrc(json['infoHtmlUrls']);
 			this.setTabsContent(json);
 			// Show layer options (nodes are not layers)
-			if (node.isLeaf()) {
+			if (typeof(node.layer) != 'undefined' && node.layer != null) {
 				this.setOptions(node.layer);
 			} else {
 				this.setOptions();

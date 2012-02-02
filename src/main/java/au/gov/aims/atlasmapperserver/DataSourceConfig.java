@@ -197,7 +197,7 @@ public class DataSourceConfig extends AbstractConfig implements Comparable<DataS
 		this.legendUrl = legendUrl;
 	}
 
-	public String getLegendParameters() throws JSONException {
+	public String getLegendParameters() {
 		return this.legendParameters;
 	}
 

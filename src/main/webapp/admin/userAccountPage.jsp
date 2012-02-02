@@ -46,7 +46,7 @@
 		<link rel="stylesheet" type="text/css" href="../resources/style.css" />
 
 		<script type="text/javascript">
-			var demoMode = <%=ConfigHelper.getConfigManager(this.getServletContext()).isDemoMode() %>;
+			var demoMode = <%=ConfigHelper.getConfigManager(this.getServletConfig().getServletContext()).isDemoMode() %>;
 			var userName = '<%=Utils.safeJsStr(request.getAttribute("loggedUser.name")) %>';
 			var userLogin = '<%=Utils.safeJsStr(request.getAttribute("loggedUser.login")) %>';
 		</script>

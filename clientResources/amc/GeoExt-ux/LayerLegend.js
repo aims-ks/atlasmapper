@@ -33,4 +33,4 @@ GeoExt.LayerLegend.prototype.update = function() {
 			return false;
 		}
 	});
-}
+};

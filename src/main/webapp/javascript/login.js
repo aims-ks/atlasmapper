@@ -56,8 +56,7 @@ Ext.onReady(function() {
 						bodyPadding: 15
 					}).show();
 
-					var redirect = '../admin';
-					window.location = redirect;
+					window.location = '../admin';
 				},
 
 				// Failure function, see comment above re: success and failure.
@@ -77,13 +76,13 @@ Ext.onReady(function() {
 				}
 			});
 		}
-	}
+	};
 
 	var submitEnterKey = function(field, e) {
 		if (e.getKey() == e.ENTER) {
 			submit();
 		}
-	}
+	};
 
 	// Create a variable to hold our EXT Form Panel.
 	// Assign various config options as seen.

@@ -67,7 +67,7 @@ Ext.define('Frameset', {
 
 		this.contentPanel = Ext.create('Ext.panel.Panel', contentPanelConfig);
 
-		var logoutHTML = '<p style="float: right">'
+		var logoutHTML = '<p style="float: right">';
 		if (userName) {
 			logoutHTML += 'Logged as <a href="../admin/userAccountPage.jsp">' + userName + '</a>. ';
 		}

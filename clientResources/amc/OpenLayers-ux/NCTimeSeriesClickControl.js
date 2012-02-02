@@ -59,6 +59,7 @@ OpenLayers.Control.ux.NCTimeSeriesClickControl = OpenLayers.Class(OpenLayers.Con
 	},
 
 	trigger: function(e) {
+		var that = this;
 		var lonlat = this.map.getLonLatFromViewPortPx(e.xy);
 		var url=this.layer.getFullRequestString(
 			{
@@ -96,6 +97,9 @@ OpenLayers.Control.ux.NCTimeSeriesClickControl = OpenLayers.Class(OpenLayers.Con
 				background: "#FFFFFF url('resources/images/loading.gif') no-repeat center center"
 			},
 			html: '<img src="' + url + '" />'
-		}).show();
+		}).show(null, function(){
+			// Center the window in the map; useful for multimaps.
+			this.alignTo(that.map.div, 'c-c');
+		});
 	}
 });

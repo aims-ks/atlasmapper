@@ -207,7 +207,7 @@ Atlas.LegendPanel = Ext.extend(GeoExt.LegendPanel, {
 					hide: function(comp){ that.showHidePanel(); },
 					show: function(comp){ that.showHidePanel(); }
 				}
-			}
+			};
 			// Add Atlas.LegendPanel.defaults to the GeoExt.ux.LegendGroup.defaults
 			// (GeoExt.ux.LegendGroup.defaults params are the same as GeoExt.LegendPanel.defaults)
 			Ext.applyIf(params.defaults, this.defaults);

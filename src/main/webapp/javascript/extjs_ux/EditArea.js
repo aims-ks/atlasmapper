@@ -146,7 +146,7 @@ Ext.define('Ext.ux.form.field.EditArea', {
 		me.isLoaded = false;
 
 		// This variable is an attribute of the class, but it's initialised later.
-		var typeCls = Ext.baseCSSPrefix + 'form-' + (me.inputType === 'password' ? 'text' : me.inputType)
+		var typeCls = Ext.baseCSSPrefix + 'form-' + (me.inputType === 'password' ? 'text' : me.inputType);
 		Ext.applyIf(me.renderSelectors, {
 			valueEl: '.' + typeCls
 		});
@@ -174,7 +174,7 @@ Ext.define('Ext.ux.form.field.EditArea', {
 			// and also set the value that will be returned by the form.
 			me.valueEl.dom.value = me.getValue();
 			me.validateValue(me.getValue());
-		}
+		};
 
 		parent['loadCallback_'+fctId] = function() {
 			// NOTE: The event is called slightly before
@@ -182,7 +182,7 @@ Ext.define('Ext.ux.form.field.EditArea', {
 			window.setTimeout(function() {
 				me.isLoaded = true;
 			}, 1);
-		}
+		};
 
 		// See: http://www.cdolivet.com/editarea/editarea/docs/configuration.html
 		var editAreaConfig = {
@@ -338,7 +338,7 @@ Ext.define('Ext.ux.form.field.EditArea', {
 						me.isLoaded = true;
 						me.setLoading(me.displayLoading);
 					}, 1);
-				}
+				};
 
 				// Defer the execution of setLoading when the editor is loaded.
 				// This function override the actual callback (EditArea

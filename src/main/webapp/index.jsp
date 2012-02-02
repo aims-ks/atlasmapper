@@ -38,7 +38,7 @@
 		<%
 		String urlString = "public/admin.jsp";
 
-		ServletContext context = getServletContext();
+		ServletContext context = this.getServletConfig().getServletContext();
 		ConfigManager configManager = ConfigHelper.getConfigManager(context);
 		ClientConfig defaultClient = configManager.getDefaultClientConfig();
 		if (defaultClient != null) {

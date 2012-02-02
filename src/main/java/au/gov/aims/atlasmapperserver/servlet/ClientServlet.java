@@ -29,7 +29,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
-import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -45,22 +44,24 @@ public class ClientServlet extends HttpServlet {
 	private static final Logger LOGGER = Logger.getLogger(ClientServlet.class.getName());
 
 	// Don't define a constructor! Initialise the Servlet here.
+	/*
 	@Override
 	public void init(ServletConfig sc) throws ServletException {
 		super.init(sc);
 	}
+	*/
 
 	@Override
-	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		this.performTask(request, response);
 	}
 
 	@Override
-	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		this.performTask(request, response);
 	}
 
-	private void performTask(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+	private void performTask(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		// http://localhost:12080/atlasmapperserver/www/images/test.jpg?param=value
 		// RequestURI:  [/atlasmapperserver/www/images/test.jpg]
 		// ContextPath: [/atlasmapperserver]
@@ -80,7 +81,7 @@ public class ClientServlet extends HttpServlet {
 			// No file, nothing to view
 			if (file == null) {
 				response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-				ServletUtils.sendResponse(request, response, "No file to view");
+				ServletUtils.sendResponse(response, "No file to view");
 				return;
 			}
 
@@ -89,7 +90,7 @@ public class ClientServlet extends HttpServlet {
 			response.setContentType(contentType);
 			response.setStatus(HttpServletResponse.SC_OK);
 
-			ServletUtils.sendResponse(request, response, file);
+			ServletUtils.sendResponse(response, file);
 		} catch (FileNotFoundException e) {
 			response.setStatus(HttpServletResponse.SC_NOT_FOUND);
 			if (file != null) {
@@ -97,7 +98,7 @@ public class ClientServlet extends HttpServlet {
 			} else {
 				LOGGER.log(Level.WARNING, "File not found - file path unknown?");
 			}
-			ServletUtils.sendResponse(request, response, "File not found");
+			ServletUtils.sendResponse(response, "File not found");
 		} catch (IOException e) {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			if (file != null) {
@@ -105,7 +106,7 @@ public class ClientServlet extends HttpServlet {
 			} else {
 				LOGGER.log(Level.SEVERE, "Problem sending file: ", e);
 			}
-			ServletUtils.sendResponse(request, response, "Problem sending file: " + e.getMessage());
+			ServletUtils.sendResponse(response, "Problem sending file: " + e.getMessage());
 		}
 	}
 }

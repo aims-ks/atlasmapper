@@ -164,7 +164,7 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	public Integer getId() {
-		return id;
+		return this.id;
 	}
 
 	public void setId(Integer id) {
@@ -172,7 +172,7 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	public Boolean isDefault() {
-		return _default;
+		return this._default;
 	}
 
 	public void setDefault(Boolean _default) {
@@ -180,7 +180,7 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	public boolean isBaseLayersInTab() {
-		return baseLayersInTab;
+		return this.baseLayersInTab;
 	}
 
 	public void setBaseLayersInTab(boolean baseLayersInTab) {
@@ -205,7 +205,7 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	public String getClientName() {
-		return clientName;
+		return this.clientName;
 	}
 
 	public void setClientName(String clientName) {
@@ -213,7 +213,7 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	public JSONArray getDataSources() {
-		return dataSources;
+		return this.dataSources;
 	}
 
 	public void setDataSources(JSONArray dataSources) {
@@ -221,7 +221,7 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	public boolean isEmbeddedClientEnable() {
-		return embeddedClientEnable;
+		return this.embeddedClientEnable;
 	}
 
 	public void setEmbeddedClientEnable(boolean embeddedClientEnable) {
@@ -229,7 +229,7 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	public JSONArray getEmbeddedClientModules() {
-		return embeddedClientModules;
+		return this.embeddedClientModules;
 	}
 
 	public void setEmbeddedClientModules(JSONArray embeddedClientModules) {
@@ -237,7 +237,7 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	public boolean isFullClientEnable() {
-		return fullClientEnable;
+		return this.fullClientEnable;
 	}
 
 	public void setFullClientEnable(boolean fullClientEnable) {
@@ -245,7 +245,7 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	public JSONArray getFullClientModules() {
-		return fullClientModules;
+		return this.fullClientModules;
 	}
 
 	public void setFullClientModules(JSONArray fullClientModules) {
@@ -253,7 +253,7 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	public String getDefaultLayers() {
-		return defaultLayers;
+		return this.defaultLayers;
 	}
 
 	public void setDefaultLayers(String defaultLayers) {
@@ -262,7 +262,7 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	public boolean isEnable() {
-		return enable;
+		return this.enable;
 	}
 
 	public void setEnable(boolean enable) {
@@ -270,14 +270,14 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	public JSONObject getManualOverride() {
-		return manualOverride;
+		return this.manualOverride;
 	}
 
 	public void setManualOverride(JSONObject manualOverride) {
 		this.manualOverride = manualOverride;
 	}
 
-	public String getLegendParameters() throws JSONException {
+	public String getLegendParameters() {
 		return this.legendParameters;
 	}
 
@@ -314,7 +314,7 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	public String getLatitude() {
-		return latitude;
+		return this.latitude;
 	}
 
 	public void setLatitude(String latitude) {
@@ -322,7 +322,7 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	public String getLongitude() {
-		return longitude;
+		return this.longitude;
 	}
 
 	public void setLongitude(String longitude) {
@@ -330,7 +330,7 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	public String getProjection() {
-		return projection;
+		return this.projection;
 	}
 
 	public void setProjection(String projection) {
@@ -338,7 +338,7 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	public boolean isUseLayerService() {
-		return useLayerService;
+		return this.useLayerService;
 	}
 
 	public void setUseLayerService(boolean useLayerService) {
@@ -346,7 +346,7 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	public String getVersion() {
-		return version;
+		return this.version;
 	}
 
 	public void setVersion(String version) {
@@ -354,7 +354,7 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	public String getZoom() {
-		return zoom;
+		return this.zoom;
 	}
 
 	public void setZoom(String zoom) {
@@ -370,7 +370,7 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	public Boolean isOverrideBaseLayers() {
-		return overrideBaseLayers;
+		return this.overrideBaseLayers;
 	}
 
 	public void setOverrideBaseLayers(Boolean overrideBaseLayers) {
@@ -378,7 +378,7 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	public String getBaseLayers() {
-		return baseLayers;
+		return this.baseLayers;
 	}
 
 	public void setBaseLayers(String baseLayers) {
@@ -387,7 +387,7 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	public String getProxyUrl() {
-		return proxyUrl;
+		return this.proxyUrl;
 	}
 
 	public void setProxyUrl(String proxyUrl) {
@@ -443,7 +443,7 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	public String getBaseUrl() {
-		return baseUrl;
+		return this.baseUrl;
 	}
 
 	public void setBaseUrl(String baseUrl) {
@@ -451,7 +451,7 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	public String getLayerInfoServiceUrl() {
-		return layerInfoServiceUrl;
+		return this.layerInfoServiceUrl;
 	}
 
 	public void setLayerInfoServiceUrl(String layerInfoServiceUrl) {

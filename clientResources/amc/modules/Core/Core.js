@@ -34,7 +34,7 @@ Atlas.Core = OpenLayers.Class({
 	// Used to parse client config
 	// NOTE: The version must match the version in the server /src/main/java/au/gov/aims/atlasmapperserver/ConfigManager.java
 	CURRENT_MAIN_CONFIG_VERSION: 1.1,
-	CURRENT_LAYER_CONFIG_VERSION: 1.0,
+	CURRENT_LAYER_CONFIG_VERSION: 1.1,
 
 	// The OpenLayers event object, set in initialize function
 	events: null,
@@ -95,7 +95,7 @@ Atlas.Core = OpenLayers.Class({
 		var jsonResponse = eval("(" + response.responseText + ")");
 		if (jsonResponse && typeof(jsonResponse.success) != 'undefined') {
 			if (jsonResponse.success) {
-				Atlas.conf = jsonResponse.data
+				Atlas.conf = jsonResponse.data;
 				if (typeof(Atlas.conf.version) != 'undefined' && Atlas.conf.version > this.CURRENT_MAIN_CONFIG_VERSION) {
 					var err = "The version of the client configuration file ("+Atlas.conf.version+") is not supported by this client (support up to version: "+this.CURRENT_MAIN_CONFIG_VERSION+").";
 					alert(err);
@@ -181,7 +181,7 @@ Atlas.Core = OpenLayers.Class({
 	createNewMapPanel: function() {
 		// TODO KML_ALLOW_JAVASCRIPT IN CONFIG
 		var newMapPanel = new Atlas.MapPanel({
-			mapId: 'map'+this.mapPanels.length, // *WARNING*: Create "Map0" & "Map1", Delete "Map0", Create new Map will try to call it "Map1" (duplicated ID)
+			mapId: 'map'+this.mapPanels.length, // *WARNING*: Create "Map0" & "Map1", Delete "Map0", Create new Map will try to call it "Map1" (duplicated ID) - Need to use a static counter
 			KML_ALLOW_JAVASCRIPT: true
 		});
 
@@ -193,7 +193,7 @@ Atlas.Core = OpenLayers.Class({
 		var newMapPanel = new Atlas.MapPanel({
 			renderTo: renderTo,
 			embedded: true,
-			mapId: 'map'+this.mapPanels.length, // *WARNING*: Create "Map0" & "Map1", Delete "Map0", Create new Map will try to call it "Map1" (duplicated ID)
+			mapId: 'map'+this.mapPanels.length, // *WARNING*: Create "Map0" & "Map1", Delete "Map0", Create new Map will try to call it "Map1" (duplicated ID) - Need to use a static counter
 			KML_ALLOW_JAVASCRIPT: true
 		});
 
@@ -225,7 +225,12 @@ Atlas.Core = OpenLayers.Class({
 		if (typeof(this.mapPanels[index]) === 'undefined') {
 			return null;
 		}
-		var removedMapPanel = this.mapPanels.splice(index,1);
+
+		var removedMapPanel = this.mapPanels[index];
+		this.mapPanels.splice(index,1);
+		this.markers.splice(index,1);
+		this.markersLayer.splice(index,1);
+
 		// TODO do something with the removedMapPanel; remove from the browser, free memory, etc.
 		this.ol_fireEvent('mapRemoved', {mapPanel: removedMapPanel});
 
@@ -236,6 +241,8 @@ Atlas.Core = OpenLayers.Class({
 
 
 	// Multi-Map events
+
+// TODO Make an array of object to handle mapPanels, markers and markersLayer (they can get out of sync quite easily)
 
 	movestarted: false,
 	moving: false,
@@ -427,7 +434,7 @@ Atlas.Core = OpenLayers.Class({
 					// TODO Error on the page
 					alert('The application has failed to load the layers ['+missingLayerIds.join()+']');
 				}
-			}
+			};
 
 			/**
 				Parameters
@@ -471,7 +478,7 @@ Atlas.Core = OpenLayers.Class({
 
 	loadNewLayersCache: function(newLayers) {
 		// Load all layers, from the main config, in the cache
-		var defaults = newLayers['defaults'] ? newLayers['defaults'] : {};
+		var defaults = {};//newLayers['defaults'] ? newLayers['defaults'] : {};
 
 		// The following will not work for Array across frames (not an issue here)
 		// See: http://perfectionkills.com/instanceof-considered-harmful-or-how-to-write-a-robust-isarray/
@@ -484,7 +491,7 @@ Atlas.Core = OpenLayers.Class({
 			}
 		} else {
 			for(var layerId in newLayers){
-				if(newLayers.hasOwnProperty(layerId) && layerId != 'defaults'){
+				if(newLayers.hasOwnProperty(layerId) /*&& layerId != 'defaults'*/){
 					var layerJSon = newLayers[layerId];
 					this.loadLayerCache(layerJSon, layerId, defaults);
 				}
@@ -563,15 +570,18 @@ Atlas.Core = OpenLayers.Class({
 	 */
 	normalizeLayerJSon: function(layerJSon) {
 		// Normalise "dataSourceId"
-		if (!layerJSon['dataSourceId']) {
+		if (!layerJSon['dataSourceId'] && !layerJSon['dataSourceType']) {
 			layerJSon['dataSourceId'] = 'default'; // TODO get the "first" ID found in Atlas.conf['dataSources']
 		}
 
-		var layerDataSource =
-			Atlas.conf['dataSources'][layerJSon['dataSourceId']];
-		if (!layerDataSource) {
-			layerJSon['dataSourceId'] = 'default'; // TODO get the "first" ID found in Atlas.conf['dataSources']
-			layerDataSource = Atlas.conf['dataSources'][layerJSon['dataSourceId']];
+		var layerDataSource = null;
+		if (layerJSon['dataSourceId']) {
+			layerDataSource =
+				Atlas.conf['dataSources'][layerJSon['dataSourceId']];
+			if (!layerDataSource) {
+				layerJSon['dataSourceId'] = 'default'; // TODO get the "first" ID found in Atlas.conf['dataSources']
+				layerDataSource = Atlas.conf['dataSources'][layerJSon['dataSourceId']];
+			}
 		}
 
 		// Normalise legend fields
@@ -650,11 +660,13 @@ Atlas.Core = OpenLayers.Class({
 		}
 
 		// Apply all server config to the layer, to allow easy override in the layer.
-		for(var dataSourceProp in layerDataSource){
-			if(layerDataSource.hasOwnProperty(dataSourceProp)
-					&& typeof(layerJSon[dataSourceProp]) == 'undefined'){
+		if (layerDataSource) {
+			for(var dataSourceProp in layerDataSource){
+				if(layerDataSource.hasOwnProperty(dataSourceProp)
+						&& typeof(layerJSon[dataSourceProp]) == 'undefined'){
 
-				layerJSon[dataSourceProp] = layerDataSource[dataSourceProp];
+					layerJSon[dataSourceProp] = layerDataSource[dataSourceProp];
+				}
 			}
 		}
 

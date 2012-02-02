@@ -154,7 +154,7 @@ Ext.define('Writer.ClientConfigForm', {
 			valueType: 'string',
 			syntax: 'atlasmapperconfig',
 			resizable: true, resizeHandles: 's'
-		}
+		};
 		// As usual, IE required specific workaround. This time, we simply disable the feature.
 		if (Ext.isIE) {
 			browserSpecificEditAreaConfig = {
@@ -743,7 +743,7 @@ Ext.define('Writer.ClientConfigGrid', {
 			valueType: 'string',
 			syntax: 'atlasmapperconfig',
 			height: '100%'
-		}
+		};
 		// As usual, IE required specific workaround. This time, we simply disable the feature.
 		if (Ext.isIE) {
 			browserSpecificEditAreaConfig = {
@@ -1071,7 +1071,7 @@ Ext.define('Writer.ClientConfigGrid', {
 					}
 				}
 				return bytes;
-			}
+			};
 			return recurse(object);
 		}
 

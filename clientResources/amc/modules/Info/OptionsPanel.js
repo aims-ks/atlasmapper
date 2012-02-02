@@ -70,7 +70,7 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 		this.legendCheckbox = new Ext.form.Checkbox({
 			fieldLabel: 'Show in legend',
 			handler: function(checkbox, checked) {
-				if (that.currentLayer) {
+				if (that.currentLayer && typeof(that.currentLayer.setHideInLegend) === 'function') {
 					that.currentLayer.setHideInLegend(!checked);
 				}
 			},
@@ -434,7 +434,7 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 					}, this);
 				}
 
-				if (layer.json['hasLegend']) {
+				if (layer.json['hasLegend'] && typeof(layer.getHideInLegend) === 'function' && typeof(layer.setHideInLegend) === 'function') {
 					if (this.isRendered(layer)) {
 						this.legendCheckbox.setValue(!layer.getHideInLegend());
 					}

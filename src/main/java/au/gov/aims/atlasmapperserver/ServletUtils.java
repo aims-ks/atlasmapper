@@ -43,7 +43,6 @@ public class ServletUtils {
 	private static final Logger LOGGER = Logger.getLogger(ServletUtils.class.getName());
 
 	public static void sendResponse(
-			HttpServletRequest request,
 			HttpServletResponse response,
 			File file) throws IOException {
 
@@ -54,7 +53,7 @@ public class ServletUtils {
 		InputStream responseStream = null;
 		try {
 			responseStream = new FileInputStream(file);
-			ServletUtils.sendResponse(request, response, responseStream);
+			ServletUtils.sendResponse(response, responseStream);
 		} finally {
 			if (responseStream != null) {
 				try { responseStream.close(); } catch (Exception ex) { LOGGER.log(Level.WARNING, "Cant close the FileInputStream.", ex); }
@@ -63,7 +62,6 @@ public class ServletUtils {
 	}
 
 	public static void sendResponse(
-			HttpServletRequest request,
 			HttpServletResponse response,
 			String responseTxt) throws IOException {
 
@@ -74,7 +72,7 @@ public class ServletUtils {
 		InputStream responseStream = null;
 		try {
 			responseStream = new ByteArrayInputStream(responseTxt.getBytes());
-			ServletUtils.sendResponse(request, response, responseStream);
+			ServletUtils.sendResponse(response, responseStream);
 		} finally {
 			if (responseStream != null) {
 				try { responseStream.close(); } catch (Exception ex) { LOGGER.log(Level.WARNING, "Cant close the ByteArrayInputStream.", ex); }
@@ -83,7 +81,6 @@ public class ServletUtils {
 	}
 
 	public static void sendResponse(
-			HttpServletRequest request,
 			HttpServletResponse response,
 			InputStream responseStream) throws IOException {
 

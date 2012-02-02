@@ -65,8 +65,7 @@ GeoExt.ux.NCWMSLegend = Ext.extend(GeoExt.ux.WMSLegend, {
 		if (styleName) {
 			var lastSlashIdx = styleName.lastIndexOf('/');
 			if (lastSlashIdx > -1) {
-				var palette = styleName.substring(lastSlashIdx+1, styleName.length);
-				urlBaseParams.PALETTE = palette;
+				urlBaseParams.PALETTE = styleName.substring(lastSlashIdx+1, styleName.length);
 			} else {
 				urlBaseParams.PALETTE = styleName;
 			}

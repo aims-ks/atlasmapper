@@ -22,3 +22,8 @@
 Ext.namespace("Atlas");
 
 Atlas.MapPanel = Ext.extend(GeoExt.MapPanel, Atlas.AbstractMapPanel);
+
+Atlas.MapPanel.prototype.destroy = function() {
+	// TODO understand why this line break the application when a map is removed
+	//Atlas.MapPanel.superclass.destroy.call(this, arguments);
+};
