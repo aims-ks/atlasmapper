@@ -28,6 +28,8 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 	autoWidth: true,
 	labelWidth: 100,
 
+	locateButton: null,
+
 	headerLabel: null,
 	optionsFieldSet: null,
 	// Extra options to set user defined URL parameters.
@@ -48,7 +50,7 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 			this.html = '';
 		}
 
-		var locateButton = new Ext.Button({
+		this.locateButton = new Ext.Button({
 			text: 'Locate',
 			handler: function() {
 				that.mapPanel.ol_fireEvent('locateLayer', {layer: (that.currentNode ? that.currentNode.layer : null)});
@@ -60,7 +62,7 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 			html: this.defaultContent
 		});
 
-		// TODO layerNameLabel
+		// TODO change variable name to layerNameLabel
 		this.layernameLabel = new Ext.form.Label({
 			cls: 'layerNameLabel',
 			html: '',
@@ -108,7 +110,7 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 				this.opacitySlider
 			],
 			buttons: [
-				locateButton
+				this.locateButton
 			]
 		});
 
@@ -283,7 +285,15 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 
 		this.currentNode = node;
 
+		this.mapPanel
+
 		if (layer) {
+			if (this.mapPanel.layerCanBeLocated(layer)) {
+				this.locateButton.enable();
+			} else {
+				this.locateButton.disable();
+			}
+
 			if (layer.json) {
 				this.layernameLabel.setText(layer.json['title'], false);
 
@@ -362,7 +372,7 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 
 					var url = serviceUrl + '?' + Ext.urlEncode({
 						item: 'layerDetails',
-						layerName: layer.json['layerId'],
+						layerName: layer.json['layerName'],
 						request: 'GetMetadata'
 					});
 
@@ -444,6 +454,8 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 				}
 			}
 			opacityEnabled = true;
+		} else {
+			this.locateButton.disable();
 		}
 
 		this.showHideOptions(node, hasLegendEnabled, opacityEnabled);
@@ -478,7 +490,7 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 				alert('Error while loading ncWMS options: ' + resultMessage);
 				return;
 			}
-			
+
 			if (layerDetails == null) {
 				return;
 			}
@@ -555,9 +567,9 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 
 			// Set the scale value if this is present in the metadata
 			if (typeof layerDetails.scaleRange != 'undefined' &&
-					layerDetails.scaleRange != null &&
-					layerDetails.scaleRange.length > 1 &&
-					layerDetails.scaleRange[0] != layerDetails.scaleRange[1]) {
+				layerDetails.scaleRange != null &&
+				layerDetails.scaleRange.length > 1 &&
+				layerDetails.scaleRange[0] != layerDetails.scaleRange[1]) {
 				var scaleParam = 'COLORSCALERANGE';
 
 				var scaleMinVal = null;
@@ -644,7 +656,11 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 
 			// This can only be done once the field set and the slider are visible.
 			if (this.isRendered(layer)) {
-				this.opacitySlider.setNode(node);
+				if (typeof(this.opacitySlider.setNode) === 'function') {
+					this.opacitySlider.setNode(node);
+				} else {
+					this.opacitySlider.setLayer(layer);
+				}
 			}
 
 			if (!Ext.isIE6) {

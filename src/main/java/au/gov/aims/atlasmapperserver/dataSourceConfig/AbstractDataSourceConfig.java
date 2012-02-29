@@ -19,9 +19,15 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package au.gov.aims.atlasmapperserver;
+package au.gov.aims.atlasmapperserver.dataSourceConfig;
 
+import au.gov.aims.atlasmapperserver.AbstractConfig;
+import au.gov.aims.atlasmapperserver.ClientConfig;
+import au.gov.aims.atlasmapperserver.ConfigManager;
+import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
+import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -30,16 +36,19 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
-import org.geotools.ows.ServiceException;
+
+import au.gov.aims.atlasmapperserver.layerConfig.LayerConfigHelper;
+import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.json.JSONSortedObject;
 
 /**
  *
  * @author glafond
  */
-public class DataSourceConfig extends AbstractConfig implements Comparable<DataSourceConfig>, Cloneable {
-	private static final Logger LOGGER = Logger.getLogger(DataSourceConfig.class.getName());
+public abstract class AbstractDataSourceConfig extends AbstractConfig implements AbstractDataSourceConfigInterface, Comparable<AbstractDataSourceConfig>, Cloneable {
+	private static final Logger LOGGER = Logger.getLogger(AbstractDataSourceConfig.class.getName());
 
 	// Grids records must have an unmutable ID
 	@ConfigField
@@ -55,23 +64,7 @@ public class DataSourceConfig extends AbstractConfig implements Comparable<DataS
 	private String dataSourceType;
 
 	@ConfigField
-	private String wmsServiceUrl;
-
-	@ConfigField
-	private String extraWmsServiceUrls;
-	// Cache - avoid parsing baseLayers string every times.
-	private Set<String> extraWmsServiceUrlsSet = null;
-
-	@ConfigField
-	private String kmlUrls;
-	// Cache - avoid parsing baseLayers string every times.
-	private Set<String> kmlUrlsSet = null;
-
-	@ConfigField
-	private String webCacheUrl;
-
-	@ConfigField
-	private String webCacheParameters;
+	private String serviceUrl;
 
 	@ConfigField
 	private String featureRequestsUrl;
@@ -81,8 +74,6 @@ public class DataSourceConfig extends AbstractConfig implements Comparable<DataS
 
 	@ConfigField
 	private String legendParameters;
-	// Cache - avoid parsing legendParameters string every times.
-	private JSONObject legendParametersJson;
 
 	@ConfigField
 	private String blacklistedLayers;
@@ -96,24 +87,16 @@ public class DataSourceConfig extends AbstractConfig implements Comparable<DataS
 	private Set<String> baseLayersSet = null;
 
 	@ConfigField
-	private JSONObject globalManualOverride;
+	private JSONSortedObject globalManualOverride;
 
 	@ConfigField
 	private Boolean showInLegend;
 
 	@ConfigField
-	private String wmsRequestMimeType;
-
-	@ConfigField
-	private Boolean wmsTransectable;
-
-	@ConfigField
-	private String wmsVersion;
-
-	@ConfigField
 	private String comment;
 
-	public DataSourceConfig(ConfigManager configManager) {
+
+	protected AbstractDataSourceConfig(ConfigManager configManager) {
 		super(configManager);
 	}
 
@@ -156,11 +139,11 @@ public class DataSourceConfig extends AbstractConfig implements Comparable<DataS
 		this.baseLayersSet = null;
 	}
 
-	public JSONObject getGlobalManualOverride() {
+	public JSONSortedObject getGlobalManualOverride() {
 		return globalManualOverride;
 	}
 
-	public void setGlobalManualOverride(JSONObject globalManualOverride) {
+	public void setGlobalManualOverride(JSONSortedObject globalManualOverride) {
 		this.globalManualOverride = globalManualOverride;
 	}
 
@@ -180,13 +163,12 @@ public class DataSourceConfig extends AbstractConfig implements Comparable<DataS
 		this.featureRequestsUrl = featureRequestsUrl;
 	}
 
-	public String getWmsServiceUrl() {
-		return wmsServiceUrl;
+	public String getServiceUrl() {
+		return serviceUrl;
 	}
 
-	public void setWmsServiceUrl(String wmsServiceUrl) {
-		this.wmsServiceUrl = wmsServiceUrl;
-		this.extraWmsServiceUrlsSet = null;
+	public void setServiceUrl(String serviceUrl) {
+		this.serviceUrl = serviceUrl;
 	}
 
 	public String getLegendUrl() {
@@ -203,38 +185,10 @@ public class DataSourceConfig extends AbstractConfig implements Comparable<DataS
 
 	public void setLegendParameters(String legendParameters) {
 		this.legendParameters = legendParameters;
-		this.legendParametersJson = null;
 	}
 
-	public JSONObject getLegendParametersJson() throws JSONException {
-		if (this.legendParameters == null) {
-			return null;
-		}
-
-		if (this.legendParametersJson == null) {
-			String trimedLegendParameters = this.legendParameters.trim();
-			if (trimedLegendParameters.isEmpty()) {
-				return null;
-			}
-
-			this.legendParametersJson = new JSONObject();
-			for (String legendParameter : toSet(trimedLegendParameters)) {
-				if (Utils.isNotBlank(legendParameter)) {
-					String[] attribute = legendParameter.split(SPLIT_ATTRIBUTES_PATTERN);
-					if (attribute != null && attribute.length >= 2) {
-						this.legendParametersJson.put(
-								attribute[0],  // Key
-								attribute[1]); // Value
-					}
-				}
-			}
-		}
-
-		return this.legendParametersJson;
-	}
-			
 	public String getDataSourceId() {
-		// Error protection against erronous manual config file edition
+		// Error protection against erroneous manual config file edition
 		if (this.dataSourceId == null && this.id != null) {
 			return this.id.toString();
 		}
@@ -253,96 +207,12 @@ public class DataSourceConfig extends AbstractConfig implements Comparable<DataS
 		this.dataSourceName = dataSourceName;
 	}
 
-	public String getExtraWmsServiceUrls() {
-		return extraWmsServiceUrls;
-	}
-	public Set<String> getExtraWmsServiceUrlsSet() {
-		if (this.extraWmsServiceUrlsSet == null && Utils.isNotBlank(this.extraWmsServiceUrls)) {
-			this.extraWmsServiceUrlsSet = toSet(this.extraWmsServiceUrls);
-		}
-
-		return this.extraWmsServiceUrlsSet;
-	}
-
-	public void setExtraWmsServiceUrls(String extraWmsServiceUrls) {
-		this.extraWmsServiceUrls = extraWmsServiceUrls;
-	}
-
-	public String getKmlUrls() {
-		return kmlUrls;
-	}
-	public Set<String> getKmlUrlsSet() {
-		if (this.kmlUrlsSet == null && Utils.isNotBlank(this.kmlUrls)) {
-			this.kmlUrlsSet = toSet(this.kmlUrls);
-		}
-
-		return this.kmlUrlsSet;
-	}
-
-	public void setKmlUrls(String kmlUrls) {
-		this.kmlUrls = kmlUrls;
-		this.kmlUrlsSet = null;
-	}
-
 	public Boolean isShowInLegend() {
 		return showInLegend;
 	}
 
 	public void setShowInLegend(Boolean showInLegend) {
 		this.showInLegend = showInLegend;
-	}
-
-	public String getWmsRequestMimeType() {
-		return wmsRequestMimeType;
-	}
-
-	public void setWmsRequestMimeType(String wmsRequestMimeType) {
-		this.wmsRequestMimeType = wmsRequestMimeType;
-	}
-
-	public Boolean isWmsTransectable() {
-		return wmsTransectable;
-	}
-
-	public void setWmsTransectable(Boolean wmsTransectable) {
-		this.wmsTransectable = wmsTransectable;
-	}
-
-	public String getWmsVersion() {
-		return wmsVersion;
-	}
-
-	public void setWmsVersion(String wmsVersion) {
-		this.wmsVersion = wmsVersion;
-	}
-
-	public String[] getWebCacheParametersArray() {
-		if (this.webCacheParameters == null) {
-			return null;
-		}
-
-		String trimedWebCacheParameters = this.webCacheParameters.trim();
-		if (trimedWebCacheParameters.isEmpty()) {
-			return null;
-		}
-
-		return trimedWebCacheParameters.split("\\s*,\\s*");
-	}
-
-	public String getWebCacheParameters() {
-		return this.webCacheParameters;
-	}
-
-	public void setWebCacheParameters(String webCacheParameters) {
-		this.webCacheParameters = webCacheParameters;
-	}
-
-	public String getWebCacheUrl() {
-		return webCacheUrl;
-	}
-
-	public void setWebCacheUrl(String webCacheUrl) {
-		this.webCacheUrl = webCacheUrl;
 	}
 
 	public String getComment() {
@@ -355,13 +225,13 @@ public class DataSourceConfig extends AbstractConfig implements Comparable<DataS
 
 	// Helper
 	public boolean isBaseLayer(String layerId) {
-		String baselayersStr = this.getBaseLayers();
-		if (Utils.isBlank(layerId) || Utils.isBlank(baselayersStr)) {
+		String baseLayersStr = this.getBaseLayers();
+		if (Utils.isBlank(layerId) || Utils.isBlank(baseLayersStr)) {
 			return false;
 		}
 
 		if (this.baseLayersSet == null) {
-			this.baseLayersSet = toSet(baselayersStr);
+			this.baseLayersSet = toSet(baseLayersStr);
 		}
 
 		return this.baseLayersSet.contains(layerId);
@@ -433,66 +303,33 @@ public class DataSourceConfig extends AbstractConfig implements Comparable<DataS
 		return Pattern.compile(sb.toString());
 	}
 
-	// Helper
-	public Map<String, LayerConfig> getLayerConfigs(ClientConfig clientConfig) throws IOException, ServiceException, JSONException {
-		Map<String, LayerConfig> overridenLayerConfigs = new HashMap<String, LayerConfig>();
+	public abstract AbstractLayerGenerator getLayerGenerator() throws IOException;
 
-		JSONObject globalOverrides = this.globalManualOverride;
+	// Helper
+	public Map<String, AbstractLayerConfig> generateLayerConfigs(ClientConfig clientConfig) throws Exception {
+		Map<String, AbstractLayerConfig> overriddenLayerConfigs = new HashMap<String, AbstractLayerConfig>();
+
+		JSONSortedObject globalOverrides = this.globalManualOverride;
 		JSONObject clientOverrides = clientConfig.getManualOverride();
 
 		// Retrieved raw layers, according to the data source type
-		Map<String, LayerConfig> layersConfig = null;
+		Map<String, AbstractLayerConfig> layerConfigs = null;
 
-		// 'WMS', 'NCWMS', 'ARCGISWMS', 'GOOGLE', 'WMTS', 'KML', 'tiles', 'XYZ'
-		if ("GOOGLE".equals(this.dataSourceType)) {
-			layersConfig = GoogleLayers.getGoogleLayerConfigs(clientConfig, this);
+		AbstractLayerGenerator layerGenerator = this.getLayerGenerator();
 
-		} else if ("KML".equals(this.dataSourceType)) {
-			Set<String> _kmlUrlsSet = this.getKmlUrlsSet();
-			if (_kmlUrlsSet != null && !_kmlUrlsSet.isEmpty()) {
-				for (String kmlUrl : _kmlUrlsSet) {
-					if (Utils.isNotBlank(kmlUrl)) {
-						int layerIdStart = kmlUrl.lastIndexOf('/')+1;
-						int layerIdEnd = kmlUrl.lastIndexOf('.');
-						layerIdEnd = (layerIdEnd > 0 ? layerIdEnd : kmlUrl.length());
-						String layerId = kmlUrl.substring(layerIdStart, layerIdEnd);
-
-						LayerConfig layer = new LayerConfig(this.getConfigManager());
-						layer.setDataSourceId(this.dataSourceId);
-						layer.setLayerId(layerId);
-						layer.setTitle(layerId);
-						layer.setKmlUrl(kmlUrl);
-
-						if (layersConfig == null) {
-							layersConfig = new HashMap<String, LayerConfig>();
-						}
-						layersConfig.put(layerId, layer);
-					}
-				}
-			}
-
-		} else if (Utils.isNotBlank(this.wmsServiceUrl)) {
-			// Assume the service is a WMS compliant service
-			WMSCapabilitiesWrapper wmsCap =
-					WMSCapabilitiesWrapper.getInstance(this.wmsServiceUrl);
-
-			if (wmsCap != null) {
-				layersConfig = wmsCap.getLayerConfigs(clientConfig, this);
-			}
-
-		} else {
-			// Problem...
+		if (layerGenerator != null) {
+			layerConfigs = layerGenerator.generateLayerConfigs(clientConfig, this);
 		}
 
 		// Remove blacklisted layers and apply manual overrides, if needed
-		if (layersConfig != null) {
-			for (LayerConfig layerConfig : layersConfig.values()) {
+		if (layerConfigs != null) {
+			for (AbstractLayerConfig layerConfig : layerConfigs.values()) {
 				if (layerConfig != null && !this.isBlacklisted(layerConfig.getLayerId())) {
-					LayerConfig overriddenLayerConfig =
+					AbstractLayerConfig overriddenLayerConfig =
 							layerConfig.applyOverrides(
 									globalOverrides,
 									clientOverrides);
-					overridenLayerConfigs.put(
+					overriddenLayerConfigs.put(
 							overriddenLayerConfig.getLayerId(),
 							overriddenLayerConfig);
 				}
@@ -504,17 +341,18 @@ public class DataSourceConfig extends AbstractConfig implements Comparable<DataS
 			Iterator<String> layerIds = globalOverrides.keys();
 			while (layerIds.hasNext()) {
 				String layerId = layerIds.next();
-				if (!overridenLayerConfigs.containsKey(layerId) && !this.isBlacklisted(layerId)) {
+				if (!overriddenLayerConfigs.containsKey(layerId) && !this.isBlacklisted(layerId)) {
 					JSONObject jsonGlobalOverride = globalOverrides.optJSONObject(layerId);
 					if (jsonGlobalOverride != null && jsonGlobalOverride.length() > 0) {
-						LayerConfig manualLayer = new LayerConfig(this.getConfigManager(), jsonGlobalOverride);
+						AbstractLayerConfig manualLayer = LayerConfigHelper.createLayerConfig(jsonGlobalOverride, this.getConfigManager());
+
 						manualLayer.setLayerId(layerId);
 
 						// Apply client override if any
 						if (clientOverrides != null && clientOverrides.has(layerId)) {
 							JSONObject jsonClientOverride = clientOverrides.optJSONObject(layerId);
 							if (jsonClientOverride != null && jsonClientOverride.length() > 0) {
-								LayerConfig clientOverride = new LayerConfig(this.getConfigManager(), jsonClientOverride);
+								AbstractLayerConfig clientOverride = LayerConfigHelper.createLayerConfig(jsonClientOverride, this.getConfigManager());
 								manualLayer.applyOverrides(clientOverride);
 							}
 						}
@@ -524,7 +362,7 @@ public class DataSourceConfig extends AbstractConfig implements Comparable<DataS
 							manualLayer.setDataSourceId(this.dataSourceId);
 						}
 
-						overridenLayerConfigs.put(
+						overriddenLayerConfigs.put(
 								manualLayer.getLayerId(),
 								manualLayer);
 					}
@@ -532,12 +370,12 @@ public class DataSourceConfig extends AbstractConfig implements Comparable<DataS
 			}
 		}
 
-		return overridenLayerConfigs;
+		return overriddenLayerConfigs;
 	}
 
 	@Override
 	// Order data sources by data source name
-	public int compareTo(DataSourceConfig o) {
+	public int compareTo(AbstractDataSourceConfig o) {
 		// Compare memory address and both null value
 		if (this == o || this.getDataSourceName() == o.getDataSourceName()) {
 			return 0;
@@ -553,7 +391,7 @@ public class DataSourceConfig extends AbstractConfig implements Comparable<DataS
 	}
 
 	// Nothing to do here
-	public DataSourceConfig applyOverrides() {
+	public AbstractDataSourceConfig applyOverrides() {
 		return this;
 	}
 
@@ -568,23 +406,17 @@ public class DataSourceConfig extends AbstractConfig implements Comparable<DataS
 
 	@Override
 	public String toString() {
-		return "DataSourceConfig {\n" +
+		return "AbstractDataSourceConfig {\n" +
 				(id==null ? "" :                           "	id=" + id + "\n") +
 				(Utils.isBlank(dataSourceId) ? "" :        "	dataSourceId=" + dataSourceId + "\n") +
 				(Utils.isBlank(dataSourceName) ? "" :      "	dataSourceName=" + dataSourceName + "\n") +
 				(Utils.isBlank(dataSourceType) ? "" :      "	dataSourceType=" + dataSourceType + "\n") +
-				(Utils.isBlank(extraWmsServiceUrls) ? "" : "	serverUrls=" + extraWmsServiceUrls + "\n") +
-				(Utils.isBlank(kmlUrls) ? "" :             "	kmlUrls=" + kmlUrls + "\n") +
-				(Utils.isBlank(wmsServiceUrl) ? "" :       "	wmsServiceUrl=" + wmsServiceUrl + "\n") +
-				(Utils.isBlank(webCacheUrl) ? "" :         "	webCacheUrl=" + webCacheUrl + "\n") +
-				(Utils.isBlank(webCacheParameters) ? "" :  "	webCacheParameters=" + webCacheParameters + "\n") +
+				(Utils.isBlank(serviceUrl) ? "" :          "	serviceUrl=" + serviceUrl + "\n") +
 				(Utils.isBlank(featureRequestsUrl) ? "" :  "	featureRequestsUrl=" + featureRequestsUrl + "\n") +
 				(Utils.isBlank(legendUrl) ? "" :           "	legendUrl=" + legendUrl + "\n") +
 				(legendParameters==null ? "" :             "	legendParameters=" + legendParameters + "\n") +
 				(Utils.isBlank(blacklistedLayers) ? "" :   "	blacklistedLayers=" + blacklistedLayers + "\n") +
 				(showInLegend==null ? "" :                 "	showInLegend=" + showInLegend + "\n") +
-				(Utils.isBlank(wmsRequestMimeType) ? "" :  "	wmsRequestMimeType=" + wmsRequestMimeType + "\n") +
-				(wmsTransectable==null ? "" :              "	wmsTransectable=" + wmsTransectable + "\n") +
 				(Utils.isBlank(comment) ? "" :             "	comment=" + comment + "\n") +
 			'}';
 	}

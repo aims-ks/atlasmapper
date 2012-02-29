@@ -99,6 +99,7 @@ Ext.onReady(function() {
 			{
 				fieldLabel: 'Username',
 				name: 'loginUsername',
+				itemId: 'loginUsername',
 				allowBlank: false,
 				// submit using Enter key
 				listeners: { specialkey: submitEnterKey }
@@ -164,6 +165,7 @@ Ext.onReady(function() {
 		resizable: false,
 		plain: true,
 		border: false,
+		defaultFocus: 'loginUsername',
 		items: [login]
 	};
 

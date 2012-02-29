@@ -55,7 +55,7 @@ Atlas.Core = OpenLayers.Class({
 
 	initialize: function(configUrl, layersFileUrl, version, live) {
 		this.events = new OpenLayers.Events(this, null,
-				this.EVENT_TYPES);
+			this.EVENT_TYPES);
 
 		this.mapPanels = [];
 
@@ -351,110 +351,164 @@ Atlas.Core = OpenLayers.Class({
 	},
 
 	/**
-	 * Request layers to the server. As soon as a response is receive,
-	 * the layers are put in the cache and the request is sent back
-	 * with the missing layers... until all layers have been received.
-	 * Maximum of 5 attempts.
+	 * Recursive function
+	 * (it is recursive because the Ajax request are asynchronous;
+	 * the recursivity occurred when the Ajax request receive its answer)
+	 *
+	 * Request layers to the server. As soon as a response is received,
+	 * the layers info are put in the cache and an other request is sent
+	 * with the missing layers, if any... until all layers have been
+	 * received. It also request children layers for layer groups, recursively.
+	 *
 	 * Parameter:
 	 * layerIds: Array of layer ID or Alias ID
 	 * callback: Function to call with the Array of JSon layers
-	 * requestFromServer: boolean (default true); true to send an Ajax request with layers that are not in the cache
+	 * attemptsLeft: Private parameter (ignored for public call); number of similar requests allow to request
+	 *     the same layers (the method won't run into an infinite loop, il will
+	 *     give up after 5 failing attempts).
 	 */
-	requestLayersJSon: function(layerIds, callback, requestFromServer) {
-		this._requestLayersJSon(layerIds, callback, requestFromServer, 5);
-	},
-	_requestLayersJSon: function(layerIds, callback, requestFromServer, attemptsLeft) {
+
+	// Private
+	requestLayersJSon: function(layerIds, callback, attemptsLeft) {
+		var that = this;
+
+		if (typeof(attemptsLeft) !== 'number') {
+			attemptsLeft = 5;
+		}
+
 		if (layerIds == null || layerIds.length <= 0) {
 			return;
 		}
-		if (typeof(requestFromServer) == 'undefined') {
-			requestFromServer = true;
-		}
 
+		// Layers received
 		var cachedLayersJSon = [];
+		// Layers requested but missing from the response
 		var missingLayerIds = [];
+		// Layers required by an other layer (children)
+		var missingDependencies = [];
 
+		// Recursive function that add missing children to the missingDependencies collection.
+		// (it is recursive because the layer structure is a tree)
+		// NOTE: It only add the children that are not present in the cache.
+		// NOTE: It can not collect the children of layers that are not present in the cache,
+		//     so it usually have to be called more than once to be sure all dependencies
+		//     has been loaded (requestLayersJSon is recursive).
+		var addMissingDependencies = function(layerJSon) {
+			if (layerJSon) {
+				var layerIds = layerJSon['layers'];
+				if (layerIds != null && layerIds.length > 0) {
+					for (var i=0; i<layerIds.length; i++) {
+						var dependencyId = layerIds[i];
+						var dependencyLayerJSon = that.layersJSonCache[dependencyId];
+						if (dependencyLayerJSon) {
+							addMissingDependencies(dependencyLayerJSon);
+						} else {
+							missingDependencies.push(dependencyId);
+						}
+					}
+				}
+			}
+		};
+
+		// Parse the layersIds parameter to fill the collections used to
+		// request the missing layers (layers not present in the cache).
 		for (var i=0,len=layerIds.length; i<len; i++) {
 			var layerId = layerIds[i];
-			if (this.layersJSonCache[layerId]) {
-				cachedLayersJSon.push(this.layersJSonCache[layerId]);
+			var layerJSon = this.layersJSonCache[layerId];
+			if (layerJSon) {
+				cachedLayersJSon.push(layerJSon);
+				addMissingDependencies(layerJSon);
 			} else {
 				missingLayerIds.push(layerId);
 			}
 		}
 
-		// Call the callback with found layers
-		if (cachedLayersJSon.length > 0) {
-			callback(cachedLayersJSon);
-		}
+		// Prepare and send the Ajax request to the server to get the missing layers (layers that are not in the cache)
+		if ((missingDependencies.length > 0 || missingLayerIds.length > 0) && attemptsLeft > 0) {
+			var url = null;
+			var params = {};
+			// When the client do not has access to the layer Info Service (access to the AtlasMapper server),
+			// it load the whole catalog at once.
+			if (this.layerInfoServiceUrl) {
+				url = this.layerInfoServiceUrl;
+				params = {
+					client: Atlas.conf['clientId'],
+					live: this.live,
+					layerIds: missingLayerIds.concat(missingDependencies),
+					ver: this.version
+				};
+			} else if (this.layersFileUrl) {
+				// Load the whole layer catalog
+				url = this.layersFileUrl;
+				params = {
+					ver: this.version
+				};
+			}
 
-		// Send an Ajax request for layers that are not in the cache
-		var url = null;
-		var params = {};
-		if (this.layerInfoServiceUrl) {
-			url = this.layerInfoServiceUrl;
-			params = {
-				client: Atlas.conf['clientId'],
-				live: this.live,
-				layerIds: missingLayerIds.join(),
-				ver: this.version
-			};
-		} else if (this.layersFileUrl) {
-			url = this.layersFileUrl;
-			params = {
-				ver: this.version
-			};
-		}
+			if (url) {
+				var that = this;
 
-		if (requestFromServer && missingLayerIds.length > 0 && url) {
-			var that = this;
-
-			var received = function (response) {
-				// Decode the response
-				var jsonResponse = eval("(" + response.responseText + ")");
-				if (jsonResponse) {
-					var newLayers = null;
-					if (this.layerInfoServiceUrl) {
-						// Reception of the requested layers
-						newLayers = jsonResponse.data;
+				// Function run when Ajax receive its answer.
+				var received = function (response) {
+					// Decode the response
+					var jsonResponse = eval("(" + response.responseText + ")");
+					if (jsonResponse) {
+						var newLayers = null;
+						if (this.layerInfoServiceUrl) {
+							// Reception of the requested layers
+							newLayers = jsonResponse.data;
+						} else {
+							// Reception of all layers at once - for client without a Info Service URL
+							// The first request will takes a while, the subsequentes will be fast
+							// since all layers will be cached.
+							newLayers = jsonResponse;
+						}
+						if (newLayers) {
+							that.loadNewLayersCache(newLayers);
+						}
+						// The layers should be part of the cache now
+					}
+					if (missingDependencies.length > 0) {
+						// We have new layers to request. Reset the attempts counter.
+						that.requestLayersJSon(layerIds, callback);
 					} else {
-						// Reception of all layers at once - for client without a Info Service URL
-						// The first request will takes a while, the subsequentes will be fast
-						// since all layers will be cached.
-						newLayers = jsonResponse;
+						// The request has failed to return all requested layers.
+						// This situation should occurred very rarely.
+						that.requestLayersJSon(layerIds, callback, attemptsLeft-1);
 					}
-					if (newLayers) {
-						that.loadNewLayersCache(newLayers);
-					}
-					// The layers should be part of the cache now
-				}
-				if (attemptsLeft > 0) {
-					that._requestLayersJSon(missingLayerIds, callback, false, attemptsLeft-1);
-				} else {
-					// TODO Error on the page
-					alert('The application has failed to load the layers ['+missingLayerIds.join()+']');
-				}
-			};
+				};
 
-			/**
-				Parameters
-					uri         {String} URI of source doc
-					params      {String} Params on get (doesnt seem to work)
-					caller      {Object} object which gets callbacks
-					onComplete  {Function} callback for success
-					onFailure   {Function} callback for failure
-				Both callbacks optional (though silly)
-			*/
-			OpenLayers.loadURL(
-				url,
-				params,
-				this,
-				received,
-				function (result, request) {
-					// TODO Error on the page
-					alert('The application has failed to load the requested layers');
-				}
-			);
+				/**
+				 Parameters
+				 uri         {String} URI of source doc
+				 params      {String} Params on get
+				 caller      {Object} object which gets callbacks
+				 onComplete  {Function} callback for success
+				 onFailure   {Function} callback for failure
+				 Both callbacks optional (though silly)
+				 */
+				OpenLayers.loadURL(
+					url,
+					params,
+					this,
+					received,
+					function (result, request) {
+						// TODO Error on the page
+						alert('The application has failed to load the requested layers');
+					}
+				);
+			}
+		} else if (cachedLayersJSon.length > 0) {
+			// Call the callback with found layers
+			// NOTE: The callback is only called once all layers has been received, or when
+			if (callback) {
+				callback(cachedLayersJSon);
+			}
+
+			if (missingLayerIds.length > 0) {
+				// TODO Error on the page
+				alert('The application has failed to load the layers ['+missingLayerIds.join()+']');
+			}
 		}
 	},
 
@@ -588,34 +642,34 @@ Atlas.Core = OpenLayers.Class({
 		// hasLegend, default true
 		layerJSon['hasLegend'] =
 			!((layerJSon['hasLegend'] === 'false') ||
-			(layerJSon['hasLegend'] === false));
+				(layerJSon['hasLegend'] === false));
 
 		if (!layerJSon['legendUrl'] && layerDataSource && layerDataSource['legendUrl']) {
 			layerJSon['legendUrl'] = layerDataSource['legendUrl'];
 		}
 
+		/*
 		// Initial State
-/*
 		if (!layerJSon['initialState']) {
 			layerJSon['<initialState>'] = {};
 		}
 		// loaded: boolean, default false
 		layerJSon['<initialState>']['<loaded>'] =
-			(layerJSon['<initialState>']['<loaded>'] === 'true') ||
-			(layerJSon['<initialState>']['<loaded>'] === true);
+				(layerJSon['<initialState>']['<loaded>'] === 'true') ||
+				(layerJSon['<initialState>']['<loaded>'] === true);
 		// activated: boolean, default true
 		layerJSon['<initialState>']['<activated>'] =
-			!(
-				(layerJSon['<initialState>']['<activated>'] === 'false') ||
-				(layerJSon['<initialState>']['<activated>'] === false)
-			);
+				!(
+					(layerJSon['<initialState>']['<activated>'] === 'false') ||
+					(layerJSon['<initialState>']['<activated>'] === false)
+				);
 		// activated: boolean, default true
 		layerJSon['<initialState>']['<legendActivated>'] =
-			layerJSon['<hasLegend>'] &&
-			!(
-				(layerJSon['<initialState>']['<legendActivated>'] === 'false') ||
-				(layerJSon['<initialState>']['<legendActivated>'] === false)
-			);
+				layerJSon['<hasLegend>'] &&
+				!(
+					(layerJSon['<initialState>']['<legendActivated>'] === 'false') ||
+					(layerJSon['<initialState>']['<legendActivated>'] === false)
+				);
 
 		// opacity: real [0, 1], default 1
 		if (isNaN(layerJSon['<initialState>']['<opacity>'])) {
@@ -627,17 +681,18 @@ Atlas.Core = OpenLayers.Class({
 				layerJSon['<initialState>']['<opacity>'] = 1;
 			}
 		}
-*/
+		*/
 
 		// Normalise "wmsFeatureRequestLayers"
 		// Ensure they all looks like this:
 		// [{layerId: featureRequestsUrl}, ...]
 		if (layerDataSource) {
 			if (!layerJSon['wmsFeatureRequestLayers']) {
+				var layerId = layerJSon['layerName'] || layerJSon['layerId'];
 				// Create 'wmsFeatureRequestLayers': [{layerId: featureRequestsUrl}]
 				// for layer without wmsFeatureRequestLayers field.
 				layerJSon['wmsFeatureRequestLayers'] = [{}];
-				layerJSon['wmsFeatureRequestLayers'][0][layerJSon['layerId']] =
+				layerJSon['wmsFeatureRequestLayers'][0][layerId] =
 					layerDataSource['featureRequestsUrl'];
 			} else {
 				// Replace 'wmsFeatureRequestLayers': [layerId, layerId, ...]
@@ -663,7 +718,7 @@ Atlas.Core = OpenLayers.Class({
 		if (layerDataSource) {
 			for(var dataSourceProp in layerDataSource){
 				if(layerDataSource.hasOwnProperty(dataSourceProp)
-						&& typeof(layerJSon[dataSourceProp]) == 'undefined'){
+					&& typeof(layerJSon[dataSourceProp]) == 'undefined'){
 
 					layerJSon[dataSourceProp] = layerDataSource[dataSourceProp];
 				}
@@ -671,6 +726,11 @@ Atlas.Core = OpenLayers.Class({
 		}
 
 		return layerJSon;
+	},
+
+	safeHtml: function(input) {
+		if (input == null) { return null; }
+		return input.replace(/&/gi, "&amp;").replace(/</gi, "&lt;").replace(/>/gi, "&gt;");
 	},
 
 	// This function needs some works (\S is too permissive).
@@ -721,8 +781,8 @@ Atlas.Core = OpenLayers.Class({
 
 			var truncateUrl = (displayedUrl.length > this.MAX_URL_LENGTH ? displayedUrl.substring(0, (this.MAX_URL_LENGTH-3)/4*3) + '...' + displayedUrl.substring(displayedUrl.length - (this.MAX_URL_LENGTH-3)/4) : displayedUrl);
 			newInput = newInput +
-					input.substring(lastIndex, matches.index + gap) +
-					'<a href="' + url + '" class="my_link" target="_blank">' + truncateUrl + '</a>';
+				input.substring(lastIndex, matches.index + gap) +
+				'<a href="' + url + '" class="my_link" target="_blank">' + truncateUrl + '</a>';
 
 			lastIndex = matches.index + matches[0].length;
 		}
@@ -775,11 +835,14 @@ Atlas.Core = OpenLayers.Class({
 			}
 		}
 		if (jsonLayer['description']) {
-			desc += '<br/>' + this.urlsToHTML(this.lineBreaksToHTML(jsonLayer['description']));
+			desc += '<br/>' + this.urlsToHTML(this.lineBreaksToHTML(this.safeHtml(jsonLayer['description'])));
+		}
+		if (jsonLayer['htmlDescription']) {
+			desc += '<br/>' + jsonLayer['htmlDescription'];
 		}
 
 		if (jsonLayer['layerId']) {
-			desc += '<div style="color: #AAAAAA; font-size: 0.8em; margin-top: 1em">Layer id: <i>' + jsonLayer['layerId'] + '</i></div>';
+			desc += '<div class="descriptionLayerId">Layer id: <em>' + jsonLayer['layerId'] + '</em></div>';
 		}
 		return desc;
 	}

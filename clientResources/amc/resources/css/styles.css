@@ -89,13 +89,37 @@
 }
 
 /* Open Layer */
-div.olControlMousePosition {
+/* Color of the coordinate of the mouse pointer, on the map (on mouse over) */
+/* NOTE The default black color is usually okay, but it's good to have an
+       alternative solution for when it's not readable. */
+div.olControlMousePosition:hover {
 	color: #FFFFFF;
 }
 
 /* Some ExtJS theme change the color of the text in the OpenLayers popups. */
 div.olFramedCloudPopupContent {
 	color: #000000;
+}
+
+/* ExtJS remove the bullets to start from a known point
+	(some browser (IE) are really bad at following standards)
+	This class Reset bullet for chosen lists */
+ul.bullet-list {
+	padding-left: 2em;
+	list-style-type: disc;
+}
+ol.bullet-list {
+	padding-left: 2em;
+	list-style-type: decimal;
+}
+/* ExtJS remove the bullets on li instead of ul. It has to be reset in both. */
+ul.bullet-list > li {
+	list-style-type: disc;
+	margin: 0.2em 0;
+}
+ol.bullet-list > li {
+	list-style-type: decimal;
+	margin: 0.2em 0;
 }
 
 .layers-btn {
@@ -120,3 +144,9 @@ div.olFramedCloudPopupContent {
 	font-style: italic;
 }
 
+.descriptionLayerGroupContent,
+.descriptionLayerId {
+	color: #AAAAAA;
+	font-size: 0.8em;
+	margin-top: 1em;
+}

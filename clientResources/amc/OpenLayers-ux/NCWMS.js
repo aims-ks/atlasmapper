@@ -100,7 +100,7 @@ OpenLayers.Layer.ux.NCWMS = OpenLayers.Class(OpenLayers.Layer.WMS, {
 
 		var url = serviceUrl + '?' + Ext.urlEncode({
 			item: 'layerDetails',
-			layerName: this.json['layerId'],
+			layerName: this.json['layerName'],
 			request: 'GetMetadata'
 		});
 		/**
@@ -131,7 +131,7 @@ OpenLayers.Layer.ux.NCWMS = OpenLayers.Class(OpenLayers.Layer.WMS, {
 				if (errorCallback) {
 					errorCallback.call(scope, errorMessage);
 				} else {
-					alert('Error while loading the dates for the NCWMS layer "'+this.json['layerId']+'": ' + errorMessage);
+					alert('Error while loading the dates for the NCWMS layer "'+this.json['layerName']+'": ' + errorMessage);
 				}
 			}
 		);
@@ -147,7 +147,7 @@ OpenLayers.Layer.ux.NCWMS = OpenLayers.Class(OpenLayers.Layer.WMS, {
 			if (errorCallback) {
 				errorCallback.call(scope, errorMessage);
 			} else {
-				alert('Error while loading the dates for the NCWMS layer "'+this.json['layerId']+'": ' + errorMessage);
+				alert('Error while loading the dates for the NCWMS layer "'+this.json['layerName']+'": ' + errorMessage);
 			}
 			return;
 		}
@@ -162,7 +162,7 @@ OpenLayers.Layer.ux.NCWMS = OpenLayers.Class(OpenLayers.Layer.WMS, {
 			if (errorCallback) {
 				errorCallback.call(scope, errorMessage);
 			} else {
-				alert('Error while loading the dates for the NCWMS layer "'+this.json['layerId']+'": ' + errorMessage);
+				alert('Error while loading the dates for the NCWMS layer "'+this.json['layerName']+'": ' + errorMessage);
 			}
 			return;
 		}
@@ -217,7 +217,7 @@ OpenLayers.Layer.ux.NCWMS = OpenLayers.Class(OpenLayers.Layer.WMS, {
 
 		var url = serviceUrl + '?' + Ext.urlEncode({
 			item: 'timesteps',
-			layerName: this.json['layerId'],
+			layerName: this.json['layerName'],
 			day: dateStr,
 			request: 'GetMetadata'
 		});
@@ -250,7 +250,7 @@ OpenLayers.Layer.ux.NCWMS = OpenLayers.Class(OpenLayers.Layer.WMS, {
 				if (errorCallback) {
 					errorCallback.call(scope, errorMessage);
 				} else {
-					alert('Error while loading the times for the NCWMS layer "'+that.json['layerId']+'": ' + errorMessage);
+					alert('Error while loading the times for the NCWMS layer "'+that.json['layerName']+'": ' + errorMessage);
 				}
 			}
 		);
@@ -266,7 +266,7 @@ OpenLayers.Layer.ux.NCWMS = OpenLayers.Class(OpenLayers.Layer.WMS, {
 			if (errorCallback) {
 				errorCallback.call(scope, errorMessage);
 			} else {
-				alert('Error while loading the times for the NCWMS layer "'+this.json['layerId']+'": ' + errorMessage);
+				alert('Error while loading the times for the NCWMS layer "'+this.json['layerName']+'": ' + errorMessage);
 			}
 			return;
 		}
@@ -280,7 +280,7 @@ OpenLayers.Layer.ux.NCWMS = OpenLayers.Class(OpenLayers.Layer.WMS, {
 			if (errorCallback) {
 				errorCallback.call(scope, errorMessage);
 			} else {
-				alert('Error while loading the times for the NCWMS layer "'+this.json['layerId']+'": ' + errorMessage);
+				alert('Error while loading the times for the NCWMS layer "'+this.json['layerName']+'": ' + errorMessage);
 			}
 			return;
 		}

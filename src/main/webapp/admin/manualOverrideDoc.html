@@ -189,9 +189,9 @@
 				<td class="desc">URLs of documents that will be displayed in the Layer info panel.</td>
 			</tr>
 			<tr>
-				<td class="attr">path</td>
+				<td class="attr">layers</td>
 				<td class="type">Array of String</td>
-				<td class="desc">A path of folder in which the layer will be displayed, after adding it to the map.</td>
+				<td class="desc">Used with group layers. List of layers, added as children in the layer switcher, when adding this layer to the map.</td>
 			</tr>
 			<tr>
 				<td class="attr">aliasIds</td> <!-- TODO Is this field still useful? -->
@@ -368,6 +368,13 @@
 				<td class="desc">
 					<i>false</i> to add the layer in the layer switcher but not on the map (visibility false) when loaded for the first time.<br/>
 					<b>NOTE:</b> This is a temporary field that will be removed after the Save State feature has been developed.
+				</td>
+			</tr>
+			<tr>
+				<td class="attr">shownOnlyInLayerGroup</td>
+				<td class="type">Boolean</td>
+				<td class="desc">
+					<i>true</i> to hide the layer from the add layer tree. This is used with layers that are included in a layer group.<br/>
 				</td>
 			</tr>
 			<!-- styles & layerOptions: [name, type, mandatory, defaultValue] -->

@@ -21,28 +21,33 @@
 
 package au.gov.aims.atlasmapperserver.servlet;
 
-import au.gov.aims.atlasmapperserver.ConfigHelper;
-import au.gov.aims.atlasmapperserver.ConfigManager;
-import au.gov.aims.atlasmapperserver.GetCapabilitiesExceptions;
-import au.gov.aims.atlasmapperserver.ServletUtils;
-import au.gov.aims.atlasmapperserver.Utils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLDecoder;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletException;
+import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import org.geotools.ows.ServiceException;
-import org.json.JSONException;
+
+import au.gov.aims.atlasmapperserver.ClientConfig;
+import au.gov.aims.atlasmapperserver.ConfigHelper;
+import au.gov.aims.atlasmapperserver.ConfigManager;
+import au.gov.aims.atlasmapperserver.ConfigType;
+import au.gov.aims.atlasmapperserver.GetCapabilitiesExceptions;
+import au.gov.aims.atlasmapperserver.ServletUtils;
+import au.gov.aims.atlasmapperserver.Utils;
+import org.json.JSONObject;
 
 /**
  * Redirect queries sent to external Web Site.
@@ -58,7 +63,12 @@ public class Proxy extends HttpServlet {
 	private static final Logger LOGGER = Logger.getLogger(Proxy.class.getName());
 	private static final String URL_PARAM = "url";
 
-	private List<String> allowedHosts = null;
+	// Cached list of allowed hosts, for each clients, used with the preview clients
+	private static Map<String, List<String>> previewClientsAllowedHostCache = null;
+
+	// Cached list of allowed hosts, for each clients, used with the preview clients
+	private static Map<String, List<String>> generatedClientsAllowedHostCache = null;
+
 	private static final List<String> DEFAULT_ALLOWED_HOSTS = new ArrayList<String>();
 	static {
 		DEFAULT_ALLOWED_HOSTS.add("www.openlayers.org");
@@ -83,37 +93,132 @@ public class Proxy extends HttpServlet {
 	}
 	*/
 
-	public synchronized void reloadConfig(String clientId, boolean live) {
+	private static synchronized void reloadConfig(ServletContext servletContext, String clientId, boolean preview) {
+		try {
+			ConfigManager configManager = ConfigHelper.getConfigManager(servletContext);
+
+			ClientConfig clientConfig = configManager.getClientConfig(clientId);
+			// The main config may be incomplete without the list of layers (for the preview), but it will contains enough info to configure the proxy.
+			JSONObject jsonMainConfig = configManager.getClientConfigFileJSon(null, clientConfig, ConfigType.MAIN, preview, preview);
+			JSONObject jsonLayersConfig = configManager.getClientConfigFileJSon(clientConfig, ConfigType.LAYERS, preview, preview);
+			reloadConfig(jsonMainConfig, jsonLayersConfig, clientId, preview);
+		} catch (Throwable ex) {
+			LOGGER.log(Level.SEVERE, "Error occurred while reloading the proxy configuration: ", ex);
+		}
+	}
+
+	public static synchronized void reloadConfig(JSONObject jsonMainConfig, JSONObject jsonLayersConfig, String clientId, boolean preview) {
+		if (previewClientsAllowedHostCache == null) {
+			previewClientsAllowedHostCache = new HashMap<String, List<String>>();
+		}
+		if (generatedClientsAllowedHostCache == null) {
+			generatedClientsAllowedHostCache = new HashMap<String, List<String>>();
+		}
+
 		List<String> foundAllowedHosts = null;
 		try {
-			ConfigManager configManager = ConfigHelper.getConfigManager(this.getServletContext());
-			foundAllowedHosts = configManager.getProxyAllowedHosts(clientId, live);
+			foundAllowedHosts = getProxyAllowedHosts(jsonMainConfig, jsonLayersConfig);
 			if (foundAllowedHosts == null) {
 				LOGGER.log(Level.WARNING, "No allowed hosts found in AtlasMapperServer configuration.");
 			}
 		} catch (GetCapabilitiesExceptions ex) {
-			LOGGER.log(Level.SEVERE, "Error while retriving the Capabilities documents to generate the allowed hosts.", ex);
-		} catch (JSONException ex) {
-			LOGGER.log(Level.SEVERE, "Error while retriving the allowed hosts.", ex);
-		} catch (IOException ex) {
-			LOGGER.log(Level.SEVERE, "Error while retriving the allowed hosts.", ex);
-		} catch (ServiceException ex) {
-			LOGGER.log(Level.SEVERE, "Error while retriving the allowed hosts.", ex);
+			LOGGER.log(Level.SEVERE, "Error while retrieving the Capabilities documents to generate the allowed hosts.", ex);
+			ex.printStackTrace();
+		} catch (Exception ex) {
+			LOGGER.log(Level.SEVERE, "Error while retrieving the allowed hosts.", ex);
 		} finally {
-			if (foundAllowedHosts != null) {
-				this.allowedHosts = foundAllowedHosts;
-			} else {
+			if (foundAllowedHosts == null) {
 				LOGGER.log(Level.WARNING, "Could not retrieved the proxy allowed hosts. Default allowed hosts will be used.");
-				this.allowedHosts = DEFAULT_ALLOWED_HOSTS;
+				foundAllowedHosts = DEFAULT_ALLOWED_HOSTS;
 			}
+		}
+
+		if (preview) {
+			LOGGER.log(Level.INFO, "Reloading the proxy configuration for preview version of ["+clientId+"]");
+			previewClientsAllowedHostCache.put(clientId, foundAllowedHosts);
+		} else {
+			LOGGER.log(Level.INFO, "Reloading the proxy configuration for generated version of ["+clientId+"]");
+			generatedClientsAllowedHostCache.put(clientId, foundAllowedHosts);
 		}
 	}
 
-	private boolean isHostAllowed(String rawhost) {
-		if (this.allowedHosts == null || Utils.isBlank(rawhost)) { return false; }
-		String host = rawhost.trim();
+	private static List<String> getProxyAllowedHosts(JSONObject mainConfig, JSONObject layersConfig)
+			throws GetCapabilitiesExceptions, Exception {
 
-		for (String allowedHost: this.allowedHosts) {
+		List<String> allowedHosts = new ArrayList<String>();
+
+		// The config manager apply all the overrides during the generation of the config.
+		if (mainConfig != null && mainConfig.has("dataSources")) {
+			JSONObject dataSources = mainConfig.optJSONObject("dataSources");
+			Iterator<String> keys = dataSources.keys();
+			if (keys != null) {
+				while (keys.hasNext()) {
+					JSONObject dataSource = dataSources.optJSONObject(keys.next());
+
+					// Only add the first one that succeed
+					boolean success =
+							addProxyAllowedHost(allowedHosts, dataSource.optString("featureRequestsUrl")) ||
+							addProxyAllowedHost(allowedHosts, dataSource.optString("serviceUrl"));
+				}
+			}
+		}
+
+		if (layersConfig != null) {
+			Iterator<String> layerIds = layersConfig.keys();
+			if (layerIds != null) {
+				while (layerIds.hasNext()) {
+					JSONObject layer = layersConfig.optJSONObject(layerIds.next());
+
+					// Only add the first one that succeed
+					boolean success =
+							addProxyAllowedHost(allowedHosts, layer.optString("kmlUrl")) ||
+							addProxyAllowedHost(allowedHosts, layer.optString("featureRequestsUrl")) ||
+							addProxyAllowedHost(allowedHosts, layer.optString("serviceUrl"));
+				}
+			}
+		}
+
+		return allowedHosts.isEmpty() ? null : allowedHosts;
+	}
+
+	private static boolean addProxyAllowedHost(List<String> allowedHosts, String urlStr) {
+		URL url = null;
+		try {
+			url = new URL(urlStr);
+		} catch (MalformedURLException ex) {
+			return false;
+		}
+		// It should not be null if it succeed, but better not taking chance.
+		if (url == null) { return false; }
+
+		String host = url.getHost();
+		if (host != null && !host.isEmpty() && !allowedHosts.contains(host)) {
+			allowedHosts.add(host);
+		}
+
+		return true;
+	}
+
+	private boolean isHostAllowed(String clientId, boolean preview, String rawHost) {
+		Map<String, List<String>> allowedHostsMap = preview ?
+				previewClientsAllowedHostCache :
+				generatedClientsAllowedHostCache;
+
+		// The proxy config are null after a reload of the WebApp
+		if (allowedHostsMap == null || allowedHostsMap.get(clientId) == null) {
+			reloadConfig(this.getServletContext(), clientId, preview);
+
+			allowedHostsMap = preview ?
+					previewClientsAllowedHostCache :
+					generatedClientsAllowedHostCache;
+		}
+
+		List<String> allowedHosts = allowedHostsMap.get(clientId);
+
+		if (allowedHosts == null || Utils.isBlank(rawHost)) { return false; }
+		String host = rawHost.trim();
+
+		for (String allowedHost: allowedHosts) {
 			// Case-insensitive: http://en.wikipedia.org/wiki/Domain_name#Technical_requirements_and_process
 			if (host.equalsIgnoreCase(allowedHost.trim())) {
 				return true;
@@ -133,11 +238,10 @@ public class Proxy extends HttpServlet {
 	}
 
 	private void performTask(HttpServletRequest request, HttpServletResponse response) throws IOException {
-		String liveStr = request.getParameter("live");
-		boolean live = liveStr != null && Boolean.parseBoolean(liveStr);
+		String previewStr = request.getParameter("live");
+		boolean preview = previewStr != null && Boolean.parseBoolean(previewStr);
 
 		String clientId = request.getParameter("client");
-		this.reloadConfig(clientId, live);
 
 		String urlStr = request.getParameter(URL_PARAM);
 		if (urlStr != null && !urlStr.isEmpty()) {
@@ -150,7 +254,7 @@ public class Proxy extends HttpServlet {
 				if (url != null) {
 					String protocol = url.getProtocol();
 					String host = url.getHost();
-					if (!isHostAllowed(host)) {
+					if (!isHostAllowed(clientId, preview, host)) {
 						response.setContentType("text/plain");
 						response.setStatus(HttpServletResponse.SC_FORBIDDEN);
 

@@ -88,7 +88,7 @@
 				}
 			} else if (Utils.isNotBlank(layerIdsStr)) {
 				String[] layerIds = layerIdsStr.split("\\s*,\\s*");
-				JSONObject foundLayers = configManager.getClientLayers(clientConfig, layerIds, live);
+				JSONObject foundLayers = configManager.getClientLayers(clientConfig, layerIds);
 
 				if (foundLayers == null || foundLayers.length() <= 0) {
 					response.setStatus(HttpServletResponse.SC_BAD_REQUEST);

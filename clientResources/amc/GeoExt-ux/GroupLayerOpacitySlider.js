@@ -57,13 +57,16 @@ GeoExt.ux.GroupLayerOpacitySlider = Ext.extend(GeoExt.LayerOpacitySlider, {
 
 			if (valueAfter == 0 && this.node.hasChildNodes()) {
 				// 0 value works, but children layers loose their opacity information when the parent opacity is set to 0.
-				// A value to high (>0.1) will show artifact on the map, a value too low (<0.000001) will introduce floating point error.
-				// 0.0001 works great.
-				valueAfter = 0.0001;
+				// A value to high (>0.1) will show artifact on the map, a value too low (extremely close to 0) will introduce floating point error on deep tree.
+				// 0.000001 works great.
+				valueAfter = 0.000001;
 			}
 
 			this._changeChildrenLayerOpacity(valueBefore, valueAfter, this.node);
+
+			this._settingOpacity = true;
 			this.layer.setOpacity(valueAfter);
+			delete this._settingOpacity;
 		}
 	},
 
@@ -92,8 +95,18 @@ GeoExt.ux.GroupLayerOpacitySlider = Ext.extend(GeoExt.LayerOpacitySlider, {
 	},
 
 	getOpacityValue: function(layer) {
-		var visibleOpacity = GeoExt.ux.GroupLayerOpacitySlider.superclass.getOpacityValue.call(this, layer);
-		return visibleOpacity / this._getParentOpacity();
+		var value;
+		if (layer && layer.opacity !== null) {
+			// NOTE: Don't do a parseInt here, a precise value is needed to find the exact opacity of the current layer.
+			value = layer.opacity * (this.maxValue - this.minValue);
+		} else {
+			value = this.maxValue;
+		}
+		if (this.inverse === true) {
+			value = this.maxValue - this.minValue - value;
+		}
+
+		return Math.round(value / this._getParentOpacity());
 	},
 
 	/**
@@ -103,7 +116,7 @@ GeoExt.ux.GroupLayerOpacitySlider = Ext.extend(GeoExt.LayerOpacitySlider, {
 	_getParentOpacity: function() {
 		var opacity = 1;
 		if (this.node && this.node.parentNode && this.node.parentNode.layer && this.node.parentNode.layer.opacity != null) {
-			opacity *= this.node.parentNode.layer.opacity;
+			opacity = this.node.parentNode.layer.opacity;
 		}
 		return opacity;
 	}

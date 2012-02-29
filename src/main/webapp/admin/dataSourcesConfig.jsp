@@ -28,7 +28,7 @@
 <%@page import="java.util.logging.Level"%>
 <%@page import="java.util.logging.Logger"%>
 <%@page import="org.json.JSONArray"%>
-<%@page import="au.gov.aims.atlasmapperserver.DataSourceConfig"%>
+<%@page import="au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig"%>
 <%@page import="au.gov.aims.atlasmapperserver.ConfigHelper"%>
 <%@page import="org.json.JSONObject"%>
 <%@page import="au.gov.aims.atlasmapperserver.ConfigManager"%>
@@ -74,10 +74,10 @@
 				case CREATE:
 					// Get data from the form, create the config entry, save it, display the result
 					try {
-						List<DataSourceConfig> dataSourceConfigs = configManager.createDataSourceConfig(request);
+						List<AbstractDataSourceConfig> dataSourceConfigs = configManager.createDataSourceConfig(request);
 						JSONArray dataSourceJSonArr = new JSONArray();
 						if (dataSourceConfigs != null) {
-							for (DataSourceConfig dataSourceConfig : dataSourceConfigs) {
+							for (AbstractDataSourceConfig dataSourceConfig : dataSourceConfigs) {
 								JSONObject dataSourceJSon = dataSourceConfig.toJSonObject();
 								if (dataSourceJSon != null) {
 									dataSourceJSonArr.put(dataSourceJSon);
@@ -153,6 +153,42 @@
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						jsonObj.put("success", false);
 						jsonObj.put("errors", new JSONArray().put("An error occurred while validating the data source ID. Check your server log."));
+					}
+					break;
+
+				case CLEARCACHE:
+					try {
+						if (Utils.isBlank(idStr)) {
+							response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+							jsonObj.put("success", false);
+							jsonObj.put("errors", new JSONArray().put("Missing parameter [id]."));
+						} else {
+							Integer id = null;
+							try {
+								id = Integer.valueOf(idStr);
+							} catch(Exception e) {
+								response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+								jsonObj.put("success", false);
+								jsonObj.put("errors", new JSONArray().put("Invalid id format."));
+							}
+
+							if (id == null) {
+								response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+								jsonObj.put("success", false);
+								jsonObj.put("errors", new JSONArray().put("Invalid id."));
+							} else {
+								AbstractDataSourceConfig foundDataSourceConfig = configManager.getDataSourceConfig(id);
+								configManager.clearDataSourceCache(foundDataSourceConfig);
+								response.setStatus(HttpServletResponse.SC_OK);
+								jsonObj.put("success", true);
+								jsonObj.put("message", "Cache cleared");
+							}
+						}
+					} catch (Exception e) {
+						LOGGER.log(Level.SEVERE, "An error occurred while clearing the data source cache.", e);
+						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+						jsonObj.put("success", false);
+						jsonObj.put("errors", new JSONArray().put("An error occurred while clearing the data source cache. Check your server log."));
 					}
 					break;
 

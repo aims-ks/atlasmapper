@@ -65,7 +65,7 @@
 						if (clientConfigs == null) {
 							response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 							jsonObj.put("success", false);
-							jsonObj.put("errors", new JSONArray().put("An error occured while loading the configuration. Check your server log."));
+							jsonObj.put("errors", new JSONArray().put("An error occurred while loading the configuration. Check your server log."));
 						} else {
 							response.setStatus(HttpServletResponse.SC_OK);
 							jsonObj.put("success", true);
@@ -73,10 +73,10 @@
 							jsonObj.put("data", clientConfigs);
 						}
 					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "An error occured while retriving the client configuration.", e);
+						LOGGER.log(Level.SEVERE, "An error occurred while retrieving the client configuration.", e);
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						jsonObj.put("success", false);
-						jsonObj.put("errors", new JSONArray().put("An error occured while retriving the client configuration. Check your server log."));
+						jsonObj.put("errors", new JSONArray().put("An error occurred while retrieving the client configuration. Check your server log."));
 					}
 					break;
 
@@ -87,7 +87,7 @@
 						if (clientConfigs == null || clientConfigs.isEmpty()) {
 							response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 							jsonObj.put("success", false);
-							jsonObj.put("errors", new JSONArray().put("An error occured while creating the client. Check your server log."));
+							jsonObj.put("errors", new JSONArray().put("An error occurred while creating the client. Check your server log."));
 						} else {
 							JSONArray clientJSonArr = new JSONArray();
 							for (ClientConfig clientConfig : clientConfigs) {
@@ -99,7 +99,7 @@
 							if (clientJSonArr == null) {
 								response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 								jsonObj.put("success", false);
-								jsonObj.put("errors", new JSONArray().put("An error occured while generating the client JSON configuration. Check your server log."));
+								jsonObj.put("errors", new JSONArray().put("An error occurred while generating the client JSON configuration. Check your server log."));
 							} else {
 								ConfigHelper.save();
 								response.setStatus(HttpServletResponse.SC_OK);
@@ -109,10 +109,10 @@
 							}
 						}
 					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "An error occured while creating the client.", e);
+						LOGGER.log(Level.SEVERE, "An error occurred while creating the client.", e);
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						jsonObj.put("success", false);
-						jsonObj.put("errors", new JSONArray().put("An error occured while creating the client. Check your server log."));
+						jsonObj.put("errors", new JSONArray().put("An error occurred while creating the client. Check your server log."));
 					}
 					break;
 
@@ -126,10 +126,10 @@
 						jsonObj.put("message", "Updated record");
 						jsonObj.put("data", configManager.getClientConfigsJSonWithClientUrls(this.getServletConfig().getServletContext()));
 					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "An error occured while updating the client.", e);
+						LOGGER.log(Level.SEVERE, "An error occurred while updating the client.", e);
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						jsonObj.put("success", false);
-						jsonObj.put("errors", new JSONArray().put("An error occured while updating the client. Check your server log."));
+						jsonObj.put("errors", new JSONArray().put("An error occurred while updating the client. Check your server log."));
 					}
 					break;
 
@@ -149,10 +149,10 @@
 							jsonObj.put("errors", new JSONArray().put("Some files could not be deleted."));
 						}
 					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "An error occured while deleting the client.", e);
+						LOGGER.log(Level.SEVERE, "An error occurred while deleting the client.", e);
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						jsonObj.put("success", false);
-						jsonObj.put("errors", new JSONArray().put("An error occured while deleting the client. Check your server log."));
+						jsonObj.put("errors", new JSONArray().put("An error occurred while deleting the client. Check your server log."));
 					}
 					break;
 
@@ -193,10 +193,10 @@
 							jsonObj.put("errors", new JSONArray().put("There is no supported projections."));
 						}
 					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "An error occured while getting the supported projections.", e);
+						LOGGER.log(Level.SEVERE, "An error occurred while getting the supported projections.", e);
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						jsonObj.put("success", false);
-						jsonObj.put("errors", new JSONArray().put("An error occured while getting the supported projections. Check your server log."));
+						jsonObj.put("errors", new JSONArray().put("An error occurred while getting the supported projections. Check your server log."));
 					}
 					break;
 
@@ -204,7 +204,7 @@
 					if (Utils.isBlank(idStr)) {
 						response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 						jsonObj.put("success", false);
-						jsonObj.put("errors", new JSONArray().put("Missing parameter [clientId]."));
+						jsonObj.put("errors", new JSONArray().put("Missing parameter [id]."));
 					} else {
 						boolean complete = false;
 						Integer id = null;
@@ -214,7 +214,7 @@
 						} catch(Exception e) {
 							response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 							jsonObj.put("success", false);
-							jsonObj.put("errors", new JSONArray().put("Invalid clientid format."));
+							jsonObj.put("errors", new JSONArray().put("Invalid id format."));
 						}
 
 						if (id != null) {
@@ -231,15 +231,16 @@
 									jsonObj.put("message", "Config Generated");
 								}
 							} catch(GetCapabilitiesExceptions e) {
-								LOGGER.log(Level.SEVERE, "Can not retrieved all Capabilities Documents. Generation aborded.", e);
+								LOGGER.log(Level.SEVERE, "Can not retrieved all Capabilities Documents. Generation aborted.", e);
+								e.printStackTrace();
 								response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 								jsonObj.put("success", false);
-								jsonObj.put("errors", new JSONArray().put("Can not retrieved all Capabilities Documents. Generation aborded.<br/>\n" + e.getMessage().replace("\n", "<br/>\n")));
+								jsonObj.put("errors", new JSONArray().put("Can not retrieved all Capabilities Documents. Generation aborted.<br/>\n" + e.getMessage().replace("\n", "<br/>\n")));
 							} catch(Exception e) {
-								LOGGER.log(Level.SEVERE, "An error occured while generating the Client configuration.", e);
+								LOGGER.log(Level.SEVERE, "An error occurred while generating the Client configuration.", e);
 								response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 								jsonObj.put("success", false);
-								jsonObj.put("errors", new JSONArray().put("An error occured while generating the Client configuration. Check your server log."));
+								jsonObj.put("errors", new JSONArray().put("An error occurred while generating the Client configuration. Check your server log."));
 							}
 						}
 					}
@@ -254,15 +255,16 @@
 						jsonObj.put("success", true);
 						jsonObj.put("message", "Config saved for all clients");
 					} catch(GetCapabilitiesExceptions e) {
-						LOGGER.log(Level.SEVERE, "Can not retrieved all Capabilities Documents. Generation aborded.", e);
+						LOGGER.log(Level.SEVERE, "Can not retrieved all Capabilities Documents. Generation aborted.", e);
+						e.printStackTrace();
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						jsonObj.put("success", false);
-						jsonObj.put("errors", new JSONArray().put("Can not retrieved all Capabilities Documents. Generation aborded.<br/>\n" + e.getMessage().replace("\n", "<br/>\n")));
+						jsonObj.put("errors", new JSONArray().put("Can not retrieved all Capabilities Documents. Generation aborted.<br/>\n" + e.getMessage().replace("\n", "<br/>\n")));
 					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "An error occured while generating the Client configurations.", e);
+						LOGGER.log(Level.SEVERE, "An error occurred while generating the Client configurations.", e);
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						jsonObj.put("success", false);
-						jsonObj.put("errors", new JSONArray().put("An error occured while generating the Client configurations. Check your server log."));
+						jsonObj.put("errors", new JSONArray().put("An error occurred while generating the Client configurations. Check your server log."));
 					}
 					break;
 
@@ -270,7 +272,7 @@
 					if (Utils.isBlank(idStr)) {
 						response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 						jsonObj.put("success", false);
-						jsonObj.put("errors", new JSONArray().put("Missing parameter [clientId]."));
+						jsonObj.put("errors", new JSONArray().put("Missing parameter [id]."));
 					} else {
 						Integer id = null;
 						try {
@@ -278,7 +280,7 @@
 						} catch(Exception e) {
 							response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 							jsonObj.put("success", false);
-							jsonObj.put("errors", new JSONArray().put("Invalid clientid format."));
+							jsonObj.put("errors", new JSONArray().put("Invalid id format."));
 						}
 
 						if (id != null) {
@@ -293,7 +295,7 @@
 									if (configs == null) {
 										response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 										jsonObj.put("success", false);
-										jsonObj.put("errors", new JSONArray().put("An error occured while retrieving/generating the Client configurations. Check your server log."));
+										jsonObj.put("errors", new JSONArray().put("An error occurred while retrieving/generating the Client configurations. Check your server log."));
 									} else {
 										response.setStatus(HttpServletResponse.SC_OK);
 										jsonObj.put("success", true);
@@ -302,15 +304,16 @@
 									}
 								}
 							} catch(GetCapabilitiesExceptions e) {
-								LOGGER.log(Level.SEVERE, "Can not retrieved all Capabilities Documents. Generation aborded.", e);
+								LOGGER.log(Level.SEVERE, "Can not retrieved all Capabilities Documents. Generation aborted.", e);
+								e.printStackTrace();
 								response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 								jsonObj.put("success", false);
-								jsonObj.put("errors", new JSONArray().put("Can not retrieved all Capabilities Documents. Generation aborded.<br/>\n" + e.getMessage().replace("\n", "<br/>\n")));
+								jsonObj.put("errors", new JSONArray().put("Can not retrieved all Capabilities Documents. Generation aborted.<br/>\n" + e.getMessage().replace("\n", "<br/>\n")));
 							} catch(Exception e) {
-								LOGGER.log(Level.SEVERE, "An error occured while retrieving/generating the Client configurations.", e);
+								LOGGER.log(Level.SEVERE, "An error occurred while retrieving/generating the Client configurations.", e);
 								response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 								jsonObj.put("success", false);
-								jsonObj.put("errors", new JSONArray().put("An error occured while retrieving/generating the Client configurations. Check your server log."));
+								jsonObj.put("errors", new JSONArray().put("An error occurred while retrieving/generating the Client configurations. Check your server log."));
 							}
 						}
 					}

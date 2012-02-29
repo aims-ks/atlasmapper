@@ -40,11 +40,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.json.JSONSortedObject;
 
 /**
  *
@@ -105,9 +107,15 @@ public abstract class AbstractConfig implements Cloneable {
 	 * @return
 	 * @throws JSONException
 	 */
-	public JSONObject toJSonObject() throws JSONException {
-		JSONObject jsonObj = new JSONObject();
+	public JSONSortedObject toJSonSortedObject() throws JSONException {
+		return (JSONSortedObject)this.toJSonObject(new JSONSortedObject());
+	}
 
+	public JSONObject toJSonObject() throws JSONException {
+		return this.toJSonObject(new JSONObject());
+	}
+
+	private JSONObject toJSonObject(JSONObject jsonObj) throws JSONException {
 		// Get all fields; public, protected and private
 		//Field fields[] = this.getClass().getDeclaredFields();
 		List<Field> fields = Utils.getAllFields(this.getClass());
@@ -118,8 +126,11 @@ public abstract class AbstractConfig implements Cloneable {
 				Method getter = _getFieldGetter(field, annotation);
 				if (getter != null) {
 					String configName = annotation.name();
-					if (configName == null || configName.length() <= 0) {
+					if (Utils.isBlank(configName)) {
 						configName = field.getName();
+					}
+					if (configName != null) {
+						configName = configName.trim();
 					}
 					Object rawValue = null;
 					try {
@@ -152,7 +163,7 @@ public abstract class AbstractConfig implements Cloneable {
 
 		if (rawValue instanceof String) {
 			if (Utils.isNotBlank((String)rawValue)) {
-				return rawValue;
+				return ((String)rawValue).trim();
 			} else {
 				return null;
 			}
@@ -177,7 +188,12 @@ public abstract class AbstractConfig implements Cloneable {
 
 		} else if (rawValue instanceof JSONObject) {
 			JSONObject rawJsonObject = (JSONObject)rawValue;
-			JSONObject jsonObject = new JSONObject();
+			JSONObject jsonObject = null;
+			if (rawValue instanceof JSONSortedObject) {
+				jsonObject = new JSONSortedObject();
+			} else {
+				jsonObject = new JSONObject();
+			}
 			// Remove null entries
 			Iterator<String> keys = rawJsonObject.keys();
 			while(keys.hasNext()) {
@@ -185,7 +201,7 @@ public abstract class AbstractConfig implements Cloneable {
 				if (!rawJsonObject.isNull(key)) {
 					Object value = cleanValue(rawJsonObject.opt(key));
 					if (value != null) {
-						jsonObject.put(key, value);
+						jsonObject.put(key.trim(), value);
 					}
 				}
 			}
@@ -215,13 +231,18 @@ public abstract class AbstractConfig implements Cloneable {
 		Map<String, Object> cleanParameters = new HashMap<String, Object>();
 		for (Map.Entry<String, String[]> parameterEntry : parameters.entrySet()) {
 			String[] value = parameterEntry.getValue();
+			String key = parameterEntry.getKey().trim();
 			if (value.length > 1) {
-				cleanParameters.put(parameterEntry.getKey(), value);
+				cleanParameters.put(key, value);
 			} else {
-				cleanParameters.put(parameterEntry.getKey(), value[0]);
+				cleanParameters.put(key, value[0]);
 			}
 		}
-		this.update(new JSONObject(cleanParameters), userUpdate);
+		if (parameters instanceof SortedMap) {
+			this.update(new JSONSortedObject(cleanParameters), userUpdate);
+		} else {
+			this.update(new JSONObject(cleanParameters), userUpdate);
+		}
 	}
 
 	public void update(JSONObject jsonObj) {
@@ -246,8 +267,11 @@ public abstract class AbstractConfig implements Cloneable {
 					Method setter = _getFieldSetter(field, annotation);
 					if (setter != null) {
 						String configName = annotation.name();
-						if (configName == null || configName.length() <= 0) {
+						if (Utils.isBlank(configName)) {
 							configName = field.getName();
+						}
+						if (configName != null) {
+							configName = configName.trim();
 						}
 
 						try {
@@ -283,6 +307,9 @@ public abstract class AbstractConfig implements Cloneable {
 	// Support (for now) int, float, double, boolean, JSONObject, JSONArray, String, sub classes of AbstractConfig, Map and other Collection.
 	// Recursive for collections
 	private static Object getValue(ConfigManager configManager, JSONObject jsonObj, String configName, Class fieldClass, Type[] collectionTypes) throws InstantiationException, IllegalAccessException, JSONException {
+		if (configName != null) {
+			configName = configName.trim();
+		}
 		if (jsonObj.isNull(configName)) {
 			if(int.class.equals(fieldClass) || float.class.equals(fieldClass) || double.class.equals(fieldClass)) {
 				return DEFAULT_NUMBER;
@@ -318,7 +345,12 @@ public abstract class AbstractConfig implements Cloneable {
 			}
 		} else if (Map.class.isAssignableFrom(fieldClass)) {
 			// The field is a map, the value can only be a JSONObject, or a String that represent a JSONObject.
-			JSONObject jsonValue = getJSONObject(jsonObj, configName);
+			JSONObject jsonValue = null;
+			if (SortedMap.class.isAssignableFrom(fieldClass)) {
+				jsonValue = getJSONSortedObject(jsonObj, configName);
+			} else {
+				jsonValue = getJSONObject(jsonObj, configName);
+			}
 			Class collectionClass = null;
 			if (collectionTypes != null && collectionTypes.length >= 2 && collectionTypes[1] != null) {
 				collectionClass = (Class)collectionTypes[1];
@@ -328,6 +360,9 @@ public abstract class AbstractConfig implements Cloneable {
 				Iterator<String> keys = jsonValue.keys();
 				while(keys.hasNext()) {
 					String key = keys.next();
+					if (key != null) {
+						key = key.trim();
+					}
 					Object val = getValue(
 							configManager,
 							jsonValue,
@@ -382,10 +417,14 @@ public abstract class AbstractConfig implements Cloneable {
 					} else if(jsonObjValue.length() > 0) {
 						Iterator<String> keys = jsonObjValue.keys();
 						while(keys.hasNext()) {
+							String key = keys.next();
+							if (key != null) {
+								key = key.trim();
+							}
 							Object val = getValue(
 									configManager,
 									jsonObjValue,
-									keys.next(),
+									key,
 									collectionClass,
 									null);
 							if (val != null) {
@@ -417,7 +456,7 @@ public abstract class AbstractConfig implements Cloneable {
 									configManager,
 									jsonArrValue,
 									i,
-									(Class)arrayType,
+									arrayType,
 									null);
 							if (val != null) {
 								configValue.add(val);
@@ -427,11 +466,15 @@ public abstract class AbstractConfig implements Cloneable {
 				} else if(jsonObjValue.length() > 0) {
 					Iterator<String> keys = jsonObjValue.keys();
 					while(keys.hasNext()) {
+						String key = keys.next();
+						if (key != null) {
+							key = key.trim();
+						}
 						Object val = getValue(
 								configManager,
 								jsonObjValue,
-								keys.next(),
-								(Class)arrayType,
+								key,
+								arrayType,
 								null);
 						if (val != null) {
 							configValue.add(val);
@@ -456,6 +499,8 @@ public abstract class AbstractConfig implements Cloneable {
 			value = jsonObj.optBoolean(configName, DEFAULT_BOOLEAN);
 		} else if (JSONObject.class.equals(fieldClass)) {
 			value = getJSONObject(jsonObj, configName);
+		} else if (JSONSortedObject.class.equals(fieldClass)) {
+			value = getJSONSortedObject(jsonObj, configName);
 		} else if (JSONArray.class.equals(fieldClass)) {
 			value = getJSONArray(jsonObj, configName);
 		} else {
@@ -515,6 +560,9 @@ public abstract class AbstractConfig implements Cloneable {
 				Iterator<String> keys = jsonValue.keys();
 				while(keys.hasNext()) {
 					String key = keys.next();
+					if (key != null) {
+						key = key.trim();
+					}
 					Object val = getValue(
 							configManager,
 							jsonValue,
@@ -575,10 +623,14 @@ public abstract class AbstractConfig implements Cloneable {
 					} else if(jsonObjValue.length() > 0) {
 						Iterator<String> keys = jsonObjValue.keys();
 						while(keys.hasNext()) {
+							String key = keys.next();
+							if (key != null) {
+								key = key.trim();
+							}
 							Object val = getValue(
 									configManager,
 									jsonObjValue,
-									keys.next(),
+									key,
 									collectionClass,
 									null);
 							if (val != null) {
@@ -615,10 +667,14 @@ public abstract class AbstractConfig implements Cloneable {
 				} else if(jsonObjValue.length() > 0) {
 					Iterator<String> keys = jsonObjValue.keys();
 					while(keys.hasNext()) {
+						String key = keys.next();
+						if (key != null) {
+							key = key.trim();
+						}
 						Object val = getValue(
 								configManager,
 								jsonObjValue,
-								keys.next(),
+								key,
 								(Class)arrayType,
 								null);
 						if (val != null) {
@@ -644,6 +700,8 @@ public abstract class AbstractConfig implements Cloneable {
 			value = jsonArr.optBoolean(index, DEFAULT_BOOLEAN);
 		} else if (JSONObject.class.equals(fieldClass)) {
 			value = getJSONObject(jsonArr, index);
+		} else if (JSONSortedObject.class.equals(fieldClass)) {
+			value = getJSONSortedObject(jsonArr, index);
 		} else if (JSONArray.class.equals(fieldClass)) {
 			value = getJSONArray(jsonArr, index);
 		} else {
@@ -657,8 +715,18 @@ public abstract class AbstractConfig implements Cloneable {
 		return value;
 	}
 
+	private static JSONSortedObject getJSONSortedObject(JSONObject jsonObj, String configName) throws JSONException {
+		return (JSONSortedObject)_getJSONObject(jsonObj, configName, true);
+	}
 
 	private static JSONObject getJSONObject(JSONObject jsonObj, String configName) throws JSONException {
+		return _getJSONObject(jsonObj, configName, false);
+	}
+
+	private static JSONObject _getJSONObject(JSONObject jsonObj, String configName, boolean sorted) throws JSONException {
+		if (configName != null) {
+			configName = configName.trim();
+		}
 		if (jsonObj.isNull(configName)) {
 			return null;
 		}
@@ -667,6 +735,9 @@ public abstract class AbstractConfig implements Cloneable {
 		Exception cause = null;
 		try {
 			jsonValue = jsonObj.optJSONObject(configName);
+			if (sorted && jsonValue != null) {
+				jsonValue = new JSONSortedObject(jsonValue);
+			}
 		} catch (Exception e) { cause = e; }
 
 		// The value will be a String if it come from a raw form
@@ -677,6 +748,9 @@ public abstract class AbstractConfig implements Cloneable {
 					return null;
 				}
 				jsonValue = new JSONObject(jsonStr);
+				if (sorted) {
+					jsonValue = new JSONSortedObject(jsonValue);
+				}
 			} catch (Exception e) { cause = e; }
 		}
 
@@ -690,7 +764,14 @@ public abstract class AbstractConfig implements Cloneable {
 
 		return jsonValue;
 	}
+
+	private static JSONSortedObject getJSONSortedObject(JSONArray jsonArr, int index) throws JSONException {
+		return (JSONSortedObject)_getJSONObject(jsonArr, index, true);
+	}
 	private static JSONObject getJSONObject(JSONArray jsonArr, int index) throws JSONException {
+		return _getJSONObject(jsonArr, index, false);
+	}
+	private static JSONObject _getJSONObject(JSONArray jsonArr, int index, boolean sorted) throws JSONException {
 		if (jsonArr.isNull(index)) {
 			return null;
 		}
@@ -699,6 +780,9 @@ public abstract class AbstractConfig implements Cloneable {
 		Exception cause = null;
 		try {
 			jsonValue = jsonArr.optJSONObject(index);
+			if (sorted) {
+				jsonValue = new JSONSortedObject(jsonValue);
+			}
 		} catch (Exception e) { cause = e; }
 
 		// The value will be a String if it come from a raw form
@@ -724,6 +808,9 @@ public abstract class AbstractConfig implements Cloneable {
 	}
 
 	private static JSONArray getJSONArray(JSONObject jsonObj, String configName) throws JSONException {
+		if (configName != null) {
+			configName = configName.trim();
+		}
 		if (jsonObj.isNull(configName)) {
 			return null;
 		}
@@ -817,7 +904,7 @@ public abstract class AbstractConfig implements Cloneable {
 		if (getter.length() <= 0) {
 			Class fieldType = field.getType();
 			if (fieldType != null) {
-				String capitalizedFieldName = Utils.capitalizeFirst(field.getName());
+				String capitalizedFieldName = Utils.capitalizeFirst(field.getName().trim());
 				if (fieldType.equals(boolean.class) || fieldType.equals(Boolean.class)) {
 					getter = "is" + capitalizedFieldName;
 				} else {
@@ -846,7 +933,7 @@ public abstract class AbstractConfig implements Cloneable {
 			return null;
 		}
 		if (setter.length() <= 0) {
-			String capitalizedFieldName = Utils.capitalizeFirst(field.getName());
+			String capitalizedFieldName = Utils.capitalizeFirst(field.getName().trim());
 			setter = "set" + capitalizedFieldName;
 		}
 		Method setterMethod = null;
@@ -933,12 +1020,17 @@ public abstract class AbstractConfig implements Cloneable {
 											AbstractConfig configEl = (AbstractConfig)el;
 											String currentKey = configEl.getJSONObjectKey();
 											if (currentKey != null) {
+												currentKey = currentKey.trim();
 												for (Object newEl : newColl) {
 													if (newEl != null) {
 														AbstractConfig newConfigEl = (AbstractConfig)newEl;
-														if (currentKey.equals(newConfigEl.getJSONObjectKey())) {
-															// Refer to the same object, need override
-															configEl.applyOverrides(newConfigEl);
+														String foundKey = newConfigEl.getJSONObjectKey();
+														if (foundKey != null) {
+															foundKey = foundKey.trim();
+															if (currentKey.equals(foundKey)) {
+																// Refer to the same object, need override
+																configEl.applyOverrides(newConfigEl);
+															}
 														}
 													}
 												}
@@ -951,13 +1043,18 @@ public abstract class AbstractConfig implements Cloneable {
 											AbstractConfig newConfigEl = (AbstractConfig)newEl;
 											String newKey = newConfigEl.getJSONObjectKey();
 											if (newKey != null) {
+												newKey = newKey.trim();
 												boolean newElFound = false;
 												for (Object el : curColl) {
 													if (el != null) {
 														AbstractConfig configEl = (AbstractConfig)el;
-														if (newKey.equals(configEl.getJSONObjectKey())) {
-															newElFound = true;
-															break;
+														String foundKey = configEl.getJSONObjectKey();
+														if (foundKey != null) {
+															foundKey = foundKey.trim();
+															if (newKey.equals(foundKey)) {
+																newElFound = true;
+																break;
+															}
 														}
 													}
 												}

@@ -113,10 +113,10 @@
 		var timestamp = new Date().getTime();
 
 		Ext.onReady(function() {
-			document.getElementById('loading').style.display = 'none';
-
 			Atlas.core = new Atlas.Core("/atlasmapper/public/layersInfo.jsp?client=${clientId}&action=GET_LIVE_CONFIG", null, timestamp, true);
 			Atlas.core.afterLoad = function() {
+				document.getElementById('loading').style.display = 'none';
+
 				mapLayoutItems = [];
 				for (var i=0; i<nbMaps; i++) {
 					var mapPanel = Atlas.core.createNewMapPanel();

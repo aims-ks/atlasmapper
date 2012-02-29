@@ -24,6 +24,8 @@ package au.gov.aims.atlasmapperserver;
 import au.gov.aims.atlasmapperserver.collection.MultiKeyHashMap;
 import java.io.FileNotFoundException;
 import java.util.Map;
+
+import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import junit.framework.TestCase;
 import org.json.JSONException;
 
@@ -40,14 +42,14 @@ public class DefaultConfigFilesTest extends TestCase  {
 		assertFalse(cm.isDemoMode());
 		assertEquals(1.0, cm.getConfigVersion());
 
-		MultiKeyHashMap<Integer, String, DataSourceConfig> dataSourceConfigs = cm.getDataSourceConfigs();
+		MultiKeyHashMap<Integer, String, AbstractDataSourceConfig> dataSourceConfigs = cm.getDataSourceConfigs();
 		assertNotNull(dataSourceConfigs);
-		assertEquals(2, dataSourceConfigs.size());
+		assertEquals(5, dataSourceConfigs.size());
 
-		DataSourceConfig eatlas = dataSourceConfigs.get2("ea");
+		AbstractDataSourceConfig eatlas = dataSourceConfigs.get2("ea");
 		assertEquals("e-Atlas", eatlas.getDataSourceName());
 
-		DataSourceConfig opengeo = dataSourceConfigs.get2("og");
+		AbstractDataSourceConfig opengeo = dataSourceConfigs.get2("og");
 		assertEquals("OpenGeo", opengeo.getDataSourceName());
 
 

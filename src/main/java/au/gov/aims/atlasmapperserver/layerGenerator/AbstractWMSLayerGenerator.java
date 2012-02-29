@@ -19,21 +19,14 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package au.gov.aims.atlasmapperserver;
+package au.gov.aims.atlasmapperserver.layerGenerator;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.net.URLConnection;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
+import au.gov.aims.atlasmapperserver.ClientConfig;
+import au.gov.aims.atlasmapperserver.ConfigManager;
+import au.gov.aims.atlasmapperserver.Utils;
+import au.gov.aims.atlasmapperserver.dataSourceConfig.WMSDataSourceConfig;
+import au.gov.aims.atlasmapperserver.layerConfig.LayerStyleConfig;
+import au.gov.aims.atlasmapperserver.layerConfig.WMSLayerConfig;
 import org.geotools.data.ows.CRSEnvelope;
 import org.geotools.data.ows.GetCapabilitiesRequest;
 import org.geotools.data.ows.GetCapabilitiesResponse;
@@ -49,24 +42,24 @@ import org.geotools.data.wms.WebMapServer;
 import org.geotools.ows.ServiceException;
 import org.opengis.util.InternationalString;
 
-/**
- *
- * @author glafond
- */
-public class WMSCapabilitiesWrapper {
-	private static final Logger LOGGER = Logger.getLogger(WMSCapabilitiesWrapper.class.getName());
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-	// Cache timeout in millisecond
-	// The GetCapabilities will be redownloaded if the application request
-	// information from it and its cached version is older than this setting.
-	private static final long WMS_CAPABILITIES_CACHE_TIMEOUT = 60*60000; // 60000 = 1 minute
-
-	private static Map<String, WMSCapabilitiesWrapper> capabilitiesDocumentsCache = null;
-	private long instanceTimestamp = -1;
+public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D extends WMSDataSourceConfig> extends AbstractLayerGenerator<L, D> {
+	private static final Logger LOGGER = Logger.getLogger(AbstractWMSLayerGenerator.class.getName());
 
 	// Layer config, for each clients
-	// Map<String clientId, Map<String layerId, LayerConfig layer>>
-	private Map<String, Map<String, LayerConfig>> layerConfigsCache = null;
+	// Map<String clientId, Map<String layerId, AbstractLayerConfig layer>>
+	private Map<String, Map<String, L>> layerConfigsCache = null;
 	private WMSCapabilities wmsCapabilities = null;
 	private String serviceTitle = null;
 	private String wmsVersion = null;
@@ -76,28 +69,9 @@ public class WMSCapabilitiesWrapper {
 	private URL webCacheUrl = null;
 	private URL legendUrl = null;
 
-	public static WMSCapabilitiesWrapper getInstance(String getCapabilitiesURL) throws IOException, ServiceException {
-		if (getCapabilitiesURL == null) { return null; }
-
-		if (capabilitiesDocumentsCache == null) {
-			capabilitiesDocumentsCache = new HashMap<String, WMSCapabilitiesWrapper>();
-		}
-
-		long timeout = Utils.getCurrentTimestamp() - WMS_CAPABILITIES_CACHE_TIMEOUT;
-		// If not in cache or its cache has timed out
-		if (!capabilitiesDocumentsCache.containsKey(getCapabilitiesURL) ||
-				capabilitiesDocumentsCache.get(getCapabilitiesURL).instanceTimestamp <= timeout) {
-
-			capabilitiesDocumentsCache.put(getCapabilitiesURL, new WMSCapabilitiesWrapper(getCapabilitiesURL));
-		}
-
-		return capabilitiesDocumentsCache.get(getCapabilitiesURL);
-	}
-
-	private WMSCapabilitiesWrapper(String getCapabilitiesURL) throws IOException, ServiceException {
+	public AbstractWMSLayerGenerator(String getCapabilitiesURL) throws IOException, ServiceException {
 		this.wmsCapabilities = this.getWMSCapabilities(getCapabilitiesURL);
-		this.layerConfigsCache = new HashMap<String, Map<String, LayerConfig>>();
-		this.instanceTimestamp = Utils.getCurrentTimestamp();
+		this.layerConfigsCache = new HashMap<String, Map<String, L>>();
 
 		if (this.wmsCapabilities != null) {
 			WMSRequest wmsRequestCapabilities = this.wmsCapabilities.getRequest();
@@ -117,6 +91,8 @@ public class WMSCapabilitiesWrapper {
 			}
 		}
 	}
+
+	protected abstract L createLayerConfig(ConfigManager configManager);
 
 	private WMSCapabilities getWMSCapabilities(String urlStr) throws IOException, ServiceException {
 		LOGGER.log(Level.INFO, "Downloading the Capabilities Document {0}", urlStr);
@@ -140,6 +116,28 @@ public class WMSCapabilitiesWrapper {
 		return server.getCapabilities();
 	}
 
+	/**
+	 * WMS Server already has a unique layer ID for each layers. Nothing to do here.
+	 * @param layer
+	 * @param dataSourceConfig
+	 * @return
+	 */
+	@Override
+	protected String getUniqueLayerId(WMSLayerConfig layer, WMSDataSourceConfig dataSourceConfig) {
+		return layer.getLayerId();
+	}
+
+	@Override
+	public Map<String, L> generateLayerConfigs(ClientConfig clientConfig, D dataSourceConfig) {
+		Map<String, L> configs = this.layerConfigsCache.get(clientConfig.getClientId());
+		if (configs == null) {
+			// API: http://docs.geotools.org/latest/javadocs/org/geotools/data/ows/WMSCapabilities.html
+			configs = this.getLayersInfoFromCaps(clientConfig, dataSourceConfig);
+			this.layerConfigsCache.put(clientConfig.getClientId(), configs);
+		}
+		return configs;
+	}
+
 	private GetCapabilitiesRequest getCapRequest(final URL url) {
 		return new WMS1_3_0.GetCapsRequest(url) {
 			@Override
@@ -159,49 +157,11 @@ public class WMSCapabilitiesWrapper {
 		return (GetCapabilitiesResponse)request.createResponse(contentType, inputStream);
 	}
 
-
-	protected static synchronized void clearCapabilitiesDocumentsCache() {
-		if (capabilitiesDocumentsCache != null) {
-			capabilitiesDocumentsCache.clear();
-		}
-		capabilitiesDocumentsCache = null;
-	}
-
-	/**
-	 * Remove capabilities documents that are not in use anymore.
-	 * This method avoid the cache to represent a memory leak.
-	 * @param dataSources
-	 */
-	protected static synchronized void cleanupCapabilitiesDocumentsCache(Collection<DataSourceConfig> dataSources) {
-		if (capabilitiesDocumentsCache != null) {
-			long timeout = Utils.getCurrentTimestamp() - WMS_CAPABILITIES_CACHE_TIMEOUT;
-			Map<String, WMSCapabilitiesWrapper> cleanCache = new HashMap<String, WMSCapabilitiesWrapper>();
-			for (DataSourceConfig dataSource : dataSources) {
-				String capUrl = dataSource.getWmsServiceUrl();
-				WMSCapabilitiesWrapper cap = capabilitiesDocumentsCache.get(capUrl);
-				if (cap != null && cap.instanceTimestamp > timeout) {
-					cleanCache.put(capUrl, cap);
-				}
-			}
-			capabilitiesDocumentsCache = cleanCache;
-		}
-	}
-
 	private URL getOperationUrl(OperationType op) {
 		if (op == null) {
 			return null;
 		}
 		return op.getGet();
-	}
-
-	public Map<String, LayerConfig> getLayerConfigs(ClientConfig clientConfig, DataSourceConfig dataSourceConfig) {
-		Map<String, LayerConfig> configs = this.layerConfigsCache.get(clientConfig.getClientId());
-		if (configs == null) {
-			// API: http://docs.geotools.org/latest/javadocs/org/geotools/data/ows/WMSCapabilities.html
-			configs = this.getLayersInfoFromCaps(clientConfig, dataSourceConfig);
-			this.layerConfigsCache.put(clientConfig.getClientId(), configs);
-		}
-		return configs;
 	}
 
 	public String getServiceTitle() {
@@ -236,32 +196,33 @@ public class WMSCapabilitiesWrapper {
 		return this.webCacheUrl;
 	}
 
-	private Map<String, LayerConfig> getLayersInfoFromCaps(
+	private Map<String, L> getLayersInfoFromCaps(
 			ClientConfig clientConfig,        // Client's specific layers information (base layers list override, etc.)
-			DataSourceConfig dataSourceConfig // Data source of layers (to link the layer to its data source)
+			D dataSourceConfig // Data source of layers (to link the layer to its data source)
 	) {
 
 		// http://docs.geotools.org/stable/javadocs/org/geotools/data/wms/WebMapServer.html
 		Layer rootLayer = this.wmsCapabilities.getLayer();
 
-		Map<String, LayerConfig> layerInfos = new HashMap<String, LayerConfig>();
+		Map<String, L> layerInfos = new HashMap<String, L>();
 		// Can add it in the config if some users think it's usefull to see the root...
 
 		return this._getLayersInfoFromGeoToolRootLayer(layerInfos, rootLayer, new LinkedList<String>(), clientConfig, dataSourceConfig, true);
 	}
 
-	public DataSourceConfig applyOverrides(DataSourceConfig dataSourceConfig) {
-		DataSourceConfig clone = (DataSourceConfig) dataSourceConfig.clone();
+	@Override
+	public D applyOverrides(D dataSourceConfig) {
+		D clone = (D) dataSourceConfig.clone();
 
 		if (this.featureRequestsUrl != null && Utils.isBlank(clone.getFeatureRequestsUrl())) {
 			clone.setFeatureRequestsUrl(this.featureRequestsUrl.toString());
 		}
 
-		// The wmsServiceUrl set in the DataSourceConfig is the one set in the
+		// The wmsServiceUrl set in the AbstractDataSourceConfig is the one set in the
 		// AtlasMapper server GUI. It may contains the capabilities URL.
 		// The GetMap URL found in the capabilities document is always safer.
 		if (this.wmsServiceUrl != null) {
-			clone.setWmsServiceUrl(this.wmsServiceUrl.toString());
+			clone.setServiceUrl(this.wmsServiceUrl.toString());
 		}
 
 		if (this.extraWmsServiceUrls != null && Utils.isBlank(clone.getExtraWmsServiceUrls())) {
@@ -293,12 +254,12 @@ public class WMSCapabilitiesWrapper {
 	// give the same result as
 	//     getXmlLayersFromGeoToolRootLayer(xmlLayers, childLayer, childrenWmsPath);
 	// The first one is just visualy more easy to understand.
-	private Map<String, LayerConfig> _getLayersInfoFromGeoToolRootLayer(
-			Map<String, LayerConfig> layerConfigs,
+	private Map<String, L> _getLayersInfoFromGeoToolRootLayer(
+			Map<String, L> layerConfigs,
 			Layer layer,
 			List<String> wmsPath,
 			ClientConfig clientConfig,
-			DataSourceConfig dataSourceConfig,
+			D dataSourceConfig,
 			boolean isRoot) {
 
 		if (layer == null) {
@@ -342,7 +303,7 @@ public class WMSCapabilitiesWrapper {
 				}
 			}
 
-			LayerConfig layerConfig = this.layerToLayerConfig(layer, wmsPathBuf.toString(), clientConfig, dataSourceConfig);
+			L layerConfig = this.layerToLayerConfig(layer, wmsPathBuf.toString(), clientConfig, dataSourceConfig);
 			if (layerConfig != null) {
 				layerConfigs.put(layerConfig.getLayerId(), layerConfig);
 			}
@@ -351,13 +312,13 @@ public class WMSCapabilitiesWrapper {
 		return layerConfigs;
 	}
 
-	private LayerConfig layerToLayerConfig(
+	private L layerToLayerConfig(
 			Layer layer,
 			String wmsPath,
 			ClientConfig clientConfig,
-			DataSourceConfig dataSourceConfig) {
+			D dataSourceConfig) {
 
-		LayerConfig layerConfig = new LayerConfig(clientConfig.getConfigManager());
+		L layerConfig = this.createLayerConfig(clientConfig.getConfigManager());
 
 		// Link the layer to it's data source
 		layerConfig.setDataSourceId(dataSourceConfig.getDataSourceId());
@@ -367,6 +328,7 @@ public class WMSCapabilitiesWrapper {
 			LOGGER.log(Level.WARNING, "The Capabilities Document [{0}] contains layers without name (other than the root layer).", this.serviceTitle);
 			return null;
 		}
+
 		layerConfig.setLayerId(layerId);
 
 		String title = layer.getTitle();
@@ -416,6 +378,8 @@ public class WMSCapabilitiesWrapper {
 			};
 			layerConfig.setLayerBoundingBox(boundingBoxArray);
 		}
+
+		this.ensureUniqueLayerId(layerConfig, dataSourceConfig);
 
 		return layerConfig;
 	}

@@ -35,10 +35,9 @@ var dataSourceTypes = {
 		display: 'ncWMS',
 		qtipHtml: 'ncWMS is a Web Map Service for geospatial data that are stored in <strong>CF-compliant NetCDF</strong> files. This type of data source is not very common. You will be asked to provide a GetCapabilities document URL.'
 	},
-	'ARCGISWMS': {
-		display: 'ArcGIS WMS',
-		disabled: true,
-		qtipHtml: 'Sorry, not supported yet'
+	'ARCGIS_MAPSERVER': {
+		display: 'ArcGIS MapServer',
+		qtipHtml: 'ArcGIS Map servers, which provide ESRI layers. It use the ArcGIS cache feature when available.'
 	},
 	'GOOGLE': {
 		display: 'Google',
@@ -53,7 +52,7 @@ var dataSourceTypes = {
 		display: 'KML',
 		qtipHtml: 'KML is the file format used to display geographic data in Earth browser such as <strong>Google Earth</strong>, <strong>Google Maps</strong>, and <strong>Google Maps for mobile</strong>. This application has basic support for this type of data source.'
 	},
-	'tiles': {
+	'TILES': {
 		display: 'Static tiles',
 		disabled: true,
 		qtipHtml: 'Sorry, not supported yet'
@@ -247,10 +246,10 @@ Ext.define('Writer.LayerServerConfigForm', {
 			name: 'legendUrl'
 		};
 
-		var wmsServiceUrl = {
-			fieldLabel: 'WMS service URL',
-			qtipHtml: 'URL to the WMS service. This URL is used by a java library to download the WMS capabilities document. Setting this field alone with <em>Data source ID</em> and <em>Data source name</em> is usually enough. Note that a full URL to the capabilities document can also be provided, including additional parameters.',
-			name: 'wmsServiceUrl'
+		var serviceUrl = {
+			fieldLabel: 'Service URL',
+			qtipHtml: 'URL to the layer service. This URL is used by a java library to download the layers or the WMS capabilities document. Setting this field alone with <em>Data source ID</em> and <em>Data source name</em> is usually enough. Note that a full URL to the capabilities document can also be provided, including additional parameters.',
+			name: 'serviceUrl'
 		};
 		var baseLayers = {
 			fieldLabel: 'Base layers',
@@ -306,11 +305,17 @@ Ext.define('Writer.LayerServerConfigForm', {
 			height: 100
 		};
 
+		var ignoredArcGSIPath = {
+			fieldLabel: 'Ignored ArcGSI path',
+			qtipHtml: 'This field is used to work around a none standard configuration on the GBRMPA ArcGIS MapServer. If this data source is pulling it\'s configuration from GBRMPA ArcGIS MapServer, set this field to "Public/".',
+			name: 'ignoredArcGSIPath'
+		};
+
 
 		// Set the Form items for the different data source types
 		switch(this.dataSourceType) {
 			case 'WMS':
-				items.push(wmsServiceUrl);
+				items.push(Ext.apply(serviceUrl, { fieldLabel: 'WMS service URL' }));
 				items.push(baseLayers);
 				items.push(comment);
 
@@ -326,7 +331,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 				break;
 
 			case 'NCWMS':
-				items.push(Ext.apply(wmsServiceUrl, { fieldLabel: 'ncWMS service URL' }));
+				items.push(Ext.apply(serviceUrl, { fieldLabel: 'ncWMS service URL' }));
 				items.push(baseLayers);
 				items.push(comment);
 
@@ -340,7 +345,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 				break;
 
 			case 'WMTS':
-				items.push(Ext.apply(wmsServiceUrl, { fieldLabel: 'WMTS service URL' }));
+				items.push(Ext.apply(serviceUrl, { fieldLabel: 'WMTS service URL' }));
 				items.push(baseLayers);
 				items.push(comment);
 
@@ -364,6 +369,19 @@ Ext.define('Writer.LayerServerConfigForm', {
 				items.push(comment);
 
 				advancedItems.push(globalManualOverride);
+				advancedItems.push(blacklistedLayers);
+				break;
+
+			case 'ARCGIS_MAPSERVER':
+				items.push(Ext.apply(serviceUrl, { fieldLabel: 'ArcGIS service URL' }));
+				items.push(baseLayers);
+				items.push(comment);
+
+				advancedItems.push(globalManualOverride);
+				advancedItems.push(blacklistedLayers);
+				advancedItems.push(showInLegend);
+				advancedItems.push(legendUrl);
+				advancedItems.push(ignoredArcGSIPath);
 				break;
 		}
 
@@ -550,6 +568,61 @@ Ext.define('Writer.LayerServerConfigGrid', {
 										} else {
 											frameset.setError('Unsupported data source type ['+dataSourceType+']');
 										}
+									}
+								} else {
+									frameset.setError('No record has been selected.');
+								}
+							}
+						}, {
+							icon: '../resources/icons/clear-cache.png',
+
+							// Bug: defaults is ignored (http://www.sencha.com/forum/showthread.php?138446-actioncolumn-ignore-defaults)
+							iconCls: 'grid-icon',
+
+							tooltip: 'Clear capabilities document cache',
+							scope: this,
+							handler: function(grid, rowIndex, colIndex) {
+								var rec = grid.getStore().getAt(rowIndex);
+								if (rec) {
+									var dataSource = rec.data;
+									if (dataSource) {
+										frameset.setSavingMessage('Clearing ' + dataSource.dataSourceName + ' cache.');
+
+										Ext.Ajax.request({
+											url: 'dataSourcesConfig.jsp',
+											params: {
+												'action': 'CLEARCACHE',
+												'id': dataSource.id
+											},
+											success: function(response){
+												var responseObj = null;
+												var statusCode = response ? response.status : null;
+												if (response && response.responseText) {
+													try {
+														responseObj = Ext.decode(response.responseText);
+													} catch (err) {
+														responseObj = {errors: [err.toString()]};
+													}
+												}
+												if(responseObj && responseObj.success){
+													frameset.setSavedMessage('Cache cleared successfully.', 0, 'Clearing ' + dataSource.dataSourceName + ' cache.');
+												} else {
+													frameset.setErrors('An error occurred while clearing the data source cache.', responseObj, statusCode);
+												}
+											},
+											failure: function(response) {
+												var responseObj = null;
+												var statusCode = response ? response.status : null;
+												if (response && response.responseText) {
+													try {
+														responseObj = Ext.decode(response.responseText);
+													} catch (err) {
+														responseObj = {errors: [err.toString()]};
+													}
+												}
+												frameset.setErrors('An error occurred while clearing the data source cache.', responseObj, statusCode);
+											}
+										});
 									}
 								} else {
 									frameset.setError('No record has been selected.');
@@ -788,7 +861,7 @@ Ext.define('Writer.LayerServerConfig', {
 		{name: 'dataSourceId', sortType: 'asUCString'},
 		{name: 'dataSourceName', sortType: 'asUCString'},
 		{name: 'dataSourceType', type: 'string'},
-		'wmsServiceUrl',
+		'serviceUrl',
 		'extraWmsServiceUrls',
 		'kmlUrls',
 		'webCacheUrl',
@@ -800,6 +873,7 @@ Ext.define('Writer.LayerServerConfig', {
 		'baseLayers',
 		'globalManualOverride',
 		{name: 'showInLegend', type: 'boolean', defaultValue: false},
+		'ignoredArcGSIPath',
 		'comment'
 	],
 	validations: [{
@@ -819,14 +893,11 @@ Ext.define('Writer.LayerServerConfig', {
 
 Ext.require([
 	'Ext.data.*',
-	'Ext.tip.QuickTipManager',
 	'Ext.window.MessageBox'
 ]);
 
 
 Ext.onReady(function(){
-	Ext.tip.QuickTipManager.init();
-
 	frameset = new Frameset();
 	frameset.setContentTitle('Data sources configuration');
 	frameset.addContentDescription('<img src="../resources/images/json-small.jpg" style="float:right; width: 200px; height: 132px"> Each <i>data source</i> specifies a set of layers that can be used in one or more of the <i>clients</i>. It specifies the type (<i>WMS</i>, <i>ncWMS</i>, <i>Google</i>, <i>KML</i>, etc) and source of the data as well as any manual settings for the layers, such as modifying the <i>title</i>, <i>description</i> or <i>path</i> in the tree. For <i>WMS</i> data sources a <i>tile cache service</i> can be linked with a full <i>WMS service</i> so that imagery is requested from the tile server, but feature requests are sent to the full <i>WMS</i>.');

@@ -22,8 +22,13 @@
 package au.gov.aims.atlasmapperserver.servlet;
 
 import au.gov.aims.atlasmapperserver.ClientConfig;
+import au.gov.aims.atlasmapperserver.ConfigHelper;
+import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.Utils;
+import org.json.JSONException;
+
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Arrays;
@@ -58,12 +63,37 @@ public class FileFinder {
 	private static final String CLIENT_WELCOME_PAGE = "index.html";
 	private static final String CLIENT_PREVIEW_PAGE = "preview.html";
 
-	public static File getClientFile(ServletContext context, String fileRelativePathWithClientpath) {
-		if (context == null || Utils.isBlank(fileRelativePathWithClientpath)) {
+	public static File getClientFile(ServletContext context, String fileRelativePathWithClientPath) {
+		if (context == null || Utils.isBlank(fileRelativePathWithClientPath)) {
 			return null;
 		}
 
-		return new File(getApplicationFolder(context, false), fileRelativePathWithClientpath);
+		return new File(getApplicationFolder(context, false), fileRelativePathWithClientPath);
+	}
+
+	public static String getClientId(String fileRelativePathWithClientPath) {
+		// The client ID is the first none empty folder in the path
+		// 1. Count how many slash are at the beginning of the string (it may be something like: "///clientId/folder/file")
+		// NOTE: Tomcat seems to remove redundant slashes, so this loop is just to increase the stability.
+		int clientIdStart = 0;
+		while (fileRelativePathWithClientPath.charAt(clientIdStart) == '/') {
+			clientIdStart++;
+		}
+		// 2. Get everything between the last starting slash and the next one ("///clientId/folder/file" => "clientId")
+		return fileRelativePathWithClientPath.substring(clientIdStart, fileRelativePathWithClientPath.indexOf('/', clientIdStart));
+	}
+
+	public static ClientConfig getClientConfig(ServletContext context, String clientId) throws FileNotFoundException, JSONException {
+		if (Utils.isBlank(clientId)) {
+			return null;
+		}
+
+		ConfigManager configManager = ConfigHelper.getConfigManager(context);
+		if (configManager == null) {
+			return null;
+		}
+
+		return configManager.getClientConfig(clientId);
 	}
 
 	public static String getAtlasMapperClientURL(ServletContext context, ClientConfig clientConfig, boolean preview) {

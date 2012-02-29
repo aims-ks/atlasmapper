@@ -21,7 +21,6 @@
 
 /*
  TODO Add comment about Folder reverse order
- TODO _onChildMove - Check the store
 
  Save node state:
 
@@ -145,11 +144,12 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 	},
 
 	onLayerDelete: function(map, node) {
-		if (!this._reordering) {
+		if (node && !this._reordering) {
 			if (node.hasChildNodes()) {
 				node.eachChild(function(child) {
-					if (child.layer) {
-						// This will trigger this event
+					if (child && child.layer) {
+						// This line will trigger this event with the child
+						// to remove all children recursively
 						map.removeLayer(child.layer);
 					} else {
 						// Every nodes has a layer, this should not be called...
@@ -197,8 +197,8 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 			{
 			}, {
 				// Those attributes do not works... Probably because this is an abstract layer.
-				//id: groupPathConf.id,
-				//name: groupPathConf.title,
+				//id: config.id,
+				//name: config.title,
 				_groupLayer: true,
 				path: path
 			}
@@ -422,6 +422,10 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 		var parent = node;
 		while (parent != null && parent.previousSibling == null) {
 			parent = parent.parentNode;
+			// Reach the end of the layer container
+			if (parent instanceof GeoExt.tree.LayerContainer) {
+				parent = null;
+			}
 		}
 		if (parent != null) {
 			return parent.previousSibling;
@@ -482,13 +486,13 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 		if (nextNode != null) {
 			// NOTE: Sometimes (AsyncTreeNode), node.hasChildNodes() return true even when it contains no child...
 			while (nextNode != null && nextNode.childNodes != null && nextNode.childNodes.length > 0) {
-				nextNode = nextNode.lastChild;
+				nextNode = nextNode.firstChild;
 			}
 			return nextNode;
 		}
 
 		// There is no sibling bellow, return the parent (folder).
-		if (node.parentNode != null) {
+		if (node.parentNode != null && !(node.parentNode instanceof GeoExt.tree.LayerContainer)) {
 			return node.parentNode;
 		}
 

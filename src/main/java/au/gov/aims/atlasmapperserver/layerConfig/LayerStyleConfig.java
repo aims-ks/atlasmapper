@@ -19,8 +19,11 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package au.gov.aims.atlasmapperserver;
+package au.gov.aims.atlasmapperserver.layerConfig;
 
+import au.gov.aims.atlasmapperserver.AbstractConfig;
+import au.gov.aims.atlasmapperserver.ConfigManager;
+import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 
 /**

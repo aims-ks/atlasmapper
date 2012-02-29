@@ -114,8 +114,8 @@ Ext.define('Writer.ClientConfigForm', {
 			'latitude': 0,
 			'zoom': 6,
 			'default': false,
-			'fullClientEnable': true,
-			'fullClientModules': ['Info', 'Tree'], // TODO Delete this once this field is implemented
+			'mainClientEnable': true,
+			'mainClientModules': ['Info', 'Tree'], // TODO Delete this once this field is implemented
 			'baseLayersInTab': true,
 			'useLayerService': true,
 			'theme': '',
@@ -134,13 +134,13 @@ Ext.define('Writer.ClientConfigForm', {
 			});
 		});
 
-		var fullClientModules = [];
+		var mainClientModules = [];
 		var embeddedClientModules = [];
 		// NOTE: modules variable is set in clientsConfigPage.jsp
 		// I don't want to do an Ajax query to get those...
 		Ext.iterate(modules, function(moduleId, moduleConfig) {
-			fullClientModules.push(Ext.apply({
-				name: 'fullClientModules',
+			mainClientModules.push(Ext.apply({
+				name: 'mainClientModules',
 				inputValue: moduleId
 			}, moduleConfig));
 			embeddedClientModules.push(Ext.apply({
@@ -212,7 +212,7 @@ Ext.define('Writer.ClientConfigForm', {
 								xtype: 'hiddenfield'
 							}, {
 								boxLabel: 'Enable this client',
-								qtipHtml: 'The application ignore the entries which has this box unchecked.',
+								qtipHtml: 'If this box is unchecked, the AtlasMapper will return 404 (Not found) when a user try to access the mapping client. Note that this feature only works with clients hosts by the AtlasMapper server.',
 								name: 'enable',
 								xtype: 'checkboxfield'
 							}, {
@@ -236,11 +236,11 @@ Ext.define('Writer.ClientConfigForm', {
 								columns: 2,
 								items: dataSourcesItems
 							}, {
-								title: 'Modules for the full client(s)',
-								qtipTitle: 'Full client',
-								qtipHtml: 'Selected modules will appear in the full client.',
+								title: 'Modules for the main client(s)',
+								qtipTitle: 'Main client',
+								qtipHtml: 'Selected modules will appear in the main client.',
 								checkboxToggle: true,
-								checkboxName: 'fullClientEnable',
+								checkboxName: 'mainClientEnable',
 								xtype:'fieldsetresize',
 								defaultType: 'textfield',
 								collapsible: true,
@@ -250,7 +250,7 @@ Ext.define('Writer.ClientConfigForm', {
 									{
 										xtype: 'checkboxgroup',
 										columns: 2,
-										items: fullClientModules
+										items: mainClientModules
 									}
 								]
 							}, {
@@ -450,22 +450,22 @@ Ext.define('Writer.ClientConfigForm', {
 								queryMode: 'local'
 							}, {
 								fieldLabel: 'Page header',
-								qtipHtml: 'TODO',
+								qtipHtml: 'HTML snippet displayed on top of the page, 100% browser width. The height is defined by the height of the HTML elements. This can be used to define the client branding and add links to the main company web site.',
 								name: 'pageHeader',
 								xtype: 'textareafield'
 							}, {
 								fieldLabel: 'Page footer',
-								qtipHtml: 'TODO',
+								qtipHtml: 'HTML snippet displayed on the bottom of the page, 100% browser width. The height is defined by the height of the HTML elements. This can be used to define the client branding and add links to the contact page, site map, etc.',
 								name: 'pageFooter',
 								xtype: 'textareafield'
 							}, {
 								fieldLabel: 'Layer panel header',
-								qtipHtml: 'TODO',
+								qtipHtml: 'HTML snippet displayed on top of the layer panel, to the left of the map. The height is defined by the height of the HTML elements. This can be used to define the client branding and add some extra links.',
 								name: 'layersPanelHeader',
 								xtype: 'textareafield'
 							}, {
 								fieldLabel: 'Layer panel footer',
-								qtipHtml: 'TODO',
+								qtipHtml: 'HTML snippet displayed on the bottom of the layer panel, to the left of the map. The height is defined by the height of the HTML elements. This can be used to define the client branding and add some extra links.',
 								name: 'layersPanelFooter',
 								xtype: 'textareafield'
 							}
@@ -693,7 +693,7 @@ Ext.define('Writer.ClientConfigGrid', {
 									url: 'clientsConfig.jsp',
 									params: {
 										'action': 'DEBUG',
-										'clientId': rec.get('id'),
+										'id': rec.get('id'),
 										'jsonResponse': true
 									},
 									success: function(response){
@@ -769,7 +769,7 @@ Ext.define('Writer.ClientConfigGrid', {
 					items: [
 						{
 							// Layout that display items horizontally
-							title: 'Full client configuration',
+							title: 'Main client configuration',
 							xtype: 'fieldcontainer',
 							layout: {
 								type: 'hbox',
@@ -795,14 +795,14 @@ Ext.define('Writer.ClientConfigGrid', {
 											value: 'Current config'
 										}, {
 											xtype: 'displayfield',
-											id: 'displayLinkCurrentFullConf',
+											id: 'displayLinkCurrentMainConf',
 											style: { border: 'solid 1px #888888' },
 											height: '100%',
 											padding: 5,
 											hidden: true
 										}, Ext.apply(
 											{
-												id: 'jsonEditAreaCurrentFullConf',
+												id: 'jsonEditAreaCurrentMainConf',
 												readOnly: true
 											}, browserSpecificEditAreaConfig
 										)
@@ -822,14 +822,14 @@ Ext.define('Writer.ClientConfigGrid', {
 											value: 'New config'
 										}, {
 											xtype: 'displayfield',
-											id: 'displayLinkNewFullConf',
+											id: 'displayLinkNewMainConf',
 											style: { border: 'solid 1px #888888' },
 											height: '100%',
 											padding: 5,
 											hidden: true
 										}, Ext.apply(
 											{
-												id: 'jsonEditAreaNewFullConf',
+												id: 'jsonEditAreaNewMainConf',
 												readOnly: true
 											}, browserSpecificEditAreaConfig
 										)
@@ -990,25 +990,25 @@ Ext.define('Writer.ClientConfigGrid', {
 			function _setLoading(el, load) {
 				if (el) el.setLoading(load);
 			}
-			_setLoading(Ext.getCmp('jsonEditAreaCurrentFullConf'), load);
-			_setLoading(Ext.getCmp('jsonEditAreaNewFullConf'), load);
+			_setLoading(Ext.getCmp('jsonEditAreaCurrentMainConf'), load);
+			_setLoading(Ext.getCmp('jsonEditAreaNewMainConf'), load);
 			_setLoading(Ext.getCmp('jsonEditAreaCurrentEmbeddedConf'), load);
 			_setLoading(Ext.getCmp('jsonEditAreaNewEmbeddedConf'), load);
 			_setLoading(Ext.getCmp('jsonEditAreaCurrentLayers'), load);
 			_setLoading(Ext.getCmp('jsonEditAreaNewLayers'), load);
 		};
 		debugWindow.setEditAreasData = function(jsonData, clientId) {
-			if (jsonData && jsonData.fullClient && jsonData.embeddedClient && jsonData.layers) {
+			if (jsonData && jsonData.mainClient && jsonData.embeddedClient && jsonData.layers) {
 				debugWindow.setEditAreaData(
-						Ext.getCmp('jsonEditAreaCurrentFullConf'),
-						Ext.getCmp('displayLinkCurrentFullConf'),
-						'getClientConfigFile.jsp?configType=full&clientId='+clientId,
-						jsonData.fullClient.current);
+						Ext.getCmp('jsonEditAreaCurrentMainConf'),
+						Ext.getCmp('displayLinkCurrentMainConf'),
+						'getClientConfigFile.jsp?configType=main&clientId='+clientId,
+						jsonData.mainClient.current);
 				debugWindow.setEditAreaData(
-						Ext.getCmp('jsonEditAreaNewFullConf'),
-						Ext.getCmp('displayLinkNewFullConf'),
-						'getClientConfigFile.jsp?configType=full&live=true&clientId='+clientId,
-						jsonData.fullClient.generated);
+						Ext.getCmp('jsonEditAreaNewMainConf'),
+						Ext.getCmp('displayLinkNewMainConf'),
+						'getClientConfigFile.jsp?configType=main&live=true&clientId='+clientId,
+						jsonData.mainClient.generated);
 
 				debugWindow.setEditAreaData(
 						Ext.getCmp('jsonEditAreaCurrentEmbeddedConf'),
@@ -1436,8 +1436,8 @@ Ext.define('Writer.ClientConfig', {
 		{name: 'clientName', sortType: 'asUCString'},
 
 		'dataSources', // String or Array<String>
-		{name: 'fullClientEnable', type: 'boolean', defaultValue: false},
-		'fullClientModules', // String or Array<String>
+		{name: 'mainClientEnable', type: 'boolean', defaultValue: false},
+		'mainClientModules', // String or Array<String>
 		{name: 'embeddedClientEnable', type: 'boolean', defaultValue: false},
 		'embeddedClientModules', // String or Array<String>
 
@@ -1474,14 +1474,11 @@ Ext.define('Writer.ClientConfig', {
 
 Ext.require([
 	'Ext.data.*',
-	'Ext.tip.QuickTipManager',
 	'Ext.window.MessageBox'
 ]);
 
 
 Ext.onReady(function(){
-	Ext.tip.QuickTipManager.init();
-
 	frameset = new Frameset();
 	frameset.setContentTitle('Atlas Mapper clients configuration');
 	frameset.addContentDescription('<p><img src="../resources/images/maps-small.jpg" style="float:right; width: 200px; height: 122px"> The <i>AtlasMapper server</i> allows you to set up multiple <i>clients</i>. For most installations only a single client is necessary. In this version each clients can be setup with their own source of layers and initial state (<i>starting position</i>, <i>zoom</i> and <i>layers</i>). In the future each client will be able to be branded differently and have different client <i>modules</i> enabled or disabled.</p><p>Each client is generated into their own folder (based on the <i>client name</i>) in <i>AtlasMapper</i> configuration directory. These clients can be made, if necessary, to run standalone without the <i>AtlasMapper server</i> using a only a web server such as <i>apache</i> or <i>IIS</i>. For this see the <i>Client configuration/Advanced options/Use layer service</i> option.</p>');

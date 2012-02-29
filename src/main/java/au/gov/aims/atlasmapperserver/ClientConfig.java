@@ -22,6 +22,11 @@
 package au.gov.aims.atlasmapperserver;
 
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
+import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
+import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
+import au.gov.aims.atlasmapperserver.layerConfig.FolderLayerConfig;
+import au.gov.aims.atlasmapperserver.layerConfig.GroupLayerConfig;
+import au.gov.aims.atlasmapperserver.layerConfig.LayerConfigHelper;
 import au.gov.aims.atlasmapperserver.servlet.FileFinder;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -33,10 +38,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.servlet.ServletContext;
-import org.geotools.ows.ServiceException;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.json.JSONSortedObject;
 
 /**
  *
@@ -60,10 +66,10 @@ public class ClientConfig extends AbstractConfig {
 	private JSONArray dataSources;
 
 	@ConfigField
-	private boolean fullClientEnable;
+	private boolean mainClientEnable;
 
 	@ConfigField
-	private JSONArray fullClientModules;
+	private JSONArray mainClientModules;
 
 	@ConfigField
 	private boolean embeddedClientEnable;
@@ -72,7 +78,7 @@ public class ClientConfig extends AbstractConfig {
 	private JSONArray embeddedClientModules;
 
 	@ConfigField
-	private JSONObject manualOverride;
+	private JSONSortedObject manualOverride;
 
 	@ConfigField
 	private String legendParameters;
@@ -236,20 +242,20 @@ public class ClientConfig extends AbstractConfig {
 		this.embeddedClientModules = embeddedClientModules;
 	}
 
-	public boolean isFullClientEnable() {
-		return this.fullClientEnable;
+	public boolean isMainClientEnable() {
+		return this.mainClientEnable;
 	}
 
-	public void setFullClientEnable(boolean fullClientEnable) {
-		this.fullClientEnable = fullClientEnable;
+	public void setMainClientEnable(boolean mainClientEnable) {
+		this.mainClientEnable = mainClientEnable;
 	}
 
-	public JSONArray getFullClientModules() {
-		return this.fullClientModules;
+	public JSONArray getMainClientModules() {
+		return this.mainClientModules;
 	}
 
-	public void setFullClientModules(JSONArray fullClientModules) {
-		this.fullClientModules = fullClientModules;
+	public void setMainClientModules(JSONArray mainClientModules) {
+		this.mainClientModules = mainClientModules;
 	}
 
 	public String getDefaultLayers() {
@@ -269,11 +275,11 @@ public class ClientConfig extends AbstractConfig {
 		this.enable = enable;
 	}
 
-	public JSONObject getManualOverride() {
+	public JSONSortedObject getManualOverride() {
 		return this.manualOverride;
 	}
 
-	public void setManualOverride(JSONObject manualOverride) {
+	public void setManualOverride(JSONSortedObject manualOverride) {
 		this.manualOverride = manualOverride;
 	}
 
@@ -534,7 +540,7 @@ public class ClientConfig extends AbstractConfig {
 			for (int i=0; i < dataSourcesArray.length(); i++) {
 				String clientDataSourceId = dataSourcesArray.optString(i, null);
 				if (Utils.isNotBlank(clientDataSourceId)) {
-					DataSourceConfig dataSourceConfig =
+					AbstractDataSourceConfig dataSourceConfig =
 							configManager.getDataSourceConfigs().get2(clientDataSourceId);
 					if (dataSourceConfig != null && "GOOGLE".equalsIgnoreCase(dataSourceConfig.getDataSourceType())) {
 						return true;
@@ -546,15 +552,15 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	// Helper
-	public List<DataSourceConfig> getDataSourceConfigs(ConfigManager configManager) throws JSONException, FileNotFoundException {
-		List<DataSourceConfig> dataSourceConfigs = new ArrayList<DataSourceConfig>();
+	public List<AbstractDataSourceConfig> getDataSourceConfigs() throws JSONException, FileNotFoundException {
+		List<AbstractDataSourceConfig> dataSourceConfigs = new ArrayList<AbstractDataSourceConfig>();
 		JSONArray dataSourcesArray = this.getDataSources();
 		if (dataSourcesArray != null) {
 			for (int i=0; i < dataSourcesArray.length(); i++) {
 				String clientDataSourceId = dataSourcesArray.optString(i, null);
 				if (Utils.isNotBlank(clientDataSourceId)) {
-					DataSourceConfig dataSourceConfig =
-							configManager.getDataSourceConfigs().get2(clientDataSourceId);
+					AbstractDataSourceConfig dataSourceConfig =
+							this.getConfigManager().getDataSourceConfigs().get2(clientDataSourceId);
 					if (dataSourceConfig != null) {
 						dataSourceConfigs.add(dataSourceConfig);
 					}
@@ -565,16 +571,16 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	// Helper
-	public Map<String, LayerConfig> getLayerConfigs(ConfigManager configManager) throws IOException, ServiceException, JSONException, GetCapabilitiesExceptions {
-		Map<String, LayerConfig> overridenLayerConfigs = new HashMap<String, LayerConfig>();
+	public Map<String, AbstractLayerConfig> generateLayerConfigs() throws GetCapabilitiesExceptions, Exception {
+		Map<String, AbstractLayerConfig> overriddenLayerConfigs = new HashMap<String, AbstractLayerConfig>();
 
 		// Retrieved all layers for all data sources of this client
 		GetCapabilitiesExceptions errors = new GetCapabilitiesExceptions();
-		for (DataSourceConfig dataSourceConfig : this.getDataSourceConfigs(configManager)) {
+		for (AbstractDataSourceConfig dataSourceConfig : this.getDataSourceConfigs()) {
 			try {
 				if (dataSourceConfig != null) {
-					overridenLayerConfigs.putAll(
-							dataSourceConfig.getLayerConfigs(this));
+					overriddenLayerConfigs.putAll(
+							dataSourceConfig.generateLayerConfigs(this));
 				}
 			} catch(IOException ex) {
 				// Collect all errors
@@ -592,13 +598,13 @@ public class ClientConfig extends AbstractConfig {
 			Iterator<String> layerIds = clientOverrides.keys();
 			while (layerIds.hasNext()) {
 				String layerId = layerIds.next();
-				if (!overridenLayerConfigs.containsKey(layerId)) {
+				if (!overriddenLayerConfigs.containsKey(layerId)) {
 					JSONObject jsonClientOverride = clientOverrides.optJSONObject(layerId);
 					if (jsonClientOverride != null && jsonClientOverride.length() > 0) {
-						LayerConfig manualLayer = new LayerConfig(this.getConfigManager(), jsonClientOverride);
+						AbstractLayerConfig manualLayer = LayerConfigHelper.createLayerConfig(jsonClientOverride, this.getConfigManager());
 						manualLayer.setLayerId(layerId);
 
-						overridenLayerConfigs.put(
+						overriddenLayerConfigs.put(
 								manualLayer.getLayerId(),
 								manualLayer);
 					}
@@ -606,6 +612,75 @@ public class ClientConfig extends AbstractConfig {
 			}
 		}
 
-		return overridenLayerConfigs;
+		// Add layer group content in the description, and hide children layers from the catalog (the add layer tree).
+		// I.E. Layers that are present in a layer group are not shown in the tree. This can be overridden by
+		//     setting "shownOnlyInLayerGroup" to true in the layers overrides.
+		for (AbstractLayerConfig layer : overriddenLayerConfigs.values()) {
+			String[] layers = null;
+			if (layer instanceof FolderLayerConfig) {
+				layers = ((FolderLayerConfig)layer).getLayers();
+			}
+			if (layer instanceof GroupLayerConfig) {
+				layers = ((GroupLayerConfig)layer).getLayers();
+			}
+
+			if (layers != null && layers.length > 0) {
+				String layerGroupHTMLList = this.getHTMLListAndHideChildrenLayers(overriddenLayerConfigs, layers);
+				if (Utils.isNotBlank(layerGroupHTMLList)) {
+					StringBuilder groupHtmlDescription = new StringBuilder();
+					groupHtmlDescription.append("<div class=\"descriptionLayerGroupContent\">");
+					groupHtmlDescription.append("This layer regroup the following list of layers:");
+					groupHtmlDescription.append(layerGroupHTMLList);
+					groupHtmlDescription.append("</div>");
+
+					layer.setHtmlDescription(groupHtmlDescription.toString());
+				}
+			}
+		}
+
+		return overriddenLayerConfigs;
+	}
+
+	private String getHTMLListAndHideChildrenLayers(Map<String, AbstractLayerConfig> completeLayerMap, String[] layersIds) {
+		if (layersIds == null || layersIds.length <= 0) {
+			return "";
+		}
+		StringBuilder htmlList = new StringBuilder();
+		htmlList.append("<ul class=\"bullet-list\">");
+		for (String childId : layersIds) {
+			AbstractLayerConfig child = completeLayerMap.get(childId);
+			if (child != null) {
+				htmlList.append("<li>");
+				String title = child.getTitle();
+				if (title != null) {
+					title = title.trim();
+				}
+				if (Utils.isBlank(title)) {
+					title = "NO NAME";
+				}
+				title = Utils.safeHTMLStr(title);
+				htmlList.append(title);
+
+				String[] childLayers = null;
+				if (child instanceof FolderLayerConfig) {
+					childLayers = ((FolderLayerConfig)child).getLayers();
+				}
+				if (child instanceof GroupLayerConfig) {
+					childLayers = ((GroupLayerConfig)child).getLayers();
+				}
+
+				if (childLayers != null && childLayers.length > 0) {
+					htmlList.append(this.getHTMLListAndHideChildrenLayers(completeLayerMap, childLayers));
+				}
+				htmlList.append("</li>");
+
+				// Hide the children layer from the Catalog
+				if (child.isShownOnlyInLayerGroup() == null) {
+					child.setShownOnlyInLayerGroup(true);
+				}
+			}
+		}
+		htmlList.append("</ul>");
+		return htmlList.toString();
 	}
 }

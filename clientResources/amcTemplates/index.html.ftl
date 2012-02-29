@@ -109,10 +109,10 @@
 		if (nbMaps > 4) { nbMaps = 4; }
 
 		Ext.onReady(function() {
-			document.getElementById('loading').style.display = 'none';
-
 			Atlas.core = new Atlas.Core("config/${mainConfig}", "config/${layersConfig}", "${timestamp}");
 			Atlas.core.afterLoad = function() {
+				document.getElementById('loading').style.display = 'none';
+
 				mapLayoutItems = [];
 				for (var i=0; i<nbMaps; i++) {
 					var mapPanel = Atlas.core.createNewMapPanel();

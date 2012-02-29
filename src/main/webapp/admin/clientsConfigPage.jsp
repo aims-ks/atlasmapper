@@ -31,7 +31,7 @@
 <%@page import="java.util.ArrayList"%>
 <%@page import="java.util.List"%>
 <%@page import="java.util.Collections"%>
-<%@page import="au.gov.aims.atlasmapperserver.DataSourceConfig"%>
+<%@page import="au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig"%>
 <%@page import="au.gov.aims.atlasmapperserver.ConfigManager"%>
 <%@page import="au.gov.aims.atlasmapperserver.ConfigHelper"%>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
@@ -62,11 +62,11 @@
 			var demoMode = <%=manager.isDemoMode() %>;
 			var dataSources = {
 				<%
-					List<DataSourceConfig> dataSourceConfigs = new ArrayList<DataSourceConfig>(manager.getDataSourceConfigs().values());
+					List<AbstractDataSourceConfig> dataSourceConfigs = new ArrayList<AbstractDataSourceConfig>(manager.getDataSourceConfigs().values());
 					Collections.sort(dataSourceConfigs);
 
 					boolean first = true;
-					for (DataSourceConfig cfg : dataSourceConfigs) {
+					for (AbstractDataSourceConfig cfg : dataSourceConfigs) {
 						if (cfg != null) {
 							%><%=(first?"":",\n") + "'" + Utils.safeJsStr(cfg.getDataSourceId()) + "': '" + Utils.safeJsStr(cfg.getDataSourceName()) + "'" %><%
 							first = false;

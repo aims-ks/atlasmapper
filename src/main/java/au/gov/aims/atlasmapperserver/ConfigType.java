@@ -26,5 +26,5 @@ package au.gov.aims.atlasmapperserver;
  * @author glafond
  */
 public enum ConfigType {
-	FULL, EMBEDDED, LAYERS
+	MAIN, EMBEDDED, LAYERS, FULL
 }

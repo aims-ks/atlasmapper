@@ -22,6 +22,8 @@
 package au.gov.aims.atlasmapperserver;
 
 import java.io.UnsupportedEncodingException;
+import java.util.Date;
+
 import junit.framework.TestCase;
 
 /**
@@ -49,4 +51,79 @@ public class UtilsTest extends TestCase {
 		String frenchStr = "Une cha\u00EEne de caract\u00E8res."; // 00EE => i circ (C3AE in hexa), 00E8 => e grave (C3A8 in hexa)
 		assertEquals("556E6520636861C3AE6E6520646520636172616374C3A87265732E", Utils.toHex(frenchStr.getBytes("UTF-8")));
 	}
+
+	public void testAddUrlParameter() throws UnsupportedEncodingException {
+		String newUrl = Utils.addUrlParameter("http://www.google.com/index.jsp", "param", "newValue");
+		assertEquals("http://www.google.com/index.jsp?param=newValue", newUrl);
+
+		newUrl = Utils.addUrlParameter("http://www.google.com/index.jsp", "param{&?=;.,é}", "newValue{&?=;.,é}");
+		assertEquals("http://www.google.com/index.jsp?param%7B%26%3F%3D%3B.%2C%C3%A9%7D=newValue%7B%26%3F%3D%3B.%2C%C3%A9%7D", newUrl);
+
+		newUrl = Utils.addUrlParameter("http://www.google.com/index.jsp?param=value", "newParam", "newValue");
+		assertEquals("http://www.google.com/index.jsp?param=value&newParam=newValue", newUrl);
+
+		newUrl = Utils.addUrlParameter("http://www.google.com/index.jsp?param=value", "param", "newValue");
+		assertEquals("http://www.google.com/index.jsp?param=value&param=newValue", newUrl);
+	}
+
+	public void testSetUrlParameter() throws UnsupportedEncodingException {
+		String newUrl = Utils.setUrlParameter("http://www.google.com/index.jsp?param=value", "param", "newValue");
+		assertEquals("http://www.google.com/index.jsp?param=newValue", newUrl);
+
+		newUrl = Utils.setUrlParameter("http://www.google.com/index.jsp?param%7B%26%3F%3D%3B.%2C%C3%A9%7D=value", "param{&?=;.,é}", "newValue{&?=;.,é}");
+		assertEquals("http://www.google.com/index.jsp?param%7B%26%3F%3D%3B.%2C%C3%A9%7D=newValue%7B%26%3F%3D%3B.%2C%C3%A9%7D", newUrl);
+
+		newUrl = Utils.setUrlParameter("http://www.google.com/index.jsp?prefixparam=value&param=value", "param", "newValue");
+		assertEquals("http://www.google.com/index.jsp?prefixparam=value&param=newValue", newUrl);
+
+		newUrl = Utils.setUrlParameter("http://www.google.com/index.jsp?param1=value1&param2=value2&param3=value3", "param2", "newValue2");
+		assertEquals("http://www.google.com/index.jsp?param1=value1&param2=newValue2&param3=value3", newUrl);
+
+		newUrl = Utils.setUrlParameter("http://www.google.com/index.jsp?param=value", "newParam", "newValue");
+		assertEquals("http://www.google.com/index.jsp?param=value&newParam=newValue", newUrl);
+	}
+
+	public void testRemoveUrlParameter() throws UnsupportedEncodingException {
+		String newUrl = Utils.removeUrlParameter("http://www.google.com/index.jsp?param=value&oldParam=oldValue", "oldParam");
+		assertEquals("http://www.google.com/index.jsp?param=value", newUrl);
+
+		newUrl = Utils.removeUrlParameter("http://www.google.com/index.jsp?param%7B%26%3F%3D%3B.%2C%C3%A9%7D=value", "param{&?=;.,é}");
+		assertEquals("http://www.google.com/index.jsp", newUrl);
+
+		newUrl = Utils.removeUrlParameter("http://www.google.com/index.jsp?param=value&oldParam=oldValue", "param");
+		assertEquals("http://www.google.com/index.jsp?oldParam=oldValue", newUrl);
+
+		newUrl = Utils.removeUrlParameter("http://www.google.com/index.jsp?prefixparam=value&param=value&oldParam=oldValue", "param");
+		assertEquals("http://www.google.com/index.jsp?prefixparam=value&oldParam=oldValue", newUrl);
+
+		newUrl = Utils.removeUrlParameter("http://www.google.com/index.jsp?param1=value1&param2=value2&param3=value3", "param2");
+		assertEquals("http://www.google.com/index.jsp?param1=value1&param3=value3", newUrl);
+
+		newUrl = Utils.removeUrlParameter("http://www.google.com/index.jsp?param=value", "param");
+		assertEquals("http://www.google.com/index.jsp", newUrl);
+	}
+
+	/*
+	public void testBenchmarkSetUrlParameter2() throws UnsupportedEncodingException {
+		Date before = new java.util.Date();
+
+		for (int i=0; i<10000; i++) {
+			String newUrl = Utils._setUrlParameter("http://www.google.com/index.jsp?param=value", "param", "newValue"+i);
+		}
+		Date after = new java.util.Date();
+
+		System.out.println("Time for Loop: " + (after.getTime() - before.getTime()));
+	}
+
+	public void testBenchmarkSetUrlParameter() throws UnsupportedEncodingException {
+		Date before = new java.util.Date();
+
+		for (int i=0; i<10000; i++) {
+			String newUrl = Utils.setUrlParameter("http://www.google.com/index.jsp?param=value", "param", "newValue"+i);
+		}
+		Date after = new java.util.Date();
+
+		System.out.println("Time for Regex: " + (after.getTime() - before.getTime()));
+	}
+	*/
 }

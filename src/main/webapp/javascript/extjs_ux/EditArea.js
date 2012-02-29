@@ -172,8 +172,9 @@ Ext.define('Ext.ux.form.field.EditArea', {
 			// Edit Area do not have a validator. Change to this widget
 			// are sent to the text area to trigger the ExtJS validator,
 			// and also set the value that will be returned by the form.
-			me.valueEl.dom.value = me.getValue();
-			me.validateValue(me.getValue());
+			var value = me.getValue();
+			me.valueEl.dom.value = value;
+			me.validateValue(value);
 		};
 
 		parent['loadCallback_'+fctId] = function() {

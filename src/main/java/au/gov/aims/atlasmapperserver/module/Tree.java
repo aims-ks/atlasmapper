@@ -21,13 +21,16 @@
 
 package au.gov.aims.atlasmapperserver.module;
 
-import au.gov.aims.atlasmapperserver.ClientConfig;
-import au.gov.aims.atlasmapperserver.DataSourceConfig;
-import au.gov.aims.atlasmapperserver.LayerConfig;
-import au.gov.aims.atlasmapperserver.Utils;
+import au.gov.aims.atlasmapperserver.*;
 import au.gov.aims.atlasmapperserver.annotation.Module;
+
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
+import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
+import au.gov.aims.atlasmapperserver.layerConfig.WMSLayerConfig;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -48,17 +51,20 @@ public class Tree extends AbstractModule {
 	}
 
 	@Override
-	public JSONObject getJSONConfiguration(ClientConfig clientConfig) throws JSONException {
+	public JSONObject getJSONConfiguration(ClientConfig clientConfig, Map<String, AbstractLayerConfig> layers) throws JSONException {
 		try {
-			List<DataSourceConfig> dataSources = clientConfig.getDataSourceConfigs(clientConfig.getConfigManager());
-			if (dataSources != null) {
-				JSONObject treeConfig = new JSONObject();
-				for (DataSourceConfig dataSourceConfig : dataSources) {
-					Map<String, LayerConfig> layers = dataSourceConfig.getLayerConfigs(clientConfig);
+			List<AbstractDataSourceConfig> dataSourcesList = clientConfig.getDataSourceConfigs();
+			if (dataSourcesList != null) {
+				Map<String, AbstractDataSourceConfig> dataSourcesMap = new HashMap<String, AbstractDataSourceConfig>();
+				for (AbstractDataSourceConfig dataSourceConfig : dataSourcesList) {
+					dataSourcesMap.put(dataSourceConfig.getDataSourceId(), dataSourceConfig);
+				}
 
-					if (layers != null) {
-						for (LayerConfig layerConfig : layers.values()) {
-							this.addLayer(treeConfig, clientConfig, dataSourceConfig, layerConfig);
+				JSONObject treeConfig = new JSONObject();
+				if (layers != null) {
+					for (AbstractLayerConfig layerConfig : layers.values()) {
+						if (layerConfig.isShownOnlyInLayerGroup() == null || !layerConfig.isShownOnlyInLayerGroup()) {
+							this.addLayer(treeConfig, clientConfig, dataSourcesMap.get(layerConfig.getDataSourceId()), layerConfig);
 						}
 					}
 				}
@@ -74,8 +80,8 @@ public class Tree extends AbstractModule {
 	private void addLayer(
 			JSONObject treeRoot,
 			ClientConfig clientConfig,
-			DataSourceConfig dataSourceConfig,
-			LayerConfig layerConfig) throws JSONException {
+			AbstractDataSourceConfig dataSourceConfig,
+			AbstractLayerConfig layerConfig) throws JSONException {
 
 		JSONObject currentBranch = treeRoot;
 
@@ -118,7 +124,7 @@ public class Tree extends AbstractModule {
 	}
 
 	// In the future, we might want to return a more complex object.
-	private String getTreeLeaf(LayerConfig layerConfig) {
+	private String getTreeLeaf(AbstractLayerConfig layerConfig) {
 		String layerTitle = layerConfig.getTitle();
 		if (layerTitle == null) {
 			layerTitle = layerConfig.getLayerId();

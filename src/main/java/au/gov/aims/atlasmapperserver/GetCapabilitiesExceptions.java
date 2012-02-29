@@ -21,6 +21,8 @@
 
 package au.gov.aims.atlasmapperserver;
 
+import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,20 +49,28 @@ public class GetCapabilitiesExceptions extends Throwable {
 			errorMsg.append("- ");
 			errorMsg.append(dataSourceException.dataSource.getDataSourceName());
 			errorMsg.append(" [");
-			errorMsg.append(dataSourceException.dataSource.getWmsServiceUrl());
+			errorMsg.append(dataSourceException.dataSource.getServiceUrl());
 			errorMsg.append("]: ");
-			errorMsg.append(dataSourceException.errorMessage);
+			errorMsg.append(dataSourceException.exception.getMessage());
 		}
 		return errorMsg.toString();
 	}
 
-	private class DataSourceException {
-		public final DataSourceConfig dataSource;
-		public final String errorMessage;
+	@Override
+	public void printStackTrace() {
+		for (DataSourceException dataSourceException : this.exceptions) {
+			System.out.println("Stack trace for: " + dataSourceException.dataSource.getDataSourceName());
+			dataSourceException.exception.printStackTrace();
+		}
+	}
 
-		public DataSourceException(final DataSourceConfig dataSource, final String errorMessage) {
+	private class DataSourceException {
+		public final AbstractDataSourceConfig dataSource;
+		public final Exception exception;
+
+		public DataSourceException(final AbstractDataSourceConfig dataSource, final Exception exception) {
 			this.dataSource = dataSource;
-			this.errorMessage = errorMessage;
+			this.exception = exception;
 		}
 	}
 
@@ -74,11 +84,8 @@ public class GetCapabilitiesExceptions extends Throwable {
 		return this.exceptions.isEmpty();
 	}
 
-	public void add(DataSourceConfig dataSource, Exception ex) {
-		this.exceptions.add(new DataSourceException(dataSource, ex.getMessage()));
-	}
-	public void add(DataSourceConfig dataSource, String errorMessage) {
-		this.exceptions.add(new DataSourceException(dataSource, errorMessage));
+	public void add(AbstractDataSourceConfig dataSource, Exception ex) {
+		this.exceptions.add(new DataSourceException(dataSource, ex));
 	}
 
 	public void clear() {

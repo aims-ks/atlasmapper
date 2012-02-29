@@ -56,8 +56,8 @@ function getAfterRenderFct() {
 			}
 			if (this.qtipMaxWidth) {
 				config.maxWidth = this.qtipMaxWidth;
-				// IE 6 & 7 do not support "maxWidth"
-				if (Ext.isIE && (!Ext.ieVersion || Ext.ieVersion < 8) && !config.width) {
+				// IE has problem with "maxWidth"
+				if (Ext.isIE && !config.width) {
 					config.width = config.maxWidth;
 				}
 			}
@@ -69,9 +69,13 @@ function getAfterRenderFct() {
 }
 
 // Initialise the tooltips for fields / check boxes / radio buttons / field set
-Ext.override(Ext.form.Field, { afterRender: getAfterRenderFct() });
-Ext.override(Ext.form.FieldContainer, { afterRender: getAfterRenderFct() });
-Ext.override(Ext.form.FieldSet, { afterRender: getAfterRenderFct() });
+// NOTE: IE is awful with tooltips. They randomly steal the focus making edition nearly impossible.
+if (!Ext.isIE) {
+	Ext.override(Ext.form.Field, { afterRender: getAfterRenderFct() });
+	Ext.override(Ext.form.FieldContainer, { afterRender: getAfterRenderFct() });
+	Ext.override(Ext.form.FieldSet, { afterRender: getAfterRenderFct() });
 
-// NOTE: Init do not need to be called (it's called by the form panel?)
-// No need to call "Ext.tip.QuickTipManager.init()" or "Ext.QuickTips.init()"
+	Ext.onReady(function(){
+		Ext.tip.QuickTipManager.init();
+	});
+}

@@ -22,6 +22,9 @@
 package au.gov.aims.atlasmapperserver;
 
 import java.net.URL;
+
+import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
+import au.gov.aims.atlasmapperserver.layerConfig.WMSLayerConfig;
 import junit.framework.TestCase;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -46,7 +49,7 @@ public class LayerInfoTest extends TestCase {
 
 	public void testToJsonObject() {
 		try {
-			LayerConfig layerInfo = new LayerConfig(null);
+			WMSLayerConfig layerInfo = new WMSLayerConfig(null);
 
 			double[] layerBoundingBox = {141.116, -29.384, 160.884, -9.616};
 

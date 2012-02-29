@@ -21,6 +21,7 @@
 
 package au.gov.aims.atlasmapperserver;
 
+import com.vividsolutions.jts.geom.Coordinate;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
@@ -36,12 +37,27 @@ import java.lang.reflect.Modifier;
 import java.net.URLEncoder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import org.geotools.geometry.jts.JTS;
+import org.geotools.measure.Latitude;
+import org.geotools.measure.Longitude;
+import org.geotools.referencing.CRS;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.opengis.referencing.FactoryException;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.opengis.referencing.operation.MathTransform;
+import org.opengis.referencing.operation.TransformException;
 
 /**
  *
@@ -50,6 +66,8 @@ import org.json.JSONObject;
 public class Utils {
 	private static final Logger LOGGER = Logger.getLogger(Utils.class.getName());
 	private static final int INDENT = 4;
+	// Copied from org.geotools.referencing.operation.projection.MapProjection
+	private static final double ANGLE_TOLERANCE = 1E-4;
 
 	private static final Map<String, JSONObject> SUPPORTED_PROJECTIONS = new HashMap<String, JSONObject>();
 	static {
@@ -70,6 +88,8 @@ public class Utils {
 					.put("maxResolution", 156543.033928)
 					.put("resolutions", new JSONArray("[156543.033928, 78271.5169639999, 39135.7584820001, 19567.8792409999, 9783.93962049996, 4891.96981024998, 2445.98490512499, 1222.99245256249, 611.49622628138, 305.748113140558, 152.874056570411, 76.4370282850732, 38.2185141425366, 19.1092570712683, 9.55462853563415, 4.77731426794937, 2.38865713397468, 1.19432856685505, 0.597164283559817, 0.298582141647617]")));
 
+			/*
+			// OpenLayers is not able to do the re-projection of EPSG:3785.
 			SUPPORTED_PROJECTIONS.put("EPSG:3785", new JSONObject()
 					.put("projectionName", "Mercator (EPSG:3785)")
 					.put("maxExtent", new JSONArray("[-20037508.342787, -20037508.342787, 20037508.342787, 20037508.342787]"))
@@ -77,6 +97,7 @@ public class Utils {
 					.put("numZoomLevels", 20)
 					.put("maxResolution", 156543.033928)
 					.put("resolutions", new JSONArray("[156543.033928, 78271.5169639999, 39135.7584820001, 19567.8792409999, 9783.93962049996, 4891.96981024998, 2445.98490512499, 1222.99245256249, 611.49622628138, 305.748113140558, 152.874056570411, 76.4370282850732, 38.2185141425366, 19.1092570712683, 9.55462853563415, 4.77731426794937, 2.38865713397468, 1.19432856685505, 0.597164283559817, 0.298582141647617]")));
+			*/
 
 			// TODO Add more projections
 		} catch (JSONException ex) {
@@ -111,7 +132,14 @@ public class Utils {
 	}
 	public static String safeJsStr(String jsStr) {
 		if (jsStr == null) { return null; }
+		// NOTE: replace is equivalent to replaceAll, using String instead of regexp.
 		return jsStr.replace("\\", "\\\\").replace("\n", "\\n").replace("'", "\\'").replace("\"", "\\\"");
+	}
+
+	public static String safeHTMLStr(String jsStr) {
+		if (jsStr == null) { return null; }
+		// NOTE: replace is equivalent to replaceAll, using String instead of regexp.
+		return jsStr.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
 	}
 
 	public static String jsonToStr(JSONObject json) throws JSONException {
@@ -123,9 +151,112 @@ public class Utils {
 		return json.toString(INDENT);
 	}
 
+	public static String getUrlParameter(String urlStr, String parameterName) throws UnsupportedEncodingException {
+		int queryStrStart = urlStr.indexOf('?');
+
+		if (queryStrStart > 0) {
+			// Do not include the "?"
+			String queryStr = urlStr.substring(queryStrStart+1);
+			String searchStr = URLEncoder.encode(parameterName, "UTF-8") + "=";
+
+			if (!queryStr.isEmpty()) {
+				String[] params = queryStr.split("&");
+				for (int i=0; i<params.length; i++) {
+					String param = params[i];
+
+					if (param.startsWith(searchStr)) {
+						return param.substring(searchStr.length());
+					}
+				}
+			}
+		}
+
+		return null;
+	}
+
+	public static String setUrlParameter(String urlStr, String parameterName, String parameterValue) throws UnsupportedEncodingException {
+		int queryStrStart = urlStr.indexOf('?');
+
+		if (queryStrStart > 0) {
+			// Do not include the "?"
+			String baseStr = urlStr.substring(0, queryStrStart);
+			String queryStr = urlStr.substring(queryStrStart+1);
+			String searchStr = URLEncoder.encode(parameterName, "UTF-8") + "=";
+
+			StringBuilder newQuerySb = new StringBuilder(baseStr);
+			if (!queryStr.isEmpty()) {
+				String[] params = queryStr.split("&");
+				boolean found = false;
+				for (int i=0; i<params.length; i++) {
+					String param = params[i];
+
+					newQuerySb.append(i > 0 ? "&" : "?");
+					if (param.startsWith(searchStr)) {
+						newQuerySb.append(URLEncoder.encode(parameterName, "UTF-8"));
+						newQuerySb.append("=");
+						newQuerySb.append(URLEncoder.encode(parameterValue, "UTF-8"));
+						found = true;
+					} else {
+						newQuerySb.append(param);
+					}
+				}
+
+				if (found) {
+					return newQuerySb.toString();
+				}
+			}
+		}
+
+		return Utils.addUrlParameter(urlStr, parameterName, parameterValue);
+	}
+
+	// Same result as the above method, but significantly slower.
+	/*
+	public static String setUrlParameter(String urlStr, String parameterName, String parameterValue) throws UnsupportedEncodingException {
+		Matcher matcher = Pattern.compile("([?&])" + Pattern.quote(URLEncoder.encode(parameterName, "UTF-8")) + "=[^&]*").matcher(urlStr);
+		if (matcher.find()) {
+			return matcher.replaceFirst(matcher.group(1) + URLEncoder.encode(parameterName, "UTF-8") + "=" + URLEncoder.encode(parameterValue, "UTF-8"));
+		}
+		return Utils.addUrlParameter(urlStr, parameterName, parameterValue);
+	}
+	*/
+
 	public static String addUrlParameter(String urlStr, String parameterName, String parameterValue) throws UnsupportedEncodingException {
-		String delemiter = urlStr.contains("?") ? "&" : "?";
-		return urlStr + delemiter + URLEncoder.encode(parameterName, "UTF-8") + "=" + URLEncoder.encode(parameterValue, "UTF-8");
+		String delimiter = urlStr.contains("?") ? "&" : "?";
+		return urlStr + delimiter + URLEncoder.encode(parameterName, "UTF-8") + "=" + URLEncoder.encode(parameterValue, "UTF-8");
+	}
+
+	public static String removeUrlParameter(String urlStr, String parameterName) throws UnsupportedEncodingException {
+		int queryStrStart = urlStr.indexOf('?');
+
+		if (queryStrStart > 0) {
+			// Do not include the "?"
+			String baseStr = urlStr.substring(0, queryStrStart);
+			String queryStr = urlStr.substring(queryStrStart+1);
+			String searchStr = URLEncoder.encode(parameterName, "UTF-8") + "=";
+
+			StringBuilder newQuerySb = new StringBuilder(baseStr);
+			if (!queryStr.isEmpty()) {
+				String[] params = queryStr.split("&");
+				boolean found = false;
+				boolean first = true;
+				for (String param : params) {
+					if (param.startsWith(searchStr)) {
+						found = true;
+					} else {
+						newQuerySb.append(first ? "?" : "&");
+						newQuerySb.append(param);
+						first = false;
+					}
+				}
+
+				if (found) {
+					return newQuerySb.toString();
+				}
+			}
+		}
+
+		return urlStr;
 	}
 
 	/**
@@ -345,7 +476,7 @@ public class Utils {
 	}
 	private static boolean _hasMethod(Class clazz, Method method) {
 		if (clazz == null) {
-			// The method is realy not found...
+			// The method is really not found...
 			return false;
 		}
 
@@ -380,6 +511,74 @@ public class Utils {
 		return projections;
 	}
 
+	public static double[] reprojectCoordinatesToDegrees(double[] coordinates, String sourceCRSStr) throws FactoryException, TransformException {
+		double[] reprojectedCoordinates = reprojectCoordinates(coordinates, sourceCRSStr, "EPSG:4326");
+
+		// Verify out of range coordinates
+		for (int i=0; i+1 < reprojectedCoordinates.length; i += 2) {
+			double x = reprojectedCoordinates[i];
+			double y = reprojectedCoordinates[i+1];
+			final boolean xOut, yOut;
+			xOut = (Double.isNaN(x) || x < (Longitude.MIN_VALUE - ANGLE_TOLERANCE) || x > (Longitude.MAX_VALUE + ANGLE_TOLERANCE));
+			yOut = (Double.isNaN(y) || y < (Latitude.MIN_VALUE - ANGLE_TOLERANCE) || y > (Latitude .MAX_VALUE + ANGLE_TOLERANCE));
+
+			if (xOut || yOut) {
+				throw new TransformException("Coordinates out of bounds: ["+x+", "+y+"] minimum values: ["+Longitude.MIN_VALUE+", "+Latitude.MIN_VALUE+"] maximum values: ["+Longitude.MAX_VALUE+", "+Latitude .MAX_VALUE+"]");
+			}
+		}
+
+		// Out of bound coordinates are usually due to invalid input. No data is better than wrong data.
+
+		return reprojectedCoordinates;
+	}
+
+	/**
+	 * NOTE: This class use GeoTools library to do the re-projection, which bound connections to a HSQL DB. The connections
+	 *     seems to not be managed properly, which lead to potential memory leak and random error messages in the server logs.
+	 * @param coordinates Array of coordinates [x1, y1, x2, y2, ...]
+	 * @param sourceCRSStr
+	 * @param cibleCRSStr
+	 * @return
+	 * @throws FactoryException
+	 * @throws TransformException
+	 */
+	public static double[] reprojectCoordinates(double[] coordinates, String sourceCRSStr, String cibleCRSStr) throws FactoryException, TransformException {
+		if (coordinates == null || coordinates.length < 2 || sourceCRSStr == null || cibleCRSStr == null) {
+			throw new IllegalArgumentException();
+		}
+
+		// ESRI CRS 102100 is not supported
+		if ("EPSG:102100".equals(sourceCRSStr)) {
+			sourceCRSStr = "EPSG:900913";
+		}
+
+		if (sourceCRSStr.equalsIgnoreCase(cibleCRSStr)) {
+			// No conversion is needed
+			return coordinates;
+		}
+
+		double[] reprojectedCoordinates = new double[coordinates.length];
+		CoordinateReferenceSystem sourceCRS = CRS.decode(sourceCRSStr);
+		CoordinateReferenceSystem targetCRS = CRS.decode(cibleCRSStr);
+
+		MathTransform transform = CRS.findMathTransform(sourceCRS, targetCRS);
+
+		for (int i=0; i+1 < coordinates.length; i += 2) {
+			Coordinate source = new Coordinate(coordinates[i], coordinates[i+1]);
+			Coordinate destination = new Coordinate();
+			try {
+				JTS.transform(source, destination, transform);
+				reprojectedCoordinates[i] = destination.x;
+				reprojectedCoordinates[i+1] = destination.y;
+			} catch (Exception ex) {
+				reprojectedCoordinates[i] = Double.NaN;
+				reprojectedCoordinates[i+1] = Double.NaN;
+			}
+		}
+
+		return reprojectedCoordinates;
+	}
+
 	public static JSONObject getMapOptions(String projectionCode) throws JSONException {
 		JSONObject projection = SUPPORTED_PROJECTIONS.get(projectionCode);
 		JSONObject mapOptions = new JSONObject();
@@ -389,7 +588,7 @@ public class Utils {
 		while(keys.hasNext()) {
 			String key = keys.next();
 			if (!"projectionName".equals(key) && !projection.isNull(key)) {
-				mapOptions.put(key, projection.opt(key));
+				mapOptions.put(key.trim(), projection.opt(key));
 			}
 		}
 

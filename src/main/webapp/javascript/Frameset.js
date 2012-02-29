@@ -225,10 +225,11 @@ Ext.define('Frameset', {
 	setSavingMessage: function(msg) {
 		this.beforeShow();
 		this.statusWindow = Ext.Msg.show({
-			 title: msg,
-			 msg: 'Please wait...',
-			 icon: Ext.Msg.INFO,
-			 closeAction: 'destroy'
+			title: msg,
+			msg: 'Please wait...',
+			closable: false,
+			icon: Ext.Msg.INFO,
+			closeAction: 'destroy'
 		});
 
 		this.statusBar.setStatus({
@@ -237,8 +238,18 @@ Ext.define('Frameset', {
 		});
 	},
 
-	setSavedMessage: function(msg, delay) {
+	setSavedMessage: function(msg, delay, windowTitle) {
 		this.beforeShow();
+
+		if (typeof(windowTitle) != 'undefined') {
+			this.statusWindow = Ext.Msg.show({
+				title: windowTitle,
+				msg: msg,
+				icon: Ext.Msg.INFO,
+				closeAction: 'destroy'
+			});
+		}
+
 		var config = {
 			text: msg,
 			iconCls: 'x-status-saved',

@@ -24,7 +24,6 @@ package au.gov.aims.atlasmapperserver;
 import au.gov.aims.atlasmapperserver.servlet.FileFinder;
 import java.io.File;
 import java.io.IOException;
-import java.io.Reader;
 import java.io.Writer;
 import java.util.logging.Logger;
 import javax.servlet.ServletContext;
@@ -60,7 +59,7 @@ public class ConfigHelper {
 					context);
 
 			configManager.setApplicationFolder(FileFinder.getApplicationFolder(context));
-			configManager.setClientFullConfigFilename(CLIENT_MAIN_CONFIG);
+			configManager.setClientMainConfigFilename(CLIENT_MAIN_CONFIG);
 			configManager.setClientEmbeddedConfigFilename(CLIENT_EMBEDDED_CONFIG);
 			configManager.setClientLayersConfigFilename(CLIENT_LAYERS_CONFIG);
 		}

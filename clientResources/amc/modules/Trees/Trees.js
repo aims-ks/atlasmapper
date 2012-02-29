@@ -58,7 +58,7 @@ Atlas.Trees = Ext.extend(Ext.Component, {
 				var treeName = treeObj.name;
 				var tree = treeObj.tree;
 				var root = new Ext.ux.tree.LayerNode(
-						this.createTreeNode(tree, treeName, [treeName]));
+					this.createTreeNode(tree, treeName, [treeName]));
 
 				var treePanel = new Ext.tree.TreePanel({
 					root: root,
@@ -125,14 +125,14 @@ Atlas.Trees = Ext.extend(Ext.Component, {
 
 	searchLayer: function(layerId) {
 		// If in static mode
-			// 1. Search the configuration to find all occurrences of the IDs
+		// 1. Search the configuration to find all occurrences of the IDs
 		// If in Dynamic mode
-			// 1. Send a request to the server that provide layers info
+		// 1. Send a request to the server that provide layers info
 		// 2. Return a list of Paths that contains the Text of node that has to be highlighted/unhighlighted
-			// Example:
-			// Topics, Fish, LTMP Fish - Abon...
-			// Topics, Seabed Bio..., Nemipterus, Seabed Bio...
-			// Institutions, ...
+		// Example:
+		// Topics, Fish, LTMP Fish - Abon...
+		// Topics, Seabed Bio..., Nemipterus, Seabed Bio...
+		// Institutions, ...
 		return this.treePaths[layerId];
 	},
 
@@ -249,18 +249,35 @@ Atlas.Trees = Ext.extend(Ext.Component, {
 		}, this);
 	},
 
-	unHighlightLayer: function(layerId) {
+	/**
+	 * Un highlight the layer if it's not present on the map.
+	 * Use force = true to un highlight the layer event if it's
+	 * still on the map.
+	 */
+	unHighlightLayer: function(layerId, force) {
 		if (this.trees == null || typeof(layerId) == 'undefined') {
 			return;
 		}
 
-		var paths = this.searchLayer(layerId);
-		Ext.each(this.trees, function(tree) {
-			if (tree.root) {
-				// Walk across the tree following the paths and call highlightNode
-				this.highlight(tree.root, paths, false);
+		var layerFoundOnMap = false;
+		if (!force && this.mapPanel && this.mapPanel.map && this.mapPanel.map.layers && this.mapPanel.map.layers.length > 0) {
+			for (var i=0; !layerFoundOnMap && i<this.mapPanel.map.layers.length; i++) {
+				var foundLayer = this.mapPanel.map.layers[i];
+				if (foundLayer && foundLayer.json && foundLayer.json['layerId'] === layerId) {
+					layerFoundOnMap = true;
+				}
 			}
-		}, this);
+		}
+
+		if (!layerFoundOnMap) {
+			var paths = this.searchLayer(layerId);
+			Ext.each(this.trees, function(tree) {
+				if (tree.root) {
+					// Walk across the tree following the paths and call highlightNode
+					this.highlight(tree.root, paths, false);
+				}
+			}, this);
+		}
 	},
 
 	/**

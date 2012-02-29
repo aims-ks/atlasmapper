@@ -21,7 +21,10 @@
 
 package au.gov.aims.atlasmapperserver.servlet;
 
+import au.gov.aims.atlasmapperserver.ClientConfig;
 import au.gov.aims.atlasmapperserver.ServletUtils;
+import org.json.JSONException;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -62,28 +65,41 @@ public class ClientServlet extends HttpServlet {
 	}
 
 	private void performTask(HttpServletRequest request, HttpServletResponse response) throws IOException {
-		// http://localhost:12080/atlasmapperserver/www/images/test.jpg?param=value
-		// RequestURI:  [/atlasmapperserver/www/images/test.jpg]
-		// ContextPath: [/atlasmapperserver]
-		// ServletPath: [/www]
-		// PathInfo:    [/images/test.jpg]  <=  This is the one
+		// http://localhost:12080/atlasmapper/client/lg/arrow.gif?param=value
+		// RequestURI:  [/atlasmapper/client/lg/arrow.gif]
+		// ContextPath: [/atlasmapper]
+		// ServletPath: [/client]
+		// PathInfo:    [/lg/arrow.gif]  <=  This is the one
 		// QueryString: [param=value]
-		// PathTranslated: [/home/reefatlas/e-atlas_site/maps/tomcat/webapps/atlasmapperserver/images/test.jpg]  <=  Useful, but not quite what we are looking for
-		// System.out.println("RequestURI: [" + request.getRequestURI() + "]  ServletPath: [" + request.getServletPath() + "]  PathInfo: [" + request.getPathInfo() + "]  ContextPath: [" + request.getContextPath() + "]");
+		// PathTranslated: [/home/reefatlas/e-atlas_site/maps/tomcat/webapps/atlasmapper/lg/arrow.gif]  <=  Useful, but not quite what we are looking for
+		//System.out.println("RequestURI: [" + request.getRequestURI() + "]  ServletPath: [" + request.getServletPath() + "]  PathInfo: [" + request.getPathInfo() + "]  ContextPath: [" + request.getContextPath() + "]  PathTranslated: [" + request.getPathTranslated() + "]");
+		String fileRelativePath = null;
+		String filePath = fileRelativePath;
 		File file = null;
 
 		// Return the file
 		try {
 			// Get the file to view
-			String fileRelativePath = request.getPathInfo();
-			file = FileFinder.getClientFile(this.getServletContext(), fileRelativePath);
+			fileRelativePath = request.getPathInfo();
+			String clientId = FileFinder.getClientId(fileRelativePath);
+			ClientConfig client = FileFinder.getClientConfig(this.getServletContext(), clientId);
+			if (client != null) {
+				if (client.isEnable()) {
+					file = FileFinder.getClientFile(this.getServletContext(), fileRelativePath);
+				} else {
+					response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+					ServletUtils.sendResponse(response, client.getClientName() + " mapping service has been disabled.");
+					return;
+				}
+			}
 
 			// No file, nothing to view
 			if (file == null) {
 				response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-				ServletUtils.sendResponse(response, "No file to view");
+				ServletUtils.sendResponse(response, "File not found [" + fileRelativePath + "]");
 				return;
 			}
+			filePath = file.getAbsolutePath();
 
 			// Get and set the type of the file
 			String contentType = getServletContext().getMimeType(file.getCanonicalPath());
@@ -93,20 +109,16 @@ public class ClientServlet extends HttpServlet {
 			ServletUtils.sendResponse(response, file);
 		} catch (FileNotFoundException e) {
 			response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-			if (file != null) {
-				LOGGER.log(Level.WARNING, "File not found [{0}]", file.getAbsolutePath());
-			} else {
-				LOGGER.log(Level.WARNING, "File not found - file path unknown?");
-			}
-			ServletUtils.sendResponse(response, "File not found");
+			LOGGER.log(Level.WARNING, "File not found [{0}]", filePath);
+			ServletUtils.sendResponse(response, "File not found [" + filePath + "]");
 		} catch (IOException e) {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-			if (file != null) {
-				LOGGER.log(Level.SEVERE, "Problem sending file [" + file.getAbsolutePath() + "]: ", e);
-			} else {
-				LOGGER.log(Level.SEVERE, "Problem sending file: ", e);
-			}
-			ServletUtils.sendResponse(response, "Problem sending file: " + e.getMessage());
+			LOGGER.log(Level.SEVERE, "Problem sending file [" + filePath + "]: ", e);
+			ServletUtils.sendResponse(response, "Problem sending file [" + filePath + "]: " + e.getMessage());
+		} catch (JSONException e) {
+			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			LOGGER.log(Level.SEVERE, "Error occurred while loading the configuration file [" + filePath + "]: ", e);
+			ServletUtils.sendResponse(response, "Error occurred while loading the configuration file [" + filePath + "]: " + e.getMessage());
 		}
 	}
 }
