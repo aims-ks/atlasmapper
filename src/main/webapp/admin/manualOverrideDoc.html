@@ -73,11 +73,11 @@
 		<p>
 			The following bloc override the attribute
 			<i>wmsRequestMimeType</i> and <i>legendParameters</i> for the
-			layer ID <i>ea:bluemarble</i> to request tiles and legend graphics as GIF:
+			layer ID <i>ea:bluemarble</i> of the datasource <i>ea</i> to request tiles and legend graphics as GIF:
 		</p>
 <pre>
 {
-	"ea:bluemarble": {
+	"ea_ea:bluemarble": {
 		"wmsRequestMimeType": "image/gif",
 		"legendParameters": {
 			"FORMAT": "image/gif"
@@ -88,12 +88,12 @@
 
 		<p>
 			This example show how to deactivate the feature requests for the
-			layer ID "ea:GBR_GBRMPA_GBR-features" and change the default style
+			layer ID <i>ea:GBR_GBRMPA_GBR-features</i> of the datasource <i>ea</i> and change the default style
 			and change the title of an other one.
 		</p>
 <pre>
 {
-	"ea:GBR_GBRMPA_GBR-features": {
+	"ea_ea:GBR_GBRMPA_GBR-features": {
 		"wmsQueryable": false,
 		"styles": {
 			"GBR-features_Reefs-outline-BW": {"default": true},
@@ -112,9 +112,9 @@
 		</p>
 <pre>
 {
-	"GBR_JCU_Bathymetry-3DGBR_Land-and-sea": {"hasLegend": false},
-	"World_NE2-coast-cities-reefs_Baselayer": {"hasLegend": false},
-	"ea:World_NED_NE2": {"hasLegend": false}
+	"ea_GBR_JCU_Bathymetry-3DGBR_Land-and-sea": {"hasLegend": false},
+	"ea_World_NE2-coast-cities-reefs_Baselayer": {"hasLegend": false},
+	"ea_ea:World_NED_NE2": {"hasLegend": false}
 }
 </pre>
 
@@ -298,7 +298,7 @@
 					Define extra options to be added in the options panel of this layer.<br/>
 					Example:<br/>
 <pre>
-"ea:bluemarble" : {
+"ea_ea:bluemarble" : {
 	"options": [
 		{
 			"name": "comment",
@@ -374,7 +374,50 @@
 				<td class="attr">shownOnlyInLayerGroup</td>
 				<td class="type">Boolean</td>
 				<td class="desc">
-					<i>true</i> to hide the layer from the add layer tree. This is used with layers that are included in a layer group.<br/>
+					<i>true</i> to hide the layer from the add layer tree. This is used with layers that are included in a layer group.
+				</td>
+			</tr>
+			<tr>
+				<td class="attr">cached</td>
+				<td class="type">Boolean</td>
+				<td class="desc">
+					Default: <i>true</i>. Set to <i>false</i> if the layer should never be request to the cache (GWC).
+				</td>
+			</tr>
+			<tr>
+				<td class="attr">olParams</td>
+				<td class="type">JSON Object</td>
+				<td class="desc">
+					Define the OpenLayers params overrides.<br/>
+					Some OpenLayers layer class has params. Those params can be overridden by setting a value for <i>olParams</i>.
+					For example, a layer can be request as a GIF using this override:
+<pre>
+"ea_ea:bluemarble" : {
+	"olParams": {
+		"format": "image/gif"
+	}
+}
+</pre>
+					See: <a href="http://dev.openlayers.org/releases/OpenLayers-2.11/doc/apidocs/files/OpenLayers/Layer/WMS-js.html">OpenLayers WMS API</a>,
+						<a href="http://dev.openlayers.org/releases/OpenLayers-2.11/doc/apidocs/files/OpenLayers/Layer/ArcGIS93Rest-js.html">OpenLayers ArcGIS API</a>
+				</td>
+			</tr>
+			<tr>
+				<td class="attr">olOptions</td>
+				<td class="type">JSON Object</td>
+				<td class="desc">
+					Define the OpenLayers options overrides.<br/>
+					All OpenLayers layer class has options. Those options can be overridden by setting a value for <i>olOptions</i>.
+					For example, a layer can be request as a single tile, and be displayed at 50% opacity by default:
+<pre>
+"ea_ea:bluemarble" : {
+	"olOptions": {
+		"opacity": 0.5,
+		"singleTile": true
+	}
+}
+</pre>
+					See: <a href="http://dev.openlayers.org/releases/OpenLayers-2.11/doc/apidocs/files/OpenLayers/Layer-js.html">OpenLayers generic layer API</a> for generic layer options.
 				</td>
 			</tr>
 			<!-- styles & layerOptions: [name, type, mandatory, defaultValue] -->

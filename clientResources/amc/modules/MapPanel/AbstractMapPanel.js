@@ -112,7 +112,7 @@ Atlas.AbstractMapPanel = {
 		} else {
 			controls = [
 				new OpenLayers.Control.PanZoomBar(),    // Pan and Zoom (with a zoom bar) controls, in the top left corner
-				new OpenLayers.Control.ScaleLine(),     // Displays a small line indicator representing the current map scale on the map.
+				new OpenLayers.Control.ScaleLine({geodesic: true}),     // Displays a small line indicator representing the current map scale on the map. ("geodesic: true" has to be set to recalculate the scale line when the map get span closer to the poles)
 				//new OpenLayers.Control.Scale(),         // Displays the map scale (example: 1:1M).
 				new OpenLayers.Control.MousePosition({
 					displayProjection: this.defaultLonLatProjection
@@ -308,13 +308,18 @@ Atlas.AbstractMapPanel = {
 	getWMSServiceUrl: function(layerJSon, layerParams) {
 		var serviceUrl = layerJSon['wmsServiceUrl'];
 		if (layerJSon['webCacheUrl'] &&
-			this._canUseWebCache(layerJSon['webCacheSupportedParameters'], layerParams)) {
+			this._canUseWebCache(layerJSon, layerParams)) {
 			serviceUrl = layerJSon['webCacheUrl'];
 		}
 		return serviceUrl;
 	},
 
-	_canUseWebCache: function(supportedParams, layerParams) {
+	_canUseWebCache: function(layerJSon, layerParams) {
+		if (typeof(layerJSon['cached']) !== 'undefined' && !layerJSon['cached']) {
+			return false;
+		}
+
+		var supportedParams = layerJSon['webCacheSupportedParameters'];
 		// IE6 can't use Web Cache (GeoServer Web Cache send blank tiles as PNG, even when requested as GIF)
 		// Equivalent to "if (Ext.isIE6)" without Ext dependencies
 		var userAgent = navigator.userAgent.toLowerCase();
@@ -330,6 +335,18 @@ Atlas.AbstractMapPanel = {
 		}
 		// console.log('Can use Web Cache');
 		return true;
+	},
+
+	_applyOlOverrides: function(config, overrides) {
+		if (overrides == null) {
+			return config;
+		}
+		for (var key in overrides) {
+			if (overrides.hasOwnProperty(key)) {
+				config[key] = overrides[key];
+			}
+		}
+		return config;
 	},
 
 	_webCacheSupportParam: function(paramName, supportedParams) {
@@ -358,7 +375,7 @@ Atlas.AbstractMapPanel = {
 	},
 
 	_getWMSLayerParams: function(layerJSon) {
-		var isBaseLayer = layerJSon['isBaseLayer'];
+		var isBaseLayer = !!layerJSon['isBaseLayer'];
 
 		// Set the parameters used in the URL to request the tiles.
 		var layerParams = {
@@ -386,16 +403,18 @@ Atlas.AbstractMapPanel = {
 
 		layerParams.transparent = !isBaseLayer;
 
+		if (typeof(layerJSon['olParams']) !== 'undefined') {
+			layerParams = this._applyOlOverrides(layerParams, layerJSon['olParams']);
+		}
+
 		return layerParams;
 	},
 
 	_getWMSLayerOptions: function(layerJSon) {
-		var isBaseLayer = layerJSon['isBaseLayer'];
+		var isBaseLayer = !!layerJSon['isBaseLayer'];
 
 		// Set the OpenLayer options, used by the library.
 		var layerOptions = {
-			//visibility: layerJSon['<initialState>']['<activated>'],
-			//opacity: layerJSon['<initialState>']['<opacity>'],
 			isBaseLayer: isBaseLayer,
 			displayInLayerSwitcher: true,
 			wrapDateLine : true,
@@ -420,6 +439,11 @@ Atlas.AbstractMapPanel = {
 			// the new tiles.
 			layerOptions.transitionEffect = 'resize';
 		}
+
+		if (typeof(layerJSon['olOptions']) !== 'undefined') {
+			layerOptions = this._applyOlOverrides(layerOptions, layerJSon['olOptions']);
+		}
+
 		return layerOptions;
 	},
 
@@ -442,6 +466,10 @@ Atlas.AbstractMapPanel = {
 			layerOptions.projection = 'EPSG:102100';
 		}
 
+		if (typeof(layerJSon['olOptions']) !== 'undefined') {
+			layerOptions = this._applyOlOverrides(layerOptions, layerJSon['olOptions']);
+		}
+
 		return layerOptions;
 	},
 
@@ -458,6 +486,14 @@ Atlas.AbstractMapPanel = {
 
 	_createArcGISMapServerLayer: function(layerJSon) {
 		var layerOptions = this._getArcGISLayerOptions(layerJSon);
+		var layerParams = {
+			layers: "show:" + (layerJSon['layerName'] || layerJSon['layerId']),
+			transparent: true
+		};
+
+		if (typeof(layerJSon['olParams']) !== 'undefined') {
+			layerParams = this._applyOlOverrides(layerParams, layerJSon['olParams']);
+		}
 
 		var url = layerJSon['wmsServiceUrl'];
 		if (layerJSon['arcGISPath']) {
@@ -468,10 +504,7 @@ Atlas.AbstractMapPanel = {
 		return new OpenLayers.Layer.ArcGIS93Rest(
 			layerJSon['title'],
 			url,
-			{
-				layers: "show:" + (layerJSon['layerName'] || layerJSon['layerId']),
-				transparent: true
-			},
+			layerParams,
 			layerOptions
 		);
 	},
@@ -540,6 +573,10 @@ Atlas.AbstractMapPanel = {
 			})
 		};
 
+		if (typeof(layerJSon['olOptions']) !== 'undefined') {
+			layerOptions = this._applyOlOverrides(layerOptions, layerJSon['olOptions']);
+		}
+
 		var kml = new OpenLayers.Layer.Vector(
 			this._getTitle(layerJSon),
 			layerOptions
@@ -565,13 +602,19 @@ Atlas.AbstractMapPanel = {
 	},
 
 	_createGoogleLayer: function(layerJSon) {
+		var layerOptions = {
+			// google.maps.MapTypeId.TERRAIN, google.maps.MapTypeId.ROADMAP, google.maps.MapTypeId.HYBRID, google.maps.MapTypeId.SATELLITE
+			type: google.maps.MapTypeId[layerJSon['layerName'] || layerJSon['layerId']]
+		};
+
+		if (typeof(layerJSon['olOptions']) !== 'undefined') {
+			layerOptions = this._applyOlOverrides(layerOptions, layerJSon['olOptions']);
+		}
+
 		return new OpenLayers.Layer.Google(
 			// "Google Physical", "Google Streets", "Google Hybrid", "Google Satellite"
 			this._getTitle(layerJSon),
-			{
-				// google.maps.MapTypeId.TERRAIN, google.maps.MapTypeId.ROADMAP, google.maps.MapTypeId.HYBRID, google.maps.MapTypeId.SATELLITE
-				type: google.maps.MapTypeId[layerJSon['layerName'] || layerJSon['layerId']]
-			}
+			layerOptions
 		);
 	},
 
@@ -729,7 +772,7 @@ Atlas.AbstractMapPanel = {
 		}
 
 		layer.json = layerJSon;
-		layer.hideInLegend = false;//!layerJSon['<initialState>']['<legendActivated>'];
+		layer.hideInLegend = false;
 
 		if (typeof(layerJSon['path']) !== 'undefined') {
 			layer.path = layerJSon['path'];

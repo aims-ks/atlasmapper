@@ -1134,6 +1134,7 @@ public class ConfigManager {
 			indexValues.put("pageFooter", Utils.safeJsStr(clientConfig.getPageFooter()));
 			indexValues.put("timestamp", ""+Utils.getCurrentTimestamp());
 			indexValues.put("useGoogle", useGoogle);
+			indexValues.put("welcomeMsg", clientConfig.getWelcomeMsg());
 			Utils.processTemplate(templatesConfig, "index.html", indexValues, atlasMapperClientFolder);
 
 			Map<String, Object> embeddedValues = new HashMap<String, Object>();
@@ -1174,6 +1175,7 @@ public class ConfigManager {
 				previewValues.put("pageHeader", Utils.safeJsStr(clientConfig.getPageHeader()));
 				previewValues.put("pageFooter", Utils.safeJsStr(clientConfig.getPageFooter()));
 				previewValues.put("useGoogle", useGoogle);
+				previewValues.put("welcomeMsg", clientConfig.getWelcomeMsg());
 				Utils.processTemplate(templatesConfig, "preview.html", previewValues, atlasMapperClientFolder);
 			} catch (URISyntaxException ex) {
 				throw new IOException("Can not get a File reference to the AtlasMapperClient", ex);
@@ -1688,6 +1690,17 @@ public class ConfigManager {
 			if (Utils.isNotBlank(wmsLayerConfig.getWmsVersion())) {
 				jsonLayer.put("wmsVersion", wmsLayerConfig.getWmsVersion().trim());
 			}
+		}
+
+		if (layerConfig.isCached() != null) {
+			jsonLayer.put("cached", layerConfig.isCached());
+		}
+
+		if (layerConfig.getOlParams() != null) {
+			jsonLayer.put("olParams", layerConfig.getOlParams());
+		}
+		if (layerConfig.getOlOptions() != null) {
+			jsonLayer.put("olOptions", layerConfig.getOlOptions());
 		}
 
 		jsonLayer.put(CONFIG_VERSION_KEY, CURRENT_LAYER_CONFIG_VERSION);

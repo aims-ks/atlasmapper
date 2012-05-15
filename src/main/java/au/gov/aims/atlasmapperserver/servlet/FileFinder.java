@@ -45,11 +45,11 @@ public class FileFinder {
 	private static final Logger LOGGER = Logger.getLogger(FileFinder.class.getName());
 
 	// DATA_DIR_PROPERTY can be set in many different ways (same as GeoServer)
-	// 1. tomcat/bin/setenv.sh
+	// 1. Servlet context parameter (web.xml)
+	// 2. Java system property (tomcat/bin/setenv.sh)
 	//     Add this line to CATALINA_OPTS variable (replace <path to the config file> with the desired absolute path to the config folder)
 	//     -DATLASMAPPER_DATA_DIR=<path to the config file>
-	// 2. ???
-	// 3. ???
+	// 3. Global environment variable ()
 	// NOTE: Don't forget to restart tomcat after setting this variable.
 	public static final String DATA_DIR_PROPERTY = "ATLASMAPPER_DATA_DIR";
 
@@ -276,16 +276,43 @@ public class FileFinder {
 	public static String getDataDirPropertyValue(ServletContext context) {
 		if (context == null) { return null; }
 
+		// web.xml
 		String dataDir = context.getInitParameter(DATA_DIR_PROPERTY);
+
+		// Can be used to set the variable in java, for a Unit Test.
 		if (Utils.isBlank(dataDir)) {
 			dataDir = System.getProperty(DATA_DIR_PROPERTY);
 		}
+
+		// tomcat/bin/setenv.sh  or  .bashrc
 		if (Utils.isBlank(dataDir)) {
 			dataDir = System.getenv(DATA_DIR_PROPERTY);
 		}
+
 		if (Utils.isNotBlank(dataDir)) {
 			return dataDir.trim();
 		}
 		return null;
+	}
+
+	/**
+	 * Print the content of the AtlasMapper variable, for logging purpose. This
+	 * should be called once, when the application loads, and never get called again,
+	 * to avoid noise in the log file.
+	 * It is not using a Logger because it must always be present in the log,
+	 * whatever the logger settings are.
+	 * @param context
+	 */
+	public static void printDataDirProperty(ServletContext context) {
+		String dataDirPropertyValue = getDataDirPropertyValue(context);
+		if (dataDirPropertyValue == null || dataDirPropertyValue.isEmpty()) {
+			System.out.println("#######################################");
+			System.out.println("# ERROR: " + DATA_DIR_PROPERTY + " HAS NOT BEEN SET");
+			System.out.println("#######################################");
+		} else {
+			System.out.println("---------------------------------------");
+			System.out.println("- " + DATA_DIR_PROPERTY + ": " + dataDirPropertyValue);
+			System.out.println("---------------------------------------");
+		}
 	}
 }

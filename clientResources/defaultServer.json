@@ -57,7 +57,7 @@
 		"useLayerService": true,
 		"defaultLayers": "ea_World_NE2-coast-cities-reefs_Baselayer,\nea_ea:GBR_JCU_Bathymetry-3DGBR_Hillshade",
 		"zoom": "6",
-		"projection": "EPSG:4326",
+		"projection": "EPSG:900913",
 		"enable": true,
 		"mainClientEnable": true,
 		"clientId": "demo",

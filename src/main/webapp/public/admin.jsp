@@ -72,5 +72,12 @@
 	</head>
 	<body>
 		<p>version: <%=ProjectInfo.getVersion() %></p>
+
+		<noscript>
+			<div style="margin: 1em;">
+				<span style="color: #CC0000">ERROR: JavaScript is disabled.</span><br/>
+				This application needs JavaScript to function properly.
+			</div>
+		</noscript>
 	</body>
 </html>

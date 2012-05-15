@@ -449,6 +449,13 @@ Ext.define('Writer.ClientConfigForm', {
 								},
 								queryMode: 'local'
 							}, {
+								fieldLabel: 'Welcome Message',
+								name: 'welcomeMsg',
+								qtipHtml: 'A HTML welcome message shown in a ExtJS window when the client load. The message is also visible for client without JavaScript, therefore is indexable by search engines. Leave black to disable the welcome message\'s window.',
+								xtype: 'textareafield',
+								resizable: {transparent: true}, resizeHandles: 's',
+								height: 200
+							}, {
 								fieldLabel: 'Page header',
 								qtipHtml: 'HTML snippet displayed on top of the page, 100% browser width. The height is defined by the height of the HTML elements. This can be used to define the client branding and add links to the main company web site.',
 								name: 'pageHeader',
@@ -1434,6 +1441,8 @@ Ext.define('Writer.ClientConfig', {
 		{name: 'default', type: 'boolean', defaultValue: false},
 		{name: 'clientId', sortType: 'asUCString'},
 		{name: 'clientName', sortType: 'asUCString'},
+
+		'welcomeMsg',
 
 		'dataSources', // String or Array<String>
 		{name: 'mainClientEnable', type: 'boolean', defaultValue: false},

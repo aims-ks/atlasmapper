@@ -28,8 +28,6 @@ import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
-import java.util.regex.Pattern;
 
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfigInterface;
 import org.json.JSONException;
@@ -99,7 +97,18 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 	private List<LayerStyleConfig> styles;
 
 	@ConfigField
+	// Set this to false if the layer should never be requested to the cache (GWC)
+	private Boolean cached;
+
+	@ConfigField
 	private List<LayerOptionConfig> options;
+
+	@ConfigField
+	private JSONObject olParams;
+
+	@ConfigField
+	private JSONObject olOptions;
+
 
 	// TODO remove after implementing Save State
 	@ConfigField
@@ -415,12 +424,36 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 		this.styles = styles;
 	}
 
+	public Boolean isCached() {
+		return this.cached;
+	}
+
+	public void setCached(Boolean cached) {
+		this.cached = cached;
+	}
+
 	public List<LayerOptionConfig> getOptions() {
 		return options;
 	}
 
 	public void setOptions(List<LayerOptionConfig> options) {
 		this.options = options;
+	}
+
+	public JSONObject getOlParams() {
+		return this.olParams;
+	}
+
+	public void setOlParams(JSONObject olParams) {
+		this.olParams = olParams;
+	}
+
+	public JSONObject getOlOptions() {
+		return this.olOptions;
+	}
+
+	public void setOlOptions(JSONObject olOptions) {
+		this.olOptions = olOptions;
 	}
 
 	public Boolean isSelected() {

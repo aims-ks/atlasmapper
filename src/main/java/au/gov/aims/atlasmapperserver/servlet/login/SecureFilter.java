@@ -54,6 +54,17 @@ public class SecureFilter implements Filter {
 	@Override
 	public void init(FilterConfig filterConfig) throws ServletException {
 		this.context = filterConfig.getServletContext();
+
+		// The filters are initialised when the application starts.
+		// This logging has been put here simply because it's the only "user-defined" filter
+		// used by the application, therefor the only place where it can log the variable
+		// when the application loads.
+		// It prints the value of the AtlasMapper variable (for logging purpose only)
+		// OR an "easy to spot" error message:
+		// ---------------------------------------
+		// - ATLASMAPPER_DATA_DIR: /path/to/atlasmapperFiles
+		// ---------------------------------------
+		FileFinder.printDataDirProperty(this.context);
 	}
 
 	@Override

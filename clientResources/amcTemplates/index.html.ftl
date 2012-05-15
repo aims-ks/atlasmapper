@@ -23,12 +23,14 @@
 
 <!-- Generated with AtlasMapper version ${version} -->
 <head>
+	<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE8" />
+	<!-- IE9 is not support by GeoExt yet, the emulation mode is supposed to fix this...
+		IMPORTANT!!! The IE-EmulateIE8 MUST be the first line of the header otherwise IE9 ignore it. -->
+
 	<title>${clientName}</title>
 	<link rel="icon" type="image/png" href="resources/favicon.png" />
 	<meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
-	<!-- IE9 is not support by GeoExt yet, the emulation mode is supposed to fix this... -->
-	<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE8" />
 
 	<link rel="stylesheet" type="text/css" href="resources/css/styles.css" />
 	<!--[if lte IE 6 ]>
@@ -44,12 +46,46 @@
 		html, body, #loading { height: 100% }
 		#loading {
 			background: #FFFFFF url('resources/images/loading.gif') no-repeat center center;
+			display: none; /* Activated by JS */
+		}
+		/* TODO Find a way to set this somewhere that is configurable by the user */
+		.welcomeCls .x-window-mc {
+			background-color: #FFFFFF !important;
+			border: solid 1px #AABBCC !important;
+		}
+		.welcomeCls p {
+			margin: 1em 0;
 		}
 	</style>
 </head>
 
 <body>
 	<div id="loading"></div>
+
+	<div id="welcomeMsg">
+		${welcomeMsg!''}
+	</div>
+	<noscript>
+		<hr/>
+		<p>
+			Note that you need to have JavaScript enabled to use the Map.
+		</p>
+	</noscript>
+	<script type="text/javascript">
+		var loadingObj = document.getElementById('loading');
+		loadingObj.style.display = 'block';
+
+		var welcomeMsgObj = document.getElementById('welcomeMsg');
+		// NOTE: Visibility: hidden reserve a space to render the object.
+		welcomeMsgObj.style.display = 'none';
+	</script>
+
+	<!-- IE 9+ conditional comment - this will only be executed by IE 9 and above. -->
+	<!--[if gte IE 9]>
+	<script type="text/javascript">
+		var ie9plus = true;
+	</script>
+	<![endif]-->
 
 	<script type="text/javascript" src="OpenLayers/OpenLayers-2.11/OpenLayers.js"></script>
 	<script type="text/javascript" src="OpenLayers-ux/NCWMS.js"></script>
@@ -109,6 +145,41 @@
 		if (nbMaps > 4) { nbMaps = 4; }
 
 		Ext.onReady(function() {
+			var showWelcomeWindow = function() {
+				var welcomeMsg = welcomeMsgObj.innerHTML;
+				if (typeof(welcomeMsg.trim) === 'function') {
+					welcomeMsg = welcomeMsg.trim();
+				} else {
+					welcomeMsg = welcomeMsg.replace(/^\s+/,'').replace(/\s+$/,'');
+				}
+
+				if (welcomeMsg) {
+					Ext.Msg.show({
+						title:'Welcome',
+						msg: welcomeMsg,
+						cls: 'welcomeCls',
+						minWidth: 500,
+						buttons: Ext.Msg.OK
+					});
+				}
+			};
+
+			if (typeof(ie9plus) !== 'undefined' && ie9plus === true) {
+				// This Warning window will only show up if IE is not running in comptability mode (if it ignores the directive in the header)
+				Ext.Msg.show({
+					title:'WARNING',
+					msg: '<p>Your browser is not well supported. It\'s strongly recommended to activate the browser compatibility mode!</p><img src="resources/images/IE9-compatibility-mode.png">',
+					cls: 'welcomeCls',
+					width: 750,
+					minWidth: 750,
+					buttons: Ext.Msg.OK,
+					icon: Ext.MessageBox.WARNING,
+					fn: showWelcomeWindow
+				});
+			} else {
+				showWelcomeWindow();
+			}
+
 			Atlas.core = new Atlas.Core("config/${mainConfig}", "config/${layersConfig}", "${timestamp}");
 			Atlas.core.afterLoad = function() {
 				document.getElementById('loading').style.display = 'none';
