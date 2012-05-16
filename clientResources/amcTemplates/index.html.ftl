@@ -97,8 +97,8 @@
 		<script type="text/javascript" src="http://maps.google.com/maps/api/js?v=3.5&amp;sensor=false"></script>
 	</#if>
 
-	<script type="text/javascript" src="extjs/3.3.0/ext-3.3.0/adapter/ext/ext-base-debug.js"></script>
-	<script type="text/javascript" src="extjs/3.3.0/ext-3.3.0/ext-all-debug.js"></script>
+	<script type="text/javascript" src="extjs/3.3.0/ext-3.3.0/adapter/ext/ext-base.js"></script>
+	<script type="text/javascript" src="extjs/3.3.0/ext-3.3.0/ext-all.js"></script>
 	<!-- The un-minimized version (in folder lib) do not works with FF4 (it's components are loaded async) -->
 	<!--<script type="text/javascript" src="GeoExt/lib/GeoExt.js"></script> -->
 	<script type="text/javascript" src="GeoExt/script/GeoExt.js"></script>

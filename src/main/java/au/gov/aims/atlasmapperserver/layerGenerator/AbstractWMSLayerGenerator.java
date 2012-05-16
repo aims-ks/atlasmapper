@@ -95,7 +95,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 	protected abstract L createLayerConfig(ConfigManager configManager);
 
 	private WMSCapabilities getWMSCapabilities(String urlStr) throws IOException, ServiceException {
-		LOGGER.log(Level.INFO, "Downloading the Capabilities Document {0}", urlStr);
+		LOGGER.log(Level.INFO, "\n### DOWNLOADING ### Capabilities Document {0}\n", urlStr);
 
 		URL url = new URL(urlStr);
 

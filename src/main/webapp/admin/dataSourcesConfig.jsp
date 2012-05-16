@@ -192,6 +192,20 @@
 					}
 					break;
 
+				case CLEARALLCACHE:
+					try {
+						configManager.clearAllDataSourceCache();
+						response.setStatus(HttpServletResponse.SC_OK);
+						jsonObj.put("success", true);
+						jsonObj.put("message", "Cache cleared");
+					} catch (Exception e) {
+						LOGGER.log(Level.SEVERE, "An error occurred while clearing all data source cache.", e);
+						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+						jsonObj.put("success", false);
+						jsonObj.put("errors", new JSONArray().put("An error occurred while clearing all data source cache. Check your server log."));
+					}
+					break;
+
 				default:
 					response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 					jsonObj.put("success", false);

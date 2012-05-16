@@ -612,7 +612,9 @@ public class ClientConfig extends AbstractConfig {
 				if (!overriddenLayerConfigs.containsKey(layerId)) {
 					JSONObject jsonClientOverride = clientOverrides.optJSONObject(layerId);
 					if (jsonClientOverride != null && jsonClientOverride.length() > 0) {
-						AbstractLayerConfig manualLayer = LayerConfigHelper.createLayerConfig(jsonClientOverride, this.getConfigManager());
+						AbstractLayerConfig manualLayer = LayerConfigHelper.createLayerConfig(
+								jsonClientOverride.optString("dataSourceType"), jsonClientOverride, this.getConfigManager());
+
 						manualLayer.setLayerId(layerId);
 
 						overriddenLayerConfigs.put(

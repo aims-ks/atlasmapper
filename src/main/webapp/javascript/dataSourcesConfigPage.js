@@ -141,6 +141,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 	initComponent: function() {
 		this.defaultValues = Ext.create('Writer.LayerServerConfig', {
 			'dataSourceType': 'WMS',
+			'cachingDisabled': false,
 			'showInLegend': true,
 			'legendParameters': 'FORMAT=image/png\nHEIGHT=10\nWIDTH=20',
 			'webCacheParameters': 'LAYERS, TRANSPARENT, SERVICE, VERSION, REQUEST, EXCEPTIONS, FORMAT, SRS, BBOX, WIDTH, HEIGHT'
@@ -187,7 +188,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 		var advancedItems = [];
 
 
-		/** Define items that appair on some Data Source Types **/
+		/** Define items that appears on some Data Source Types **/
 
 		var browserSpecificEditAreaConfig = {
 			xtype: 'editareafield',
@@ -230,6 +231,12 @@ Ext.define('Writer.LayerServerConfigForm', {
 			resizable: {transparent: true}, resizeHandles: 's',
 			height: 100
 		};
+		var cachingDisabled = {
+			qtipHtml: 'Check this box to disable the caching of the capabilities document. This is usually used with local servers, during development.<br/><b>WARNING</b> This option should always be unchecked on production servers.',
+			boxLabel: 'Disable caching',
+			name: 'cachingDisabled',
+			xtype: 'checkboxfield'
+		}
 		var showInLegend = {
 			qtipHtml: 'Uncheck this box to disable the legend for all layers provided by this data source. This mean that the layers will not have its legend displayed in the AtlasMapper clients, and they will not have a check box in the layer <em>Options</em> to show its legend.',
 			boxLabel: 'Show layers in legend',
@@ -305,10 +312,10 @@ Ext.define('Writer.LayerServerConfigForm', {
 			height: 100
 		};
 
-		var ignoredArcGSIPath = {
-			fieldLabel: 'Ignored ArcGSI path',
+		var ignoredArcGISPath = {
+			fieldLabel: 'Ignored ArcGIS path',
 			qtipHtml: 'This field is used to work around a none standard configuration on the GBRMPA ArcGIS MapServer. If this data source is pulling it\'s configuration from GBRMPA ArcGIS MapServer, set this field to "Public/".',
-			name: 'ignoredArcGSIPath'
+			name: 'ignoredArcGISPath'
 		};
 
 
@@ -317,6 +324,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 			case 'WMS':
 				items.push(Ext.apply(serviceUrl, { fieldLabel: 'WMS service URL' }));
 				items.push(baseLayers);
+				items.push(cachingDisabled);
 				items.push(comment);
 
 				advancedItems.push(globalManualOverride);
@@ -333,6 +341,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 			case 'NCWMS':
 				items.push(Ext.apply(serviceUrl, { fieldLabel: 'ncWMS service URL' }));
 				items.push(baseLayers);
+				items.push(cachingDisabled);
 				items.push(comment);
 
 				advancedItems.push(globalManualOverride);
@@ -347,6 +356,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 			case 'WMTS':
 				items.push(Ext.apply(serviceUrl, { fieldLabel: 'WMTS service URL' }));
 				items.push(baseLayers);
+				items.push(cachingDisabled);
 				items.push(comment);
 
 				advancedItems.push(globalManualOverride);
@@ -375,13 +385,14 @@ Ext.define('Writer.LayerServerConfigForm', {
 			case 'ARCGIS_MAPSERVER':
 				items.push(Ext.apply(serviceUrl, { fieldLabel: 'ArcGIS service URL' }));
 				items.push(baseLayers);
+				items.push(cachingDisabled);
 				items.push(comment);
 
 				advancedItems.push(globalManualOverride);
 				advancedItems.push(blacklistedLayers);
 				advancedItems.push(showInLegend);
 				advancedItems.push(legendUrl);
-				advancedItems.push(ignoredArcGSIPath);
+				advancedItems.push(ignoredArcGISPath);
 				break;
 		}
 
@@ -525,6 +536,58 @@ Ext.define('Writer.LayerServerConfigGrid', {
 							handler: this.onDeleteClick
 						}
 					]
+				}, {
+					weight: 1,
+					xtype: 'toolbar',
+					dock: 'bottom',
+					ui: 'footer',
+					items: [
+						'->',
+						{
+							//iconCls: 'icon-save',
+							text: 'Clear all cache',
+							tooltip: 'Clear the cache of all capabilities documents.',
+							scope: this,
+							handler: function() {
+								frameset.setSavingMessage('Clearing all cache.');
+
+								Ext.Ajax.request({
+									url: 'dataSourcesConfig.jsp',
+									params: {
+										'action': 'CLEARALLCACHE'
+									},
+									success: function(response){
+										var responseObj = null;
+										var statusCode = response ? response.status : null;
+										if (response && response.responseText) {
+											try {
+												responseObj = Ext.decode(response.responseText);
+											} catch (err) {
+												responseObj = {errors: [err.toString()]};
+											}
+										}
+										if(responseObj && responseObj.success){
+											frameset.setSavedMessage('All cache cleared successfully.', 0, 'Clearing all cache.');
+										} else {
+											frameset.setErrors('An error occurred while clearing all cache.', responseObj, statusCode);
+										}
+									},
+									failure: function(response) {
+										var responseObj = null;
+										var statusCode = response ? response.status : null;
+										if (response && response.responseText) {
+											try {
+												responseObj = Ext.decode(response.responseText);
+											} catch (err) {
+												responseObj = {errors: [err.toString()]};
+											}
+										}
+										frameset.setErrors('An error occurred while clearing all cache.', responseObj, statusCode);
+									}
+								});
+							}
+						}
+					]
 				}
 			],
 			columns: [
@@ -541,8 +604,8 @@ Ext.define('Writer.LayerServerConfigGrid', {
 				}, {
 					// http://docs.sencha.com/ext-js/4-0/#/api/Ext.grid.column.Action
 					header: 'Actions',
-					xtype:'actioncolumn',
-					width:50,
+					xtype: 'actioncolumn',
+					width: 65,
 					defaults: {
 						iconCls: 'grid-icon'
 					},
@@ -586,43 +649,47 @@ Ext.define('Writer.LayerServerConfigGrid', {
 								if (rec) {
 									var dataSource = rec.data;
 									if (dataSource) {
-										frameset.setSavingMessage('Clearing ' + dataSource.dataSourceName + ' cache.');
+										if (dataSource.cachingDisabled) {
+											frameset.setError('Can not clear the cache: The cache is disabled.');
+										} else {
+											frameset.setSavingMessage('Clearing ' + dataSource.dataSourceName + ' cache.');
 
-										Ext.Ajax.request({
-											url: 'dataSourcesConfig.jsp',
-											params: {
-												'action': 'CLEARCACHE',
-												'id': dataSource.id
-											},
-											success: function(response){
-												var responseObj = null;
-												var statusCode = response ? response.status : null;
-												if (response && response.responseText) {
-													try {
-														responseObj = Ext.decode(response.responseText);
-													} catch (err) {
-														responseObj = {errors: [err.toString()]};
+											Ext.Ajax.request({
+												url: 'dataSourcesConfig.jsp',
+												params: {
+													'action': 'CLEARCACHE',
+													'id': dataSource.id
+												},
+												success: function(response){
+													var responseObj = null;
+													var statusCode = response ? response.status : null;
+													if (response && response.responseText) {
+														try {
+															responseObj = Ext.decode(response.responseText);
+														} catch (err) {
+															responseObj = {errors: [err.toString()]};
+														}
 													}
-												}
-												if(responseObj && responseObj.success){
-													frameset.setSavedMessage('Cache cleared successfully.', 0, 'Clearing ' + dataSource.dataSourceName + ' cache.');
-												} else {
+													if(responseObj && responseObj.success){
+														frameset.setSavedMessage('Cache cleared successfully.', 0, 'Clearing ' + dataSource.dataSourceName + ' cache.');
+													} else {
+														frameset.setErrors('An error occurred while clearing the data source cache.', responseObj, statusCode);
+													}
+												},
+												failure: function(response) {
+													var responseObj = null;
+													var statusCode = response ? response.status : null;
+													if (response && response.responseText) {
+														try {
+															responseObj = Ext.decode(response.responseText);
+														} catch (err) {
+															responseObj = {errors: [err.toString()]};
+														}
+													}
 													frameset.setErrors('An error occurred while clearing the data source cache.', responseObj, statusCode);
 												}
-											},
-											failure: function(response) {
-												var responseObj = null;
-												var statusCode = response ? response.status : null;
-												if (response && response.responseText) {
-													try {
-														responseObj = Ext.decode(response.responseText);
-													} catch (err) {
-														responseObj = {errors: [err.toString()]};
-													}
-												}
-												frameset.setErrors('An error occurred while clearing the data source cache.', responseObj, statusCode);
-											}
-										});
+											});
+										}
 									}
 								} else {
 									frameset.setError('No record has been selected.');
@@ -856,6 +923,10 @@ Ext.define('Writer.LayerServerConfig', {
 	// Only set default value "false" for checkboxes:
 	// The form do not return the value when they are unchecked,
 	// forcing the model to set them to their 'model default value'.
+	//
+	// In other words, the default values here are the values send when
+	// the field is not present in the form (which append when a checkbox
+	// is unchecked).
 	fields: [
 		{name: 'id', type: 'int', useNull: true},
 		{name: 'dataSourceId', sortType: 'asUCString'},
@@ -872,8 +943,9 @@ Ext.define('Writer.LayerServerConfig', {
 		'blacklistedLayers',
 		'baseLayers',
 		'globalManualOverride',
+		{name: 'cachingDisabled', type: 'boolean', defaultValue: false},
 		{name: 'showInLegend', type: 'boolean', defaultValue: false},
-		'ignoredArcGSIPath',
+		'ignoredArcGISPath',
 		'comment'
 	],
 	validations: [{

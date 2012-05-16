@@ -30,18 +30,18 @@ import au.gov.aims.atlasmapperserver.layerGenerator.ArcGISMapServerLayerGenerato
 public class ArcGISMapServerDataSourceConfig extends AbstractDataSourceConfig implements ArcGISMapServerDataSourceConfigInterface {
 	// This field is used to work around a none standard configuration on the GBRMPA ArcGIS server.
 	@ConfigField
-	private String ignoredArcGSIPath;
+	private String ignoredArcGISPath;
 
 	public ArcGISMapServerDataSourceConfig(ConfigManager configManager) {
 		super(configManager);
 	}
 
-	public String getIgnoredArcGSIPath() {
-		return this.ignoredArcGSIPath;
+	public String getIgnoredArcGISPath() {
+		return this.ignoredArcGISPath;
 	}
 
-	public void setIgnoredArcGSIPath(String ignoredArcGSIPath) {
-		this.ignoredArcGSIPath = ignoredArcGSIPath;
+	public void setIgnoredArcGISPath(String ignoredArcGISPath) {
+		this.ignoredArcGISPath = ignoredArcGISPath;
 	}
 
 	@Override
@@ -53,7 +53,7 @@ public class ArcGISMapServerDataSourceConfig extends AbstractDataSourceConfig im
 	public String toString() {
 		return "ArcGISMapServerDataSourceConfig {\n" +
 				(this.getId()==null ? "" :                             "	id=" + this.getId() + "\n") +
-				(Utils.isBlank(ignoredArcGSIPath) ? "" :               "	ignoredArcGSIPath=" + ignoredArcGSIPath + "\n") +
+				(Utils.isBlank(ignoredArcGISPath) ? "" :               "	ignoredArcGISPath=" + ignoredArcGISPath + "\n") +
 				(Utils.isBlank(this.getDataSourceId()) ? "" :          "	dataSourceId=" + this.getDataSourceId() + "\n") +
 				(Utils.isBlank(this.getDataSourceName()) ? "" :        "	dataSourceName=" + this.getDataSourceName() + "\n") +
 				(Utils.isBlank(this.getDataSourceType()) ? "" :        "	dataSourceType=" + this.getDataSourceType() + "\n") +

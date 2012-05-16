@@ -30,7 +30,7 @@ public class ArcGISMapServerLayerConfig extends AbstractLayerConfig implements A
 	private String arcGISPath;
 
 	@ConfigField
-	private String ignoredArcGSIPath;
+	private String ignoredArcGISPath;
 
 	public ArcGISMapServerLayerConfig(ConfigManager configManager) {
 		super(configManager);
@@ -38,13 +38,13 @@ public class ArcGISMapServerLayerConfig extends AbstractLayerConfig implements A
 
 
 	@Override
-	public String getIgnoredArcGSIPath() {
-		return this.ignoredArcGSIPath;
+	public String getIgnoredArcGISPath() {
+		return this.ignoredArcGISPath;
 	}
 
 	@Override
-	public void setIgnoredArcGSIPath(String ignoredArcGSIPath) {
-		this.ignoredArcGSIPath = ignoredArcGSIPath;
+	public void setIgnoredArcGISPath(String ignoredArcGISPath) {
+		this.ignoredArcGISPath = ignoredArcGISPath;
 	}
 
 	public String getArcGISPath() {

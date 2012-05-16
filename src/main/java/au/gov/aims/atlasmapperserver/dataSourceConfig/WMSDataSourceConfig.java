@@ -62,7 +62,7 @@ public class WMSDataSourceConfig extends AbstractDataSourceConfig implements WMS
 	public AbstractLayerGenerator getLayerGenerator() throws IOException {
 		AbstractLayerGenerator layerGenerator = null;
 		try {
-			layerGenerator = LayerGeneratorCache.getInstance(this.getServiceUrl(), WMSLayerGenerator.class);
+			layerGenerator = LayerGeneratorCache.getInstance(this.getServiceUrl(), WMSLayerGenerator.class, this.isCachingDisabled());
 		} catch (ServiceException e) {
 			throw new IOException("Service Exception occurred while retrieving the WMS layer generator.", e);
 		}

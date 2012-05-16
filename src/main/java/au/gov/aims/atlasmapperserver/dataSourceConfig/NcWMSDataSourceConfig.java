@@ -38,7 +38,7 @@ public class NcWMSDataSourceConfig extends WMSDataSourceConfig {
 	public AbstractLayerGenerator getLayerGenerator() throws IOException {
 		AbstractLayerGenerator layerGenerator = null;
 		try {
-			layerGenerator = LayerGeneratorCache.getInstance(this.getServiceUrl(), NcWMSLayerGenerator.class);
+			layerGenerator = LayerGeneratorCache.getInstance(this.getServiceUrl(), NcWMSLayerGenerator.class, this.isCachingDisabled());
 		} catch (ServiceException e) {
 			throw new IOException("Service Exception occurred while retrieving the WMS layer generator for a ncWMS server.", e);
 		}

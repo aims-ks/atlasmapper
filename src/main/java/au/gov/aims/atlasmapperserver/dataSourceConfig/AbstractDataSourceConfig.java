@@ -90,6 +90,9 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 	private JSONSortedObject globalManualOverride;
 
 	@ConfigField
+	private Boolean cachingDisabled;
+
+	@ConfigField
 	private Boolean showInLegend;
 
 	@ConfigField
@@ -205,6 +208,14 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 
 	public void setDataSourceName(String dataSourceName) {
 		this.dataSourceName = dataSourceName;
+	}
+
+	public Boolean isCachingDisabled() {
+		return this.cachingDisabled;
+	}
+
+	public void setCachingDisabled(Boolean cachingDisabled) {
+		this.cachingDisabled = cachingDisabled;
 	}
 
 	public Boolean isShowInLegend() {
@@ -344,7 +355,8 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 				if (!overriddenLayerConfigs.containsKey(layerId) && !this.isBlacklisted(layerId)) {
 					JSONObject jsonGlobalOverride = globalOverrides.optJSONObject(layerId);
 					if (jsonGlobalOverride != null && jsonGlobalOverride.length() > 0) {
-						AbstractLayerConfig manualLayer = LayerConfigHelper.createLayerConfig(jsonGlobalOverride, this.getConfigManager());
+						AbstractLayerConfig manualLayer = LayerConfigHelper.createLayerConfig(
+								jsonGlobalOverride.optString("dataSourceType"), jsonGlobalOverride, this.getConfigManager());
 
 						manualLayer.setLayerId(layerId);
 
@@ -352,7 +364,9 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 						if (clientOverrides != null && clientOverrides.has(layerId)) {
 							JSONObject jsonClientOverride = clientOverrides.optJSONObject(layerId);
 							if (jsonClientOverride != null && jsonClientOverride.length() > 0) {
-								AbstractLayerConfig clientOverride = LayerConfigHelper.createLayerConfig(jsonClientOverride, this.getConfigManager());
+								AbstractLayerConfig clientOverride = LayerConfigHelper.createLayerConfig(
+										jsonClientOverride.optString("dataSourceType"), jsonClientOverride, this.getConfigManager());
+
 								manualLayer.applyOverrides(clientOverride);
 							}
 						}

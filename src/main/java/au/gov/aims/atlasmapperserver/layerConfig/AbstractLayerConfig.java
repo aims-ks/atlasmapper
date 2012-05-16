@@ -472,10 +472,8 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 		if (globalOverrides != null && globalOverrides.length() > 0) {
 			JSONObject globalOverride = globalOverrides.optJSONObject(this.layerId);
 			if (globalOverride != null && globalOverride.length() > 0) {
-				if (!globalOverride.has("dataSourceType")) {
-					globalOverride.put("dataSourceType", this.getDataSourceType());
-				}
-				layerGlobalOverride = LayerConfigHelper.createLayerConfig(globalOverride, this.getConfigManager());
+				layerGlobalOverride = LayerConfigHelper.createLayerConfig(
+						globalOverride.optString("dataSourceType", this.getDataSourceType()), globalOverride, this.getConfigManager());
 			}
 		}
 
@@ -483,13 +481,11 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 		if (clientOverrides != null && clientOverrides.length() > 0) {
 			JSONObject clientOverride = clientOverrides.optJSONObject(this.layerId);
 			if (clientOverride != null && clientOverride.length() > 0) {
-				if (!clientOverride.has("dataSourceType")) {
-					clientOverride.put("dataSourceType", this.getDataSourceType());
-				}
 				if (layerGlobalOverride != null) {
 					layerGlobalOverride.update(clientOverride);
 				} else {
-					layerGlobalOverride = LayerConfigHelper.createLayerConfig(clientOverride, this.getConfigManager());
+					layerGlobalOverride = LayerConfigHelper.createLayerConfig(
+							clientOverride.optString("dataSourceType", this.getDataSourceType()), clientOverride, this.getConfigManager());
 				}
 			}
 		}

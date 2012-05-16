@@ -43,24 +43,32 @@ public class LayerGeneratorCache {
 	// Cache timeout in millisecond
 	// The GetCapabilities will be redownloaded if the application request
 	// information from it and its cached version is older than this setting.
-	protected static final long WMS_CAPABILITIES_CACHE_TIMEOUT = 60*60000; // 60000 = 1 minute
+	protected static final long WMS_CAPABILITIES_CACHE_TIMEOUT = 60*60000; // X*60000 = X minutes
 
-	public static AbstractLayerGenerator getInstance(String getCapabilitiesURL, Class layerGeneratorClass) throws IOException, ServiceException {
+	public static AbstractLayerGenerator getInstance(String getCapabilitiesURL, Class layerGeneratorClass, Boolean cachingDisabled) throws IOException, ServiceException {
 		if (getCapabilitiesURL == null) { return null; }
+
+		// cachingDisabled is a checkbox, so it is either TRUE of NULL.
+		if (cachingDisabled == null) { cachingDisabled = false; }
 
 		if (capabilitiesDocumentsCache == null) {
 			capabilitiesDocumentsCache = new HashMap<String, AbstractLayerGenerator>();
 		}
 
-		long timeout = Utils.getCurrentTimestamp() - WMS_CAPABILITIES_CACHE_TIMEOUT;
+		long timeoutTimestamp = Utils.getCurrentTimestamp() - WMS_CAPABILITIES_CACHE_TIMEOUT;
 		// If not in cache or its cache has timed out
-		if (!capabilitiesDocumentsCache.containsKey(getCapabilitiesURL) ||
-				capabilitiesDocumentsCache.get(getCapabilitiesURL).instanceTimestamp <= timeout) {
+		if (cachingDisabled ||
+				!capabilitiesDocumentsCache.containsKey(getCapabilitiesURL) ||
+				capabilitiesDocumentsCache.get(getCapabilitiesURL).instanceTimestamp <= timeoutTimestamp) {
 
 			try {
 				Constructor constructor = layerGeneratorClass.getConstructor(String.class);
 				AbstractLayerGenerator layerGenerator = (AbstractLayerGenerator)constructor.newInstance(getCapabilitiesURL);
 				layerGenerator.instanceTimestamp = Utils.getCurrentTimestamp();
+
+				if (cachingDisabled) {
+					return layerGenerator;
+				}
 
 				capabilitiesDocumentsCache.put(getCapabilitiesURL, layerGenerator);
 			} catch (NoSuchMethodException ex) {

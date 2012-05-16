@@ -523,11 +523,10 @@ public class Utils {
 			yOut = (Double.isNaN(y) || y < (Latitude.MIN_VALUE - ANGLE_TOLERANCE) || y > (Latitude .MAX_VALUE + ANGLE_TOLERANCE));
 
 			if (xOut || yOut) {
+				// Out of bound coordinates are usually due to invalid input. No data is better than wrong data.
 				throw new TransformException("Coordinates out of bounds: ["+x+", "+y+"] minimum values: ["+Longitude.MIN_VALUE+", "+Latitude.MIN_VALUE+"] maximum values: ["+Longitude.MAX_VALUE+", "+Latitude .MAX_VALUE+"]");
 			}
 		}
-
-		// Out of bound coordinates are usually due to invalid input. No data is better than wrong data.
 
 		return reprojectedCoordinates;
 	}

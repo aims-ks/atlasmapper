@@ -119,6 +119,94 @@
 </pre>
 
 		<p>
+			The <i>AtlasMapper</i> also allow the admin to setup custom <b>layer group</b>,
+			that are added to the client as a single layer. That layer can be opened
+			like a folder to set options on individual layers of the group. Since
+			it is a client side group, each layers of the group has to be rendered
+			separately on OpenLayers. It is advisable to keep the number of layers
+			on a group bellow 5.
+		</p>
+		<p>
+			<b>Layer groups</b> have the same attributes as normal layers, but has to
+			be entirely configured since the layer do not exist on the server. The important
+			attributes to set are:
+		</p>
+		<table>
+			<tr>
+				<th class="attr">Attribute</th>
+				<th class="type">Value (example)</th>
+				<th class="desc">Description</th>
+			</tr>
+			<tr>
+				<td>dataSourceType</td>
+				<td>"GROUP"</td>
+				<td>To tell AtlasMapper that it's a layer group</td>
+			</tr>
+
+			<tr>
+				<td>description</td>
+				<td>"The layer's description"</td>
+				<td>This is shown in the layer info panel</td>
+			</tr>
+			<tr>
+				<td>layerBoundingBox</td>
+				<td>[134.91053, -29.91797, 156.53147, -8.29703]</td>
+				<td>The cumulated bounding box of all layers of the group, to enable the locate feature.</td>
+			</tr>
+			<tr>
+				<td>layers</td>
+				<td>["ea_ea:QLD_DEEDI_Coastal-wetlands", "ea_ea:QLD_DEEDI_Coastal-wetlands_Study-regions"]</td>
+				<td>List of layers contained in the group, assuming they are provided by one of the data source of the client.</td>
+			</tr>
+			<tr>
+				<td>title</td>
+				<td>"Mangroves"</td>
+				<td>The name of the layer, as it will appear in the layer list, either in the tree and in the layer switcher.</td>
+			</tr>
+			<tr>
+				<td>version</td>
+				<td>1.1</td>
+				<td>This feature is only available with version 1.1 of the configuration standard.</td>
+			</tr>
+			<tr>
+				<td>wmsPath</td>
+				<td>"Terrestrial biology/Coastal wetlands"</td>
+				<td>The layer group will appear under the folder <i>Terrestrial biology</i> &gt; <i>Coastal wetlands</i></td>
+			</tr>
+			<tr>
+				<td>wmsQueryable</td>
+				<td>false</td>
+				<td>Layer groups are not currently queryable. If this setting is not set to false, OpenLayers will try to send request to a unregistered layer, which may cause some errors.</td>
+			</tr>
+		</table>
+		<p>
+			The following example set up a layer group titled <i>Mangroves</i>, having the following 2 layers:
+			<i>ea_ea:QLD_DEEDI_Coastal-wetlands</i>, <i>ea_ea:QLD_DEEDI_Coastal-wetlands_Study-regions</i>
+		</p>
+<pre>
+{
+	"ea_mangroves": {
+		"dataSourceType": "GROUP",
+		"description": "Layer group for the layers \"QLD Coastal wetlands - Study regions\" and \"QLD Coastal wetlands (DEEDI)\"",
+		"layerBoundingBox": [
+			134.91053,
+			-29.91797,
+			156.53147,
+			-8.29703
+		],
+		"layers": [
+			"ea_ea:QLD_DEEDI_Coastal-wetlands",
+			"ea_ea:QLD_DEEDI_Coastal-wetlands_Study-regions"
+		],
+		"title": "Mangroves",
+		"version": 1.1,
+		"wmsPath": "Terrestrial biology/Coastal wetlands",
+		"wmsQueryable": false
+	}
+}
+</pre>
+
+		<p>
 			The following table show the layers attributes that can be specified:
 		</p>
 
@@ -154,11 +242,6 @@
 				<td class="desc"><i>true</i> to allow a layer to receive WMS Feature requests, <i>false</i> otherwise.</td>
 			</tr>
 			<tr>
-				<td class="attr">wmsVersion</td> <!-- TODO Is this field work? -->
-				<td class="type">String</td>
-				<td class="desc">The WMS version send in the request; "1.1.1", "1.3.0"</td>
-			</tr>
-			<tr>
 				<td class="attr">isBaseLayer</td>
 				<td class="type">Boolean</td>
 				<td class="desc"><i>true</i> to make this layer a base layer, <i>false</i> otherwise. Note that it is better to use the <i>Base layers</i> field in the <i>Data sources</i> configuration page.</td>
@@ -174,7 +257,7 @@
 				<td class="desc">URL to an image, to be use as a legend, to substitute the one provide by the server.</td>
 			</tr>
 			<tr>
-				<td class="attr">legendGroup</td> <!-- TODO Is this field work? -->
+				<td class="attr">legendGroup</td>
 				<td class="type">String</td>
 				<td class="desc">Name of the group that will be use to group legend together, in the legend window.</td>
 			</tr>
@@ -191,7 +274,7 @@
 			<tr>
 				<td class="attr">layers</td>
 				<td class="type">Array of String</td>
-				<td class="desc">Used with group layers. List of layers, added as children in the layer switcher, when adding this layer to the map.</td>
+				<td class="desc">Used with <i>layer groups</i>. List of layers, added as children in the layer switcher, when adding this layer to the map.</td>
 			</tr>
 			<tr>
 				<td class="attr">aliasIds</td> <!-- TODO Is this field still useful? -->
@@ -226,22 +309,23 @@
 			<tr>
 				<td class="attr">dataSourceType</td>
 				<td class="type">String</td>
-				<td class="desc">Override the type of layer. This option should not be used in normals circumstances.</td>
+				<td class="desc">Override the type of layer. This option should not be used in normals circumstances, other that defining a <i>layer group</i>.</td>
 			</tr>
 			<tr>
 				<td class="attr">legendParameters</td>
 				<td class="type">String</td>
-				<td class="desc">String of pairs <i>parameter=value</i>, separated by coma. Those parameters are sent with the request for the legend graphic.</td>
-			</tr>
-			<tr>
-				<td class="attr">wmsVersion</td> <!-- TODO Is this field work? -->
-				<td class="type">String</td>
-				<td class="desc">The WMS version send in the request; "1.1.1", "1.3.0"</td>
-			</tr>
-			<tr>
-				<td class="attr">wmsRequestMimeType</td>
-				<td class="type">Mime type</td>
-				<td class="desc">Mime type used to request the tiles. Usualy <i>image/jpeg</i>, <i>image/png</i> or <i>image/gif</i></td>
+				<td class="desc">
+					String of pairs <i>parameter=value</i>, separated by coma. Those parameters are sent with the request for the legend graphic.<br/>
+					Example: The following will increase the font size and change the font colour of a GeoServer legend (those parameters are not standard)
+<pre>
+{
+	"ea_ea:GBR_JCU_Bathymetry-3DGBR_Hillshade": {
+		"legendParameters": "FORMAT=image/png,LEGEND_OPTIONS=fontColor:ff0000;fontSize:16"
+	}
+}
+</pre>
+					NOTE: To add/set legends parameters to all layers of a client, use the field <i>Legend parameters</i>, found bellow the <i>Layers' manual override</i> in the advanced tab.
+				</td>
 			</tr>
 			<tr>
 				<td class="attr">wmsFeatureRequestLayers</td>
@@ -388,8 +472,10 @@
 				<td class="attr">olParams</td>
 				<td class="type">JSON Object</td>
 				<td class="desc">
-					Define the OpenLayers params overrides.<br/>
-					Some OpenLayers layer class has params. Those params can be overridden by setting a value for <i>olParams</i>.
+					Define the OGC URL parameters overrides.<br/>
+					Some OpenLayers layer class has an attribute called params. Those params are used in the
+					request to get the map images (usually tiles). They can be overridden by setting a value
+					for <i>olParams</i>.<br/>
 					For example, a layer can be request as a GIF using this override:
 <pre>
 "ea_ea:bluemarble" : {
@@ -398,8 +484,7 @@
 	}
 }
 </pre>
-					See: <a href="http://dev.openlayers.org/releases/OpenLayers-2.11/doc/apidocs/files/OpenLayers/Layer/WMS-js.html">OpenLayers WMS API</a>,
-						<a href="http://dev.openlayers.org/releases/OpenLayers-2.11/doc/apidocs/files/OpenLayers/Layer/ArcGIS93Rest-js.html">OpenLayers ArcGIS API</a>
+					See: <a href="http://nsidc.org/data/atlas/ogc_services.html#WMS">OGC WMS parameters</a>,
 				</td>
 			</tr>
 			<tr>
@@ -407,7 +492,7 @@
 				<td class="type">JSON Object</td>
 				<td class="desc">
 					Define the OpenLayers options overrides.<br/>
-					All OpenLayers layer class has options. Those options can be overridden by setting a value for <i>olOptions</i>.
+					All OpenLayers layer class has options. Those options can be overridden by setting a value for <i>olOptions</i>.<br/>
 					For example, a layer can be request as a single tile, and be displayed at 50% opacity by default:
 <pre>
 "ea_ea:bluemarble" : {
@@ -417,10 +502,20 @@
 	}
 }
 </pre>
-					See: <a href="http://dev.openlayers.org/releases/OpenLayers-2.11/doc/apidocs/files/OpenLayers/Layer-js.html">OpenLayers generic layer API</a> for generic layer options.
+					See: <a href="http://dev.openlayers.org/releases/OpenLayers-2.11/doc/apidocs/files/OpenLayers/Layer/Grid-js.html">OpenLayers Grid layer API</a>, list of <i>Properties</i>.
 				</td>
 			</tr>
 			<!-- styles & layerOptions: [name, type, mandatory, defaultValue] -->
+			<tr>
+				<td class="attr">wmsVersion</td>
+				<td class="type">String</td>
+				<td class="desc"><b>DEPRECATED by <i>"olParams": {"version": "1.1.1"}</i></b><br/>The WMS version send in the request; "1.1.1", "1.3.0"</td>
+			</tr>
+			<tr>
+				<td class="attr">wmsRequestMimeType</td>
+				<td class="type">Mime type</td>
+				<td class="desc"><b>DEPRECATED by <i>"olParams": {"format": "image/png"}</i></b><br/>Mime type used to request the tiles. Usualy <i>image/jpeg</i>, <i>image/png</i> or <i>image/gif</i></td>
+			</tr>
 		</table>
 	</body>
 </html>

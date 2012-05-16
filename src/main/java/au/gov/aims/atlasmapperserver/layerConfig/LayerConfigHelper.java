@@ -25,9 +25,8 @@ import au.gov.aims.atlasmapperserver.ConfigManager;
 import org.json.JSONObject;
 
 public class LayerConfigHelper {
-	public static AbstractLayerConfig createLayerConfig(JSONObject layerConfigJSON, ConfigManager configManager) {
+	public static AbstractLayerConfig createLayerConfig(String dataSourceType, JSONObject layerConfigJSON, ConfigManager configManager) {
 		AbstractLayerConfig layerConfig = null;
-		String dataSourceType = layerConfigJSON.optString("dataSourceType");
 		if ("ARCGIS_MAPSERVER".equals(dataSourceType)) {
 			layerConfig = new ArcGISMapServerLayerConfig(configManager);
 		} else if ("GOOGLE".equals(dataSourceType)) {

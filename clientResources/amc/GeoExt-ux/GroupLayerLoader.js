@@ -172,6 +172,8 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 	_beforeAddLayer: function(event) {
 		var newLayer = event.layer;
 		if (newLayer && newLayer.path && newLayer.path.length > 0 && !newLayer._groupLayer) {
+			var groupLayer = null;
+			var parentGroup = null;
 			for (var i=0; i<newLayer.path.length; i++) {
 				var groupPathConf = newLayer.path[i];
 				if (typeof(groupPathConf) == 'string') {
@@ -182,32 +184,78 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 				}
 
 				// Look if there is already a group layer for this folder
-				var groupLayer = this.store.map.getLayer(groupPathConf.id);
+				groupLayer = this.store.map.getLayer(groupPathConf.id);
 				// No group layer found, add one
 				if (groupLayer == null) {
+					// Layer group initial state
+					var checked = true;
+
+					// TODO Remove this after implementing Save State
+					if (typeof(groupPathConf['selected']) !== 'undefined') {
+						if (!groupPathConf['selected']) {
+							checked = false;
+						}
+						delete(groupPathConf['selected']);
+					}
+
+					var disabled = false;
+					if (parentGroup != null && !parentGroup._state.checked) {
+						checked = false;
+						disabled = true;
+					}
+
 					groupLayer = this.createLayerGroup(newLayer.path.slice(0,i), groupPathConf);
+
+					groupLayer._state = {
+						disabled: disabled,
+						expanded: false,
+						checked: checked
+					};
+
 					this.store.map.addLayer(groupLayer);
 				}
+				parentGroup = groupLayer;
+			}
+
+			// Layer initial state
+			if (groupLayer != null && !groupLayer._state.checked) {
+				newLayer.setVisibility(false);
+				newLayer._state = {
+					disabled: true,
+					checked: false
+				};
 			}
 		}
 	},
 
 	createLayerGroup: function(path, config) {
-		var groupLayer = new OpenLayers.Layer(
-			{
-			}, {
-				// Those attributes do not works... Probably because this is an abstract layer.
-				//id: config.id,
-				//name: config.title,
-				_groupLayer: true,
-				path: path
-			}
-		);
-		groupLayer.id = config.id;
-		groupLayer.name = config.title;
+		var options = {
+			_groupLayer: true,
+			path: path
+		};
+
+		if (typeof(config['olOptions']) !== 'undefined') {
+			options = this._applyOlOverrides(options, config['olOptions']);
+		}
+
+		var groupLayer = new OpenLayers.Layer(config['title'], options);
+
+		// Those attributes have to be set after initialisation.
+		groupLayer.id = config['id'];
 		groupLayer.json = config;
 
 		return groupLayer;
+	},
+	_applyOlOverrides: function(config, overrides) {
+		if (overrides == null) {
+			return config;
+		}
+		for (var key in overrides) {
+			if (overrides.hasOwnProperty(key)) {
+				config[key] = overrides[key];
+			}
+		}
+		return config;
 	},
 
 	addLayerNode: function(node, layerRecord, index) {
@@ -228,14 +276,14 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 
 			// Restore state
 			if (layer._state != null) {
-				if (layer._state.disabled == true) {
-					childLayerNodeConfig.disabled = true;
+				if (typeof(layer._state.disabled) == 'boolean') {
+					childLayerNodeConfig.disabled = layer._state.disabled;
 				}
-				if (layer._state.expanded == true) {
-					childLayerNodeConfig.expanded = true;
+				if (typeof(layer._state.expanded) == 'boolean') {
+					childLayerNodeConfig.expanded = layer._state.expanded;
 				}
-				if (layer._state.checked == true) {
-					childLayerNodeConfig.checked = true;
+				if (typeof(layer._state.checked) == 'boolean') {
+					childLayerNodeConfig.checked = layer._state.checked;
 				}
 			}
 

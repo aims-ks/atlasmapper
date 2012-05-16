@@ -24,7 +24,6 @@ import au.gov.aims.atlasmapperserver.collection.MultiKeyHashMap;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfigInterface;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.DataSourceConfigHelper;
-import au.gov.aims.atlasmapperserver.dataSourceConfig.NcWMSDataSourceConfig;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.WMSDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.ArcGISCacheLayerConfig;
@@ -36,10 +35,7 @@ import au.gov.aims.atlasmapperserver.layerConfig.LayerOptionConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerStyleConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.WMSLayerConfig;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
-import au.gov.aims.atlasmapperserver.layerGenerator.AbstractWMSLayerGenerator;
 import au.gov.aims.atlasmapperserver.layerGenerator.LayerGeneratorCache;
-import au.gov.aims.atlasmapperserver.layerGenerator.NcWMSLayerGenerator;
-import au.gov.aims.atlasmapperserver.layerGenerator.WMSLayerGenerator;
 import au.gov.aims.atlasmapperserver.servlet.FileFinder;
 import au.gov.aims.atlasmapperserver.servlet.Proxy;
 import freemarker.template.Configuration;
@@ -609,9 +605,11 @@ public class ConfigManager {
 					Integer dataSourceId = dataJSonObj.optInt("id", -1);
 					AbstractDataSourceConfig dataSourceConfig = configs.get1(dataSourceId);
 					if (dataSourceConfig != null) {
+						// Clear dataSource cache before modifying it
+						this.clearDataSourceCache(dataSourceConfig);
+
 						// Update the object using the value from the form
 						dataSourceConfig.update(dataJSonObj, true);
-
 						this.ensureUniqueness(dataSourceConfig);
 					}
 				}
@@ -927,6 +925,9 @@ public class ConfigManager {
 
 	public void clearDataSourceCache(AbstractDataSourceConfig dataSourceConfig) {
 		LayerGeneratorCache.clearCapabilitiesDocumentsCache(dataSourceConfig.getServiceUrl());
+	}
+	public void clearAllDataSourceCache() {
+		LayerGeneratorCache.clearCapabilitiesDocumentsCache();
 	}
 
 	public MultiKeyHashMap<Integer, String, ClientConfig> getClientConfigs() throws JSONException, FileNotFoundException {
@@ -1354,7 +1355,6 @@ public class ConfigManager {
 	// Use as a base for Main and Embedded config
 	private JSONObject _generateAbstractClientConfig(Map<String, AbstractLayerConfig> layers, ClientConfig clientConfig)
 			throws GetCapabilitiesExceptions, Exception {
-
 		if (clientConfig == null) { return null; }
 
 		JSONObject json = new JSONObject();

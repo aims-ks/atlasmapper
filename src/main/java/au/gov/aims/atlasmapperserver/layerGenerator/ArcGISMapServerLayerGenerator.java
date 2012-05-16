@@ -322,7 +322,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 		// NOTE: GBRMPA ArcGIS server do not fully comply with the standard.
 		//     To work around this problem, we have to remove the "Public/" string from the paths.
 		if (dataSourceConfig != null) {
-			String ignoredPath = dataSourceConfig.getIgnoredArcGSIPath();
+			String ignoredPath = dataSourceConfig.getIgnoredArcGISPath();
 			if (Utils.isNotBlank(ignoredPath) && rawPath.startsWith(ignoredPath)) {
 				rawPath = rawPath.substring(ignoredPath.length());
 			}
@@ -344,7 +344,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 
 		if (jsonLayerExtra != null) {
 			layer.setDescription(jsonLayerExtra.optString("description", null));
-			layer.setLayerBoundingBox(getExtent(jsonLayerExtra.optJSONObject("extent"), layer.getTitle(), dataSourceConfig.getDataSourceName()));
+			layer.setLayerBoundingBox(this.getExtent(jsonLayerExtra.optJSONObject("extent"), layer.getTitle(), dataSourceConfig.getDataSourceName()));
 		}
 
 		return layer;
@@ -364,7 +364,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 
 		if (jsonLayerExtra != null) {
 			layer.setDescription(jsonLayerExtra.optString("description", null));
-			layer.setLayerBoundingBox(getExtent(jsonLayerExtra.optJSONObject("extent"), layer.getTitle(), dataSourceConfig.getDataSourceName()));
+			layer.setLayerBoundingBox(this.getExtent(jsonLayerExtra.optJSONObject("extent"), layer.getTitle(), dataSourceConfig.getDataSourceName()));
 		}
 
 		if (jsonParentService != null) {
@@ -430,7 +430,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 
 		if (jsonGroupExtra != null) {
 			groupLayer.setDescription(jsonGroupExtra.optString("description", null));
-			groupLayer.setLayerBoundingBox(getExtent(jsonGroupExtra.optJSONObject("extent"), groupLayer.getTitle(), dataSourceConfig.getDataSourceName()));
+			groupLayer.setLayerBoundingBox(this.getExtent(jsonGroupExtra.optJSONObject("extent"), groupLayer.getTitle(), dataSourceConfig.getDataSourceName()));
 		}
 
 		return groupLayer;
@@ -467,9 +467,9 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 		if (jsonFolderExtra != null) {
 			folderLayer.setDescription(jsonFolderExtra.optString("serviceDescription", null));
 
-			double[] extent = getExtent(jsonFolderExtra.optJSONObject("initialExtent"), folderLayer.getTitle(), dataSourceConfig.getDataSourceName());
+			double[] extent = this.getExtent(jsonFolderExtra.optJSONObject("initialExtent"), folderLayer.getTitle(), dataSourceConfig.getDataSourceName());
 			if (extent == null) {
-				extent = getExtent(jsonFolderExtra.optJSONObject("fullExtent"), folderLayer.getTitle(), dataSourceConfig.getDataSourceName());
+				extent = this.getExtent(jsonFolderExtra.optJSONObject("fullExtent"), folderLayer.getTitle(), dataSourceConfig.getDataSourceName());
 			}
 			if (extent != null) {
 				folderLayer.setLayerBoundingBox(extent);
@@ -536,6 +536,8 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 	}
 
 	private static JSONObject getJSON(String urlStr) throws IOException, JSONException {
+		LOGGER.log(Level.INFO, "\n### DOWNLOADING ### ArcGIS JSON Document {0}\n", urlStr);
+
 		URL url = new URL(urlStr);
 
 		URLConnection connection = url.openConnection();
