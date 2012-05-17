@@ -179,6 +179,9 @@ Ext.define('Writer.ClientConfigForm', {
 
 		var notAvailableInDemoMode = demoMode ? "<br/><strong>This function is not available in the Demo version.</strong>" : "";
 
+		var generatedFileLocationId = Ext.id();
+		var baseUrlId = Ext.id();
+
 		Ext.apply(this, {
 			activeRecord: null,
 			border: false,
@@ -381,20 +384,20 @@ Ext.define('Writer.ClientConfigForm', {
 									'<strong>Warning:</strong> Only set this field if you are setting a client outside the application. If you set this field, you will also have to set the <i>Client base URL</i> with the URL that allow users to access the folder.'+
 									notAvailableInDemoMode,
 								name: 'generatedFileLocation',
-								id: 'generatedFileLocation',
+								id: generatedFileLocationId,
 								disabled: demoMode,
 								validator: validateDependencies,
-								dependencies: ['baseUrl']
+								dependencies: [baseUrlId]
 							}, {
 								fieldLabel: 'Client base URL',
 								qtipHtml: 'URL to the client. This field is only needed to create the link to the client, in the Administration Interface. Failing to provide this information will not have any effect in the client itself. Default URL for this field is <i>/atlasmapper/client/&lt;Client name&gt;/</i><br/>'+
 									'<strong>Warning:</strong> Only set this field if you are setting a client outside the application.'+
 									notAvailableInDemoMode,
 								name: 'baseUrl',
-								id: 'baseUrl',
+								id: baseUrlId,
 								disabled: demoMode,
 								validator: validateDependencies,
-								dependencies: ['generatedFileLocation']
+								dependencies: [generatedFileLocationId]
 							}, {
 								fieldLabel: 'Layer info service URL',
 								qtipHtml: 'URL used by the client to get information about layers. The default URL is: atlasmapper/public/layersInfo.jsp'+
@@ -759,6 +762,19 @@ Ext.define('Writer.ClientConfigGrid', {
 			}
 		}
 
+		var displayLinkCurrentMainConfId = Ext.id();
+		var jsonEditAreaCurrentMainConfId = Ext.id();
+		var displayLinkNewMainConfId = Ext.id();
+		var jsonEditAreaNewMainConfId = Ext.id();
+		var displayLinkCurrentEmbeddedConfId = Ext.id();
+		var jsonEditAreaCurrentEmbeddedConfId = Ext.id();
+		var displayLinkNewEmbeddedConfId = Ext.id();
+		var jsonEditAreaNewEmbeddedConfId = Ext.id();
+		var displayLinkCurrentLayersId = Ext.id();
+		var jsonEditAreaCurrentLayersId = Ext.id();
+		var displayLinkNewLayersId = Ext.id();
+		var jsonEditAreaNewLayersId = Ext.id();
+
 		var debugWindow = Ext.create('Ext.window.Window', {
 			title: 'Debug JSON Configuration',
 			maximizable: true,
@@ -802,14 +818,14 @@ Ext.define('Writer.ClientConfigGrid', {
 											value: 'Current config'
 										}, {
 											xtype: 'displayfield',
-											id: 'displayLinkCurrentMainConf',
+											id: displayLinkCurrentMainConfId,
 											style: { border: 'solid 1px #888888' },
 											height: '100%',
 											padding: 5,
 											hidden: true
 										}, Ext.apply(
 											{
-												id: 'jsonEditAreaCurrentMainConf',
+												id: jsonEditAreaCurrentMainConfId,
 												readOnly: true
 											}, browserSpecificEditAreaConfig
 										)
@@ -829,14 +845,14 @@ Ext.define('Writer.ClientConfigGrid', {
 											value: 'New config'
 										}, {
 											xtype: 'displayfield',
-											id: 'displayLinkNewMainConf',
+											id: displayLinkNewMainConfId,
 											style: { border: 'solid 1px #888888' },
 											height: '100%',
 											padding: 5,
 											hidden: true
 										}, Ext.apply(
 											{
-												id: 'jsonEditAreaNewMainConf',
+												id: jsonEditAreaNewMainConfId,
 												readOnly: true
 											}, browserSpecificEditAreaConfig
 										)
@@ -871,14 +887,14 @@ Ext.define('Writer.ClientConfigGrid', {
 											value: 'Current config'
 										}, {
 											xtype: 'displayfield',
-											id: 'displayLinkCurrentEmbeddedConf',
+											id: displayLinkCurrentEmbeddedConfId,
 											style: { border: 'solid 1px #888888' },
 											height: '100%',
 											padding: 5,
 											hidden: true
 										}, Ext.apply(
 											{
-												id: 'jsonEditAreaCurrentEmbeddedConf',
+												id: jsonEditAreaCurrentEmbeddedConfId,
 												readOnly: true
 											}, browserSpecificEditAreaConfig
 										)
@@ -898,14 +914,14 @@ Ext.define('Writer.ClientConfigGrid', {
 											value: 'New config'
 										}, {
 											xtype: 'displayfield',
-											id: 'displayLinkNewEmbeddedConf',
+											id: displayLinkNewEmbeddedConfId,
 											style: { border: 'solid 1px #888888' },
 											height: '100%',
 											padding: 5,
 											hidden: true
 										}, Ext.apply(
 											{
-												id: 'jsonEditAreaNewEmbeddedConf',
+												id: jsonEditAreaNewEmbeddedConfId,
 												readOnly: true
 											}, browserSpecificEditAreaConfig
 										)
@@ -913,7 +929,7 @@ Ext.define('Writer.ClientConfigGrid', {
 								}
 							]
 						}, {
-							title: 'Layers database',
+							title: 'Layers\' catalog',
 							xtype: 'fieldcontainer',
 							layout: {
 								type: 'hbox',
@@ -939,14 +955,14 @@ Ext.define('Writer.ClientConfigGrid', {
 											value: 'Current config'
 										}, {
 											xtype: 'displayfield',
-											id: 'displayLinkCurrentLayers',
+											id: displayLinkCurrentLayersId,
 											style: { border: 'solid 1px #888888' },
 											height: '100%',
 											padding: 5,
 											hidden: true
 										}, Ext.apply(
 											{
-												id: 'jsonEditAreaCurrentLayers',
+												id: jsonEditAreaCurrentLayersId,
 												readOnly: true
 											}, browserSpecificEditAreaConfig
 										)
@@ -966,14 +982,14 @@ Ext.define('Writer.ClientConfigGrid', {
 											value: 'New config'
 										}, {
 											xtype: 'displayfield',
-											id: 'displayLinkNewLayers',
+											id: displayLinkNewLayersId,
 											style: { border: 'solid 1px #888888' },
 											height: '100%',
 											padding: 5,
 											hidden: true
 										}, Ext.apply(
 											{
-												id: 'jsonEditAreaNewLayers',
+												id: jsonEditAreaNewLayersId,
 												readOnly: true
 											}, browserSpecificEditAreaConfig
 										)
@@ -997,45 +1013,45 @@ Ext.define('Writer.ClientConfigGrid', {
 			function _setLoading(el, load) {
 				if (el) el.setLoading(load);
 			}
-			_setLoading(Ext.getCmp('jsonEditAreaCurrentMainConf'), load);
-			_setLoading(Ext.getCmp('jsonEditAreaNewMainConf'), load);
-			_setLoading(Ext.getCmp('jsonEditAreaCurrentEmbeddedConf'), load);
-			_setLoading(Ext.getCmp('jsonEditAreaNewEmbeddedConf'), load);
-			_setLoading(Ext.getCmp('jsonEditAreaCurrentLayers'), load);
-			_setLoading(Ext.getCmp('jsonEditAreaNewLayers'), load);
+			_setLoading(Ext.getCmp(jsonEditAreaCurrentMainConfId), load);
+			_setLoading(Ext.getCmp(jsonEditAreaNewMainConfId), load);
+			_setLoading(Ext.getCmp(jsonEditAreaCurrentEmbeddedConfId), load);
+			_setLoading(Ext.getCmp(jsonEditAreaNewEmbeddedConfId), load);
+			_setLoading(Ext.getCmp(jsonEditAreaCurrentLayersId), load);
+			_setLoading(Ext.getCmp(jsonEditAreaNewLayersId), load);
 		};
 		debugWindow.setEditAreasData = function(jsonData, clientId) {
 			if (jsonData && jsonData.mainClient && jsonData.embeddedClient && jsonData.layers) {
 				debugWindow.setEditAreaData(
-						Ext.getCmp('jsonEditAreaCurrentMainConf'),
-						Ext.getCmp('displayLinkCurrentMainConf'),
+						Ext.getCmp(jsonEditAreaCurrentMainConfId),
+						Ext.getCmp(displayLinkCurrentMainConfId),
 						'getClientConfigFile.jsp?configType=main&clientId='+clientId,
 						jsonData.mainClient.current);
 				debugWindow.setEditAreaData(
-						Ext.getCmp('jsonEditAreaNewMainConf'),
-						Ext.getCmp('displayLinkNewMainConf'),
+						Ext.getCmp(jsonEditAreaNewMainConfId),
+						Ext.getCmp(displayLinkNewMainConfId),
 						'getClientConfigFile.jsp?configType=main&live=true&clientId='+clientId,
 						jsonData.mainClient.generated);
 
 				debugWindow.setEditAreaData(
-						Ext.getCmp('jsonEditAreaCurrentEmbeddedConf'),
-						Ext.getCmp('displayLinkCurrentEmbeddedConf'),
+						Ext.getCmp(jsonEditAreaCurrentEmbeddedConfId),
+						Ext.getCmp(displayLinkCurrentEmbeddedConfId),
 						'getClientConfigFile.jsp?configType=embedded&clientId='+clientId,
 						jsonData.embeddedClient.current);
 				debugWindow.setEditAreaData(
-						Ext.getCmp('jsonEditAreaNewEmbeddedConf'),
-						Ext.getCmp('displayLinkNewEmbeddedConf'),
+						Ext.getCmp(jsonEditAreaNewEmbeddedConfId),
+						Ext.getCmp(displayLinkNewEmbeddedConfId),
 						'getClientConfigFile.jsp?configType=embedded&live=true&clientId='+clientId,
 						jsonData.embeddedClient.generated);
 
 				debugWindow.setEditAreaData(
-						Ext.getCmp('jsonEditAreaCurrentLayers'),
-						Ext.getCmp('displayLinkCurrentLayers'),
+						Ext.getCmp(jsonEditAreaCurrentLayersId),
+						Ext.getCmp(displayLinkCurrentLayersId),
 						'getClientConfigFile.jsp?configType=layers&clientId='+clientId,
 						jsonData.layers.current);
 				debugWindow.setEditAreaData(
-						Ext.getCmp('jsonEditAreaNewLayers'),
-						Ext.getCmp('displayLinkNewLayers'),
+						Ext.getCmp(jsonEditAreaNewLayersId),
+						Ext.getCmp(displayLinkNewLayersId),
 						'getClientConfigFile.jsp?configType=layers&live=true&clientId='+clientId,
 						jsonData.layers.generated);
 			} else {

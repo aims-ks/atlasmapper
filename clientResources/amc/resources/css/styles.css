@@ -19,6 +19,11 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/* HACK against new google popup window... */
+.olLayerGooglePoweredBy {
+	display: none;
+}
+
 .highlighted {
 	background-color: #FDFFD7;
 }
@@ -35,6 +40,15 @@
 }
 .layerNameLabel {
 	font-weight: bold;
+}
+
+.layerLoading {
+	background-image: url('../images/loading-bg.gif');
+	background-position: center;
+}
+/* Will be used when OpenLayers will implement loadcancel event */
+.layerError {
+	background-color: #FFBBBB;
 }
 
 .legend {
@@ -122,21 +136,22 @@ ol.bullet-list > li {
 	margin: 0.2em 0;
 }
 
+/* NOTE: "font-size: 0" remove the extra padding added for the text */
 .layers-btn {
 	font-size: 0 !important;
 	float: left;
 	margin-left: 4px;
 }
 .layers-btn .add {
-	background-image: url("http://cdn1.iconfinder.com/data/icons/diagona/icon/10/103.png") !important;
+	background-image: url('../images/add.png') !important;
 	font-size: 0 !important;
 }
 .layers-btn .remove {
-	background-image: url("http://cdn1.iconfinder.com/data/icons/diagona/icon/10/104.png") !important;
+	background-image: url('../images/remove.png') !important;
 	font-size: 0 !important;
 }
 .layers-btn .hide {
-	background-image: url("https://helpdesk.bryan.edu/pics/left_off.png") !important;
+	background-image: url('../images/hide.png') !important;
 	font-size: 0 !important;
 }
 

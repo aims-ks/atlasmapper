@@ -330,6 +330,8 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 		}
 
 		layerConfig.setLayerId(layerId);
+		this.ensureUniqueLayerId(layerConfig, dataSourceConfig);
+		layerId = layerConfig.getLayerId();
 
 		String title = layer.getTitle();
 		if (Utils.isNotBlank(title)) {
@@ -351,8 +353,14 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 			if (clientConfig.isBaseLayer(layerId)) {
 				layerConfig.setIsBaseLayer(true);
 			}
-		} else if (dataSourceConfig.isBaseLayer(layerId)) {
-			layerConfig.setIsBaseLayer(true);
+		} else {
+			if (dataSourceConfig.isBaseLayer(layerId)) {
+				layerConfig.setIsBaseLayer(true);
+			} else if (dataSourceConfig.isBaseLayer(layer.getName())) {
+				// Backward compatibility
+				LOGGER.log(Level.WARNING, "DEPRECATED LAYER ID USED FOR BASE LAYERS: Layer id [{0}] should be [{1}].", new String[]{layer.getName(), layerId});
+				layerConfig.setIsBaseLayer(true);
+			}
 		}
 
 		List<StyleImpl> styleImpls = layer.getStyles();
@@ -378,8 +386,6 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 			};
 			layerConfig.setLayerBoundingBox(boundingBoxArray);
 		}
-
-		this.ensureUniqueLayerId(layerConfig, dataSourceConfig);
 
 		return layerConfig;
 	}

@@ -22,9 +22,45 @@
 package au.gov.aims.atlasmapperserver.layerConfig;
 
 import au.gov.aims.atlasmapperserver.ConfigManager;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class GoogleLayerConfig extends AbstractLayerConfig {
+	private static final Logger LOGGER = Logger.getLogger(GoogleLayerConfig.class.getName());
+	private static final String NUM_ZOOM_LEVELS_KEY = "numZoomLevels";
+
 	public GoogleLayerConfig(ConfigManager configManager) {
 		super(configManager);
+	}
+
+	public void setNumZoomLevels(Integer numZoomLevels) {
+		JSONObject olOptions = this.getOlOptions();
+		if (olOptions == null) {
+			olOptions = new JSONObject();
+			this.setOlOptions(olOptions);
+		}
+		if (numZoomLevels == null) {
+			if (olOptions.has(NUM_ZOOM_LEVELS_KEY)) {
+				olOptions.remove(NUM_ZOOM_LEVELS_KEY);
+			}
+		} else {
+			try {
+				olOptions.put(NUM_ZOOM_LEVELS_KEY, numZoomLevels);
+			} catch(JSONException ex) {
+				// This will probably never happen...
+				LOGGER.log(Level.SEVERE, "Can not set the "+NUM_ZOOM_LEVELS_KEY+" properties for a google layer", ex);
+			}
+		}
+	}
+
+	public Integer getNumZoomLevels() {
+		JSONObject olOptions = this.getOlOptions();
+		if (olOptions == null && olOptions.has(NUM_ZOOM_LEVELS_KEY)) {
+			return olOptions.optInt(NUM_ZOOM_LEVELS_KEY);
+		}
+		return null;
 	}
 }

@@ -1554,7 +1554,7 @@ public class ConfigManager {
 		}
 
 		if (Utils.isNotBlank(dataSourceInterface.getServiceUrl())) {
-			// TODO remove wms from the name
+			// TODO remove wms from the property name
 			dataSource.put("wmsServiceUrl", dataSourceInterface.getServiceUrl().trim());
 		}
 

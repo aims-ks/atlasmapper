@@ -115,12 +115,24 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 
 		node.on("beforemove", this.onBeforeMove, this);
 		node.on("move", this.onChildMove, this);
+		node.on("checkchange", this.onCheckChange, this);
 
 		if (typeof(node.layer) != 'undefined' && node.layer != null) {
+			this.onLayerLoadStart(node);
 			node.layer.events.on({
 				'removed': function(event) {
 					// event.map, event.layer
 					this.onLayerDelete(event.map, node);
+				},
+				'loadstart': function(event) {
+					this.onLayerLoadStart(node);
+				},
+				'loadend': function(event) {
+					this.onLayerLoadEnd(node);
+				},
+				// This event is not triggered anywhere, but maybe someday it will be...
+				'loadcancel': function(event) {
+					this.onLayerLoadCancel(node);
 				},
 				scope: this
 			});
@@ -134,9 +146,13 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 	_unregisterEvents: function(node) {
 		node.un("beforemove", this.onBeforeMove, this);
 		node.un("move", this.onChildMove, this);
+		node.un("checkchange", this.onCheckChange, this);
 
 		if (typeof(node.layer) != 'undefined' && node.layer != null) {
 			node.layer.events.remove('removed');
+			node.layer.events.remove('loadstart');
+			node.layer.events.remove('loadend');
+			node.layer.events.remove('loadcancel');
 			if (typeof(node.layer._groupLayer) != 'undefined' && node.layer._groupLayer != null) {
 				node.un("checkchange", this.onFolderCheckChange, this);
 			}
@@ -162,6 +178,50 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 				node.layer = null;
 			}
 			node.remove(true);
+		}
+	},
+
+	onLayerLoadStart: function(node) {
+		if (node && node.ui && this._supportLoadEvents(node)) {
+			node.ui.addClass('layerLoading');
+			// Just in case it generate an error last time
+			node.ui.removeClass('layerError');
+		}
+	},
+
+	onLayerLoadEnd: function(node) {
+		if (node && node.ui && this._supportLoadEvents(node)) {
+			node.ui.removeClass('layerLoading');
+			// Just in case it generate an error last time
+			node.ui.removeClass('layerError');
+		}
+	},
+
+	onLayerLoadCancel: function(node) {
+		if (node && node.ui && this._supportLoadEvents(node)) {
+			this.onLayerLoadEnd(node);
+			node.ui.addClass('layerError');
+		}
+	},
+
+	/**
+	 * Google do not support the loading feature...
+	 */
+	_supportLoadEvents: function(node) {
+		if (node && node.layer && node.layer.json) {
+			var type = node.layer.json['dataSourceType'];
+			if (type != 'FOLDER' && type != 'GROUP' && type != 'GOOGLE') {
+				return true;
+			}
+		}
+		return false;
+	},
+
+	onCheckChange: function(node, checked) {
+		if (checked) {
+			this.onLayerLoadStart(node);
+		} else {
+			this.onLayerLoadEnd(node);
 		}
 	},
 

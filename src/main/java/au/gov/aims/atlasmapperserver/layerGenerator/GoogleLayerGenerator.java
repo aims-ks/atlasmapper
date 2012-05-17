@@ -26,9 +26,12 @@ import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.GoogleDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.GoogleLayerConfig;
+import org.json.JSONException;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -63,16 +66,18 @@ public class GoogleLayerGenerator extends AbstractLayerGenerator<GoogleLayerConf
 		if (googleLayersCache == null) {
 			googleLayersCache = new HashMap<String, GoogleLayerConfig>();
 
-			GoogleLayerConfig terrain = this.createGoogleLayer(dataSourceConfig, "TERRAIN", "Google Physical", null);
+			GoogleLayerConfig terrain = this.createGoogleLayer(dataSourceConfig, "TERRAIN", "Google Physical", null, 16);
 			googleLayersCache.put(terrain.getLayerId(), terrain);
 
-			GoogleLayerConfig roadmap = this.createGoogleLayer(dataSourceConfig, "ROADMAP", "Google Streets", null);
+			GoogleLayerConfig roadmap = this.createGoogleLayer(dataSourceConfig, "ROADMAP", "Google Streets", null, 22);
 			googleLayersCache.put(roadmap.getLayerId(), roadmap);
 
-			GoogleLayerConfig hybrid = this.createGoogleLayer(dataSourceConfig, "HYBRID", "Google Hybrid", null);
+			// The number of zoom level is a mix of 20 / 21, depending on the location, OpenLayers do not support that very well...
+			GoogleLayerConfig hybrid = this.createGoogleLayer(dataSourceConfig, "HYBRID", "Google Hybrid", null, 21);
 			googleLayersCache.put(hybrid.getLayerId(), hybrid);
 
-			GoogleLayerConfig satellite = this.createGoogleLayer(dataSourceConfig, "SATELLITE", "Google Satellite", null);
+			// The number of zoom level is a mix of 20 / 21, depending on the location, OpenLayers do not support that very well...
+			GoogleLayerConfig satellite = this.createGoogleLayer(dataSourceConfig, "SATELLITE", "Google Satellite", null, 21);
 			googleLayersCache.put(satellite.getLayerId(), satellite);
 		}
 		return googleLayersCache;
@@ -83,7 +88,7 @@ public class GoogleLayerGenerator extends AbstractLayerGenerator<GoogleLayerConf
 		return dataSourceConfig;
 	}
 
-	private GoogleLayerConfig createGoogleLayer(GoogleDataSourceConfig dataSourceConfig, String googleLayerType, String name, String description) {
+	private GoogleLayerConfig createGoogleLayer(GoogleDataSourceConfig dataSourceConfig, String googleLayerType, String name, String description, Integer numZoomLevels) {
 		GoogleLayerConfig layerConfig = new GoogleLayerConfig(dataSourceConfig.getConfigManager());
 		layerConfig.setDataSourceId(dataSourceConfig.getDataSourceId());
 
@@ -92,6 +97,10 @@ public class GoogleLayerGenerator extends AbstractLayerGenerator<GoogleLayerConf
 		layerConfig.setDescription(description);
 		layerConfig.setIsBaseLayer(true);
 		layerConfig.setLayerBoundingBox(new double[]{-180, -90, 180, 90});
+
+		if (numZoomLevels != null) {
+			layerConfig.setNumZoomLevels(numZoomLevels);
+		}
 
 		this.ensureUniqueLayerId(layerConfig, dataSourceConfig);
 

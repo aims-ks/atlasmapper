@@ -842,7 +842,7 @@ Ext.define('Writer.LayerServerConfigGrid', {
 		return Ext.create('Ext.window.Window', {
 			title: 'Data source configuration',
 			width: 700,
-			height: 430,
+			height: 450,
 			maxHeight: Ext.getBody().getViewSize().height,
 			layout: 'fit',
 			constrainHeader: true,
