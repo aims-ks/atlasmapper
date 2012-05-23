@@ -112,9 +112,10 @@ GeoExt.ux.VectorLegend = Ext.extend(GeoExt.VectorLegend, {
 				hasLegendImage = true;
 				if(!this.items || !this.getComponent(layerId)) {
 					this.add({
-						xtype: "gx_legendimage",
+						xtype: "gx_ux_legendimage",
 						url: legendUrl,
-						itemId: layerId
+						itemId: layerId,
+						layer: layer
 					});
 				}
 			}

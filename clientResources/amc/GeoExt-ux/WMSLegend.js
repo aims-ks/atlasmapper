@@ -302,9 +302,10 @@ GeoExt.ux.WMSLegend = Ext.extend(GeoExt.WMSLegend, {
 			layerName = layerNames[i];
 			if(!this.items || !this.getComponent(layerName)) {
 				this.add({
-					xtype: "gx_legendimage",
+					xtype: "gx_ux_legendimage",
 					url: this.getLegendUrl(layerName, layerNames),
-					itemId: layerName
+					itemId: layerName,
+					layer: layer
 				});
 			}
 		}

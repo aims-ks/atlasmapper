@@ -33,7 +33,7 @@ editAreaLoader.load_syntax["atlasmapperconfig"] = {
 			'legendUrl', 'legendGroup', 'legendTitle', 'infoHtmlUrls',
 			'aliasIds', 'serverUrls', 'wmsRequestMimeType',
 			'wmsFeatureRequestLayers', 'wmsTransectable', 'default',
-			'styles', 'options', 'name',
+			'styles', 'options', 'name', 'wmsPath',
 			'type', 'mandatory', 'defaultValue', 'selected'
 		],
 		// Layers can override any data source entry

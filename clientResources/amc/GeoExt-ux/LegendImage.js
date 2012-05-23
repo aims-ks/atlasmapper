@@ -19,28 +19,29 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package au.gov.aims.atlasmapperserver.dataSourceConfig;
+Ext.namespace("GeoExt.ux");
 
-import au.gov.aims.atlasmapperserver.ConfigManager;
-import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
-import au.gov.aims.atlasmapperserver.layerGenerator.WMTSLayerGenerator;
-import org.geotools.ows.ServiceException;
+// TODO Make a method similar to setHideInLegend, to hide the legend without touching the "Hide in legend" checkbox.
+// widgets/LegendImage.js
+GeoExt.ux.LegendImage = Ext.extend(GeoExt.LegendImage, {
 
-import java.io.IOException;
+	layer: null,
 
-public class WMTSDataSourceConfig extends WMSDataSourceConfig {
-	public WMTSDataSourceConfig(ConfigManager configManager) {
-		super(configManager);
-	}
+	// Override
+	setUrl: function(url) {
+		//this.layer.setLegendError(false);
+		GeoExt.ux.LegendImage.superclass.setUrl.call(this, url);
+	},
 
-	@Override
-	public AbstractLayerGenerator getLayerGenerator() throws IOException {
-		AbstractLayerGenerator layerGenerator;
-		try {
-			layerGenerator = new WMTSLayerGenerator(this);
-		} catch (ServiceException e) {
-			throw new IOException("Service Exception occurred while retrieving the WMS layer generator.", e);
+	// Override
+	onImageLoadError: function() {
+		if (this.layer != null) {
+			//this.layer.setLegendError(true);
+			//this.layer.setHideInLegend(true);
 		}
-		return layerGenerator;
+		this.getEl().dom.src = this.defaultImgSrc;
 	}
-}
+});
+
+/** api: xtype = gx_ux_legendimage */
+Ext.reg('gx_ux_legendimage', GeoExt.ux.LegendImage);

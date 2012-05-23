@@ -42,6 +42,7 @@ Atlas.AbstractMapPanel = {
 		'legendVisibilityChange',
 		'render'
 	],
+
 	// The OpenLayers event object, set in initComponent function
 	events: null,
 
@@ -50,6 +51,7 @@ Atlas.AbstractMapPanel = {
 
 	KML_ALLOW_JAVASCRIPT: false,
 
+	mapId: 0,
 	center: null,
 	zoom: 0,
 
@@ -62,10 +64,42 @@ Atlas.AbstractMapPanel = {
 	// Avoid clash with "rendered", which is defined in GeoExt.MapPanel
 	isRendered: false,
 
+	urlState: null,
+
 	defaultLonLatProjection: null,
 
 	initComponent: function() {
 		var that = this;
+
+		// Basic save-state
+		var parameters = OpenLayers.Util.getParameters();
+		this.urlState = {
+			layerIds: null,
+			styles: null,
+			visibilities: null,
+			opacities: null,
+			center: null,
+			zoom: null
+		};
+		if (typeof(parameters['l'+this.mapId]) !== 'undefined' && parameters['l'+this.mapId] != null) {
+			this.urlState.layerIds = (parameters['l'+this.mapId].constructor == Array) ? parameters['l'+this.mapId] : [parameters['l'+this.mapId]];
+		}
+		if (typeof(parameters['s'+this.mapId]) !== 'undefined' && parameters['s'+this.mapId] != null) {
+			this.urlState.styles = (parameters['s'+this.mapId].constructor == Array) ? parameters['s'+this.mapId] : [parameters['s'+this.mapId]];
+		}
+		if (typeof(parameters['v'+this.mapId]) !== 'undefined' && parameters['v'+this.mapId] != null) {
+			this.urlState.visibilities = (parameters['v'+this.mapId].constructor == Array) ? parameters['v'+this.mapId] : [parameters['v'+this.mapId]];
+		}
+		if (typeof(parameters['o'+this.mapId]) !== 'undefined' && parameters['o'+this.mapId] != null) {
+			this.urlState.opacities = (parameters['o'+this.mapId].constructor == Array) ? parameters['o'+this.mapId] : [parameters['o'+this.mapId]];
+		}
+
+		if (typeof(parameters['ll']) !== 'undefined' && parameters['ll'] != null && parameters['ll'].constructor == Array) {
+			this.urlState.center = parameters['ll'];
+		}
+		if (typeof(parameters['z']) !== 'undefined' && parameters['z'] != null) {
+			this.urlState.zoom = parseInt(parameters['z']);
+		}
 
 		this.events = new OpenLayers.Events(this, null,
 			this.EVENT_TYPES);
@@ -92,6 +126,19 @@ Atlas.AbstractMapPanel = {
 			if (startingLocation[2] != null) {
 				// Number (default zoom level)
 				this.zoom = startingLocation[2];
+			}
+		}
+
+		// URL overrides
+		if (this.urlState != null) {
+			if (this.urlState.center != null && this.urlState.center.length == 2) {
+				this.center = new OpenLayers.LonLat(this.urlState.center[0], this.urlState.center[1]);
+				if (projection != this.defaultLonLatProjection) {
+					this.center = this.center.transform(this.defaultLonLatProjection, projection);
+				}
+			}
+			if (this.urlState.zoom != null) {
+				this.zoom = this.urlState.zoom;
 			}
 		}
 
@@ -276,6 +323,55 @@ Atlas.AbstractMapPanel = {
 			// Get the layer from the core cache and load it in the map
 			// NOTE The layer from the core cache is normalized.
 			this.addLayerById(defaultLayers[i].layerId);
+		}
+
+		// Add layers specified by the "layers" URL parameter
+		if (this.urlState != null && this.urlState.layerIds != null) {
+			Atlas.core.requestLayersJSon(this.urlState.layerIds, function(layersJSon) {
+				if (that.urlState.styles != null || that.urlState.visibilities != null || that.urlState.opacities != null) {
+					for (var i=0; i<layersJSon.length; i++) {
+						// Clone the object, to avoid modifying the original
+						layersJSon[i] = clone(layersJSon[i]);
+
+						// Apply URL styles
+						if (that.urlState.styles != null && typeof(that.urlState.styles[i]) != 'undefined' && that.urlState.styles[i] != null && that.urlState.styles[i].length > 0) {
+							if (typeof(layersJSon[i].styles) != 'undefined' && layersJSon[i].styles != null) {
+								var found = false;
+								// Remove previous default
+								for (style in layersJSon[i].styles) {
+									if (layersJSon[i].styles.hasOwnProperty(style)) {
+										if (layersJSon[i].styles[style]["default"] == true) {
+											delete(layersJSon[i].styles[style]["default"]);
+										}
+									}
+								}
+								// Add new default
+								if (typeof(layersJSon[i].styles[that.urlState.styles[i]]) == 'undefined' || layersJSon[i].styles[that.urlState.styles[i]] == null) {
+									layersJSon[i].styles[that.urlState.styles[i]] = {};
+								}
+								layersJSon[i].styles[that.urlState.styles[i]]["default"] = true;
+							} else {
+								layersJSon[i].styles = {};
+								layersJSon[i].styles[that.urlState.styles[i]] = { "default": true };
+							}
+						}
+
+						// Apply URL opacities
+						if (that.urlState.opacities != null && typeof(that.urlState.opacities[i]) != 'undefined' && that.urlState.opacities[i] != null && that.urlState.opacities[i].length > 0) {
+							if (typeof(layersJSon[i].olOptions) == 'undefined' || layersJSon[i].olOptions == null) {
+								layersJSon[i].olOptions = {};
+							}
+							layersJSon[i].olOptions.opacity = that.urlState.opacities[i];
+						}
+
+						// Apply URL visibilities
+						if (that.urlState.visibilities != null && typeof(that.urlState.visibilities[i]) != 'undefined' && that.urlState.visibilities[i] != null && that.urlState.visibilities[i].length > 0) {
+							layersJSon[i]['selected'] = (that.urlState.visibilities[i].toLowerCase() === 'true');
+						}
+					}
+				}
+				that.addLayers(layersJSon);
+			});
 		}
 	},
 

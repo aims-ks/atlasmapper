@@ -22,16 +22,11 @@
 package au.gov.aims.atlasmapperserver.layerGenerator;
 
 import au.gov.aims.atlasmapperserver.ClientConfig;
-import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.GoogleDataSourceConfig;
-import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.GoogleLayerConfig;
-import org.json.JSONException;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -69,15 +64,16 @@ public class GoogleLayerGenerator extends AbstractLayerGenerator<GoogleLayerConf
 			GoogleLayerConfig terrain = this.createGoogleLayer(dataSourceConfig, "TERRAIN", "Google Physical", null, 16);
 			googleLayersCache.put(terrain.getLayerId(), terrain);
 
-			GoogleLayerConfig roadmap = this.createGoogleLayer(dataSourceConfig, "ROADMAP", "Google Streets", null, 22);
+			// This layer goes up to 22, but it's pointless to go that close... 20 is good enough
+			GoogleLayerConfig roadmap = this.createGoogleLayer(dataSourceConfig, "ROADMAP", "Google Streets", null, 20);
 			googleLayersCache.put(roadmap.getLayerId(), roadmap);
 
-			// The number of zoom level is a mix of 20 / 21, depending on the location, OpenLayers do not support that very well...
-			GoogleLayerConfig hybrid = this.createGoogleLayer(dataSourceConfig, "HYBRID", "Google Hybrid", null, 21);
+			// The number of zoom level is a mix of 20 - 22, depending on the location, OpenLayers do not support that very well...
+			GoogleLayerConfig hybrid = this.createGoogleLayer(dataSourceConfig, "HYBRID", "Google Hybrid", null, 20);
 			googleLayersCache.put(hybrid.getLayerId(), hybrid);
 
-			// The number of zoom level is a mix of 20 / 21, depending on the location, OpenLayers do not support that very well...
-			GoogleLayerConfig satellite = this.createGoogleLayer(dataSourceConfig, "SATELLITE", "Google Satellite", null, 21);
+			// The number of zoom level is a mix of 20 - 22, depending on the location, OpenLayers do not support that very well...
+			GoogleLayerConfig satellite = this.createGoogleLayer(dataSourceConfig, "SATELLITE", "Google Satellite", null, 20);
 			googleLayersCache.put(satellite.getLayerId(), satellite);
 		}
 		return googleLayersCache;

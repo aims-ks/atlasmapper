@@ -6,9 +6,6 @@ import org.json.JSONSortedObject;
  * All fields defined in the Interface are defined in the DataSources and are "overridable" by the AbstractLayerConfig classes
  */
 public interface AbstractDataSourceConfigInterface {
-	public String getBlacklistedLayers();
-	public void setBlacklistedLayers(String blacklistedLayers);
-
 	public String getBaseLayers();
 	public void setBaseLayers(String baseLayers);
 

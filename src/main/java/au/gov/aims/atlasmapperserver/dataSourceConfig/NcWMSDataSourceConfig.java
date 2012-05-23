@@ -23,7 +23,6 @@ package au.gov.aims.atlasmapperserver.dataSourceConfig;
 
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
-import au.gov.aims.atlasmapperserver.layerGenerator.LayerGeneratorCache;
 import au.gov.aims.atlasmapperserver.layerGenerator.NcWMSLayerGenerator;
 import org.geotools.ows.ServiceException;
 
@@ -36,9 +35,9 @@ public class NcWMSDataSourceConfig extends WMSDataSourceConfig {
 
 	@Override
 	public AbstractLayerGenerator getLayerGenerator() throws IOException {
-		AbstractLayerGenerator layerGenerator = null;
+		NcWMSLayerGenerator layerGenerator;
 		try {
-			layerGenerator = LayerGeneratorCache.getInstance(this.getServiceUrl(), NcWMSLayerGenerator.class, this.isCachingDisabled());
+			layerGenerator = new NcWMSLayerGenerator(this);
 		} catch (ServiceException e) {
 			throw new IOException("Service Exception occurred while retrieving the WMS layer generator for a ncWMS server.", e);
 		}

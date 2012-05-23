@@ -358,6 +358,8 @@ public class Utils {
 
 	/**
 	 * Return true if the file is writable, or can be created.
+	 * It recursively go back to the file parents until one folder actually exists, and return true if that
+	 * folder is writable, therefor the file could be create if all missing parent folder were created.
 	 * @param file
 	 * @return
 	 */

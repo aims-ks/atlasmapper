@@ -223,10 +223,15 @@ Ext.define('Writer.LayerServerConfigForm', {
 			height: 100
 		};
 
-		var blacklistedLayers = {
-			fieldLabel: 'Black listed layers',
-			qtipHtml: 'List of layer ids, separated by coma or new line. The layers listed here are ignored by all AtlasMapper clients.',
-			name: 'blacklistedLayers',
+		var blackAndWhiteListedLayers = {
+			fieldLabel: 'Black/White layer filter',
+			qtipHtml: 'List of layer ids or id patterns, separated by coma or new line. A star (<b>*</b>) can be used as a wild card, anywhere in the id string. More than one star can be used.<br/><br/>'+
+					'Ids that start with a minus (<b>-</b>) are <b>black listed</b> (removed), and those starting with a plus (<b>+</b>) are <b>white listed</b> (added). '+
+					'The AtlasMapper server does not generate any layer information for any black listed layers, so they are invisible for the AtlasMapper clients.<br/><br/>' +
+					'Initially all layers are included, then the filters are applied to this list.<br/><br/>' +
+					'<b>Example:</b> This filter will remove all <i>ea_</i> layers that do not start with <i>ea_base</i>, and will also remove the one starting with <i>ea_baselayer</i>:<br/>' +
+					'<pre>    -ea_*\n    +ea_base*\n    -ea_baselayer*</pre>',
+			name: 'blackAndWhiteListedLayers',
 			xtype: 'textareafield',
 			resizable: {transparent: true}, resizeHandles: 's',
 			height: 100
@@ -290,6 +295,11 @@ Ext.define('Writer.LayerServerConfigForm', {
 			value: '<em>LAYERS, TRANSPARENT, SERVICE, VERSION, REQUEST, EXCEPTIONS, FORMAT, SRS, BBOX, WIDTH, HEIGHT</em>'
 		};
 		*/
+		var getMapUrl = {
+			fieldLabel: 'GetMap URL',
+			qtipHtml: 'This field override the GetMap URL provided by the GetCapabilities document.',
+			name: 'getMapUrl'
+		};
 		var featureRequestsUrl = {
 			fieldLabel: 'Feature requests URL',
 			qtipHtml: 'This field override the feature requests URL provided by the GetCapabilities document.',
@@ -328,13 +338,14 @@ Ext.define('Writer.LayerServerConfigForm', {
 				items.push(comment);
 
 				advancedItems.push(globalManualOverride);
-				advancedItems.push(blacklistedLayers);
+				advancedItems.push(blackAndWhiteListedLayers);
 				advancedItems.push(showInLegend);
 				advancedItems.push(legendParameters);
 				advancedItems.push(legendUrl);
 				//advancedItems.push(extraWmsServiceUrls);
 				advancedItems.push(webCacheUrl);
 				advancedItems.push(webCacheParameters);
+				advancedItems.push(getMapUrl);
 				advancedItems.push(featureRequestsUrl);
 				break;
 
@@ -345,11 +356,12 @@ Ext.define('Writer.LayerServerConfigForm', {
 				items.push(comment);
 
 				advancedItems.push(globalManualOverride);
-				advancedItems.push(blacklistedLayers);
+				advancedItems.push(blackAndWhiteListedLayers);
 				advancedItems.push(showInLegend);
 				advancedItems.push(legendParameters);
 				advancedItems.push(legendUrl);
 				//advancedItems.push(extraWmsServiceUrls);
+				advancedItems.push(getMapUrl);
 				advancedItems.push(featureRequestsUrl);
 				break;
 
@@ -360,11 +372,12 @@ Ext.define('Writer.LayerServerConfigForm', {
 				items.push(comment);
 
 				advancedItems.push(globalManualOverride);
-				advancedItems.push(blacklistedLayers);
+				advancedItems.push(blackAndWhiteListedLayers);
 				advancedItems.push(showInLegend);
 				advancedItems.push(legendParameters);
 				advancedItems.push(legendUrl);
 				//advancedItems.push(extraWmsServiceUrls);
+				advancedItems.push(getMapUrl);
 				advancedItems.push(featureRequestsUrl);
 				break;
 
@@ -379,7 +392,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 				items.push(comment);
 
 				advancedItems.push(globalManualOverride);
-				advancedItems.push(blacklistedLayers);
+				advancedItems.push(blackAndWhiteListedLayers);
 				break;
 
 			case 'ARCGIS_MAPSERVER':
@@ -389,7 +402,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 				items.push(comment);
 
 				advancedItems.push(globalManualOverride);
-				advancedItems.push(blacklistedLayers);
+				advancedItems.push(blackAndWhiteListedLayers);
 				advancedItems.push(showInLegend);
 				advancedItems.push(legendUrl);
 				advancedItems.push(ignoredArcGISPath);
@@ -933,6 +946,7 @@ Ext.define('Writer.LayerServerConfig', {
 		{name: 'dataSourceName', sortType: 'asUCString'},
 		{name: 'dataSourceType', type: 'string'},
 		'serviceUrl',
+		'getMapUrl',
 		'extraWmsServiceUrls',
 		'kmlUrls',
 		'webCacheUrl',
@@ -940,7 +954,7 @@ Ext.define('Writer.LayerServerConfig', {
 		'featureRequestsUrl',
 		'legendUrl',
 		'legendParameters',
-		'blacklistedLayers',
+		'blackAndWhiteListedLayers',
 		'baseLayers',
 		'globalManualOverride',
 		{name: 'cachingDisabled', type: 'boolean', defaultValue: false},

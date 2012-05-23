@@ -118,7 +118,9 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 		node.on("checkchange", this.onCheckChange, this);
 
 		if (typeof(node.layer) != 'undefined' && node.layer != null) {
-			this.onLayerLoadStart(node);
+			if (node.layer.visibility) {
+				this.onLayerLoadStart(node);
+			}
 			node.layer.events.on({
 				'removed': function(event) {
 					// event.map, event.layer

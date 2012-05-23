@@ -27,6 +27,8 @@ import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
 import au.gov.aims.atlasmapperserver.layerGenerator.ArcGISMapServerLayerGenerator;
 
+import java.io.IOException;
+
 public class ArcGISMapServerDataSourceConfig extends AbstractDataSourceConfig implements ArcGISMapServerDataSourceConfigInterface {
 	// This field is used to work around a none standard configuration on the GBRMPA ArcGIS server.
 	@ConfigField
@@ -45,7 +47,7 @@ public class ArcGISMapServerDataSourceConfig extends AbstractDataSourceConfig im
 	}
 
 	@Override
-	public AbstractLayerGenerator getLayerGenerator() {
+	public AbstractLayerGenerator getLayerGenerator() throws IOException {
 		return new ArcGISMapServerLayerGenerator();
 	}
 

@@ -24,13 +24,13 @@ package au.gov.aims.atlasmapperserver.dataSourceConfig;
 import au.gov.aims.atlasmapperserver.AbstractConfig;
 import au.gov.aims.atlasmapperserver.ClientConfig;
 import au.gov.aims.atlasmapperserver.ConfigManager;
+import au.gov.aims.atlasmapperserver.collection.BlackAndWhiteListFilter;
 import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -75,11 +75,17 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 	@ConfigField
 	private String legendParameters;
 
+	@Deprecated
 	@ConfigField
 	private String blacklistedLayers;
 	// Cache - avoid parsing blacklistedLayers string every times.
+	@Deprecated
 	private Set<String> blacklistedLayerIdsSet = null;
+	@Deprecated
 	private Set<Pattern> blacklistedLayerRegexesSet = null;
+
+	@ConfigField
+	private String blackAndWhiteListedLayers;
 
 	@ConfigField
 	private String baseLayers;
@@ -123,14 +129,40 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 		this.id = id;
 	}
 
+	@Deprecated
 	public String getBlacklistedLayers() {
-		return blacklistedLayers;
+		return null;
 	}
 
+	@Deprecated
 	public void setBlacklistedLayers(String blacklistedLayers) {
-		this.blacklistedLayers = blacklistedLayers;
-		this.blacklistedLayerIdsSet = null;
-		this.blacklistedLayerRegexesSet = null;
+		StringBuilder blackAndWhiteListSb = new StringBuilder();
+
+		String[] blacklistedLayersId = blacklistedLayers.split(SPLIT_PATTERN);
+		if (blacklistedLayersId != null) {
+			for (int i=0; i<blacklistedLayersId.length; i++) {
+				String blacklistedLayerId = blacklistedLayersId[i];
+				if (Utils.isNotBlank(blacklistedLayerId)) {
+					blackAndWhiteListSb.append(BlackAndWhiteListFilter.BLACK_LIST_PREFIX);
+					blackAndWhiteListSb.append(blacklistedLayerId);
+					blackAndWhiteListSb.append("\n");
+				}
+			}
+		}
+
+		String blackAndWhiteList = blackAndWhiteListSb.toString();
+		if (Utils.isNotBlank(blackAndWhiteList)) {
+			blackAndWhiteList = blackAndWhiteList.trim();
+			this.setBlackAndWhiteListedLayers(blackAndWhiteList);
+		}
+	}
+
+	public String getBlackAndWhiteListedLayers() {
+		return this.blackAndWhiteListedLayers;
+	}
+
+	public void setBlackAndWhiteListedLayers(String blackAndWhiteListedLayers) {
+		this.blackAndWhiteListedLayers = blackAndWhiteListedLayers;
 	}
 
 	public String getBaseLayers() {
@@ -248,77 +280,11 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 		return this.baseLayersSet.contains(layerId);
 	}
 
-	// Helper
-	public boolean isBlacklisted(String layerId) {
-		if (Utils.isBlank(layerId)) {
-			return true;
-		}
-		String blacklistedLayersIdStr = this.getBlacklistedLayers();
-		if (Utils.isBlank(blacklistedLayersIdStr)) {
-			return false;
-		}
-
-		if (this.blacklistedLayerIdsSet == null && this.blacklistedLayerRegexesSet == null) {
-			this.blacklistedLayerIdsSet = new HashSet<String>();
-			this.blacklistedLayerRegexesSet = new HashSet<Pattern>();
-
-			String[] blacklistedLayersId = blacklistedLayersIdStr.split(SPLIT_PATTERN);
-			if (blacklistedLayersId != null) {
-				for (int i=0; i<blacklistedLayersId.length; i++) {
-					String blacklistedLayerId = blacklistedLayersId[i];
-					if (Utils.isNotBlank(blacklistedLayerId)) {
-						if (blacklistedLayerId.contains("*")) {
-							this.blacklistedLayerRegexesSet.add(toPattern(blacklistedLayerId.trim()));
-						} else {
-							this.blacklistedLayerIdsSet.add(blacklistedLayerId.trim());
-						}
-					}
-				}
-			}
-		}
-
-		if (this.blacklistedLayerIdsSet != null && this.blacklistedLayerIdsSet.contains(layerId)) {
-			return true;
-		}
-		for (Pattern pattern : this.blacklistedLayerRegexesSet) {
-			if (pattern.matcher(layerId).matches()) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	// Very basic pattern generator that use * as a wildcard.
-	private static Pattern toPattern(String layerPatternStr) {
-		String[] layerPatternParts = layerPatternStr.split("\\*");
-
-		boolean firstPart = true;
-		StringBuilder sb = new StringBuilder();
-		if (layerPatternStr.startsWith("*")) {
-			sb.append(".*");
-		}
-		for (String layerPatternPart : layerPatternParts) {
-			if (firstPart) {
-				firstPart = false;
-			} else {
-				sb.append(".*");
-			}
-			// Quote everything between * (quote mean that it escape everything)
-			sb.append(Pattern.quote(layerPatternPart));
-		}
-		if (layerPatternStr.endsWith("*")) {
-			sb.append(".*");
-		}
-
-		return Pattern.compile(sb.toString());
-	}
-
 	public abstract AbstractLayerGenerator getLayerGenerator() throws IOException;
 
 	// Helper
 	public Map<String, AbstractLayerConfig> generateLayerConfigs(ClientConfig clientConfig) throws Exception {
-		Map<String, AbstractLayerConfig> overriddenLayerConfigs = new HashMap<String, AbstractLayerConfig>();
+		HashMap<String, AbstractLayerConfig> overriddenLayerConfigs = new HashMap<String, AbstractLayerConfig>();
 
 		JSONSortedObject globalOverrides = this.globalManualOverride;
 		JSONObject clientOverrides = clientConfig.getManualOverride();
@@ -332,10 +298,10 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 			layerConfigs = layerGenerator.generateLayerConfigs(clientConfig, this);
 		}
 
-		// Remove blacklisted layers and apply manual overrides, if needed
+		// Apply manual overrides, if needed
 		if (layerConfigs != null) {
 			for (AbstractLayerConfig layerConfig : layerConfigs.values()) {
-				if (layerConfig != null && !this.isBlacklisted(layerConfig.getLayerId())) {
+				if (layerConfig != null) {
 					AbstractLayerConfig overriddenLayerConfig =
 							layerConfig.applyOverrides(
 									globalOverrides,
@@ -352,7 +318,7 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 			Iterator<String> layerIds = globalOverrides.keys();
 			while (layerIds.hasNext()) {
 				String layerId = layerIds.next();
-				if (!overriddenLayerConfigs.containsKey(layerId) && !this.isBlacklisted(layerId)) {
+				if (!overriddenLayerConfigs.containsKey(layerId)) {
 					JSONObject jsonGlobalOverride = globalOverrides.optJSONObject(layerId);
 					if (jsonGlobalOverride != null && jsonGlobalOverride.length() > 0) {
 						AbstractLayerConfig manualLayer = LayerConfigHelper.createLayerConfig(
@@ -383,6 +349,11 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 				}
 			}
 		}
+
+		// Remove blacklisted layers
+		BlackAndWhiteListFilter<AbstractLayerConfig> blackAndWhiteFilter =
+				new BlackAndWhiteListFilter<AbstractLayerConfig>(this.getBlackAndWhiteListedLayers());
+		overriddenLayerConfigs = blackAndWhiteFilter.filter(overriddenLayerConfigs);
 
 		return overriddenLayerConfigs;
 	}
@@ -421,17 +392,17 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 	@Override
 	public String toString() {
 		return "AbstractDataSourceConfig {\n" +
-				(id==null ? "" :                           "	id=" + id + "\n") +
-				(Utils.isBlank(dataSourceId) ? "" :        "	dataSourceId=" + dataSourceId + "\n") +
-				(Utils.isBlank(dataSourceName) ? "" :      "	dataSourceName=" + dataSourceName + "\n") +
-				(Utils.isBlank(dataSourceType) ? "" :      "	dataSourceType=" + dataSourceType + "\n") +
-				(Utils.isBlank(serviceUrl) ? "" :          "	serviceUrl=" + serviceUrl + "\n") +
-				(Utils.isBlank(featureRequestsUrl) ? "" :  "	featureRequestsUrl=" + featureRequestsUrl + "\n") +
-				(Utils.isBlank(legendUrl) ? "" :           "	legendUrl=" + legendUrl + "\n") +
-				(legendParameters==null ? "" :             "	legendParameters=" + legendParameters + "\n") +
-				(Utils.isBlank(blacklistedLayers) ? "" :   "	blacklistedLayers=" + blacklistedLayers + "\n") +
-				(showInLegend==null ? "" :                 "	showInLegend=" + showInLegend + "\n") +
-				(Utils.isBlank(comment) ? "" :             "	comment=" + comment + "\n") +
+				(id==null ? "" :                                   "	id=" + id + "\n") +
+				(Utils.isBlank(dataSourceId) ? "" :                "	dataSourceId=" + dataSourceId + "\n") +
+				(Utils.isBlank(dataSourceName) ? "" :              "	dataSourceName=" + dataSourceName + "\n") +
+				(Utils.isBlank(dataSourceType) ? "" :              "	dataSourceType=" + dataSourceType + "\n") +
+				(Utils.isBlank(serviceUrl) ? "" :                  "	serviceUrl=" + serviceUrl + "\n") +
+				(Utils.isBlank(featureRequestsUrl) ? "" :          "	featureRequestsUrl=" + featureRequestsUrl + "\n") +
+				(Utils.isBlank(legendUrl) ? "" :                   "	legendUrl=" + legendUrl + "\n") +
+				(legendParameters==null ? "" :                     "	legendParameters=" + legendParameters + "\n") +
+				(Utils.isBlank(blackAndWhiteListedLayers) ? "" :   "	blackAndWhiteListedLayers=" + blackAndWhiteListedLayers + "\n") +
+				(showInLegend==null ? "" :                         "	showInLegend=" + showInLegend + "\n") +
+				(Utils.isBlank(comment) ? "" :                     "	comment=" + comment + "\n") +
 			'}';
 	}
 }

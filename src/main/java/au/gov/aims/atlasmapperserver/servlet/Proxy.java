@@ -21,6 +21,7 @@
 
 package au.gov.aims.atlasmapperserver.servlet;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -28,11 +29,11 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLDecoder;
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.ServletContext;
@@ -47,6 +48,9 @@ import au.gov.aims.atlasmapperserver.ConfigType;
 import au.gov.aims.atlasmapperserver.GetCapabilitiesExceptions;
 import au.gov.aims.atlasmapperserver.ServletUtils;
 import au.gov.aims.atlasmapperserver.Utils;
+import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
+import au.gov.aims.atlasmapperserver.dataSourceConfig.WMSDataSourceConfig;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 /**
@@ -64,12 +68,15 @@ public class Proxy extends HttpServlet {
 	private static final String URL_PARAM = "url";
 
 	// Cached list of allowed hosts, for each clients, used with the preview clients
-	private static Map<String, List<String>> previewClientsAllowedHostCache = null;
+	private static Map<String, Set<String>> previewClientsAllowedHostCache = null;
 
 	// Cached list of allowed hosts, for each clients, used with the preview clients
-	private static Map<String, List<String>> generatedClientsAllowedHostCache = null;
+	private static Map<String, Set<String>> generatedClientsAllowedHostCache = null;
 
-	private static final List<String> DEFAULT_ALLOWED_HOSTS = new ArrayList<String>();
+	// Cached list of all allowed hosts, used with the public folder
+	private static Set<String> allAllowedHostCache = null;
+
+	private static final Set<String> DEFAULT_ALLOWED_HOSTS = new HashSet<String>();
 	static {
 		DEFAULT_ALLOWED_HOSTS.add("www.openlayers.org");
 		DEFAULT_ALLOWED_HOSTS.add("openlayers.org");
@@ -97,11 +104,15 @@ public class Proxy extends HttpServlet {
 		try {
 			ConfigManager configManager = ConfigHelper.getConfigManager(servletContext);
 
-			ClientConfig clientConfig = configManager.getClientConfig(clientId);
-			// The main config may be incomplete without the list of layers (for the preview), but it will contains enough info to configure the proxy.
-			JSONObject jsonMainConfig = configManager.getClientConfigFileJSon(null, clientConfig, ConfigType.MAIN, preview, preview);
-			JSONObject jsonLayersConfig = configManager.getClientConfigFileJSon(clientConfig, ConfigType.LAYERS, preview, preview);
-			reloadConfig(jsonMainConfig, jsonLayersConfig, clientId, preview);
+			if (FileFinder.PUBLIC_FOLDER.equals(clientId)) {
+				allAllowedHostCache = getAllProxyAllowedHosts(configManager);
+			} else {
+				ClientConfig clientConfig = configManager.getClientConfig(clientId);
+				// The main config may be incomplete without the list of layers (for the preview), but it will contains enough info to configure the proxy.
+				JSONObject jsonMainConfig = configManager.getClientConfigFileJSon(null, clientConfig, ConfigType.MAIN, preview, preview);
+				JSONObject jsonLayersConfig = configManager.getClientConfigFileJSon(clientConfig, ConfigType.LAYERS, preview, preview);
+				reloadConfig(jsonMainConfig, jsonLayersConfig, clientId, preview);
+			}
 		} catch (Throwable ex) {
 			LOGGER.log(Level.SEVERE, "Error occurred while reloading the proxy configuration: ", ex);
 		}
@@ -109,13 +120,13 @@ public class Proxy extends HttpServlet {
 
 	public static synchronized void reloadConfig(JSONObject jsonMainConfig, JSONObject jsonLayersConfig, String clientId, boolean preview) {
 		if (previewClientsAllowedHostCache == null) {
-			previewClientsAllowedHostCache = new HashMap<String, List<String>>();
+			previewClientsAllowedHostCache = new HashMap<String, Set<String>>();
 		}
 		if (generatedClientsAllowedHostCache == null) {
-			generatedClientsAllowedHostCache = new HashMap<String, List<String>>();
+			generatedClientsAllowedHostCache = new HashMap<String, Set<String>>();
 		}
 
-		List<String> foundAllowedHosts = null;
+		Set<String> foundAllowedHosts = null;
 		try {
 			foundAllowedHosts = getProxyAllowedHosts(jsonMainConfig, jsonLayersConfig);
 			if (foundAllowedHosts == null) {
@@ -142,10 +153,28 @@ public class Proxy extends HttpServlet {
 		}
 	}
 
-	private static List<String> getProxyAllowedHosts(JSONObject mainConfig, JSONObject layersConfig)
+	// Return all allowed hosts, at a data source level, before overrides...
+	// This is only used with script that can be used with any clients / data source (even when no clients are defined)
+	private static Set<String> getAllProxyAllowedHosts(ConfigManager configManager) throws FileNotFoundException, JSONException {
+		Set<String> allowedHosts = new HashSet<String>();
+
+		for (AbstractDataSourceConfig dataSource : configManager.getDataSourceConfigs().values()) {
+			addProxyAllowedHost(allowedHosts, dataSource.getFeatureRequestsUrl());
+			addProxyAllowedHost(allowedHosts, dataSource.getServiceUrl());
+			if (dataSource instanceof WMSDataSourceConfig) {
+				WMSDataSourceConfig wmsDataSource = (WMSDataSourceConfig)dataSource;
+				addProxyAllowedHost(allowedHosts, wmsDataSource.getGetMapUrl());
+				addProxyAllowedHost(allowedHosts, wmsDataSource.getWebCacheUrl());
+			}
+		}
+
+		return allowedHosts;
+	}
+
+	private static Set<String> getProxyAllowedHosts(JSONObject mainConfig, JSONObject layersConfig)
 			throws GetCapabilitiesExceptions, Exception {
 
-		List<String> allowedHosts = new ArrayList<String>();
+		Set<String> allowedHosts = new HashSet<String>();
 
 		// The config manager apply all the overrides during the generation of the config.
 		if (mainConfig != null && mainConfig.has("dataSources")) {
@@ -155,10 +184,8 @@ public class Proxy extends HttpServlet {
 				while (keys.hasNext()) {
 					JSONObject dataSource = dataSources.optJSONObject(keys.next());
 
-					// Only add the first one that succeed
-					boolean success =
-							addProxyAllowedHost(allowedHosts, dataSource.optString("featureRequestsUrl")) ||
-							addProxyAllowedHost(allowedHosts, dataSource.optString("serviceUrl"));
+					addProxyAllowedHost(allowedHosts, dataSource.optString("featureRequestsUrl"));
+					addProxyAllowedHost(allowedHosts, dataSource.optString("serviceUrl"));
 				}
 			}
 		}
@@ -169,11 +196,9 @@ public class Proxy extends HttpServlet {
 				while (layerIds.hasNext()) {
 					JSONObject layer = layersConfig.optJSONObject(layerIds.next());
 
-					// Only add the first one that succeed
-					boolean success =
-							addProxyAllowedHost(allowedHosts, layer.optString("kmlUrl")) ||
-							addProxyAllowedHost(allowedHosts, layer.optString("featureRequestsUrl")) ||
-							addProxyAllowedHost(allowedHosts, layer.optString("serviceUrl"));
+					addProxyAllowedHost(allowedHosts, layer.optString("kmlUrl"));
+					addProxyAllowedHost(allowedHosts, layer.optString("featureRequestsUrl"));
+					addProxyAllowedHost(allowedHosts, layer.optString("serviceUrl"));
 				}
 			}
 		}
@@ -181,7 +206,7 @@ public class Proxy extends HttpServlet {
 		return allowedHosts.isEmpty() ? null : allowedHosts;
 	}
 
-	private static boolean addProxyAllowedHost(List<String> allowedHosts, String urlStr) {
+	private static boolean addProxyAllowedHost(Set<String> allowedHosts, String urlStr) {
 		URL url = null;
 		try {
 			url = new URL(urlStr);
@@ -192,38 +217,60 @@ public class Proxy extends HttpServlet {
 		if (url == null) { return false; }
 
 		String host = url.getHost();
-		if (host != null && !host.isEmpty() && !allowedHosts.contains(host)) {
-			allowedHosts.add(host);
+		if (Utils.isNotBlank(host)) {
+			allowedHosts.add(host.trim());
 		}
 
 		return true;
 	}
 
 	private boolean isHostAllowed(String clientId, boolean preview, String rawHost) {
-		Map<String, List<String>> allowedHostsMap = preview ?
-				previewClientsAllowedHostCache :
-				generatedClientsAllowedHostCache;
-
-		// The proxy config are null after a reload of the WebApp
-		if (allowedHostsMap == null || allowedHostsMap.get(clientId) == null) {
-			reloadConfig(this.getServletContext(), clientId, preview);
-
-			allowedHostsMap = preview ?
-					previewClientsAllowedHostCache :
-					generatedClientsAllowedHostCache;
+		if (Utils.isBlank(rawHost)) {
+			return false;
 		}
-
-		List<String> allowedHosts = allowedHostsMap.get(clientId);
-
-		if (allowedHosts == null || Utils.isBlank(rawHost)) { return false; }
 		String host = rawHost.trim();
 
-		for (String allowedHost: allowedHosts) {
-			// Case-insensitive: http://en.wikipedia.org/wiki/Domain_name#Technical_requirements_and_process
-			if (host.equalsIgnoreCase(allowedHost.trim())) {
-				return true;
+		if (FileFinder.PUBLIC_FOLDER.equals(clientId)) {
+			if (allAllowedHostCache == null) {
+				reloadConfig(this.getServletContext(), clientId, preview);
+			}
+			if (allAllowedHostCache == null) {
+				return false;
+			}
+			for (String allowedHost: allAllowedHostCache) {
+				// Case-insensitive: http://en.wikipedia.org/wiki/Domain_name#Technical_requirements_and_process
+				if (host.equalsIgnoreCase(allowedHost)) {
+					return true;
+				}
+			}
+		} else {
+			Map<String, Set<String>> allowedHostsMap = preview ?
+					previewClientsAllowedHostCache :
+					generatedClientsAllowedHostCache;
+
+			// The proxy config are null after a reload of the WebApp
+			if (allowedHostsMap == null || allowedHostsMap.get(clientId) == null) {
+				reloadConfig(this.getServletContext(), clientId, preview);
+
+				allowedHostsMap = preview ?
+						previewClientsAllowedHostCache :
+						generatedClientsAllowedHostCache;
+			}
+
+			Set<String> allowedHosts = allowedHostsMap.get(clientId);
+
+			if (allowedHosts == null) {
+				return false;
+			}
+
+			for (String allowedHost: allowedHosts) {
+				// Case-insensitive: http://en.wikipedia.org/wiki/Domain_name#Technical_requirements_and_process
+				if (host.equalsIgnoreCase(allowedHost)) {
+					return true;
+				}
 			}
 		}
+
 		return false;
 	}
 

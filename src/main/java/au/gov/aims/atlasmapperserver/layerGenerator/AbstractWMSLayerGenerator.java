@@ -23,29 +23,24 @@ package au.gov.aims.atlasmapperserver.layerGenerator;
 
 import au.gov.aims.atlasmapperserver.ClientConfig;
 import au.gov.aims.atlasmapperserver.ConfigManager;
+import au.gov.aims.atlasmapperserver.URLCache;
 import au.gov.aims.atlasmapperserver.Utils;
+import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.WMSDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerStyleConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.WMSLayerConfig;
 import org.geotools.data.ows.CRSEnvelope;
-import org.geotools.data.ows.GetCapabilitiesRequest;
-import org.geotools.data.ows.GetCapabilitiesResponse;
 import org.geotools.data.ows.Layer;
 import org.geotools.data.ows.OperationType;
-import org.geotools.data.ows.Request;
 import org.geotools.data.ows.Service;
 import org.geotools.data.ows.StyleImpl;
 import org.geotools.data.ows.WMSCapabilities;
 import org.geotools.data.ows.WMSRequest;
-import org.geotools.data.wms.WMS1_3_0;
-import org.geotools.data.wms.WebMapServer;
 import org.geotools.ows.ServiceException;
 import org.opengis.util.InternationalString;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URL;
-import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -57,22 +52,20 @@ import java.util.logging.Logger;
 public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D extends WMSDataSourceConfig> extends AbstractLayerGenerator<L, D> {
 	private static final Logger LOGGER = Logger.getLogger(AbstractWMSLayerGenerator.class.getName());
 
-	// Layer config, for each clients
-	// Map<String clientId, Map<String layerId, AbstractLayerConfig layer>>
-	private Map<String, Map<String, L>> layerConfigsCache = null;
+	// Layer config, for each datasource
+	// Map<String datasourceId, Map<String layerId, AbstractLayerConfig layer>>
+//	private Map<String, Map<String, L>> layerConfigsCache = null;
+
 	private WMSCapabilities wmsCapabilities = null;
-	private String serviceTitle = null;
 	private String wmsVersion = null;
 	private URL featureRequestsUrl = null;
 	private URL wmsServiceUrl = null;
-	private URL extraWmsServiceUrls = null;
-	private URL webCacheUrl = null;
 	private URL legendUrl = null;
 
-	public AbstractWMSLayerGenerator(String getCapabilitiesURL) throws IOException, ServiceException {
-		this.wmsCapabilities = this.getWMSCapabilities(getCapabilitiesURL);
-		this.layerConfigsCache = new HashMap<String, Map<String, L>>();
+	public AbstractWMSLayerGenerator(AbstractDataSourceConfig dataSource) throws IOException, ServiceException {
+//		this.layerConfigsCache = new HashMap<String, Map<String, L>>();
 
+		this.wmsCapabilities = URLCache.getWMSCapabilitiesResponse(dataSource, dataSource.getServiceUrl());
 		if (this.wmsCapabilities != null) {
 			WMSRequest wmsRequestCapabilities = this.wmsCapabilities.getRequest();
 			if (wmsRequestCapabilities != null) {
@@ -81,40 +74,13 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 				this.legendUrl = this.getOperationUrl(wmsRequestCapabilities.getGetLegendGraphic());
 				this.wmsVersion = this.wmsCapabilities.getVersion();
 
-				// Implemented in the API - Not impemented in AtlasMapper
+				// Implemented in the API - Not implemented in GeoTools
 				//this.stylesUrl = this.getOperationUrl(request.getGetStyles());
-
-				Service service = this.wmsCapabilities.getService();
-				if (service != null) {
-					this.serviceTitle = service.getTitle();
-				}
 			}
 		}
 	}
 
 	protected abstract L createLayerConfig(ConfigManager configManager);
-
-	private WMSCapabilities getWMSCapabilities(String urlStr) throws IOException, ServiceException {
-		LOGGER.log(Level.INFO, "\n### DOWNLOADING ### Capabilities Document {0}\n", urlStr);
-
-		URL url = new URL(urlStr);
-
-		// TODO Find a nicer way to detect if the URL is a complete URL to a GetCapabilities document
-		if (urlStr.startsWith("file://")) {
-			GetCapabilitiesRequest req = getCapRequest(url);
-			GetCapabilitiesResponse resp = this.issueFileRequest(req);
-			return (WMSCapabilities)resp.getCapabilities();
-
-		} else if (urlStr.contains("?")) {
-			WebMapServer server = new WebMapServer(url);
-			GetCapabilitiesRequest req = getCapRequest(url);
-			GetCapabilitiesResponse resp = server.issueRequest(req);
-			return (WMSCapabilities)resp.getCapabilities();
-		}
-
-		WebMapServer server = new WebMapServer(url);
-		return server.getCapabilities();
-	}
 
 	/**
 	 * WMS Server already has a unique layer ID for each layers. Nothing to do here.
@@ -129,32 +95,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 
 	@Override
 	public Map<String, L> generateLayerConfigs(ClientConfig clientConfig, D dataSourceConfig) {
-		Map<String, L> configs = this.layerConfigsCache.get(clientConfig.getClientId());
-		if (configs == null) {
-			// API: http://docs.geotools.org/latest/javadocs/org/geotools/data/ows/WMSCapabilities.html
-			configs = this.getLayersInfoFromCaps(clientConfig, dataSourceConfig);
-			this.layerConfigsCache.put(clientConfig.getClientId(), configs);
-		}
-		return configs;
-	}
-
-	private GetCapabilitiesRequest getCapRequest(final URL url) {
-		return new WMS1_3_0.GetCapsRequest(url) {
-			@Override
-			public URL getFinalURL() {
-				return url;
-			}
-		};
-	}
-
-	protected GetCapabilitiesResponse issueFileRequest(Request request) throws IOException, ServiceException {
-		URL finalURL = request.getFinalURL();
-		URLConnection connection = finalURL.openConnection();
-		InputStream inputStream = connection.getInputStream();
-
-		String contentType = connection.getContentType();
-
-		return (GetCapabilitiesResponse)request.createResponse(contentType, inputStream);
+		return this.getLayersInfoFromCaps(clientConfig, dataSourceConfig);
 	}
 
 	private URL getOperationUrl(OperationType op) {
@@ -162,38 +103,6 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 			return null;
 		}
 		return op.getGet();
-	}
-
-	public String getServiceTitle() {
-		return serviceTitle;
-	}
-
-	public void setServiceTitle(String serviceTitle) {
-		this.serviceTitle = serviceTitle;
-	}
-
-	public String getWmsVersion() {
-		return wmsVersion;
-	}
-
-	public void setWmsVersion(String wmsVersion) {
-		this.wmsVersion = wmsVersion;
-	}
-
-	public URL getFeatureRequestsUrl() {
-		return this.featureRequestsUrl;
-	}
-
-	public URL getLegendUrl() {
-		return this.legendUrl;
-	}
-
-	public URL getWmsServiceUrl() {
-		return this.wmsServiceUrl;
-	}
-
-	public URL getWebCacheUrl() {
-		return this.webCacheUrl;
 	}
 
 	private Map<String, L> getLayersInfoFromCaps(
@@ -210,6 +119,11 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 		return this._getLayersInfoFromGeoToolRootLayer(layerInfos, rootLayer, new LinkedList<String>(), clientConfig, dataSourceConfig, true);
 	}
 
+	/**
+	 * Apply CapabilitiesDocuments overrides to the dataSourceConfig
+	 * @param dataSourceConfig
+	 * @return
+	 */
 	@Override
 	public D applyOverrides(D dataSourceConfig) {
 		D clone = (D) dataSourceConfig.clone();
@@ -223,14 +137,6 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 		// The GetMap URL found in the capabilities document is always safer.
 		if (this.wmsServiceUrl != null) {
 			clone.setServiceUrl(this.wmsServiceUrl.toString());
-		}
-
-		if (this.extraWmsServiceUrls != null && Utils.isBlank(clone.getExtraWmsServiceUrls())) {
-			clone.setExtraWmsServiceUrls(this.extraWmsServiceUrls.toString());
-		}
-
-		if (this.webCacheUrl != null && Utils.isBlank(clone.getWebCacheUrl())) {
-			clone.setWebCacheUrl(this.webCacheUrl.toString());
 		}
 
 		if (this.legendUrl != null && Utils.isBlank(clone.getLegendUrl())) {
@@ -325,7 +231,13 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 
 		String layerId = layer.getName();
 		if (Utils.isBlank(layerId)) {
-			LOGGER.log(Level.WARNING, "The Capabilities Document [{0}] contains layers without name (other than the root layer).", this.serviceTitle);
+			String serviceTitle = "unknown";
+			Service service = this.wmsCapabilities.getService();
+			if (service != null) {
+				serviceTitle = service.getTitle();
+			}
+
+			LOGGER.log(Level.WARNING, "The Capabilities Document [{0}] contains layers without name (other than the root layer).", serviceTitle);
 			return null;
 		}
 

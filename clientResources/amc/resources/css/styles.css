@@ -19,11 +19,6 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/* HACK against new google popup window... */
-.olLayerGooglePoweredBy {
-	display: none;
-}
-
 .highlighted {
 	background-color: #FDFFD7;
 }

@@ -80,14 +80,18 @@ public class ClientServlet extends HttpServlet {
 			// Get the file to view
 			fileRelativePath = request.getPathInfo();
 			String clientId = FileFinder.getClientId(fileRelativePath);
-			ClientConfig client = FileFinder.getClientConfig(this.getServletContext(), clientId);
-			if (client != null) {
-				if (client.isEnable()) {
-					file = FileFinder.getClientFile(this.getServletContext(), fileRelativePath);
-				} else {
-					response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-					ServletUtils.sendResponse(response, client.getClientName() + " mapping service has been disabled.");
-					return;
+			if (FileFinder.PUBLIC_FOLDER.equals(clientId)) {
+				file = FileFinder.getPublicFile(this.getServletContext(), fileRelativePath);
+			} else {
+				ClientConfig client = FileFinder.getClientConfig(this.getServletContext(), clientId);
+				if (client != null) {
+					if (client.isEnable()) {
+						file = FileFinder.getClientFile(this.getServletContext(), fileRelativePath);
+					} else {
+						response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+						ServletUtils.sendResponse(response, client.getClientName() + " mapping service has been disabled.");
+						return;
+					}
 				}
 			}
 

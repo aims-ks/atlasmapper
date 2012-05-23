@@ -35,7 +35,6 @@ import au.gov.aims.atlasmapperserver.layerConfig.LayerOptionConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerStyleConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.WMSLayerConfig;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
-import au.gov.aims.atlasmapperserver.layerGenerator.LayerGeneratorCache;
 import au.gov.aims.atlasmapperserver.servlet.FileFinder;
 import au.gov.aims.atlasmapperserver.servlet.Proxy;
 import freemarker.template.Configuration;
@@ -324,7 +323,7 @@ public class ConfigManager {
 		}
 
 		// Prevent memory leak
-		LayerGeneratorCache.cleanupCapabilitiesDocumentsCache(this.dataSourceConfigs.values());
+		URLCache.purgeCache(this.dataSourceConfigs.values());
 	}
 
 	protected synchronized void reloadDefaultServerConfig() throws JSONException {
@@ -495,7 +494,7 @@ public class ConfigManager {
 		this.saveJSONConfig(config, serverConfigWriter);
 
 		// Prevent memory leak
-		LayerGeneratorCache.cleanupCapabilitiesDocumentsCache(this.dataSourceConfigs.values());
+		URLCache.purgeCache(this.dataSourceConfigs.values());
 	}
 
 	public synchronized void saveUsersConfig() throws JSONException, IOException {
@@ -606,7 +605,7 @@ public class ConfigManager {
 					AbstractDataSourceConfig dataSourceConfig = configs.get1(dataSourceId);
 					if (dataSourceConfig != null) {
 						// Clear dataSource cache before modifying it
-						this.clearDataSourceCache(dataSourceConfig);
+						URLCache.clearCache(dataSourceConfig);
 
 						// Update the object using the value from the form
 						dataSourceConfig.update(dataJSonObj, true);
@@ -629,7 +628,10 @@ public class ConfigManager {
 
 				if (dataJSonObj != null) {
 					Integer dataSourceId = dataJSonObj.optInt("id", -1);
-					configs.remove1(dataSourceId);
+					AbstractDataSourceConfig dataSourceConfig = configs.remove1(dataSourceId);
+
+					// Clear dataSource cache since it doesn't exist anymore
+					URLCache.clearCache(dataSourceConfig);
 				}
 			}
 		}
@@ -828,6 +830,14 @@ public class ConfigManager {
 	 * @throws JSONException
 	 */
 	public boolean clientExists(String clientId, Integer id) throws FileNotFoundException, JSONException {
+		// Reserved keywords
+		if (FileFinder.PUBLIC_FOLDER.equals(clientId) ||
+				ConfigHelper.SERVER_MAIN_CONFIG.equals(clientId) ||
+				ConfigHelper.SERVER_USERS_CONFIG.equals(clientId)) {
+
+			return true;
+		}
+
 		MultiKeyHashMap<Integer, String, ClientConfig> _clientConfigs = getClientConfigs();
 		ClientConfig found = _clientConfigs.get2(clientId);
 
@@ -921,13 +931,6 @@ public class ConfigManager {
 			dataSourceConfigArray.put(dataSourceConfig.toJSonObject());
 		}
 		return dataSourceConfigArray;
-	}
-
-	public void clearDataSourceCache(AbstractDataSourceConfig dataSourceConfig) {
-		LayerGeneratorCache.clearCapabilitiesDocumentsCache(dataSourceConfig.getServiceUrl());
-	}
-	public void clearAllDataSourceCache() {
-		LayerGeneratorCache.clearCapabilitiesDocumentsCache();
 	}
 
 	public MultiKeyHashMap<Integer, String, ClientConfig> getClientConfigs() throws JSONException, FileNotFoundException {
@@ -1523,6 +1526,12 @@ public class ConfigManager {
 
 		if (dataSourceConfig instanceof WMSDataSourceConfig) {
 			WMSDataSourceConfig wmsDataSourceConfig = (WMSDataSourceConfig)dataSourceConfig;
+
+			if (Utils.isNotBlank(wmsDataSourceConfig.getGetMapUrl())) {
+				// TODO remove wms from the property name
+				dataSource.put("wmsServiceUrl", wmsDataSourceConfig.getGetMapUrl().trim());
+			}
+
 			if (Utils.isNotBlank(wmsDataSourceConfig.getExtraWmsServiceUrls())) {
 				dataSource.put("extraWmsServiceUrls", wmsDataSourceConfig.getExtraWmsServiceUrls().trim());
 			}

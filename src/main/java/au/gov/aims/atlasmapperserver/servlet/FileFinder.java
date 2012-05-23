@@ -53,8 +53,8 @@ public class FileFinder {
 	// NOTE: Don't forget to restart tomcat after setting this variable.
 	public static final String DATA_DIR_PROPERTY = "ATLASMAPPER_DATA_DIR";
 
-
 	private static final String CLIENT_CONFIG_FOLDER = "config";
+	public static final String PUBLIC_FOLDER = "www";
 	private static final String ATLASMAPPERCLIENT_FOLDER = "amc";
 	private static final String ATLASMAPPERCLIENT_TEMPLATES_FOLDER = "amcTemplates";
 
@@ -62,6 +62,18 @@ public class FileFinder {
 	private static final String CLIENT_BASE_URL = "client";
 	private static final String CLIENT_WELCOME_PAGE = "index.html";
 	private static final String CLIENT_PREVIEW_PAGE = "preview.html";
+
+	public static void init(ServletContext context) {
+		printDataDirProperty(context);
+
+		boolean create = true;
+		File appFolder = getApplicationFolder(context, create);
+		getCommonFilesFolder(appFolder, create);
+	}
+
+	public static File getPublicFile(ServletContext context, String fileRelativePath) {
+		return getClientFile(context, fileRelativePath);
+	}
 
 	public static File getClientFile(ServletContext context, String fileRelativePathWithClientPath) {
 		if (context == null || Utils.isBlank(fileRelativePathWithClientPath)) {
@@ -205,6 +217,24 @@ public class FileFinder {
 		return clientConfigFolder;
 	}
 
+	public static File getCommonFilesFolder(File applicationFolder) {
+		return getCommonFilesFolder(applicationFolder, true);
+	}
+	public static File getCommonFilesFolder(File applicationFolder, boolean create) {
+		if (applicationFolder == null) {
+			return null;
+		}
+
+		File publicFolder = new File(applicationFolder, PUBLIC_FOLDER);
+
+		if (create && publicFolder != null && !publicFolder.exists()) {
+			// Try to create the folder structure, if it doesn't exist
+			publicFolder.mkdirs();
+		}
+
+		return publicFolder;
+	}
+
 	public static File getClientFolder(File applicationFolder, ClientConfig clientConfig) {
 		return getClientFolder(applicationFolder, clientConfig, true);
 	}
@@ -305,9 +335,23 @@ public class FileFinder {
 	 */
 	public static void printDataDirProperty(ServletContext context) {
 		String dataDirPropertyValue = getDataDirPropertyValue(context);
+		String errorMsg = null;
 		if (dataDirPropertyValue == null || dataDirPropertyValue.isEmpty()) {
+			errorMsg = DATA_DIR_PROPERTY + " HAS NOT BEEN SET";
+		} else {
+			File appFolder = new File(dataDirPropertyValue);
+			if (!Utils.recursiveIsWritable(appFolder)) {
+				if (appFolder.exists()) {
+					errorMsg = DATA_DIR_PROPERTY + ": THE FOLDER " + dataDirPropertyValue + " IS NOT WRITABLE";
+				} else {
+					errorMsg = DATA_DIR_PROPERTY + ": THE FOLDER " + dataDirPropertyValue + " CAN NOT BE CREATED";
+				}
+			}
+		}
+
+		if (errorMsg != null) {
 			System.out.println("#######################################");
-			System.out.println("# ERROR: " + DATA_DIR_PROPERTY + " HAS NOT BEEN SET");
+			System.out.println("# ERROR: " + errorMsg);
 			System.out.println("#######################################");
 		} else {
 			System.out.println("---------------------------------------");

@@ -92,9 +92,17 @@
 	<script type="text/javascript" src="OpenLayers-ux/NCTimeSeriesClickControl.js"></script>
 	<script type="text/javascript" src="OpenLayers-ux/NCTransectDrawControl.js"></script>
 
+	<!-- OpenLayers support for Google layer, in version <= 2.11, has to be patched to support V > 3.6
+			(since google do not support V <= 3.6 anymore)
+		Bug: http://trac.osgeo.org/openlayers/ticket/3614
+		Patch: https://github.com/openlayers/openlayers/commit/92f04a7a4277a6c818ef2d40a2856910ed72d3d6
+		Date: 18-05-2012
+	-->
+	<script type="text/javascript" src="OpenLayers-ux/Google-v3.js"></script>
+
 	<#if (useGoogle)>
 		<!-- If the client use any Google Layers -->
-		<script type="text/javascript" src="http://maps.google.com/maps/api/js?v=3.5&amp;sensor=false"></script>
+		<script type="text/javascript" src="http://maps.google.com/maps/api/js?v=3.7&amp;sensor=false"></script>
 	</#if>
 
 	<script type="text/javascript" src="extjs/3.3.0/ext-3.3.0/adapter/ext/ext-base-debug.js"></script>
@@ -118,6 +126,7 @@
 	<script type="text/javascript" src="GeoExt-ux/WMSLegend.js"></script>
 	<script type="text/javascript" src="GeoExt-ux/NCWMSLegend.js"></script>
 	<script type="text/javascript" src="GeoExt-ux/VectorLegend.js"></script>
+	<script type="text/javascript" src="GeoExt-ux/LegendImage.js"></script>
 	<script type="text/javascript" src="GeoExt-ux/LegendGroup.js"></script>
 	<script type="text/javascript" src="GeoExt-ux/GroupLayerOpacitySlider.js"></script>
 	<script type="text/javascript" src="GeoExt-ux/GroupLayerLoader.js"></script>
@@ -138,6 +147,7 @@
 
 		var parameters = OpenLayers.Util.getParameters();
 
+		// Multi-maps
 		var nbMaps = 1;
 		if (parameters.maps) {
 			nbMaps = parseInt(parameters.maps);

@@ -138,9 +138,6 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 	private String legendParameters;
 
 	@ConfigField
-	private String blacklistedLayers;
-
-	@ConfigField
 	private String baseLayers;
 
 	@ConfigField
@@ -169,18 +166,6 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 	@Override
 	public String getJSONObjectKey() {
 		return this.layerId;
-	}
-
-
-	// Fields for DataSource override
-	@Override
-	public String getBlacklistedLayers() {
-		return this.blacklistedLayers;
-	}
-
-	@Override
-	public void setBlacklistedLayers(String blacklistedLayers) {
-		this.blacklistedLayers = blacklistedLayers;
 	}
 
 	@Override

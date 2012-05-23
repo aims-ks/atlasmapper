@@ -41,8 +41,8 @@ public class ConfigHelper {
 	private static final String CLIENT_EMBEDDED_CONFIG = "embedded.json";
 	private static final String CLIENT_LAYERS_CONFIG = "layers.json";
 
-	private static final String SERVER_MAIN_CONFIG = "server.json";
-	private static final String SERVER_USERS_CONFIG = "users.json";
+	public static final String SERVER_MAIN_CONFIG = "server.json";
+	public static final String SERVER_USERS_CONFIG = "users.json";
 
 	private static ConfigManager configManager;
 

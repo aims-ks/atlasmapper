@@ -53,6 +53,8 @@ Atlas.Core = OpenLayers.Class({
 	// download the latest files rather than using its cache.
 	version: "",
 
+	mapCounter: 0,
+
 	initialize: function(configUrl, layersFileUrl, version, live) {
 		this.events = new OpenLayers.Events(this, null,
 			this.EVENT_TYPES);
@@ -181,7 +183,7 @@ Atlas.Core = OpenLayers.Class({
 	createNewMapPanel: function() {
 		// TODO KML_ALLOW_JAVASCRIPT IN CONFIG
 		var newMapPanel = new Atlas.MapPanel({
-			mapId: 'map'+this.mapPanels.length, // *WARNING*: Create "Map0" & "Map1", Delete "Map0", Create new Map will try to call it "Map1" (duplicated ID) - Need to use a static counter
+			mapId: (this.mapCounter++),
 			KML_ALLOW_JAVASCRIPT: true
 		});
 
@@ -193,7 +195,7 @@ Atlas.Core = OpenLayers.Class({
 		var newMapPanel = new Atlas.MapPanel({
 			renderTo: renderTo,
 			embedded: true,
-			mapId: 'map'+this.mapPanels.length, // *WARNING*: Create "Map0" & "Map1", Delete "Map0", Create new Map will try to call it "Map1" (duplicated ID) - Need to use a static counter
+			mapId: (this.mapCounter++),
 			KML_ALLOW_JAVASCRIPT: true
 		});
 
@@ -733,56 +735,104 @@ Atlas.Core = OpenLayers.Class({
 		return input.replace(/&/gi, "&amp;").replace(/</gi, "&lt;").replace(/>/gi, "&gt;");
 	},
 
-	// This function needs some works (\S is too permissive).
-	// See to RFC 1738:
-	//     http://www.apps.ietf.org/rfc/rfc1738.html
 	/**
 	 * Change all URLs in the input to a HTML link, and truncate long URL to
-	 * MAX_URL_LENGTH.
+	 * maxUrlLength characters.
+	 *
+	 * See RFC 1738 for valid URL schema:
+	 *     http://www.apps.ietf.org/rfc/rfc1738.html#sec-5
 	 */
-	urlsToHTML: function(input) {
+	urlsToHTML: function(input, popup, maxUrlLength) {
 		var newInput = '';
 		var lastIndex = 0;
 
+		if (typeof(popup) == 'undefined') {
+			popup = true;
+		}
+		if (typeof(maxUrlLength) == 'undefined') {
+			maxUrlLength = this.MAX_URL_LENGTH;
+		}
+
+		// Enumeration of chars that are not allow in the URLs. RFC 1738
+		// The word boundary can not be used here (it includes brackets), so it's easier to simply do this enumeration (better control)
+		// RFC 1738 - Allowed: alphanumerics, the special characters "$-_.+!*'()," and reserved characters ";", "/", "?", ":", "@", "=", "&", "#" and "%".
+		// http://www.apps.ietf.org/rfc/rfc1738.html#sec-5
+		//     5. BNF for specific URL schemes
+		var urlChar = "a-zA-Z0-9\\$\\-_\\.\\+\\!\\*'\\(\\),;\\/\\?:@=&#%";
+
+		// Enumeration of chars that are allow as the last char of a URLs (and not allow before the www, for partial URLs).
+		// For example, this is useful when a sentence end with a URL: Click here www.url.com. ==> Click here <a href="...">www.url.com</a>.
+		// There is no RFC for this, it's just common sense logic.
+		var urlEndingChar = "a-zA-Z0-9/";
+
 		// pattern:
 		//     Well formed URL
-		//     protocol "://" not-white-spaces(multiple times) word-boundary OR end-of-string
-		//     ( ---------------------------------- 1 ------------------------------------- )
-		//     ( - 2 - )                                       ( ------------ 3 ----------- )
+		//      protocol   "://"   URL chars (multiple times)   URL ending char
+		//     ( ---------------------------- 1 ------------------------------ )
+		//     ( - 2 - )
 		//         Example: http://google.com?search=abc
+		//             1: http://google.com?search=abc
+		//             2: http
 		//     OR
-		//     URL without explicit protocol
-		//     start-of-string OR not-a-slash "www" not-white-spaces(multiple times) word-boundary OR end-of-string
-		//     ( ----------------------------------------------- 4 ---------------------------------------------- )
-		//     ( ------------ 5 ----------- ) ( ------------------------------- 6 ------------------------------- )
-		//                                                                           ( ------------ 7 ----------- )
+		//     URL without explicit protocol (partial URL)
+		//      start-of-string  OR  URL ending char   "www"   URL chars (multiple times)   URL ending char
+		//     ( ---------------- 3 --------------- ) ( ------------------------ 4 ----------------------- )
 		//         Example: www.google.com?search=abc
-		var pattern = /((ftp|http|https|file):\/\/[\S]+(\b|$))|((^|[^\/])(www[\S]+(\b|$)))/gim;
+		//             3: [Space]
+		//             4: www.google.com?search=abc
+		var pattern = new RegExp("((sftp|ftp|http|https|file)://["+urlChar+"]+["+urlEndingChar+"])|([^"+urlEndingChar+"]|^)(www\\.["+urlChar+"]+["+urlEndingChar+"])", "gim");
+
 		var matches = null;
 		while (matches = pattern.exec(input)) {
 			var url = null;
-			var displayedUrl = null;
-			// gap = number of characters to skip;
-			//     The pattern may include some unwanted characters.
-			var gap = 0;
+			var displayUrl = null;
+			var prefix = "";
 
-			if (typeof(matches[6]) !== 'undefined') {
-				// URL without explicit protocol
-				displayedUrl = matches[6];
-				url = 'http://' + matches[6];
-				if (typeof(matches[5]) !== 'undefined') {
-					gap = matches[5].length;
-				}
+			var noProtocolUrl = matches[4];
+			var protocolUrl = matches[1];
+
+			if (noProtocolUrl != null && noProtocolUrl != "") {
+				displayUrl = noProtocolUrl;
+				url = "http://" + noProtocolUrl;
+				prefix = matches[3];
 			} else {
-				// Well formed URL
-				displayedUrl = matches[1];
-				url = matches[1];
+				displayUrl = protocolUrl;
+				url = protocolUrl;
 			}
 
-			var truncateUrl = (displayedUrl.length > this.MAX_URL_LENGTH ? displayedUrl.substring(0, (this.MAX_URL_LENGTH-3)/4*3) + '...' + displayedUrl.substring(displayedUrl.length - (this.MAX_URL_LENGTH-3)/4) : displayedUrl);
-			newInput = newInput +
-				input.substring(lastIndex, matches.index + gap) +
-				'<a href="' + url + '" class="my_link" target="_blank">' + truncateUrl + '</a>';
+			// Building the HTML link
+			if (displayUrl != null && url != null) {
+				var link = prefix + "<a href=\"" + url + "\"";
+				if (popup) {
+					link += " target=\"_blank\"";
+				}
+				link += ">";
+
+				// Truncate the displayed URL, when needed
+				if (maxUrlLength == 1) {
+					link += ".";
+				} else if (maxUrlLength == 2) {
+					link += "..";
+				} else if (maxUrlLength > 0 && maxUrlLength < displayUrl.length) {
+					var beginningLength = Math.round((maxUrlLength-3)/4.0*3);
+					var endingLength = maxUrlLength - beginningLength - 3; // 3 is for the "..."
+					if (beginningLength > 1 && endingLength == 0) {
+						beginningLength--;
+						endingLength = 1;
+					}
+					link += displayUrl.substring(0, beginningLength) + "..." + displayUrl.substring(displayUrl.length - endingLength);
+				} else {
+					link += displayUrl;
+				}
+
+				link += "</a>";
+
+				// Add the text from the last link to the beginning of this one
+				newInput += input.substring(lastIndex, matches.index);
+
+				// Add the link
+				newInput += link;
+			}
 
 			lastIndex = matches.index + matches[0].length;
 		}

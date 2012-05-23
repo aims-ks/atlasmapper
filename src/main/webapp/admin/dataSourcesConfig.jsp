@@ -33,6 +33,7 @@
 <%@page import="org.json.JSONObject"%>
 <%@page import="au.gov.aims.atlasmapperserver.ConfigManager"%>
 <%@page import="au.gov.aims.atlasmapperserver.ActionType"%>
+<%@ page import="au.gov.aims.atlasmapperserver.URLCache" %>
 <%@page contentType="application/json" pageEncoding="UTF-8"%>
 <%
 	Logger LOGGER = Logger.getLogger("dataSourcesConfig.jsp");
@@ -178,7 +179,7 @@
 								jsonObj.put("errors", new JSONArray().put("Invalid id."));
 							} else {
 								AbstractDataSourceConfig foundDataSourceConfig = configManager.getDataSourceConfig(id);
-								configManager.clearDataSourceCache(foundDataSourceConfig);
+								URLCache.clearCache(foundDataSourceConfig);
 								response.setStatus(HttpServletResponse.SC_OK);
 								jsonObj.put("success", true);
 								jsonObj.put("message", "Cache cleared");
@@ -194,7 +195,7 @@
 
 				case CLEARALLCACHE:
 					try {
-						configManager.clearAllDataSourceCache();
+						URLCache.clearCache();
 						response.setStatus(HttpServletResponse.SC_OK);
 						jsonObj.put("success", true);
 						jsonObj.put("message", "Cache cleared");

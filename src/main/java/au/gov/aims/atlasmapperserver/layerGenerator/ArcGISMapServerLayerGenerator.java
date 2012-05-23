@@ -22,6 +22,7 @@
 package au.gov.aims.atlasmapperserver.layerGenerator;
 
 import au.gov.aims.atlasmapperserver.ClientConfig;
+import au.gov.aims.atlasmapperserver.URLCache;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.ArcGISMapServerDataSourceConfig;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
@@ -34,13 +35,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.opengis.referencing.NoSuchAuthorityCodeException;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
-import java.net.URL;
-import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -62,7 +58,6 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 	 * @return
 	 */
 	@Override
-	// NOTE: Having
 	protected String getUniqueLayerId(AbstractLayerConfig layer, ArcGISMapServerDataSourceConfig dataSourceConfig) {
 		StringBuilder layerUniqueId = new StringBuilder();
 		String arcGISPath = null;
@@ -97,10 +92,9 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 			throw new IllegalArgumentException("ArcGIS Map Server generation requested for a null data source.");
 		}
 
-		Map<String, AbstractLayerConfig> allLayers = new HashMap<String, AbstractLayerConfig>();
-		List<AbstractLayerConfig> children = parseJSON(allLayers, null, null, dataSourceConfig);
-
-		return allLayers;
+		Map<String, AbstractLayerConfig> layers = new HashMap<String, AbstractLayerConfig>();
+		parseJSON(layers, null, null, dataSourceConfig);
+		return layers;
 	}
 
 	@Override
@@ -128,8 +122,11 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 			url.append("/"+layerId);
 		}
 
-		// NOTE Some version of ArcGIS give weird output without pretty=true:
-		// Example: value of initialExtent for http://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer?f=json VS http://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer?f=json&pretty=true
+		// IMPORTANT: Some version of ArcGIS give weird output without pretty=true:
+		// Example: value of initialExtent (sometimes) as a wrong value without pretty=true
+		//     http://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer?f=json
+		//     VS
+		//     http://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer?f=json&pretty=true
 		return Utils.setUrlParameter(Utils.setUrlParameter(url.toString(), "f", "json"), "pretty", "true");
 	}
 
@@ -146,7 +143,10 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 			throw new IllegalArgumentException("The data source [" + dataSourceConfig.getDataSourceName() + "] as no service URL.");
 		}
 
-		JSONObject json = getJSON(getJSONUrl(dataSourceConfig.getServiceUrl(), arcGISPath, type));
+		JSONObject json = URLCache.getJSONResponse(
+				dataSourceConfig,
+				getJSONUrl(dataSourceConfig.getServiceUrl(), arcGISPath, type)
+		);
 
 		List<AbstractLayerConfig> children = new ArrayList<AbstractLayerConfig>();
 		if (json != null) {
@@ -165,7 +165,10 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 						String groupId = jsonLayer.optString("id", null);
 						JSONObject jsonGroupExtra = null;
 						if (Utils.isNotBlank(groupId)) {
-							jsonGroupExtra = getJSON(getJSONUrl(dataSourceConfig.getServiceUrl(), arcGISPath, type, groupId));
+							jsonGroupExtra = URLCache.getJSONResponse(
+									dataSourceConfig,
+									getJSONUrl(dataSourceConfig.getServiceUrl(), arcGISPath, type, groupId)
+							);
 						}
 
 						GroupLayerConfig groupLayer = this.getGroupLayerConfig(jsonLayer, jsonGroupExtra, jsonChildren, dataSourceConfig);
@@ -179,7 +182,10 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 						String layerId = jsonLayer.optString("id", null);
 						JSONObject jsonLayerExtra = null;
 						if (Utils.isNotBlank(layerId)) {
-							jsonLayerExtra = getJSON(getJSONUrl(dataSourceConfig.getServiceUrl(), arcGISPath, type, layerId));
+							jsonLayerExtra = URLCache.getJSONResponse(
+									dataSourceConfig,
+									getJSONUrl(dataSourceConfig.getServiceUrl(), arcGISPath, type, layerId)
+							);
 						}
 
 						ArcGISMapServerLayerConfig arcGISLayer = null;
@@ -246,7 +252,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 					// If one of the folder name is null or an empty string, the URL will be the same, returning the
 					// same folder name including the null / empty string.
 					if (Utils.isNotBlank(childArcGISPath)) {
-						List<AbstractLayerConfig> subChildren = parseJSON(allLayers, childArcGISPath, null, dataSourceConfig);
+						List<AbstractLayerConfig> subChildren = parseJSON(allLayers, childArcGISPath, null, dataSourceConfig, null);
 						if (subChildren != null) {
 							AbstractLayerConfig layerFolder = this.getLayerFolderConfig(childArcGISPath, subChildren, null, dataSourceConfig);
 							this.ensureUniqueLayerId(layerFolder, dataSourceConfig);
@@ -274,7 +280,10 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 					// Request more info about the folder (Max extent, description, etc.)
 					JSONObject jsonServiceExtra = null;
 					if (this.isServiceSupported(childType)) {
-						jsonServiceExtra = getJSON(getJSONUrl(dataSourceConfig.getServiceUrl(), childArcGISPath, childType));
+						jsonServiceExtra = URLCache.getJSONResponse(
+								dataSourceConfig,
+								getJSONUrl(dataSourceConfig.getServiceUrl(), childArcGISPath, childType)
+						);
 					}
 
 					List<AbstractLayerConfig> subChildren = parseJSON(allLayers, childArcGISPath, childType, dataSourceConfig, jsonServiceExtra);
@@ -533,41 +542,5 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 		}
 
 		return reprojectedExtent;
-	}
-
-	private static JSONObject getJSON(String urlStr) throws IOException, JSONException {
-		LOGGER.log(Level.INFO, "\n### DOWNLOADING ### ArcGIS JSON Document {0}\n", urlStr);
-
-		URL url = new URL(urlStr);
-
-		URLConnection connection = url.openConnection();
-		InputStream in = null;
-		BufferedReader reader = null;
-		try {
-			in = connection.getInputStream();
-			if (in != null) {
-				reader = new BufferedReader(new InputStreamReader(in));
-
-				StringBuilder sb = new StringBuilder();
-				int cp;
-				while ((cp = reader.read()) != -1) {
-					sb.append((char) cp);
-				}
-				return new JSONObject(sb.toString());
-			}
-		} finally {
-			if (in != null) {
-				try { in.close(); } catch(Exception e) {
-					LOGGER.log(Level.WARNING, "Can not close the URL input stream.", e);
-				}
-			}
-			if (reader != null) {
-				try { reader.close(); } catch(Exception e) {
-					LOGGER.log(Level.WARNING, "Can not close the URL reader.", e);
-				}
-			}
-		}
-
-		return null;
 	}
 }

@@ -54,8 +54,8 @@ import org.json.JSONSortedObject;
  */
 public abstract class AbstractConfig implements Cloneable {
 	private static final Logger LOGGER = Logger.getLogger(AbstractConfig.class.getName());
-	protected static final String SPLIT_PATTERN = "[,\r\n]";
-	protected static final String SPLIT_ATTRIBUTES_PATTERN = "=";
+	public static final String SPLIT_PATTERN = "[,\r\n]";
+	public static final String SPLIT_ATTRIBUTES_PATTERN = "=";
 
 	private static final int DEFAULT_NUMBER = -1;
 	private static final boolean DEFAULT_BOOLEAN = false;

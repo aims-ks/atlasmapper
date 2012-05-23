@@ -25,7 +25,6 @@ import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
-import au.gov.aims.atlasmapperserver.layerGenerator.LayerGeneratorCache;
 import au.gov.aims.atlasmapperserver.layerGenerator.WMSLayerGenerator;
 import org.geotools.ows.ServiceException;
 
@@ -33,6 +32,9 @@ import java.io.IOException;
 import java.util.Set;
 
 public class WMSDataSourceConfig extends AbstractDataSourceConfig implements WMSDataSourceConfigInterface {
+	@ConfigField
+	private String getMapUrl;
+
 	@ConfigField
 	private String extraWmsServiceUrls;
 	// Cache - avoid parsing extraWmsServiceUrls string every times.
@@ -60,13 +62,21 @@ public class WMSDataSourceConfig extends AbstractDataSourceConfig implements WMS
 
 	@Override
 	public AbstractLayerGenerator getLayerGenerator() throws IOException {
-		AbstractLayerGenerator layerGenerator = null;
+		AbstractLayerGenerator layerGenerator;
 		try {
-			layerGenerator = LayerGeneratorCache.getInstance(this.getServiceUrl(), WMSLayerGenerator.class, this.isCachingDisabled());
+			layerGenerator = new WMSLayerGenerator(this);
 		} catch (ServiceException e) {
 			throw new IOException("Service Exception occurred while retrieving the WMS layer generator.", e);
 		}
 		return layerGenerator;
+	}
+
+	public String getGetMapUrl() {
+		return this.getMapUrl;
+	}
+
+	public void setGetMapUrl(String getMapUrl) {
+		this.getMapUrl = getMapUrl;
 	}
 
 	public String getExtraWmsServiceUrls() {
