@@ -42,24 +42,9 @@
 	<#else>
 		<link rel="stylesheet" type="text/css" href="extjs/3.3.0/ext-3.3.0/resources/css/ext-all.css" />
 	</#if>
-	<style type="text/css">
-		html, body, #loading { height: 100% }
-		#loading {
-			background: #FFFFFF url('resources/images/loading.gif') no-repeat center center;
-			display: none; /* Activated by JS */
-		}
-		/* TODO Find a way to set this somewhere that is configurable by the user */
-		.welcomeCls .x-window-mc {
-			background-color: #FFFFFF !important;
-			border: solid 1px #AABBCC !important;
-		}
-		.welcomeCls p {
-			margin: 1em 0;
-		}
-	</style>
 </head>
 
-<body>
+<body id="fullClient">
 	<div id="loading"></div>
 
 	<div id="welcomeMsg">
@@ -68,7 +53,7 @@
 	<noscript>
 		<hr/>
 		<p>
-			Note that you need to have JavaScript enabled to use the Map.
+			You need to have JavaScript enabled to use the Map.
 		</p>
 	</noscript>
 	<script type="text/javascript">
@@ -154,40 +139,47 @@
 		if (nbMaps < 1) { nbMaps = 1; }
 		if (nbMaps > 4) { nbMaps = 4; }
 
+		var intro = true;
+		if (parameters.intro) {
+			intro = (parameters.intro.toLowerCase() === 'true');
+		}
+
 		Ext.onReady(function() {
-			var showWelcomeWindow = function() {
-				var welcomeMsg = welcomeMsgObj.innerHTML;
-				if (typeof(welcomeMsg.trim) === 'function') {
-					welcomeMsg = welcomeMsg.trim();
-				} else {
-					welcomeMsg = welcomeMsg.replace(/^\s+/,'').replace(/\s+$/,'');
-				}
+			if (intro) {
+				var showWelcomeWindow = function() {
+					var welcomeMsg = welcomeMsgObj.innerHTML;
+					if (typeof(welcomeMsg.trim) === 'function') {
+						welcomeMsg = welcomeMsg.trim();
+					} else {
+						welcomeMsg = welcomeMsg.replace(/^\s+/,'').replace(/\s+$/,'');
+					}
 
-				if (welcomeMsg) {
+					if (welcomeMsg) {
+						Ext.Msg.show({
+							title:'Welcome',
+							msg: welcomeMsg,
+							cls: 'welcomeCls',
+							minWidth: 500,
+							buttons: Ext.Msg.OK
+						});
+					}
+				};
+
+				if (typeof(ie9plus) !== 'undefined' && ie9plus === true) {
+					// This Warning window will only show up if IE is not running in comptability mode (if it ignores the directive in the header)
 					Ext.Msg.show({
-						title:'Welcome',
-						msg: welcomeMsg,
+						title:'WARNING',
+						msg: '<p>Your browser is not well supported. It\'s strongly recommended to activate the browser compatibility mode!</p><img src="resources/images/IE9-compatibility-mode.png">',
 						cls: 'welcomeCls',
-						minWidth: 500,
-						buttons: Ext.Msg.OK
+						width: 750,
+						minWidth: 750,
+						buttons: Ext.Msg.OK,
+						icon: Ext.MessageBox.WARNING,
+						fn: showWelcomeWindow
 					});
+				} else {
+					showWelcomeWindow();
 				}
-			};
-
-			if (typeof(ie9plus) !== 'undefined' && ie9plus === true) {
-				// This Warning window will only show up if IE is not running in comptability mode (if it ignores the directive in the header)
-				Ext.Msg.show({
-					title:'WARNING',
-					msg: '<p>Your browser is not well supported. It\'s strongly recommended to activate the browser compatibility mode!</p><img src="resources/images/IE9-compatibility-mode.png">',
-					cls: 'welcomeCls',
-					width: 750,
-					minWidth: 750,
-					buttons: Ext.Msg.OK,
-					icon: Ext.MessageBox.WARNING,
-					fn: showWelcomeWindow
-				});
-			} else {
-				showWelcomeWindow();
 			}
 
 			Atlas.core = new Atlas.Core("config/${mainConfig}", "config/${layersConfig}", "${timestamp}");
@@ -207,6 +199,7 @@
 							items: [
 								mapPanel,
 								new Atlas.LayersPanel({
+									minWidth: 180,
 									mapPanel: mapPanel,
 									region: 'west'
 								})

@@ -152,8 +152,14 @@ Atlas.AbstractMapPanel = {
 		var controls = [];
 		if (this.embedded) {
 			controls = [
-				new OpenLayers.Control.PanZoom(),       // Pan and Zoom (minimalist) controls, in the top left corner
+				new OpenLayers.Control.ZoomPanel(),
+				new OpenLayers.Control.ScaleLine({geodesic: true}),     // Displays a small line indicator representing the current map scale on the map. ("geodesic: true" has to be set to recalculate the scale line when the map get span closer to the poles)
+				//new OpenLayers.Control.Scale(),         // Displays the map scale (example: 1:1M).
+				new OpenLayers.Control.MousePosition({
+					displayProjection: this.defaultLonLatProjection
+				}),                                     // Displays geographic coordinates of the mouse pointer
 				new OpenLayers.Control.Navigation(),
+				new OpenLayers.Control.KeyboardDefaults(), // Adds panning and zooming functions, controlled with the keyboard.  By default arrow keys pan, +/- keys zoom & Page Up/Page Down/Home/End scroll by three quarters of a page.
 				new OpenLayers.Control.ZoomBox()        // Enables zooming directly to a given extent, by drawing a box on the map.  The box is drawn by holding down shift, whilst dragging the mouse.
 			];
 		} else {
@@ -165,7 +171,17 @@ Atlas.AbstractMapPanel = {
 					displayProjection: this.defaultLonLatProjection
 				}),                                     // Displays geographic coordinates of the mouse pointer
 				new OpenLayers.Control.Navigation(),
-				//new OpenLayers.Control.OverviewMap(), // Creates a small overview map
+				/*
+				new OpenLayers.Control.OverviewMap({
+					layers: [
+						new OpenLayers.Layer.WMS(
+							"OverviewMap",
+							"http://e-atlas.org.au/maps/wms",
+							{layers: 'ea:World_NED_NE2'}
+						)
+					]
+				}), // Creates a small overview map
+				*/
 				new OpenLayers.Control.KeyboardDefaults(), // Adds panning and zooming functions, controlled with the keyboard.  By default arrow keys pan, +/- keys zoom & Page Up/Page Down/Home/End scroll by three quarters of a page.
 				new OpenLayers.Control.ZoomBox()        // Enables zooming directly to a given extent, by drawing a box on the map.  The box is drawn by holding down shift, whilst dragging the mouse.
 			];
@@ -212,10 +228,12 @@ Atlas.AbstractMapPanel = {
 		if (typeof(mapOptions['maxResolution']) == 'undefined') { mapOptions['maxResolution'] = 0.703125; }
 		if (typeof(mapOptions['numZoomLevels']) == 'undefined') { mapOptions['numZoomLevels'] = 16; }
 
+		/*
 		if (this.embedded) {
 			//mapOptions.zoom = this.zoom; // BUG: This properties is ignored: http://trac.osgeo.org/openlayers/ticket/3362
 			mapOptions.center = new OpenLayers.LonLat(this.center[0], this.center[1]);
 		}
+		*/
 
 		if (typeof(this.renderTo) != 'undefined' && this.renderTo != null) {
 			mapOptions.div = this.renderTo;
@@ -226,6 +244,7 @@ Atlas.AbstractMapPanel = {
 		}
 
 		this.map = new OpenLayers.Map(mapOptions);
+
 		this.map.render = function(div) {
 			// Call the original render method
 			OpenLayers.Map.prototype.render.apply(that.map, arguments);
@@ -246,10 +265,12 @@ Atlas.AbstractMapPanel = {
 		var dummyBaseLayer = new OpenLayers.Layer("Base", dummyBaseLayerOptions);
 		this.map.addLayer(dummyBaseLayer);
 
+		/*
 		// Work around the zoom bug: http://trac.osgeo.org/openlayers/ticket/3362
 		if (this.embedded) {
 			this.map.zoomTo(this.zoom);
 		}
+		*/
 
 		// ExtJS event listener - Hide markers when the map is resized.
 		// The maps are resized each time a new map is added/removed, which

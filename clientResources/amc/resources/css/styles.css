@@ -19,6 +19,36 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+html, body, #loading { height: 100% }
+
+/* Hide the scroller that appear at loading time... */
+body {
+	overflow: hidden;
+}
+
+#loading {
+	background: #FFFFFF url('../images/loading.gif') no-repeat center center;
+	display: none; /* Activated by JS */
+}
+/* TODO Find a way to set this somewhere that is configurable by the user */
+.welcomeCls .x-window-mc {
+	background-color: #FFFFFF !important;
+	border: solid 1px #AABBCC !important;
+}
+.welcomeCls p {
+	margin: 1em 0;
+}
+
+/* Button on Embedded map */
+#goToMap {
+	position: relative;
+	float: left;
+	margin: 70px 0 0 8px;
+}
+.goToMapIcon {
+	background-image: url('../images/arrow_out.png') !important;
+}
+
 .highlighted {
 	background-color: #FDFFD7;
 }
@@ -110,6 +140,11 @@ div.olFramedCloudPopupContent {
 	color: #000000;
 }
 
+/* The ZoomPanel, when used without the pan panel, is to high... */
+#embeddedClient div.olControlZoomPanel {
+	top: 7px;
+}
+
 /* ExtJS remove the bullets to start from a known point
 	(some browser (IE) are really bad at following standards)
 	This class Reset bullet for chosen lists */
@@ -136,6 +171,13 @@ ol.bullet-list > li {
 	font-size: 0 !important;
 	float: left;
 	margin-left: 4px;
+}
+.link-btn {
+	margin-right: 20px;
+}
+.layers-btn .link {
+	background-image: url('../images/link.png') !important;
+	font-size: 0 !important;
 }
 .layers-btn .add {
 	background-image: url('../images/add.png') !important;

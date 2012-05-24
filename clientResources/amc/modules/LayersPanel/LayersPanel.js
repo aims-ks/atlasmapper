@@ -283,6 +283,149 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 		});
 	},
 
+	showEmbeddedLinkWindow: function() {
+		// *** Create the embedded client URL ***
+		var location = window.location;
+
+		// Get the current URL
+		var urlStr = location.href;
+
+		// Remove the file name (index.html) and the parameters
+		urlStr = urlStr.substring(0, urlStr.lastIndexOf("/") + 1);
+
+		// Add embedded file name (embedded.html)
+		urlStr += 'embedded.html';
+
+		// Build an array of parameters
+		var params = {};
+		var map = this.mapPanel == null ? null : this.mapPanel.map;
+		if (map != null) {
+			// Zoom level (z)
+			if (typeof(map.getZoom) === 'function') {
+				params['z'] = map.getZoom();
+			}
+
+			// Center (ll)
+			if (typeof(map.getCenter) === 'function') {
+				var center = map.getCenter();
+				if (center != null) {
+					params['ll'] = center.lon + ',' + center.lat;
+				}
+			}
+
+			// LAYERS - Note that the embedded map will have only one map, so the only needed parameters here are l0, s0, etc.
+			if (typeof(map.layers) !== 'undefined') {
+				var l0 = "";
+				var s0 = "";
+				var o0 = "";
+				var v0 = "";
+				var first = true;
+				for (var i=0; i<map.layers.length; i++) {
+					var layer = map.layers[i];
+					if (layer != null && typeof(layer.json) !== 'undefined' && layer.json != null) {
+						var jsonLayer = layer.json;
+						if (this._isLayerNeededInUrl(jsonLayer)) {
+							if (!first) {
+								l0 += ',';
+								s0 += ',';
+								o0 += ',';
+								v0 += ',';
+							}
+							// Layers (l0)
+							l0 += jsonLayer['layerId']
+							// Styles (s0)
+							if (typeof(layer.params) !== 'undefined' && layer.params != null &&
+									typeof(layer.params['STYLES']) !== 'undefined' && layer.params['STYLES'] != null &&
+									layer.params['STYLES'].length > 0) {
+								s0 += layer.params['STYLES'];
+							}
+							// Opacities (o0)
+							if (typeof(layer.opacity) !== 'undefined' && layer.opacity != null && layer.opacity !== 1) {
+								o0 += layer.opacity
+							}
+							// Visibilities (v0)
+							if (typeof(layer.visibility) !== 'undefined' && layer.visibility === false) {
+								v0 += layer.visibility
+							}
+							first = false;
+						}
+					}
+				}
+				// NOTE: ",,*" is twice faster than ",+"
+				l0 = l0.replace(/,,*$/, '');
+				s0 = s0.replace(/,,*$/, '');
+				o0 = o0.replace(/,,*$/, '');
+				v0 = v0.replace(/,,*$/, '');
+				if (l0.length > 0) {
+					params['l0'] = l0;
+					if (s0.length > 0) { params['s0'] = s0; }
+					if (o0.length > 0) { params['o0'] = o0; }
+					if (v0.length > 0) { params['v0'] = v0; }
+				}
+			}
+		}
+
+		// Add params to the url
+		var search = "";
+		for (param in params) {
+			if (params.hasOwnProperty(param)) {
+				search += (search.length <= 0 ? '?' : '&') +
+					param + '=' + params[param];
+			}
+		}
+		urlStr += search;
+
+		var warningMsg = "";
+		if (urlStr.length > 2000) {
+			warningMsg = '<span style="color:#CC0000;"><b>WARNING:' +
+				'</b> The URL length is <b>' + urlStr.length + '</b> characters, ' +
+				'which is too long for some browsers.</span><br/><br/>\n';
+		}
+
+		new Ext.Window({
+			title: 'Embedded map code',
+			layout:'fit',
+			width:600,
+			height:200,
+			constrainHeader: true,
+			closeAction: 'destroy',
+
+			items: new Ext.Panel({
+				bodyStyle: 'padding: 4px',
+				html: 'Copy / Paste the following code into your <b>HTML page</b> to create an <i>Embedded map</i> similar to this one.<br/>\n' +
+					'<a href="' + urlStr + '" target="_blank">Try it</a><br/><br/>\n' +
+					warningMsg +
+					'<div style="font-family: monospace">' +
+					'&lt;iframe src="' + urlStr + '" style="width:500px;height:500px" /&gt;' +
+					'</div>'
+			}),
+
+			buttons: [{
+				text: 'Close',
+				handler: function(){
+					var window = this.ownerCt.ownerCt;
+					window.close();
+				}
+			}]
+		}).show();
+	},
+
+	_isLayerNeededInUrl: function(jsonLayer) {
+		// Layer group are not added to the URL (but not their layers)
+		if (jsonLayer['dataSourceType'] == 'FOLDER' || jsonLayer['dataSourceType'] == 'GROUP') {
+			return false;
+		}
+
+		// Default layers are not added to the URL
+		for(var i=0; i<Atlas.conf['defaultLayers'].length; i++){
+			if (Atlas.conf['defaultLayers'][i].layerId === jsonLayer['layerId']) {
+				return false;
+			}
+		}
+
+		return true;
+	},
+
 	// Override
 	afterRender: function() {
 		Atlas.LayersPanel.superclass.afterRender.call(this, arguments);
@@ -294,13 +437,23 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 
 			new Ext.Button({
 				renderTo: el,
+				iconCls: 'link',
+				tooltip: 'Link to the embedded map',
+				cls: 'layers-btn link-btn',
+				handler: function() {that.showEmbeddedLinkWindow();}
+			});
+
+			new Ext.Button({
+				renderTo: el,
 				iconCls: 'add',
+				tooltip: 'Add layer',
 				cls: 'layers-btn',
 				handler: function() {that.showAddLayersWindow();}
 			});
 			that.removeButton = new Ext.Button({
 				renderTo: el,
 				iconCls: 'remove',
+				tooltip: 'Remove the selected layer',
 				cls: 'layers-btn',
 				disabled: true,
 				handler: function() {
@@ -361,6 +514,7 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 			new Ext.Button({
 				renderTo: el,
 				iconCls: 'hide',
+				tooltip: 'Hide the layer panel',
 				cls: 'layers-btn',
 				handler: function() {
 					that.collapse();

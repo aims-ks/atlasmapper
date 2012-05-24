@@ -1143,10 +1143,16 @@ public class ConfigManager {
 
 			Map<String, Object> embeddedValues = new HashMap<String, Object>();
 			embeddedValues.put("version", ProjectInfo.getVersion());
+			embeddedValues.put("mainConfig", this.clientMainConfigFilename);
+			embeddedValues.put("layersConfig", this.clientLayersConfigFilename);
 			embeddedValues.put("clientId", clientConfig.getClientId());
 			embeddedValues.put("clientName", clientConfig.getClientName() != null ? clientConfig.getClientName() : clientConfig.getClientId());
-			embeddedValues.put("timestamp", "" + Utils.getCurrentTimestamp());
+			embeddedValues.put("theme", clientConfig.getTheme());
+			embeddedValues.put("pageHeader", Utils.safeJsStr(clientConfig.getPageHeader()));
+			embeddedValues.put("pageFooter", Utils.safeJsStr(clientConfig.getPageFooter()));
+			embeddedValues.put("timestamp", ""+Utils.getCurrentTimestamp());
 			embeddedValues.put("useGoogle", useGoogle);
+			// No welcome message
 			Utils.processTemplate(templatesConfig, "embedded.html", embeddedValues, atlasMapperClientFolder);
 
 			this.parsePreviewTemplate(clientConfig, useGoogle);

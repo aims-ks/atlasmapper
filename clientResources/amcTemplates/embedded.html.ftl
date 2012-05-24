@@ -21,138 +21,185 @@
 -->
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 
+<!-- Generated with AtlasMapper version ${version} -->
 <head>
-	<title>Some Drupal page</title>
+	<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE8" />
+	<!-- IE9 is not support by GeoExt yet, the emulation mode is supposed to fix this...
+		IMPORTANT!!! The IE-EmulateIE8 MUST be the first line of the header otherwise IE9 ignore it. -->
+
+	<title>${clientName}</title>
 	<link rel="icon" type="image/png" href="resources/favicon.png" />
 	<meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
-	<script type="text/javascript" src="OpenLayers/OpenLayers-2.10/OpenLayers.js"></script>
-	<script type="text/javascript" src="OpenLayers-ux/NCWMS.js"></script>
 
-	<script type="text/javascript" src="modules/Core/Core.js"></script>
-	<script type="text/javascript" src="modules/MapPanel/AbstractMapPanel.js"></script>
-	<script type="text/javascript" src="modules/MapPanel/EmbeddedMapPanel.js"></script>
-
-	<script type="text/javascript" src="config/generated.js"></script>
-
-	<script type="text/javascript">
-		function loadEmbMap() {
-			// Patch!! This info will be available from the save state
-			Atlas.conf['<startingLocation>'] = [148.0, -20.0, 4];
-
-			var customLayers = [
-				"gbr4-20psu/exposure_cumulative",
-				"gbr4-22psu/exposure_cumulative",
-				"gbr4-24psu/exposure_cumulative",
-				"gbr4-26psu/exposure_cumulative",
-				"gbr4-28psu/exposure_cumulative",
-				"gbr4-30psu/exposure_cumulative",
-				"gbr4-28psu/botz"
-			];
-
-			Atlas.core = new Atlas.Core();
-
-			var embMap = Atlas.core.createNewEmbeddedMapPanel('embMap');
-			embMap.addLayersById(customLayers);
-
-			window.setTimeout(function() {
-				document.getElementById('embMap').className = '';
-			}, 2000);
-		}
-
-		function loadEmbMap2() {
-			// Patch!! This info will be available from the save state
-			Atlas.conf['<startingLocation>'] = [152, -25, 5];
-
-			var customLayers = [
-//				'GBR_JCU_Bathymetry-3DGBR_Land-and-sea',
-//				'EnTox_Pesticide-Conc'
-				'ea:QLD_JCU_Flood-plumes-2011_2011-01-13-Fitz-BM',
-				'ea:QLD_JCU_Flood-plumes-2011_2011-01-18-Bris'
-			];
-
-			Atlas.core = new Atlas.Core();
-
-			var embMap2 = Atlas.core.createNewEmbeddedMapPanel('embMap2');
-			embMap2.addLayersById(customLayers);
-
-			window.setTimeout(function() {
-				document.getElementById('embMap2').className = '';
-			}, 2000);
-		}
-
-		function init() {
-			loadEmbMap();
-			loadEmbMap2();
-		}
-	</script>
-
-	<style>
-		#embMap {
-			width: 400px;
-			height: 300px;
-		}
-		.mapContainer {
-			float: right;
-			margin: 1em;
-		}
-		.preload {
-			background-image: url('resources/images/embMap.jpg');
-		}
-
-		#embMap2 {
-			width: 400px;
-			height: 300px;
-		}
-		.mapContainer2 {
-			float: left;
-			margin: 1em;
-		}
-		.preload2 {
-			background-image: url('resources/images/embMap2.jpg');
-		}
-	</style>
+	<link rel="stylesheet" type="text/css" href="resources/css/styles.css" />
+	<!--[if lte IE 6 ]>
+	<link rel="stylesheet" type="text/css" href="resources/css/styles-ie6.css" />
+	<![endif]-->
+<#if (theme?? && theme != "")>
+	<link rel="stylesheet" type="text/css" href="extjs/3.3.0/ext-3.3.0/resources/css/ext-all-notheme.css" />
+	<link rel="stylesheet" type="text/css" href="extjs/3.3.0/ext-3.3.0/resources/css/${theme}.css" />
+<#else>
+	<link rel="stylesheet" type="text/css" href="extjs/3.3.0/ext-3.3.0/resources/css/ext-all.css" />
+</#if>
 </head>
 
-<body style="background-color: #CCCCCC" onload="init();">
-	<div style="margin: 4em 3em 0 3em; padding: 0.2em 1em; background-color: #FFFFFF; text-align: justify">
-		<p>
-			<img src="http://www.google.com/images/logos/ps_logo2.png" style="float: left; margin: 1em;" />
-			Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-			Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-			Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-			Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-		</p>
+<body id="embeddedClient">
+<div id="loading"></div>
 
+<div id="goToMap"></div>
 
-		<p>
-			<div class="mapContainer">
-				<div id="embMap" class="preload"></div>
-			</div>
-			Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-			Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-			Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-			Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-			Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-			Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-			Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-		</p>
+<noscript>
+	<p>
+		You need to have JavaScript enabled to use the Map.
+	</p>
+</noscript>
+<script type="text/javascript">
+	var loadingObj = document.getElementById('loading');
+	loadingObj.style.display = 'block';
+</script>
 
-		<p>
-			<div class="mapContainer2">
-				<div id="embMap2" class="preload2"></div>
-			</div>
-			Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-			Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-			Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-			Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-			Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-			Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-			Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-		</p>
+<!-- IE 9+ conditional comment - this will only be executed by IE 9 and above. -->
+<!--[if gte IE 9]>
+<script type="text/javascript">
+	var ie9plus = true;
+</script>
+<![endif]-->
 
-		<div style="clear: both"></div>
-	</div>
+<script type="text/javascript" src="OpenLayers/OpenLayers-2.11/OpenLayers.js"></script>
+<script type="text/javascript" src="OpenLayers-ux/NCWMS.js"></script>
+<script type="text/javascript" src="OpenLayers-ux/NCTimeSeriesClickControl.js"></script>
+<script type="text/javascript" src="OpenLayers-ux/NCTransectDrawControl.js"></script>
+
+<!-- OpenLayers support for Google layer, in version <= 2.11, has to be patched to support V > 3.6
+		   (since google do not support V <= 3.6 anymore)
+	   Bug: http://trac.osgeo.org/openlayers/ticket/3614
+	   Patch: https://github.com/openlayers/openlayers/commit/92f04a7a4277a6c818ef2d40a2856910ed72d3d6
+	   Date: 18-05-2012
+   -->
+<script type="text/javascript" src="OpenLayers-ux/Google-v3.js"></script>
+
+<#if (useGoogle)>
+<!-- If the client use any Google Layers -->
+<script type="text/javascript" src="http://maps.google.com/maps/api/js?v=3.7&amp;sensor=false"></script>
+</#if>
+
+<script type="text/javascript" src="extjs/3.3.0/ext-3.3.0/adapter/ext/ext-base.js"></script>
+<script type="text/javascript" src="extjs/3.3.0/ext-3.3.0/ext-all.js"></script>
+<!-- The un-minimized version (in folder lib) do not works with FF4 (it's components are loaded async) -->
+<!--<script type="text/javascript" src="GeoExt/lib/GeoExt.js"></script> -->
+<script type="text/javascript" src="GeoExt/script/GeoExt.js"></script>
+
+<!-- Personal addition to GeoExt -->
+<script type="text/javascript" src="Ext-ux/CompositeFieldAnchor.js"></script>
+<script type="text/javascript" src="Ext-ux/IFramePanel.js"></script>
+<script type="text/javascript" src="Ext-ux/LayerTreeLoader.js"></script>
+<script type="text/javascript" src="Ext-ux/LayerNode.js"></script>
+<script type="text/javascript" src="Ext-ux/MinMaxField.js"></script>
+<script type="text/javascript" src="Ext-ux/DateField.js"></script>
+<script type="text/javascript" src="Ext-ux/NCDatetimeField.js"></script>
+<script type="text/javascript" src="Ext-ux/NCPlotPanel.js"></script>
+
+<script type="text/javascript" src="GeoExt-ux/LayerLegend.js"></script>
+<script type="text/javascript" src="GeoExt-ux/WMSLegend.js"></script>
+<script type="text/javascript" src="GeoExt-ux/NCWMSLegend.js"></script>
+<script type="text/javascript" src="GeoExt-ux/VectorLegend.js"></script>
+<script type="text/javascript" src="GeoExt-ux/LegendImage.js"></script>
+<script type="text/javascript" src="GeoExt-ux/LegendGroup.js"></script>
+<script type="text/javascript" src="GeoExt-ux/GroupLayerOpacitySlider.js"></script>
+<script type="text/javascript" src="GeoExt-ux/GroupLayerLoader.js"></script>
+
+<script type="text/javascript" src="modules/Core/Core.js"></script>
+<script type="text/javascript" src="modules/MapPanel/AbstractMapPanel.js"></script>
+<script type="text/javascript" src="modules/MapPanel/EmbeddedMapPanel.js"></script>
+<script type="text/javascript" src="modules/MapPanel/MultiWMSGetFeatureInfo.js"></script>
+<script type="text/javascript" src="modules/Legend/Legend.js"></script>
+<script type="text/javascript" src="modules/Legend/LegendPanel.js"></script>
+<script type="text/javascript" src="modules/LayersPanel/LayersPanel.js"></script>
+<script type="text/javascript" src="modules/LayersPanel/AddLayersWindow.js"></script>
+<script type="text/javascript" src="modules/Trees/Trees.js"></script>
+<script type="text/javascript" src="modules/Info/Info.js"></script>
+<script type="text/javascript" src="modules/Info/OptionsPanel.js"></script>
+
+<script type="text/javascript">
+
+	var parameters = OpenLayers.Util.getParameters();
+
+	// Multi-maps
+	var nbMaps = 1;
+	if (parameters.maps) {
+		nbMaps = parseInt(parameters.maps);
+	}
+	if (nbMaps < 1) { nbMaps = 1; }
+	if (nbMaps > 4) { nbMaps = 4; }
+
+	var legend = false;
+	if (parameters.leg) {
+		legend = (parameters.leg.toLowerCase() === 'true');
+	}
+
+	Ext.onReady(function() {
+		new Ext.Button({
+			renderTo : "goToMap",
+			scale: 'medium',
+			iconCls: 'goToMapIcon',
+			tooltip: 'View larger map',
+			handler: function(button, evt) {
+				var url = "index.html";
+				var rawParameters = window.location.search;
+				if (rawParameters == null || rawParameters.length == 0) {
+					rawParameters = '?'
+				} else {
+					rawParameters += '&'
+				}
+				rawParameters += 'intro=false'
+
+				window.open(url + rawParameters);
+			}
+		});
+
+		Atlas.core = new Atlas.Core("config/${mainConfig}", "config/${layersConfig}", "${timestamp}");
+		Atlas.core.afterLoad = function() {
+			document.getElementById('loading').style.display = 'none';
+
+			mapLayoutItems = [];
+			for (var i=0; i<nbMaps; i++) {
+				var mapPanel = Atlas.core.createNewMapPanel();
+				if (legend) {
+					new Atlas.Legend({mapPanel: mapPanel});
+				}
+
+				mapLayoutItems.push(
+						{
+							flex: 1,
+							layout: "border",
+							deferredRender: false,
+							items: [mapPanel]
+						}
+				);
+			}
+
+			new Ext.Viewport({
+				layout: "border",
+				hideBorders: true,
+				items: [
+					{
+						region: 'center',
+						layout: "hbox",
+						layoutConfig: {
+							align : 'stretch',
+							pack  : 'start'
+						},
+						hideBorders: true,
+						items: mapLayoutItems
+					}
+				]
+			});
+		};
+
+		Ext.QuickTips.init();
+	});
+</script>
 </body>
 
 </html>

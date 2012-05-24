@@ -19,6 +19,12 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+Ext.namespace("Atlas");
+
+Atlas.MapPanel = Ext.extend(GeoExt.MapPanel, Atlas.AbstractMapPanel);
+Atlas.MapPanel.prototype.embedded = true;
+
+/*
 // Namespace declaration (equivalent to Ext.namespace("Atlas");)
 window["Atlas"] = window["Atlas"] || {};
 
@@ -33,3 +39,4 @@ Atlas.MapPanel = OpenLayers.Class(Atlas.AbstractMapPanel, {
 		this.initComponent();
 	}
 });
+*/
