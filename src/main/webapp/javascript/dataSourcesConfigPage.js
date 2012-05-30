@@ -993,6 +993,10 @@ Ext.onReady(function(){
 		model: 'Writer.LayerServerConfig',
 		autoLoad: true,
 		autoSync: true,
+		sorters: {
+			property: 'dataSourceName',
+			direction: 'ASC' // or 'DESC' (case sensitive for local sorting)
+		},
 		proxy: {
 			type: 'ajax',
 			api: {

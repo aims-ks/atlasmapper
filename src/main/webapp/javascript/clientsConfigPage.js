@@ -1578,6 +1578,10 @@ Ext.onReady(function(){
 		model: 'Writer.ClientConfig',
 		autoLoad: true,
 		autoSync: true,
+		sorters: {
+			property: 'clientName',
+			direction: 'ASC' // or 'DESC' (case sensitive for local sorting)
+		},
 		proxy: {
 			type: 'ajax',
 			api: {

@@ -1311,6 +1311,7 @@ public class ConfigManager {
 								imageUrl.append(serviceUrl.contains("?") ? "&" : "?");
 							}
 							imageUrl.append("LAYERS="); imageUrl.append(URLEncoder.encode(layerConfig.getLayerName(), "UTF-8"));
+							imageUrl.append("&STYLES="); // Some servers need this parameter, even set to nothing
 							imageUrl.append("&FORMAT="); imageUrl.append(URLEncoder.encode("image/png", "UTF-8"));
 							imageUrl.append("&TRANSPARENT=true");
 							imageUrl.append("&SERVICE=WMS");
@@ -1365,6 +1366,7 @@ public class ConfigManager {
 									baseLayerUrl.append(baseLayerServiceUrl.contains("?") ? "&" : "?");
 								}
 								baseLayerUrl.append("LAYERS="); baseLayerUrl.append(URLEncoder.encode(baseLayerId, "UTF-8"));
+								baseLayerUrl.append("&STYLES="); // Some servers need this parameter, even set to nothing
 								baseLayerUrl.append("&FORMAT="); baseLayerUrl.append(URLEncoder.encode("image/jpeg", "UTF-8"));
 								baseLayerUrl.append("&TRANSPARENT=false");
 								baseLayerUrl.append("&SERVICE=WMS");
