@@ -276,9 +276,11 @@ Atlas.AbstractMapPanel = {
 			// Call the original render method
 			OpenLayers.Map.prototype.render.apply(that.map, arguments);
 
-			// Fire the render event.
-			that.isRendered = true;
-			that.ol_fireEvent("render");
+			window.setTimeout(function() {
+				// Fire the render event, after 1 millisecond, just to be sure every process as finish...
+				that.isRendered = true;
+				that.ol_fireEvent("render");
+			}, 1);
 		};
 
 		// Add a dummy base layer to solve all the problems related with
