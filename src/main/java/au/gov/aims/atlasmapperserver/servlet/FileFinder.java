@@ -62,6 +62,7 @@ public class FileFinder {
 	private static final String CLIENT_BASE_URL = "client";
 	private static final String CLIENT_WELCOME_PAGE = "index.html";
 	private static final String CLIENT_PREVIEW_PAGE = "preview.html";
+	private static final String CLIENT_LAYERLIST_PAGE = "list.html";
 
 	public static void init(ServletContext context) {
 		printDataDirProperty(context);
@@ -144,6 +145,37 @@ public class FileFinder {
 				baseUrl += "/";
 			}
 			url = baseUrl + welcomePage;
+		}
+
+		return url;
+	}
+
+	public static String getAtlasMapperLayerListUrl(ServletContext context, ClientConfig clientConfig) {
+		if (clientConfig == null) {
+			return null;
+		}
+
+		// Check if the listing file exists on the file system
+		File clientFolder = getAtlasMapperClientFolder(getApplicationFolder(context, false), clientConfig);
+		if (clientFolder == null || !clientFolder.isDirectory()) {
+			// The client has not been generated
+			return null;
+		}
+		String[] content = clientFolder.list();
+		Arrays.sort(content);
+		if (Arrays.binarySearch(content, CLIENT_LAYERLIST_PAGE) < 0) {
+			// The Welcome file do not exists
+			return null;
+		}
+
+		String baseUrl = getAtlasMapperClientBaseURL(context, clientConfig).trim();
+
+		String url = null;
+		if (Utils.isNotBlank(baseUrl)) {
+			if (!baseUrl.endsWith("/")) {
+				baseUrl += "/";
+			}
+			url = baseUrl + CLIENT_LAYERLIST_PAGE;
 		}
 
 		return url;

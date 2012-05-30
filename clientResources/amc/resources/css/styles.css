@@ -26,6 +26,10 @@ body {
 	overflow: hidden;
 }
 
+#list {
+	overflow: auto;
+}
+
 #loading {
 	background: #FFFFFF url('../images/loading.gif') no-repeat center center;
 	display: none; /* Activated by JS */

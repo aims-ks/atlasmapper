@@ -52,11 +52,14 @@ import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.net.URISyntaxException;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -1071,7 +1074,7 @@ public class ConfigManager {
 		JSONObject generatedMainConfig = this.getClientConfigFileJSon(layers, clientConfig, ConfigType.MAIN, false, true);
 		JSONObject generatedEmbeddedConfig = this.getClientConfigFileJSon(layers, clientConfig, ConfigType.EMBEDDED, false, true);
 		JSONObject generatedLayers = this.getClientConfigFileJSon(layers, clientConfig, ConfigType.LAYERS, false, true);
-		this.parseTemplates(clientConfig, useGoogle);
+		this.parseTemplates(layers, generatedMainConfig, clientConfig, useGoogle);
 		this.saveGeneratedConfigs(clientConfig, generatedMainConfig, generatedEmbeddedConfig, generatedLayers);
 
 		// Flush the proxy cache for both the preview and the generated clients
@@ -1108,7 +1111,7 @@ public class ConfigManager {
 	}
 
 	// Create all files that required a template processing
-	private void parseTemplates(ClientConfig clientConfig, boolean useGoogle) throws IOException, TemplateException {
+	private void parseTemplates(Map<String, AbstractLayerConfig> layers, JSONObject generatedMainConfig, ClientConfig clientConfig, boolean useGoogle) throws IOException, TemplateException {
 		if (clientConfig == null) { return; }
 
 		File atlasMapperClientFolder =
@@ -1155,6 +1158,26 @@ public class ConfigManager {
 			// No welcome message
 			Utils.processTemplate(templatesConfig, "embedded.html", embeddedValues, atlasMapperClientFolder);
 
+			int width = 200;
+			int height = 180;
+			if (Utils.isNotBlank(clientConfig.getListLayerImageWidth())) {
+				width = Integer.valueOf(clientConfig.getListLayerImageWidth());
+			}
+			if (Utils.isNotBlank(clientConfig.getListLayerImageHeight())) {
+				height = Integer.valueOf(clientConfig.getListLayerImageHeight());
+			}
+
+			Map<String, Object> listValues = new HashMap<String, Object>();
+			listValues.put("version", ProjectInfo.getVersion());
+			listValues.put("clientName", clientConfig.getClientName() != null ? clientConfig.getClientName() : clientConfig.getClientId());
+			listValues.put("layers", this.generateLayerList(clientConfig, layers, generatedMainConfig));
+			listValues.put("layerBoxWidth", width + 2); // +2 for the 1 px border - This value can be overridden using CSS
+			listValues.put("layerBoxHeight", height + 45); // +45 to let some room for the text bellow the layer - This value can be overridden using CSS
+			listValues.put("listPageHeader", clientConfig.getListPageHeader());
+			listValues.put("listPageFooter", clientConfig.getListPageFooter());
+			Utils.processTemplate(templatesConfig, "fullList.html", listValues, atlasMapperClientFolder);
+			Utils.processTemplate(templatesConfig, "list.html", listValues, atlasMapperClientFolder);
+
 			this.parsePreviewTemplate(clientConfig, useGoogle);
 		} catch (URISyntaxException ex) {
 			throw new IOException("Can not get a File reference to the AtlasMapperClient", ex);
@@ -1191,6 +1214,193 @@ public class ConfigManager {
 				throw new IOException("Can not get a File reference to the AtlasMapperClient", ex);
 			}
 		}
+	}
+
+	/**
+	 * Return a list of info used to generate a list of layers:
+	 * Map of
+	 *     Key: DataSource name
+	 *     Value: List of Map of
+	 *         id: Layer ID, as used in the AtlasMapper (with the data source ID)
+	 *         title: Displayed name of the layer
+	 *         description: Displayed name of the layer
+	 *         imageUrl: URL of the preview image for the layer
+	 *         baseLayerUrl: URL of the background image to display under the layer image
+	 *         imageWidth: Image width
+	 *         imageHeight: Image height
+	 *         mapUrl: URL of the AtlasMapper map that display that layer
+	 * @param layers Map of layers, after overrides
+	 * @param generatedMainConfig Client JSON config, to get the data sources (after overrides), the client projection and the default layers.
+	 * @return
+	 */
+	private Map<String, List<Map<String, String>>> generateLayerList(ClientConfig clientConfig, Map<String, AbstractLayerConfig> layers, JSONObject generatedMainConfig) throws UnsupportedEncodingException {
+		if (layers == null || layers.isEmpty()) {
+			return null;
+		}
+		Map<String, List<Map<String, String>>> layersMap = new LinkedHashMap<String, List<Map<String, String>>>();
+
+		// Order the layers in alphabetic order
+		// Order it according to it's layer ID; it's easier that way...
+		List<String> orderedLayerIds = new ArrayList<String>(layers.keySet());
+		Collections.sort(orderedLayerIds);
+
+		JSONObject dataSources = generatedMainConfig.optJSONObject("dataSources");
+		String projection = "EPSG:4326";
+
+		// Maximum width x height
+		int defaultWidth = 200;
+		int defaultHeight = 180;
+		if (Utils.isNotBlank(clientConfig.getListLayerImageWidth())) {
+			defaultWidth = Integer.valueOf(clientConfig.getListLayerImageWidth());
+		}
+		if (Utils.isNotBlank(clientConfig.getListLayerImageHeight())) {
+			defaultHeight = Integer.valueOf(clientConfig.getListLayerImageHeight());
+		}
+
+		for (String layerId : orderedLayerIds) {
+			AbstractLayerConfig layerConfig = layers.get(layerId);
+
+			// Ignore layer groups
+			if (layerConfig.getLayerName() != null) {
+				// Data source object containing overridden values
+				JSONObject dataSource = null;
+				// Raw data source object containing values before override
+
+				AbstractDataSourceConfig rawDataSourceConfig = null;
+				if (dataSources != null) {
+					dataSource = dataSources.optJSONObject(layerConfig.getDataSourceId());
+					rawDataSourceConfig = this.dataSourceConfigs.get2(layerConfig.getDataSourceId());
+				}
+
+				String dataSourceName = rawDataSourceConfig.getDataSourceName();
+
+				// Find (or create) the layer list for this data source
+				List<Map<String, String>> dataSourceLayerList = layersMap.get(dataSourceName);
+				if (dataSourceLayerList == null) {
+					dataSourceLayerList = new ArrayList<Map<String, String>>();
+					layersMap.put(dataSourceName, dataSourceLayerList);
+				}
+
+				Map<String, String> layerMap = new HashMap<String, String>();
+
+
+				String serviceUrl = layerConfig.getServiceUrl();
+				if (serviceUrl == null || serviceUrl.isEmpty()) {
+					if (dataSource != null) {
+						serviceUrl = dataSource.optString("wmsServiceUrl", null);
+					}
+				}
+
+				// http://e-atlas.localhost/maps/ea/wms
+				// LAYERS=ea%3AQLD_DEEDI_Coastal-wetlands
+				// FORMAT=image%2Fpng
+				// SERVICE=WMS
+				// VERSION=1.1.1
+				// REQUEST=GetMap
+				// EXCEPTIONS=application%2Fvnd.ogc.se_inimage
+				// SRS=EPSG%3A4326
+				// BBOX=130.20938085938,-37.1985,161.23261914062,-1.0165
+				// WIDTH=439
+				// HEIGHT=512
+				if (serviceUrl != null && !serviceUrl.isEmpty()) {
+					if (rawDataSourceConfig instanceof WMSDataSourceConfig) {
+						double[] bbox = layerConfig.getLayerBoundingBox();
+						if (bbox != null && bbox.length == 4) {
+							StringBuilder imageUrl = new StringBuilder(serviceUrl);
+							if (!serviceUrl.endsWith("&") && !serviceUrl.endsWith("?")) {
+								imageUrl.append(serviceUrl.contains("?") ? "&" : "?");
+							}
+							imageUrl.append("LAYERS="); imageUrl.append(URLEncoder.encode(layerConfig.getLayerName(), "UTF-8"));
+							imageUrl.append("&FORMAT="); imageUrl.append(URLEncoder.encode("image/png", "UTF-8"));
+							imageUrl.append("&TRANSPARENT=true");
+							imageUrl.append("&SERVICE=WMS");
+							imageUrl.append("&VERSION=1.1.1");
+							imageUrl.append("&REQUEST=GetMap");
+							imageUrl.append("&EXCEPTIONS="); imageUrl.append(URLEncoder.encode("application/vnd.ogc.se_inimage", "UTF-8"));
+							imageUrl.append("&SRS="); imageUrl.append(URLEncoder.encode(projection, "UTF-8")); // TODO Use client projection
+
+							imageUrl.append("&BBOX=");
+							imageUrl.append(bbox[0]); imageUrl.append(",");
+							imageUrl.append(bbox[1]); imageUrl.append(",");
+							imageUrl.append(bbox[2]); imageUrl.append(",");
+							imageUrl.append(bbox[3]);
+
+							// Lon x Lat ratio (width / height  or  lon / lat)
+							double ratio = (bbox[2] - bbox[0]) / (bbox[3] - bbox[1]);
+
+							int width = defaultWidth;
+							int height = defaultHeight;
+
+							if (ratio > (((double)width)/height)) {
+								// Reduce height
+								height = (int)Math.round(width / ratio);
+							} else {
+								// Reduce width
+								width = (int)Math.round(height * ratio);
+							}
+
+							imageUrl.append("&WIDTH=" + width);
+							imageUrl.append("&HEIGHT=" + height);
+
+							layerMap.put("imageUrl", imageUrl.toString());
+
+
+							String baseLayerServiceUrl = clientConfig.getListBaseLayerServiceUrl();
+							String baseLayerId = clientConfig.getListBaseLayerId();
+							if (Utils.isNotBlank(baseLayerServiceUrl) && Utils.isNotBlank(baseLayerId)) {
+								// Base layer - Hardcoded
+								// http://maps.e-atlas.org.au/maps/gwc/service/wms
+								// LAYERS=ea%3AWorld_NED_NE2
+								// TRANSPARENT=FALSE
+								// SERVICE=WMS
+								// VERSION=1.1.1
+								// REQUEST=GetMap
+								// FORMAT=image%2Fjpeg
+								// SRS=EPSG%3A4326
+								// BBOX=149.0625,-22.5,151.875,-19.6875
+								// WIDTH=256
+								// HEIGHT=256
+								StringBuilder baseLayerUrl = new StringBuilder(baseLayerServiceUrl);
+								if (!baseLayerServiceUrl.endsWith("&") && !baseLayerServiceUrl.endsWith("?")) {
+									baseLayerUrl.append(baseLayerServiceUrl.contains("?") ? "&" : "?");
+								}
+								baseLayerUrl.append("LAYERS="); baseLayerUrl.append(URLEncoder.encode(baseLayerId, "UTF-8"));
+								baseLayerUrl.append("&FORMAT="); baseLayerUrl.append(URLEncoder.encode("image/jpeg", "UTF-8"));
+								baseLayerUrl.append("&TRANSPARENT=false");
+								baseLayerUrl.append("&SERVICE=WMS");
+								baseLayerUrl.append("&VERSION=1.1.1");
+								baseLayerUrl.append("&REQUEST=GetMap");
+								baseLayerUrl.append("&EXCEPTIONS="); baseLayerUrl.append(URLEncoder.encode("application/vnd.ogc.se_inimage", "UTF-8"));
+								baseLayerUrl.append("&SRS="); baseLayerUrl.append(URLEncoder.encode(projection, "UTF-8")); // TODO Use client projection
+
+								baseLayerUrl.append("&BBOX=");
+								baseLayerUrl.append(bbox[0]); baseLayerUrl.append(",");
+								baseLayerUrl.append(bbox[1]); baseLayerUrl.append(",");
+								baseLayerUrl.append(bbox[2]); baseLayerUrl.append(",");
+								baseLayerUrl.append(bbox[3]);
+
+								baseLayerUrl.append("&WIDTH=" + width);
+								baseLayerUrl.append("&HEIGHT=" + height);
+
+								layerMap.put("baseLayerUrl", baseLayerUrl.toString());
+
+								layerMap.put("imageWidth", ""+width);
+								layerMap.put("imageHeight", ""+height);
+							}
+						}
+					}
+				}
+
+				layerMap.put("id", layerId);
+				layerMap.put("title", layerConfig.getTitle());
+				layerMap.put("description", layerConfig.getDescription());
+				layerMap.put("mapUrl", "index.html?intro=f&dl=t&loc=" + URLEncoder.encode(layerId, "UTF-8") + "&l0=" + URLEncoder.encode(layerId, "UTF-8"));
+
+				dataSourceLayerList.add(layerMap);
+			}
+		}
+
+		return layersMap;
 	}
 
 	/**

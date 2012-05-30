@@ -146,6 +146,26 @@ public class ClientConfig extends AbstractConfig {
 	@ConfigField
 	private String layersPanelFooter;
 
+
+	@ConfigField
+	private String listPageHeader;
+
+	@ConfigField
+	private String listPageFooter;
+
+	@ConfigField
+	private String listBaseLayerServiceUrl;
+
+	@ConfigField
+	private String listBaseLayerId;
+
+	@ConfigField
+	private String listLayerImageWidth;
+
+	@ConfigField
+	private String listLayerImageHeight;
+
+
 	// Read only values also need to be disabled in the form (clientsConfigPage.js)
 	@ConfigField(demoReadOnly = true)
 	private String generatedFileLocation;
@@ -451,6 +471,50 @@ public class ClientConfig extends AbstractConfig {
 		this.layersPanelFooter = layersPanelFooter;
 	}
 
+
+	public String getListPageHeader() {
+		return this.listPageHeader;
+	}
+	public void setListPageHeader(String listPageHeader) {
+		this.listPageHeader = listPageHeader;
+	}
+
+	public String getListPageFooter() {
+		return this.listPageFooter;
+	}
+	public void setListPageFooter(String listPageFooter) {
+		this.listPageFooter = listPageFooter;
+	}
+
+	public String getListBaseLayerServiceUrl() {
+		return this.listBaseLayerServiceUrl;
+	}
+	public void setListBaseLayerServiceUrl(String listBaseLayerServiceUrl) {
+		this.listBaseLayerServiceUrl = listBaseLayerServiceUrl;
+	}
+
+	public String getListBaseLayerId() {
+		return this.listBaseLayerId;
+	}
+	public void setListBaseLayerId(String listBaseLayerId) {
+		this.listBaseLayerId = listBaseLayerId;
+	}
+
+	public String getListLayerImageWidth() {
+		return this.listLayerImageWidth;
+	}
+	public void setListLayerImageWidth(String listLayerImageWidth) {
+		this.listLayerImageWidth = listLayerImageWidth;
+	}
+
+	public String getListLayerImageHeight() {
+		return this.listLayerImageHeight;
+	}
+	public void setListLayerImageHeight(String listLayerImageHeight) {
+		this.listLayerImageHeight = listLayerImageHeight;
+	}
+
+
 	public String getGeneratedFileLocation() {
 		return this.generatedFileLocation;
 	}
@@ -480,6 +544,7 @@ public class ClientConfig extends AbstractConfig {
 		JSONObject json = this.toJSonObject();
 		json.put("clientUrl", this.getClientUrl(context));
 		json.put("previewClientUrl", this.getPreviewClientUrl(context));
+		json.put("layerListUrl", this.getLayerListUrl(context));
 		return json;
 	}
 
@@ -498,6 +563,11 @@ public class ClientConfig extends AbstractConfig {
 	// Helper
 	public String getPreviewClientUrl(ServletContext context) {
 		return FileFinder.getAtlasMapperClientURL(context, this, true);
+	}
+
+	// Helper
+	public String getLayerListUrl(ServletContext context) {
+		return FileFinder.getAtlasMapperLayerListUrl(context, this);
 	}
 
 	// Helper

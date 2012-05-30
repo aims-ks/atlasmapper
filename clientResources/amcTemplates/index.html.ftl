@@ -166,7 +166,7 @@
 				};
 
 				if (typeof(ie9plus) !== 'undefined' && ie9plus === true) {
-					// This Warning window will only show up if IE is not running in comptability mode (if it ignores the directive in the header)
+					// This Warning window will only show up if IE is not running in compatibility mode (if it ignores the directive in the header)
 					Ext.Msg.show({
 						title:'WARNING',
 						msg: '<p>Your browser is not well supported. It\'s strongly recommended to activate the browser compatibility mode!</p><img src="resources/images/IE9-compatibility-mode.png">',
@@ -237,6 +237,8 @@
 					]
 				});
 			};
+
+			Ext.QuickTips.init();
 		});
 	</script>
 </body>

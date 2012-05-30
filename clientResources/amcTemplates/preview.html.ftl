@@ -241,6 +241,8 @@
 					]
 				});
 			};
+
+			Ext.QuickTips.init();
 		});
 	</script>
 </body>

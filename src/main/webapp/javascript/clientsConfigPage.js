@@ -428,10 +428,13 @@ Ext.define('Writer.ClientConfigForm', {
 							}
 						]
 					}, {
-						// Config options to modify the apparence of the client
-						title: 'Appearance',
+						// Config options to modify the appearance of the client
+						title: 'Map Appearance',
 						items: [
 							{
+								xtype: 'displayfield',
+								value: 'This tab allow you to customise the mapping page, both the preview and the live one.'
+							}, {
 								fieldLabel: 'Theme',
 								qtipHtml: 'ExtJS Theme',
 								name: 'theme',
@@ -460,7 +463,7 @@ Ext.define('Writer.ClientConfigForm', {
 								height: 200
 							}, {
 								fieldLabel: 'Page header',
-								qtipHtml: 'HTML snippet displayed on top of the page, 100% browser width. The height is defined by the height of the HTML elements. This can be used to define the client branding and add links to the main company web site.',
+								qtipHtml: 'HTML snippet displayed on top of the page, 100% browser width. The height is defined by the height of the HTML elements. This can be used to define the client branding and add links to the layer listing page, the company web site, etc.',
 								name: 'pageHeader',
 								xtype: 'textareafield'
 							}, {
@@ -478,6 +481,51 @@ Ext.define('Writer.ClientConfigForm', {
 								qtipHtml: 'HTML snippet displayed on the bottom of the layer panel, to the left of the map. The height is defined by the height of the HTML elements. This can be used to define the client branding and add some extra links.',
 								name: 'layersPanelFooter',
 								xtype: 'textareafield'
+							}
+						]
+					}, {
+						// Config options to modify the appearance of the client
+						title: 'List Appearance',
+						items: [
+							{
+								xtype: 'displayfield',
+								value: 'This tab allow you to customise the layer listing page.'
+							}, {
+								fieldLabel: 'Page header',
+								qtipHtml: 'HTML snippet displayed on top of the layer listing page, 100% browser width. The height is defined by the height of the HTML elements. This can be used to define the client branding and add links to the mapping page, the company web site, etc.',
+								name: 'listPageHeader',
+								xtype: 'textareafield'
+							}, {
+								fieldLabel: 'Page footer',
+								qtipHtml: 'HTML snippet displayed on the bottom of the layer listing page, 100% browser width. The height is defined by the height of the HTML elements. This can be used to define the client branding and add links to the contact page, site map, etc.',
+								name: 'listPageFooter',
+								xtype: 'textareafield'
+							}, {
+								fieldLabel: 'Base layer - Service URL',
+								qtipHtml: 'Example: http://maps.e-atlas.org.au/maps/wms',
+								name: 'listBaseLayerServiceUrl'
+							}, {
+								fieldLabel: 'Base layer - Layer ID',
+								qtipHtml: 'Example: ea:World_NED_NE2',
+								name: 'listBaseLayerId'
+							}, {
+								fieldLabel: 'Layer preview - Width',
+								qtipHtml: 'Default: 200',
+								name: 'listLayerImageWidth',
+								xtype: 'numberfield',
+								allowDecimals: false,
+								// Remove spinner buttons, and arrow key and mouse wheel listeners
+								hideTrigger: true,
+								keyNavEnabled: false
+							}, {
+								fieldLabel: 'Layer preview - Height',
+								qtipHtml: 'Default: 180',
+								name: 'listLayerImageHeight',
+								xtype: 'numberfield',
+								allowDecimals: false,
+								// Remove spinner buttons, and arrow key and mouse wheel listeners
+								hideTrigger: true,
+								keyNavEnabled: false
 							}
 						]
 					}
@@ -634,6 +682,14 @@ Ext.define('Writer.ClientConfigGrid', {
 					flex: 1,
 					sortable: true,
 					dataIndex: 'clientUrl',
+					renderer: function(val) {
+						return val ? '<a href="'+val+'" target="_blank">'+val+'</a>' : '';
+					}
+				}, {
+					header: 'Layer listing',
+					flex: 1,
+					sortable: true,
+					dataIndex: 'layerListUrl',
 					renderer: function(val) {
 						return val ? '<a href="'+val+'" target="_blank">'+val+'</a>' : '';
 					}
@@ -1470,6 +1526,7 @@ Ext.define('Writer.ClientConfig', {
 		'legendParameters',
 		'clientUrl',
 		'previewClientUrl',
+		'layerListUrl',
 		'generatedFileLocation',
 		'baseUrl',
 		'proxyUrl',
@@ -1488,6 +1545,14 @@ Ext.define('Writer.ClientConfig', {
 		'pageFooter',
 		'layersPanelHeader',
 		'layersPanelFooter',
+
+		'listPageHeader',
+		'listPageFooter',
+		'listBaseLayerServiceUrl',
+		'listBaseLayerId',
+		'listLayerImageWidth',
+		'listLayerImageHeight',
+
 		'comment'
 	]/*,
 	validations: [{

@@ -41,6 +41,9 @@
  * [ ] WMS Queryable for group
  */
 Atlas.LayersPanel = Ext.extend(Ext.Panel, {
+	DRUPAL_MAX_URL_LENGTH: 256,
+	BROWSER_MAX_URL_LENGTH: 2000,
+
 	mapPanel: null,
 
 	// Private
@@ -283,7 +286,11 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 		});
 	},
 
-	showEmbeddedLinkWindow: function() {
+	_getUrlForSaveState: function(saveState, embedded) {
+		if (typeof(saveState) === 'undefined' || saveState == null) {
+			saveState = this.mapPanel == null ? null : this.mapPanel._createUrlSaveState();
+		}
+
 		// *** Create the embedded client URL ***
 		var location = window.location;
 
@@ -294,111 +301,117 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 		urlStr = urlStr.substring(0, urlStr.lastIndexOf("/") + 1);
 
 		// Add embedded file name (embedded.html)
-		urlStr += 'embedded.html';
-
-		// Build an array of parameters
-		var params = {};
-		var map = this.mapPanel == null ? null : this.mapPanel.map;
-		if (map != null) {
-			// Zoom level (z)
-			if (typeof(map.getZoom) === 'function') {
-				params['z'] = map.getZoom();
-			}
-
-			// Center (ll)
-			if (typeof(map.getCenter) === 'function') {
-				var center = map.getCenter();
-				if (center != null) {
-					params['ll'] = center.lon + ',' + center.lat;
-				}
-			}
-
-			// LAYERS - Note that the embedded map will have only one map, so the only needed parameters here are l0, s0, etc.
-			if (typeof(map.layers) !== 'undefined') {
-				var l0 = "";
-				var s0 = "";
-				var o0 = "";
-				var v0 = "";
-				var first = true;
-				for (var i=0; i<map.layers.length; i++) {
-					var layer = map.layers[i];
-					if (layer != null && typeof(layer.json) !== 'undefined' && layer.json != null) {
-						var jsonLayer = layer.json;
-						if (this._isLayerNeededInUrl(jsonLayer)) {
-							if (!first) {
-								l0 += ',';
-								s0 += ',';
-								o0 += ',';
-								v0 += ',';
-							}
-							// Layers (l0)
-							l0 += jsonLayer['layerId']
-							// Styles (s0)
-							if (typeof(layer.params) !== 'undefined' && layer.params != null &&
-									typeof(layer.params['STYLES']) !== 'undefined' && layer.params['STYLES'] != null &&
-									layer.params['STYLES'].length > 0) {
-								s0 += layer.params['STYLES'];
-							}
-							// Opacities (o0)
-							if (typeof(layer.opacity) !== 'undefined' && layer.opacity != null && layer.opacity !== 1) {
-								o0 += layer.opacity
-							}
-							// Visibilities (v0)
-							if (typeof(layer.visibility) !== 'undefined' && layer.visibility === false) {
-								v0 += layer.visibility
-							}
-							first = false;
-						}
-					}
-				}
-				// NOTE: ",,*" is twice faster than ",+"
-				l0 = l0.replace(/,,*$/, '');
-				s0 = s0.replace(/,,*$/, '');
-				o0 = o0.replace(/,,*$/, '');
-				v0 = v0.replace(/,,*$/, '');
-				if (l0.length > 0) {
-					params['l0'] = l0;
-					if (s0.length > 0) { params['s0'] = s0; }
-					if (o0.length > 0) { params['o0'] = o0; }
-					if (v0.length > 0) { params['v0'] = v0; }
-				}
-			}
+		var search = "";
+		if (!embedded) {
+			urlStr += 'index.html';
+			search = '?intro=false';
+		} else {
+			urlStr += 'embedded.html';
 		}
 
 		// Add params to the url
-		var search = "";
-		for (param in params) {
-			if (params.hasOwnProperty(param)) {
+		for (param in saveState) {
+			if (saveState.hasOwnProperty(param)) {
 				search += (search.length <= 0 ? '?' : '&') +
-					param + '=' + params[param];
+					param + '=' + saveState[param];
 			}
 		}
 		urlStr += search;
 
+		return urlStr;
+	},
+
+	_updateValues: function(uid, fullUrlStr, embeddedUrlStr) {
+		var widthField = document.getElementById('w' + uid);
+		var width = widthField.value;
+
+		var heightField = document.getElementById('h' + uid);
+		var height = heightField.value;
+
+		var embeddedMap = document.getElementById('previewEmbeddedMap' + uid);
+		var fullLink = document.getElementById('fullLink' + uid);
+		var embeddedCode = document.getElementById('embeddedCode' + uid);
+
+		embeddedMap.style.width = width+'px';
+		embeddedMap.style.height = height+'px';
+
+		fullLink.innerHTML = fullUrlStr;
+		embeddedCode.innerHTML = '<iframe src="' + embeddedUrlStr + '" style="border:none;width:'+width+'px;height:'+height+'px"></iframe>';
+	},
+
+	showEmbeddedLinkWindow: function() {
+		var that = this;
+		var fullUrlStr = this._getUrlForSaveState(null, false);
+		var embeddedUrlStr = this._getUrlForSaveState(null, true);
+
 		var warningMsg = "";
-		if (urlStr.length > 2000) {
+		if (embeddedUrlStr.length > this.BROWSER_MAX_URL_LENGTH) {
 			warningMsg = '<span style="color:#CC0000;"><b>WARNING:' +
-				'</b> The URL length is <b>' + urlStr.length + '</b> characters, ' +
-				'which is too long for some browsers.</span><br/><br/>\n';
+				'</b> The URL length is <b>' + embeddedUrlStr.length + '</b> characters, ' +
+				'which is too long for some browsers.</span><br/>\n';
+		} else if (embeddedUrlStr.length > this.DRUPAL_MAX_URL_LENGTH) {
+			warningMsg = '<span style="color:#CC0000;"><b>WARNING:' +
+				'</b> The URL length is <b>' + embeddedUrlStr.length + '</b> characters, ' +
+				'which is too long for some DMS like Drupal.</span><br/>\n';
+		}
+		if (warningMsg) {
+			warningMsg += 'You can fix the problem by removing some layers, including the one ' +
+				'that are in the list but are not visible on the map, or set a more basic setting ' +
+				'for your layers, such as opacity to 100% and using default styles.<br/><br/>\n';
 		}
 
-		new Ext.Window({
-			title: 'Embedded map code',
+		var uid = Ext.id();
+
+		var saveStateChangeFct = function(evt) {
+			fullUrlStr = that._getUrlForSaveState(evt.urlSaveState, false);
+			embeddedUrlStr = that._getUrlForSaveState(evt.urlSaveState, true);
+			that._updateValues(uid, fullUrlStr, embeddedUrlStr);
+		};
+
+		Atlas.core.mapPanels[0].ol_on('saveStateChange', saveStateChangeFct);
+
+		var windowContent = new Ext.Panel({
+			autoScroll: true,
+			bodyStyle: 'padding: 4px',
+
+			html: 'Copy / Paste URL in email<br/>\n' +
+				'<textarea onClick="this.select()" id="fullLink'+uid+'" readonly="true" style="width:500px; height:40px;">' +
+				fullUrlStr +
+				'</textarea><br/><br/>\n' +
+				'Copy / Paste <b>HTML</b> to create an <i>Embedded map</i><br/>\n' +
+				'<textarea onClick="this.select()" id="embeddedCode'+uid+'" readonly="true" style="width:500px; height:100px;">' +
+				'<iframe src="' + embeddedUrlStr + '" style="border:none;width:500px;height:500px"></iframe>' +
+				'</textarea><br/><br/>\n' + 
+				warningMsg +
+				'Size: <input id="w'+uid+'" type="text" value="500" style="width:50px"/>px'+
+				' X <input id="h'+uid+'" type="text" value="500" style="width:50px"/>px<br/><br/>\n'+
+				'<iframe id="previewEmbeddedMap'+uid+'" src="' + embeddedUrlStr + '&pullState=true" style="border:none;width:500px;height:500px"></iframe>'
+		});
+		
+		// Add some event listeners on the size input fields
+		windowContent.on('afterrender', function() {
+			// IMPORTANT: Only one element retrieved with fly can be used at the time;
+			//     the element retrieved with fly can not be used after fly is called again.
+			var widthFieldEl = Ext.fly('w' + uid);
+			widthFieldEl.on('change', function() {
+				that._updateValues(uid, fullUrlStr, embeddedUrlStr);
+			});
+
+			var heightFieldEl = Ext.fly('h' + uid);
+			heightFieldEl.on('change', function() {
+				that._updateValues(uid, fullUrlStr, embeddedUrlStr);
+			});
+		});
+
+		var linksWindow = new Ext.Window({
+			title: 'Map URL and Embedded map',
 			layout:'fit',
-			width:600,
-			height:200,
+			modal: true,
+			width: 530,
 			constrainHeader: true,
 			closeAction: 'destroy',
 
-			items: new Ext.Panel({
-				bodyStyle: 'padding: 4px',
-				html: 'Copy / Paste the following code into your <b>HTML page</b> to create an <i>Embedded map</i> similar to this one.<br/>\n' +
-					'<a href="' + urlStr + '" target="_blank">Try it</a><br/><br/>\n' +
-					warningMsg +
-					'<div style="font-family: monospace">' +
-					'&lt;iframe src="' + urlStr + '" style="width:500px;height:500px" /&gt;' +
-					'</div>'
-			}),
+			items: windowContent,
 
 			buttons: [{
 				text: 'Close',
@@ -408,22 +421,10 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 				}
 			}]
 		}).show();
-	},
 
-	_isLayerNeededInUrl: function(jsonLayer) {
-		// Layer group are not added to the URL (but not their layers)
-		if (jsonLayer['dataSourceType'] == 'FOLDER' || jsonLayer['dataSourceType'] == 'GROUP') {
-			return false;
-		}
-
-		// Default layers are not added to the URL
-		for(var i=0; i<Atlas.conf['defaultLayers'].length; i++){
-			if (Atlas.conf['defaultLayers'][i].layerId === jsonLayer['layerId']) {
-				return false;
-			}
-		}
-
-		return true;
+		linksWindow.on('destroy', function() {
+			Atlas.core.mapPanels[0].ol_un('saveStateChange', saveStateChangeFct);
+		});
 	},
 
 	// Override
