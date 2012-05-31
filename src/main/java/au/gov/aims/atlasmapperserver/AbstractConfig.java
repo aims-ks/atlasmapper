@@ -873,14 +873,13 @@ public abstract class AbstractConfig implements Cloneable {
 				value = new JSONArray(valueStr);
 			} catch (Exception e) { cause = e; }
 
-			/*
 			if (value == null) {
 				// The value may contains only one value, returned as a single String without brackets
+				// This happen when ExtJS submit a form with multiple choices (checkboxes) and only one is selected.
 				JSONArray jsonArray = new JSONArray();
 				jsonArray.put(valueStr);
 				value = jsonArray;
 			}
-			*/
 		}
 
 		// If it's still null here, we have a problem.
