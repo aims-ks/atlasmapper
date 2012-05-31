@@ -36,30 +36,32 @@
 <body id="list">
 	${listPageHeader!}
 
-	<table>
-		<tr>
-			<th>Title</th>
-			<th>Description</th>
-			<th>Image URL</th>
-		</tr>
-		<#list layers?keys as dataSourceName>
+	<#if layers??>
+		<table>
 			<tr>
-				<td colspan="3"><h2>$ {dataSourceName}</h2></td>
+				<th>Title</th>
+				<th>Description</th>
+				<th>Image URL</th>
 			</tr>
-
-			<#list layers[dataSourceName] as layer>
+			<#list layers?keys as dataSourceName>
 				<tr>
-					<td class="title">${layer["title"]!"Untitled"}<!-- ${layer["id"]!} --></td>
-					<td class="desc">${layer["description"]!}</td>
-					<td class="preview">
-						<#if layer["imageUrl"]??>
-							<div style="border: 1px solid #000000; width:${layer["imageWidth"]!200}px; height:${layer["imageHeight"]!200}px; background-image:url('${layer["baseLayerUrl"]!}'); background-repeat: no-repeat;"><a href="${layer["mapUrl"]!}" target="_blank"><img alt="${layer["title"]}" src="${layer["imageUrl"]!}" style="border: none" /></a></div>
-						</#if>
-					</td>
+					<td colspan="3"><h2>$ {dataSourceName}</h2></td>
 				</tr>
+
+				<#list layers[dataSourceName] as layer>
+					<tr>
+						<td class="title">${layer["title"]!"Untitled"}<!-- ${layer["id"]!} --></td>
+						<td class="desc">${layer["description"]!}</td>
+						<td class="preview">
+							<#if layer["imageUrl"]??>
+								<div style="border: 1px solid #000000; width:${layer["imageWidth"]!200}px; height:${layer["imageHeight"]!200}px; background-image:url('${layer["baseLayerUrl"]!}'); background-repeat: no-repeat;"><a href="${layer["mapUrl"]!}" target="_blank"><img alt="${layer["title"]}" src="${layer["imageUrl"]!}" style="border: none" /></a></div>
+							</#if>
+						</td>
+					</tr>
+				</#list>
 			</#list>
-		</#list>
-	</table>
+		</table>
+	</#if>
 
 	${listPageFooter!}
 </body>

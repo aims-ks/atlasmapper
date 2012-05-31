@@ -60,22 +60,24 @@
 <body id="list">
 	${listPageHeader!}
 
-	<#list layers?keys as dataSourceName>
-		<h2>${dataSourceName} <span>(${layers[dataSourceName]?size} layers)</span></h2>
+	<#if layers??>
+		<#list layers?keys as dataSourceName>
+			<h2>${dataSourceName} <span>(${layers[dataSourceName]?size} layers)</span></h2>
 
-		<#list layers[dataSourceName] as layer>
-			<div class="layerBlock">
-				<#if layer["imageUrl"]??>
-					<div class="image" style="width:${layer["imageWidth"]!200}px; height:${layer["imageHeight"]!180}px; background-image:url('${layer["baseLayerUrl"]!}');"><a href="${layer["mapUrl"]!}" target="_blank"><img alt="${layer["title"]}" src="${layer["imageUrl"]!}" style="border: none" /></a></div>
-				</#if>
-				<!-- ${layer["id"]!} -->
-				${layer["title"]!"Untitled"}
-			</div>
+			<#list layers[dataSourceName] as layer>
+				<div class="layerBlock">
+					<#if layer["imageUrl"]??>
+						<div class="image" style="width:${layer["imageWidth"]!200}px; height:${layer["imageHeight"]!180}px; background-image:url('${layer["baseLayerUrl"]!}');"><a href="${layer["mapUrl"]!}" target="_blank"><img alt="${layer["title"]}" src="${layer["imageUrl"]!}" style="border: none" /></a></div>
+					</#if>
+					<!-- ${layer["id"]!} -->
+					${layer["title"]!"Untitled"}
+				</div>
+			</#list>
+
+			<!-- Stop the floating -->
+			<div style="clear:both"></div>
 		</#list>
-
-		<!-- Stop the floating -->
-		<div style="clear:both"></div>
-	</#list>
+	</#if>
 
 	${listPageFooter!}
 </body>

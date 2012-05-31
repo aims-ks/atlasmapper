@@ -29,7 +29,7 @@
 	<name>AtlasMapper server and clients</name>
     <description>This application compiled as a single War, that can be deployed in Tomcat, without any other dependency.\n\
 It contains:\n\
-* a GUI to configure the clients (protected by a login, preferably setted up under HTTPS),\n\
+* a GUI to configure the clients (protected by a login, preferably set up under HTTPS),\n\
 * multi-client capability,\n\
 * a proxy that redirect AJAX request to be sent to an other domain (restricted to the hosts used by the Atlas Mapper client, to avoid XSS)</description>
 	<url>http://code.google.com/p/atlasmapper/</url>
