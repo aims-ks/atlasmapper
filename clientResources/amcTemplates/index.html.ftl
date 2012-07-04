@@ -116,6 +116,19 @@
 	<script type="text/javascript" src="GeoExt-ux/GroupLayerLoader.js"></script>
 
 	<script type="text/javascript" src="modules/Core/Core.js"></script>
+	<script type="text/javascript" src="modules/MapPanel/Layer/AbstractLayer.js"></script>
+		<script type="text/javascript" src="modules/MapPanel/Layer/ArcGISMapServer.js"></script>
+			<script type="text/javascript" src="modules/MapPanel/Layer/ArcGISCache.js"></script>
+		<script type="text/javascript" src="modules/MapPanel/Layer/Dummy.js"></script>
+		<script type="text/javascript" src="modules/MapPanel/Layer/Folder.js"></script>
+		<script type="text/javascript" src="modules/MapPanel/Layer/Group.js"></script>
+		<script type="text/javascript" src="modules/MapPanel/Layer/Google.js"></script>
+		<script type="text/javascript" src="modules/MapPanel/Layer/KML.js"></script>
+		<script type="text/javascript" src="modules/MapPanel/Layer/WMS.js"></script>
+			<script type="text/javascript" src="modules/MapPanel/Layer/NCWMS.js"></script>
+			<script type="text/javascript" src="modules/MapPanel/Layer/WMTS.js"></script>
+		<script type="text/javascript" src="modules/MapPanel/Layer/XYZ.js"></script>
+	<script type="text/javascript" src="modules/MapPanel/Layer/LayerHelper.js"></script>
 	<script type="text/javascript" src="modules/MapPanel/AbstractMapPanel.js"></script>
 	<script type="text/javascript" src="modules/MapPanel/GeoExtMapPanel.js"></script>
 	<script type="text/javascript" src="modules/MapPanel/MultiWMSGetFeatureInfo.js"></script>

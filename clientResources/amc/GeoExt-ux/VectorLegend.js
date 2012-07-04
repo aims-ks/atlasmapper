@@ -40,7 +40,7 @@ GeoExt.ux.VectorLegend = Ext.extend(GeoExt.VectorLegend, {
 				render: function(evt) {
 					deleteButon.getEl().on('click', function(evt) {
 						var layer = that.layerRecord.getLayer();
-						layer.setHideInLegend(true);
+						layer.atlasLayer.setHideInLegend(true);
 					});
 				}
 			}
@@ -54,8 +54,8 @@ GeoExt.ux.VectorLegend = Ext.extend(GeoExt.VectorLegend, {
 	 */
 	getLayerTitle: function(record) {
 		var layer = record.getLayer();
-		if (layer && layer.json && layer.json['legendTitle']) {
-			return layer.json['legendTitle'];
+		if (layer && layer.atlasLayer && layer.atlasLayer.json && layer.atlasLayer.json['legendTitle']) {
+			return layer.atlasLayer.json['legendTitle'];
 		}
 
 		return GeoExt.ux.VectorLegend.superclass.getLayerTitle.apply(this, arguments);
@@ -65,7 +65,7 @@ GeoExt.ux.VectorLegend = Ext.extend(GeoExt.VectorLegend, {
 	 * Override GeoExt.LayerLegend.onStoreUpdate
 	 * Manage 'Show in legend' checkbox event.
 	 *
-	 * Add the method layer.getHideInLegend() in the setVisibility call.
+	 * Add a call to the method layer.atlasLayer.getHideInLegend() in the setVisibility call.
 	 * It would be nicer to set the hideInLegend attribute
 	 * of the record, but it's too difficult to access this variable
 	 * everywhere in the application.
@@ -79,7 +79,7 @@ GeoExt.ux.VectorLegend = Ext.extend(GeoExt.VectorLegend, {
 			var layer = record.getLayer();
 			this.setVisible(layer.getVisibility() &&
 				layer.calculateInRange() && layer.displayInLayerSwitcher &&
-				!record.get('hideInLegend') && !layer.getHideInLegend());
+				!record.get('hideInLegend') && !layer.atlasLayer.getHideInLegend());
 			this.update();
 		}
 	},
@@ -105,9 +105,9 @@ GeoExt.ux.VectorLegend = Ext.extend(GeoExt.VectorLegend, {
 		var hasLegendImage = false;
 
 		var layer = this.layerRecord.getLayer();
-		if (layer && layer.json) {
-			var layerId = layer.json['layerId'];
-			var legendUrl = this.getLegendUrl(layer.json);
+		if (layer && layer.atlasLayer && layer.atlasLayer.json) {
+			var layerId = layer.atlasLayer.json['layerId'];
+			var legendUrl = this.getLegendUrl(layer.atlasLayer.json);
 			if (legendUrl) {
 				hasLegendImage = true;
 				if(!this.items || !this.getComponent(layerId)) {

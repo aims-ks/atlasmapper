@@ -54,7 +54,7 @@
 						<td class="desc">${layer["description"]!}</td>
 						<td class="preview">
 							<#if layer["imageUrl"]??>
-								<div style="border: 1px solid #000000; width:${layer["imageWidth"]!200}px; height:${layer["imageHeight"]!200}px; background-image:url('${layer["baseLayerUrl"]!}'); background-repeat: no-repeat;"><a href="${layer["mapUrl"]!}" target="_blank"><img alt="${layer["title"]}" src="${layer["imageUrl"]!}" style="border: none" /></a></div>
+								<div style="border: 1px solid #000000; width:${layer["imageWidth"]!200}px; height:${layer["imageHeight"]!180}px; background-image:url('${layer["baseLayerUrl"]!}'); background-repeat: no-repeat;"><a href="${layer["mapUrl"]!}" target="_blank"><img alt="${layer["title"]}" src="${layer["imageUrl"]!}" style="border: none" /></a></div>
 							</#if>
 						</td>
 					</tr>

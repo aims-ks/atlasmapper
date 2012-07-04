@@ -119,8 +119,8 @@ Ext.ux.tree.LayerTreeLoader = Ext.extend(Ext.tree.TreeLoader, {
 		if (this.layerStore) {
 			this.layerStore.each(function(record) {
 				var layer = record.getLayer();
-				if (layer && layer.json) {
-					layersJSon.push(layer.json);
+				if (layer && layer.atlasLayer && layer.atlasLayer.json) {
+					layersJSon.push(layer.atlasLayer.json);
 				}
 			});
 		}

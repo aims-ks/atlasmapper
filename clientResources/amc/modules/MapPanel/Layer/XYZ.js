@@ -1,7 +1,7 @@
 /*
  *  This file is part of AtlasMapper server and clients.
  *
- *  Copyright (C) 2011 Australian Institute of Marine Science
+ *  Copyright (C) 2012 Australian Institute of Marine Science
  *
  *  Contact: Gael Lafond <g.lafond@aims.org.au>
  *
@@ -19,29 +19,22 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-Ext.namespace("GeoExt.ux");
+// Namespace declaration (equivalent to Ext.namespace("Atlas.Layer");)
+window["Atlas"] = window["Atlas"] || {};
+window["Atlas"]["Layer"] = window["Atlas"]["Layer"] || {};
 
-// TODO Make a method similar to setHideInLegend, to hide the legend without touching the "Hide in legend" checkbox.
-// widgets/LegendImage.js
-GeoExt.ux.LegendImage = Ext.extend(GeoExt.LegendImage, {
+Atlas.Layer.XYZ = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
+	/**
+	 * Constructor: Atlas.Layer.XYZ
+	 *
+	 * Parameters:
+	 * jsonLayer - {Object} Hashtable of layer attributes
+	 * mapPanel - {Object} Instance of the MapPanel in which the layer is used
+	 */
+	initialize: function(mapPanel, jsonLayer) {
+		Atlas.Layer.AbstractLayer.prototype.initialize.apply(this, arguments);
 
-	layer: null,
-
-	// Override
-	setUrl: function(url) {
-		//this.layer.atlasLayer.setLegendError(false);
-		GeoExt.ux.LegendImage.superclass.setUrl.call(this, url);
-	},
-
-	// Override
-	onImageLoadError: function() {
-		if (this.layer != null) {
-			//this.layer.atlasLayer.setLegendError(true);
-			//this.layer.atlasLayer.setHideInLegend(true);
-		}
-		this.getEl().dom.src = this.defaultImgSrc;
+		alert('Layer type XYZ is not yet implemented.');
+		this.layer = null;
 	}
 });
-
-/** api: xtype = gx_ux_legendimage */
-Ext.reg('gx_ux_legendimage', GeoExt.ux.LegendImage);

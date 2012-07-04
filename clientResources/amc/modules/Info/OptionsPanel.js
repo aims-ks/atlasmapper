@@ -72,16 +72,16 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 		this.legendCheckbox = new Ext.form.Checkbox({
 			fieldLabel: 'Show in legend',
 			handler: function(checkbox, checked) {
-				if (that.currentNode && that.currentNode.layer && typeof(that.currentNode.layer.setHideInLegend) === 'function') {
-					that.currentNode.layer.setHideInLegend(!checked);
+				if (that.currentNode && that.currentNode.layer && that.currentNode.layer.atlasLayer && typeof(that.currentNode.layer.atlasLayer.setHideInLegend) === 'function') {
+					that.currentNode.layer.atlasLayer.setHideInLegend(!checked);
 				}
 			},
 			checked: true,
 			hidden: true
 		});
 
-		// Update the checkbox status when the function layer.setHideInLegend is called
-		// NOTE: layer.setHideInLegend is defined in MapPanel
+		// Update the checkbox status when the function layer.atlasLayer.setHideInLegend is called
+		// NOTE: layer.atlasLayer.setHideInLegend is defined in Layer.AbstractLayer
 		this.mapPanel.ol_on('legendVisibilityChange', function(evt) {
 			if (that.currentNode && that.currentNode.layer && evt.layer == that.currentNode.layer) {
 				that.legendCheckbox.setValue(!that.currentNode.layer.hideInLegend);
@@ -96,7 +96,9 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 			// This option do not works with group layers
 			//changeVisibility: true,
 			value: 0,
-			plugins: new GeoExt.LayerOpacitySliderTip({template: '<div>{opacity}%</div>'})
+			plugins: new GeoExt.LayerOpacitySliderTip({template: '<div>{opacity}%</div>'}),
+			// Fix the bug of the thumb on top of other elements. WARNING: topThumbZIndex is not in the API.
+			topThumbZIndex: 'auto'
 		});
 
 		this.optionsFieldSet = new Ext.form.FieldSet({
@@ -120,11 +122,15 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 		// newParams: Map of key value pairs
 		// private
 		this.changeLayerParams = function(layer, newParams) {
+			if (layer == null || layer.atlasLayer == null) {
+				return;
+			}
+
 			// Change the URL of the layer to use the appropriate server
 			// NOTE: setUrl must be called before mergeNewParams (mergeNewParams reload the tiles, setUrl don't; when called in wrong order, tiles are requested against the wrong server)
 			var needReload = false;
 
-			var newUrl = that.mapPanel.getWMSServiceUrl(layer.json, that._mergeParams(layer.params, newParams));
+			var newUrl = layer.atlasLayer.getServiceUrl(that._mergeParams(layer.params, newParams));
 			if (newUrl != layer.url) {
 				layer.setUrl(newUrl);
 				needReload = true;
@@ -285,25 +291,23 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 
 		this.currentNode = node;
 
-		this.mapPanel
-
 		if (layer) {
-			if (this.mapPanel.layerCanBeLocated(layer)) {
+			if (layer.atlasLayer && typeof(layer.atlasLayer.canBeLocated) === 'function' && layer.atlasLayer.canBeLocated()) {
 				this.locateButton.enable();
 			} else {
 				this.locateButton.disable();
 			}
 
-			if (layer.json) {
-				this.layernameLabel.setText(layer.json['title'], false);
+			if (layer.atlasLayer && layer.atlasLayer.json) {
+				this.layernameLabel.setText(layer.atlasLayer.getTitle(), false);
 
 				// Set extra options for the selected layer
 
 				// Styles dropdown
-				if (layer.json['styles']) {
+				if (layer.atlasLayer.json['styles']) {
 					var styleOptionName = 'STYLES';
 					var styleOptions = [];
-					Ext.iterate(layer.json['styles'], function(styleName, jsonStyle) {
+					Ext.iterate(layer.atlasLayer.json['styles'], function(styleName, jsonStyle) {
 						// BUG: Duplicate names can not be select with the ExtJS select option.
 						// Temporary(?) solution: Add a sequential number in front of it.
 						var styleTitle = (jsonStyle['title'] ? jsonStyle['title'] : styleName);
@@ -367,12 +371,12 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 				}
 
 				// Set ncWMS options
-				if (layer.json['dataSourceType'] == 'NCWMS') {
-					var serviceUrl = layer.json['wmsServiceUrl'];
+				if (layer.atlasLayer.json['dataSourceType'] == 'NCWMS') {
+					var serviceUrl = layer.atlasLayer.json['wmsServiceUrl'];
 
 					var url = serviceUrl + '?' + Ext.urlEncode({
 						item: 'layerDetails',
-						layerName: layer.json['layerName'],
+						layerName: layer.atlasLayer.json['layerName'],
 						request: 'GetMetadata'
 					});
 
@@ -399,8 +403,8 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 				}
 
 				// User defined in the Manual layer override
-				if (layer.json['layerOptions']) {
-					Ext.each(layer.json['layerOptions'], function(option) {
+				if (layer.atlasLayer.json['layerOptions']) {
+					Ext.each(layer.atlasLayer.json['layerOptions'], function(option) {
 						var inputObj = null;
 
 						var inputConfig = {
@@ -446,9 +450,9 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 					}, this);
 				}
 
-				if (layer.json['hasLegend'] && typeof(layer.getHideInLegend) === 'function' && typeof(layer.setHideInLegend) === 'function') {
+				if (layer.atlasLayer.json['hasLegend'] && layer.atlasLayer && typeof(layer.atlasLayer.getHideInLegend) === 'function') {
 					if (this.isRendered(layer)) {
-						this.legendCheckbox.setValue(!layer.getHideInLegend());
+						this.legendCheckbox.setValue(!layer.atlasLayer.getHideInLegend());
 					}
 					hasLegendEnabled = true;
 				}
@@ -739,7 +743,7 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 	},
 
 	isRendered: function(layer) {
-		return (typeof(layer.id) === 'undefined' ? false : true);
+		return (typeof(layer.id) !== 'undefined');
 	}
 });
 

@@ -116,6 +116,7 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 		node.on("beforemove", this.onBeforeMove, this);
 		node.on("move", this.onChildMove, this);
 		node.on("checkchange", this.onCheckChange, this);
+		node.on("beforechildrenrendered", this.onBeforeChildrenRendered, this);
 
 		if (typeof(node.layer) != 'undefined' && node.layer != null) {
 			if (node.layer.visibility) {
@@ -139,7 +140,7 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 				scope: this
 			});
 
-			if (typeof(node.layer._groupLayer) != 'undefined' && node.layer._groupLayer != null) {
+			if (node.layer != null && node.layer.atlasLayer != null && node.layer.atlasLayer.isGroupOrFolder()) {
 				node.on("checkchange", this.onFolderCheckChange, this);
 			}
 		}
@@ -149,13 +150,14 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 		node.un("beforemove", this.onBeforeMove, this);
 		node.un("move", this.onChildMove, this);
 		node.un("checkchange", this.onCheckChange, this);
+		node.un("beforechildrenrendered", this.onBeforeChildrenRendered, this);
 
 		if (typeof(node.layer) != 'undefined' && node.layer != null) {
 			node.layer.events.remove('removed');
 			node.layer.events.remove('loadstart');
 			node.layer.events.remove('loadend');
 			node.layer.events.remove('loadcancel');
-			if (typeof(node.layer._groupLayer) != 'undefined' && node.layer._groupLayer != null) {
+			if (node.layer != null && node.layer.atlasLayer != null && node.layer.atlasLayer.isGroupOrFolder()) {
 				node.un("checkchange", this.onFolderCheckChange, this);
 			}
 		}
@@ -184,7 +186,10 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 	},
 
 	onLayerLoadStart: function(node) {
-		if (node && node.ui && this._supportLoadEvents(node)) {
+		// TODO Set in AbstractLayer
+		node.layer.atlasLayer.loaded = false;
+
+		if (node && node.ui && node.layer.atlasLayer.isLoading()) {
 			node.ui.addClass('layerLoading');
 			// Just in case it generate an error last time
 			node.ui.removeClass('layerError');
@@ -192,7 +197,10 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 	},
 
 	onLayerLoadEnd: function(node) {
-		if (node && node.ui && this._supportLoadEvents(node)) {
+		// TODO Set in AbstractLayer
+		node.layer.atlasLayer.loaded = true;
+
+		if (node && node.ui && !node.layer.atlasLayer.isLoading()) {
 			node.ui.removeClass('layerLoading');
 			// Just in case it generate an error last time
 			node.ui.removeClass('layerError');
@@ -200,7 +208,10 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 	},
 
 	onLayerLoadCancel: function(node) {
-		if (node && node.ui && this._supportLoadEvents(node)) {
+		// TODO Set in AbstractLayer
+		node.layer.atlasLayer.loaded = true;
+
+		if (node && node.ui && !node.layer.atlasLayer.isLoading()) {
 			this.onLayerLoadEnd(node);
 			node.ui.addClass('layerError');
 		}
@@ -210,11 +221,8 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 	 * Google do not support the loading feature...
 	 */
 	_supportLoadEvents: function(node) {
-		if (node && node.layer && node.layer.json) {
-			var type = node.layer.json['dataSourceType'];
-			if (type != 'FOLDER' && type != 'GROUP' && type != 'GOOGLE') {
-				return true;
-			}
+		if (node && node.layer && node.layer.atlasLayer) {
+			return node.layer.atlasLayer.supportLoadEvents;
 		}
 		return false;
 	},
@@ -227,16 +235,36 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 		}
 	},
 
+	onBeforeChildrenRendered: function(parentNode) {
+		// Fire just after rendered
+		Ext.defer(function() {
+			this.onAfterChildrenRendered(parentNode);
+		}, 1, this);
+	},
+
+	onAfterChildrenRendered: function(parentNode) {
+		parentNode.eachChild(function(node) {
+			if (node.getUI()) {
+				if (node.layer.atlasLayer.isLoading()) {
+					this.onLayerLoadStart(node);
+				} else {
+					this.onLayerLoadEnd(node);
+				}
+			}
+		}, this);
+	},
+
 	/**
 	 * Add group layers to all folders so they stay in the tree when
 	 * they are empty.
 	 */
 	_beforeAddLayer: function(event) {
 		var newLayer = event.layer;
-		if (newLayer && newLayer.path && newLayer.path.length > 0 && !newLayer._groupLayer) {
+		if (newLayer && newLayer.path && newLayer.path.length > 0 && !newLayer.atlasLayer.isGroupOrFolder()) {
 			var groupLayer = null;
 			var parentGroup = null;
 			for (var i=0; i<newLayer.path.length; i++) {
+				parentGroup = groupLayer;
 				var groupPathConf = newLayer.path[i];
 				if (typeof(groupPathConf) == 'string') {
 					groupPathConf = {
@@ -266,7 +294,12 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 						disabled = true;
 					}
 
-					groupLayer = this.createLayerGroup(newLayer.path.slice(0,i), groupPathConf);
+					var groupAtlasLayer = this.createAtlasLayerGroup(
+							newLayer.atlasLayer.mapPanel,
+							groupPathConf,
+							newLayer.path.slice(0,i));
+
+					groupLayer = groupAtlasLayer.layer;
 
 					groupLayer._state = {
 						disabled: disabled,
@@ -276,7 +309,6 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 
 					this.store.map.addLayer(groupLayer);
 				}
-				parentGroup = groupLayer;
 			}
 
 			// Layer initial state
@@ -290,7 +322,28 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 		}
 	},
 
-	createLayerGroup: function(path, config) {
+	// TODO Implement properly
+	createAtlasLayerGroup: function(mapPanel, config, path) {
+		var layerJSon = config;
+		layerJSon['path'] = path;
+		layerJSon['layers'] = [];
+		layerJSon['olOptions'] = layerJSon['olOptions'] || {};
+		layerJSon['olOptions']['path'] = path;
+
+		var atlasLayerGroup = Atlas.Layer.LayerHelper.createLayer(mapPanel, layerJSon);
+		atlasLayerGroup.layer = new OpenLayers.Layer(config['title'], layerJSon.olOptions);
+
+		atlasLayerGroup.layer.id = config['id'];
+		atlasLayerGroup.layer.atlasLayer = atlasLayerGroup;
+		atlasLayerGroup.layer.atlasLayer.json = layerJSon;
+
+		return atlasLayerGroup;
+	},
+
+/*
+	createLayerGroup: function(childLayer, config) {
+		var path = childLayer.path.slice(0,i)
+
 		var options = {
 			_groupLayer: true,
 			path: path
@@ -300,14 +353,17 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 			options = this._applyOlOverrides(options, config['olOptions']);
 		}
 
+		// TODO Create a Atlas.Layer.Group instead
 		var groupLayer = new OpenLayers.Layer(config['title'], options);
 
 		// Those attributes have to be set after initialisation.
 		groupLayer.id = config['id'];
-		groupLayer.json = config;
+		groupLayer.atlasLayer = {};
+		groupLayer.atlasLayer.json = config;
 
 		return groupLayer;
 	},
+
 	_applyOlOverrides: function(config, overrides) {
 		if (overrides == null) {
 			return config;
@@ -319,19 +375,21 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 		}
 		return config;
 	},
+*/
 
 	addLayerNode: function(node, layerRecord, index) {
 		index = index || 0;
 
 		if (this.filter(layerRecord) === true) {
 			var layer = layerRecord.getLayer();
+			var atlasLayer = layer.atlasLayer;
 
 			var childLayerNodeConfig = {
 				nodeType: 'gx_layer',
 				layer: layer,
 				layerStore: this.store
 			};
-			if (layer._groupLayer) {
+			if (atlasLayer.isGroupOrFolder()) {
 				childLayerNodeConfig.cls = 'layerGroup';
 				childLayerNodeConfig.loader = new GeoExt.ux.tree.GroupLoader();
 			}
@@ -350,6 +408,7 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 			}
 
 			var childLayerNode = this.createNode(childLayerNodeConfig);
+			this._registerEvents(childLayerNode);
 
 			if (layer.path == null) {
 				this._insertInOrder(node, childLayerNode, index);
@@ -378,10 +437,6 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 					this._insertInOrder(folder, childLayerNode, index);
 				}
 			}
-
-			var that = this;
-
-			this._registerEvents(childLayerNode);
 		}
 	},
 
@@ -425,7 +480,7 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 
 			if (node.hasChildNodes() && checked) {
 				node.eachChild(this._enableNode, this);
-			} else if (node.layer != null && !node.layer._groupLayer) {
+			} else if (node.layer != null && node.layer.atlasLayer != null && !node.layer.atlasLayer.isGroupOrFolder()) {
 				node.layer.setVisibility(node.layer._state && node.layer._state.visible);
 			}
 		}
@@ -443,7 +498,7 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 			node.disable();
 			if (node.hasChildNodes()) {
 				node.eachChild(this._disableNode, this);
-			} else if (node.layer != null && !node.layer._groupLayer) {
+			} else if (node.layer != null && node.layer.atlasLayer != null && !node.layer.atlasLayer.isGroupOrFolder()) {
 				node.layer._state.visible = node.layer.getVisibility();
 				node.layer.setVisibility(false);
 			}
@@ -797,8 +852,8 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 					newPath = [];
 				}
 				var pathPart = null;
-				if (newParent.layer && newParent.layer.json) {
-					pathPart = newParent.layer.json
+				if (newParent.layer && newParent.layer.atlasLayer && newParent.layer.atlasLayer.json) {
+					pathPart = newParent.layer.atlasLayer.json
 				} else {
 					pathPart = {
 						id: newParent.layer ? newParent.layer.id : newParent.text,

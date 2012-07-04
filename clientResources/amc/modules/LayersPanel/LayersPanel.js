@@ -461,9 +461,10 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 					var node = (that._layersListPanel && that._layersListPanel.getSelectionModel() ? that._layersListPanel.getSelectionModel().getSelectedNode() : null);
 					if (node) {
 						var layer = node.layer;
+						var atlasLayer = layer.atlasLayer;
 						if (layer) {
 							// Special message for Group Layers
-							if (layer._groupLayer) {
+							if (atlasLayer.isGroup()) {
 								var nbLayers = that._countRealLayers(node);
 								var msg = 'Are you sure you want to remove the ';
 								if (nbLayers > 1) {
@@ -546,7 +547,7 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 				count += this._countRealLayers(child);
 			}, this);
 		}
-		if (node.layer && !node.layer._groupLayer) {
+		if (node.layer && !node.layer.atlasLayer.isGroup()) {
 			count += 1;
 		}
 		return count;

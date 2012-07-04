@@ -37,9 +37,16 @@ Ext.ux.tree.LayerNode = Ext.extend(Ext.tree.AsyncTreeNode, {
 	constructor: function(attributes) {
 		Ext.ux.tree.LayerNode.superclass.constructor.call(this, attributes);
 		this.layerId = attributes.layerId;
-		this.layer = {
-			json: attributes
+
+		var jsonLayer = {
+			'dataSourceType': 'DUMMY',
+			'title': attributes.text,
+			'layerId': attributes.layerId
 		};
+		var atlasLayer = Atlas.Layer.LayerHelper.createLayer(null, jsonLayer);
+		if (atlasLayer) {
+			this.layer = atlasLayer.layer;
+		}
 	},
 
 	getLoader: function() {
@@ -71,9 +78,16 @@ Ext.ux.tree.LayerLeaf = Ext.extend(Ext.tree.TreeNode, {
 	constructor: function(attributes) {
 		Ext.ux.tree.LayerLeaf.superclass.constructor.call(this, attributes);
 		this.layerId = attributes.layerId;
-		this.layer = {
-			json: attributes
+
+		var jsonLayer = {
+			'dataSourceType': 'DUMMY',
+			'title': attributes.text,
+			'layerId': attributes.layerId
 		};
+		var atlasLayer = Atlas.Layer.LayerHelper.createLayer(null, jsonLayer);
+		if (atlasLayer) {
+			this.layer = atlasLayer.layer;
+		}
 	},
 
 	getLoader : function(){

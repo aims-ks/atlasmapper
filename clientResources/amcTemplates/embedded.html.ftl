@@ -45,161 +45,174 @@
 </head>
 
 <body id="embeddedClient">
-<div id="loading"></div>
+	<div id="loading"></div>
 
-<div id="goToMap"></div>
+	<div id="goToMap"></div>
 
-<noscript>
-	<p>
-		You need to have JavaScript enabled to use the Map.
-	</p>
-</noscript>
-<script type="text/javascript">
-	var loadingObj = document.getElementById('loading');
-	loadingObj.style.display = 'block';
-</script>
+	<noscript>
+		<p>
+			You need to have JavaScript enabled to use the Map.
+		</p>
+	</noscript>
+	<script type="text/javascript">
+		var loadingObj = document.getElementById('loading');
+		loadingObj.style.display = 'block';
+	</script>
 
-<!-- IE 9+ conditional comment - this will only be executed by IE 9 and above. -->
-<!--[if gte IE 9]>
-<script type="text/javascript">
-	var ie9plus = true;
-</script>
-<![endif]-->
+	<!-- IE 9+ conditional comment - this will only be executed by IE 9 and above. -->
+	<!--[if gte IE 9]>
+	<script type="text/javascript">
+		var ie9plus = true;
+	</script>
+	<![endif]-->
 
-<script type="text/javascript" src="OpenLayers/OpenLayers-2.11/OpenLayers.js"></script>
-<script type="text/javascript" src="OpenLayers-ux/NCWMS.js"></script>
-<script type="text/javascript" src="OpenLayers-ux/NCTimeSeriesClickControl.js"></script>
-<script type="text/javascript" src="OpenLayers-ux/NCTransectDrawControl.js"></script>
+	<script type="text/javascript" src="OpenLayers/OpenLayers-2.11/OpenLayers.js"></script>
+	<script type="text/javascript" src="OpenLayers-ux/NCWMS.js"></script>
+	<script type="text/javascript" src="OpenLayers-ux/NCTimeSeriesClickControl.js"></script>
+	<script type="text/javascript" src="OpenLayers-ux/NCTransectDrawControl.js"></script>
 
-<!-- OpenLayers support for Google layer, in version <= 2.11, has to be patched to support V > 3.6
-		   (since google do not support V <= 3.6 anymore)
-	   Bug: http://trac.osgeo.org/openlayers/ticket/3614
-	   Patch: https://github.com/openlayers/openlayers/commit/92f04a7a4277a6c818ef2d40a2856910ed72d3d6
-	   Date: 18-05-2012
-   -->
-<script type="text/javascript" src="OpenLayers-ux/Google-v3.js"></script>
+	<!-- OpenLayers support for Google layer, in version <= 2.11, has to be patched to support V > 3.6
+			   (since google do not support V <= 3.6 anymore)
+		   Bug: http://trac.osgeo.org/openlayers/ticket/3614
+		   Patch: https://github.com/openlayers/openlayers/commit/92f04a7a4277a6c818ef2d40a2856910ed72d3d6
+		   Date: 18-05-2012
+	   -->
+	<script type="text/javascript" src="OpenLayers-ux/Google-v3.js"></script>
 
-<#if (useGoogle)>
-<!-- If the client use any Google Layers -->
-<script type="text/javascript" src="http://maps.google.com/maps/api/js?v=3.7&amp;sensor=false"></script>
-</#if>
+	<#if (useGoogle)>
+	<!-- If the client use any Google Layers -->
+	<script type="text/javascript" src="http://maps.google.com/maps/api/js?v=3.7&amp;sensor=false"></script>
+	</#if>
 
-<script type="text/javascript" src="extjs/3.3.0/ext-3.3.0/adapter/ext/ext-base.js"></script>
-<script type="text/javascript" src="extjs/3.3.0/ext-3.3.0/ext-all.js"></script>
-<!-- The un-minimized version (in folder lib) do not works with FF4 (it's components are loaded async) -->
-<!--<script type="text/javascript" src="GeoExt/lib/GeoExt.js"></script> -->
-<script type="text/javascript" src="GeoExt/script/GeoExt.js"></script>
+	<script type="text/javascript" src="extjs/3.3.0/ext-3.3.0/adapter/ext/ext-base.js"></script>
+	<script type="text/javascript" src="extjs/3.3.0/ext-3.3.0/ext-all.js"></script>
+	<!-- The un-minimized version (in folder lib) do not works with FF4 (it's components are loaded async) -->
+	<!--<script type="text/javascript" src="GeoExt/lib/GeoExt.js"></script> -->
+	<script type="text/javascript" src="GeoExt/script/GeoExt.js"></script>
 
-<!-- Personal addition to GeoExt -->
-<script type="text/javascript" src="Ext-ux/CompositeFieldAnchor.js"></script>
-<script type="text/javascript" src="Ext-ux/IFramePanel.js"></script>
-<script type="text/javascript" src="Ext-ux/LayerTreeLoader.js"></script>
-<script type="text/javascript" src="Ext-ux/LayerNode.js"></script>
-<script type="text/javascript" src="Ext-ux/MinMaxField.js"></script>
-<script type="text/javascript" src="Ext-ux/DateField.js"></script>
-<script type="text/javascript" src="Ext-ux/NCDatetimeField.js"></script>
-<script type="text/javascript" src="Ext-ux/NCPlotPanel.js"></script>
+	<!-- Personal addition to GeoExt -->
+	<script type="text/javascript" src="Ext-ux/CompositeFieldAnchor.js"></script>
+	<script type="text/javascript" src="Ext-ux/IFramePanel.js"></script>
+	<script type="text/javascript" src="Ext-ux/LayerTreeLoader.js"></script>
+	<script type="text/javascript" src="Ext-ux/LayerNode.js"></script>
+	<script type="text/javascript" src="Ext-ux/MinMaxField.js"></script>
+	<script type="text/javascript" src="Ext-ux/DateField.js"></script>
+	<script type="text/javascript" src="Ext-ux/NCDatetimeField.js"></script>
+	<script type="text/javascript" src="Ext-ux/NCPlotPanel.js"></script>
 
-<script type="text/javascript" src="GeoExt-ux/LayerLegend.js"></script>
-<script type="text/javascript" src="GeoExt-ux/WMSLegend.js"></script>
-<script type="text/javascript" src="GeoExt-ux/NCWMSLegend.js"></script>
-<script type="text/javascript" src="GeoExt-ux/VectorLegend.js"></script>
-<script type="text/javascript" src="GeoExt-ux/LegendImage.js"></script>
-<script type="text/javascript" src="GeoExt-ux/LegendGroup.js"></script>
-<script type="text/javascript" src="GeoExt-ux/GroupLayerOpacitySlider.js"></script>
-<script type="text/javascript" src="GeoExt-ux/GroupLayerLoader.js"></script>
+	<script type="text/javascript" src="GeoExt-ux/LayerLegend.js"></script>
+	<script type="text/javascript" src="GeoExt-ux/WMSLegend.js"></script>
+	<script type="text/javascript" src="GeoExt-ux/NCWMSLegend.js"></script>
+	<script type="text/javascript" src="GeoExt-ux/VectorLegend.js"></script>
+	<script type="text/javascript" src="GeoExt-ux/LegendImage.js"></script>
+	<script type="text/javascript" src="GeoExt-ux/LegendGroup.js"></script>
+	<script type="text/javascript" src="GeoExt-ux/GroupLayerOpacitySlider.js"></script>
+	<script type="text/javascript" src="GeoExt-ux/GroupLayerLoader.js"></script>
 
-<script type="text/javascript" src="modules/Core/Core.js"></script>
-<script type="text/javascript" src="modules/MapPanel/AbstractMapPanel.js"></script>
-<script type="text/javascript" src="modules/MapPanel/EmbeddedMapPanel.js"></script>
-<script type="text/javascript" src="modules/MapPanel/MultiWMSGetFeatureInfo.js"></script>
-<script type="text/javascript" src="modules/Legend/Legend.js"></script>
-<script type="text/javascript" src="modules/Legend/LegendPanel.js"></script>
-<script type="text/javascript" src="modules/LayersPanel/LayersPanel.js"></script>
-<script type="text/javascript" src="modules/LayersPanel/AddLayersWindow.js"></script>
-<script type="text/javascript" src="modules/Trees/Trees.js"></script>
-<script type="text/javascript" src="modules/Info/Info.js"></script>
-<script type="text/javascript" src="modules/Info/OptionsPanel.js"></script>
+	<script type="text/javascript" src="modules/Core/Core.js"></script>
+	<script type="text/javascript" src="modules/MapPanel/Layer/AbstractLayer.js"></script>
+		<script type="text/javascript" src="modules/MapPanel/Layer/ArcGISMapServer.js"></script>
+			<script type="text/javascript" src="modules/MapPanel/Layer/ArcGISCache.js"></script>
+		<script type="text/javascript" src="modules/MapPanel/Layer/Dummy.js"></script>
+		<script type="text/javascript" src="modules/MapPanel/Layer/Folder.js"></script>
+		<script type="text/javascript" src="modules/MapPanel/Layer/Group.js"></script>
+		<script type="text/javascript" src="modules/MapPanel/Layer/Google.js"></script>
+		<script type="text/javascript" src="modules/MapPanel/Layer/KML.js"></script>
+		<script type="text/javascript" src="modules/MapPanel/Layer/WMS.js"></script>
+			<script type="text/javascript" src="modules/MapPanel/Layer/NCWMS.js"></script>
+			<script type="text/javascript" src="modules/MapPanel/Layer/WMTS.js"></script>
+		<script type="text/javascript" src="modules/MapPanel/Layer/XYZ.js"></script>
+	<script type="text/javascript" src="modules/MapPanel/Layer/LayerHelper.js"></script>
+	<script type="text/javascript" src="modules/MapPanel/AbstractMapPanel.js"></script>
+	<script type="text/javascript" src="modules/MapPanel/EmbeddedMapPanel.js"></script>
+	<script type="text/javascript" src="modules/MapPanel/MultiWMSGetFeatureInfo.js"></script>
+	<script type="text/javascript" src="modules/Legend/Legend.js"></script>
+	<script type="text/javascript" src="modules/Legend/LegendPanel.js"></script>
+	<script type="text/javascript" src="modules/LayersPanel/LayersPanel.js"></script>
+	<script type="text/javascript" src="modules/LayersPanel/AddLayersWindow.js"></script>
+	<script type="text/javascript" src="modules/Trees/Trees.js"></script>
+	<script type="text/javascript" src="modules/Info/Info.js"></script>
+	<script type="text/javascript" src="modules/Info/OptionsPanel.js"></script>
 
-<script type="text/javascript">
+	<script type="text/javascript">
 
-	var parameters = OpenLayers.Util.getParameters();
+		var parameters = OpenLayers.Util.getParameters();
 
-	// Multi-maps
-	var nbMaps = 1;
-	if (parameters.maps) {
-		nbMaps = parseInt(parameters.maps);
-	}
-	if (nbMaps < 1) { nbMaps = 1; }
-	if (nbMaps > 4) { nbMaps = 4; }
+		// Multi-maps
+		var nbMaps = 1;
+		if (parameters.maps) {
+			nbMaps = parseInt(parameters.maps);
+		}
+		if (nbMaps < 1) { nbMaps = 1; }
+		if (nbMaps > 4) { nbMaps = 4; }
 
-	var legend = false;
-	if (parameters.leg) {
-		legend = (parameters.leg.toLowerCase() === 'true');
-	}
+		var legend = false;
+		if (parameters.leg) {
+			legend = (parameters.leg.toLowerCase() === 'true');
+		}
 
-	Ext.onReady(function() {
-		new Ext.Button({
-			renderTo : "goToMap",
-			scale: 'medium',
-			iconCls: 'goToMapIcon',
-			tooltip: 'View larger map',
-			handler: function(button, evt) {
-				var url = "index.html";
-				var rawParameters = window.location.search;
-				if (rawParameters == null || rawParameters.length == 0) {
-					rawParameters = '?'
-				} else {
-					rawParameters += '&'
-				}
-				rawParameters += 'intro=false'
-
-				window.open(url + rawParameters);
-			}
-		});
-
-		Atlas.core = new Atlas.Core("config/${mainConfig}", "config/${layersConfig}", "${timestamp}");
-		Atlas.core.afterLoad = function() {
-			document.getElementById('loading').style.display = 'none';
-
-			mapLayoutItems = [];
-			for (var i=0; i<nbMaps; i++) {
-				var mapPanel = Atlas.core.createNewMapPanel();
-				if (legend) {
-					new Atlas.Legend({mapPanel: mapPanel});
-				}
-
-				mapLayoutItems.push(
-						{
-							flex: 1,
-							layout: "border",
-							deferredRender: false,
-							items: [mapPanel]
-						}
-				);
-			}
-
-			new Ext.Viewport({
-				layout: "border",
-				hideBorders: true,
-				items: [
-					{
-						region: 'center',
-						layout: "hbox",
-						layoutConfig: {
-							align : 'stretch',
-							pack  : 'start'
-						},
-						hideBorders: true,
-						items: mapLayoutItems
+		Ext.onReady(function() {
+			new Ext.Button({
+				renderTo : "goToMap",
+				scale: 'medium',
+				iconCls: 'goToMapIcon',
+				tooltip: 'View larger map',
+				handler: function(button, evt) {
+					var url = "index.html";
+					var rawParameters = window.location.search;
+					if (rawParameters == null || rawParameters.length == 0) {
+						rawParameters = '?'
+					} else {
+						rawParameters += '&'
 					}
-				]
-			});
-		};
+					rawParameters += 'intro=false'
 
-		Ext.QuickTips.init();
-	});
-</script>
+					window.open(url + rawParameters);
+				}
+			});
+
+			Atlas.core = new Atlas.Core("config/${mainConfig}", "config/${layersConfig}", "${timestamp}");
+			Atlas.core.afterLoad = function() {
+				document.getElementById('loading').style.display = 'none';
+
+				mapLayoutItems = [];
+				for (var i=0; i<nbMaps; i++) {
+					var mapPanel = Atlas.core.createNewMapPanel();
+					if (legend) {
+						new Atlas.Legend({mapPanel: mapPanel});
+					}
+
+					mapLayoutItems.push(
+							{
+								flex: 1,
+								layout: "border",
+								deferredRender: false,
+								items: [mapPanel]
+							}
+					);
+				}
+
+				new Ext.Viewport({
+					layout: "border",
+					hideBorders: true,
+					items: [
+						{
+							region: 'center',
+							layout: "hbox",
+							layoutConfig: {
+								align : 'stretch',
+								pack  : 'start'
+							},
+							hideBorders: true,
+							items: mapLayoutItems
+						}
+					]
+				});
+			};
+
+			Ext.QuickTips.init();
+		});
+	</script>
 </body>
 
 </html>

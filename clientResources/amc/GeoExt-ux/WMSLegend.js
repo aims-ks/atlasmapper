@@ -42,7 +42,7 @@ GeoExt.ux.WMSLegend = Ext.extend(GeoExt.WMSLegend, {
 				render: function(evt) {
 					deleteButon.getEl().on('click', function(evt) {
 						var layer = that.layerRecord.getLayer();
-						layer.setHideInLegend(true);
+						layer.atlasLayer.setHideInLegend(true);
 					});
 				}
 			}
@@ -121,11 +121,11 @@ GeoExt.ux.WMSLegend = Ext.extend(GeoExt.WMSLegend, {
 
 		// Check if we have a global legend URL for this layer
 		if(!url) {
-			if (layer.json['legendUrl']) {
-				url = layer.json['legendUrl'];
-				if (layer.json['legendFilename']) {
+			if (layer.atlasLayer.json['legendUrl']) {
+				url = layer.atlasLayer.json['legendUrl'];
+				if (layer.atlasLayer.json['legendFilename']) {
 					// Hardcoded URL (in config)
-					url += layer.json['legendFilename'];
+					url += layer.atlasLayer.json['legendFilename'];
 					return url;
 				}
 				// Add parameters
@@ -140,7 +140,7 @@ GeoExt.ux.WMSLegend = Ext.extend(GeoExt.WMSLegend, {
 			url = layer.getFullRequestString(
 				legendBaseParams,
 				// Never get the legend from GWC
-				layer.json['wmsServiceUrl']
+				layer.atlasLayer.json['wmsServiceUrl']
 			);
 		}
 
@@ -166,8 +166,8 @@ GeoExt.ux.WMSLegend = Ext.extend(GeoExt.WMSLegend, {
 	 */
 	getLayerTitle: function(record) {
 		var layer = record.getLayer();
-		if (layer && layer.json && layer.json['legendTitle']) {
-			return layer.json['legendTitle'];
+		if (layer && layer.atlasLayer.json && layer.atlasLayer.json['legendTitle']) {
+			return layer.atlasLayer.json['legendTitle'];
 		}
 
 		return GeoExt.ux.WMSLegend.superclass.getLayerTitle.apply(this, arguments);
@@ -179,7 +179,7 @@ GeoExt.ux.WMSLegend = Ext.extend(GeoExt.WMSLegend, {
 	 */
 	_setAtlasMapperLegendUrlInLayerStyles: function() {
 		var layer = this.layerRecord.getLayer();
-		var jsonLayer = layer.json;
+		var jsonLayer = layer.atlasLayer.json;
 		var layerName = layer.name;
 
 		// Query a different layer.
@@ -230,7 +230,7 @@ GeoExt.ux.WMSLegend = Ext.extend(GeoExt.WMSLegend, {
 	 * Override GeoExt.LayerLegend.onStoreUpdate
 	 * Manage 'Show in legend' checkbox event.
 	 *
-	 * Add the method layer.getHideInLegend() in the setVisibility call.
+	 * Add a call to the method layer.atlasLayer.getHideInLegend() in the setVisibility call.
 	 * It would be nicer to set the hideInLegend attribute
 	 * of the record, but it's too difficult to access this variable
 	 * everywhere in the application.
@@ -244,7 +244,7 @@ GeoExt.ux.WMSLegend = Ext.extend(GeoExt.WMSLegend, {
 			var layer = record.getLayer();
 			this.setVisible(layer.getVisibility() &&
 				layer.calculateInRange() && layer.displayInLayerSwitcher &&
-				!record.get('hideInLegend') && !layer.getHideInLegend());
+				!record.get('hideInLegend') && !layer.atlasLayer.getHideInLegend());
 			this.update();
 		}
 	},

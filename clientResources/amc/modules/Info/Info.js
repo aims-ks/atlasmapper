@@ -110,8 +110,8 @@ Atlas.Info = Ext.extend(Ext.Component, {
 		} else {
 			// Leaf or node
 
-			var json = (node && node.layer && node.layer.json) ?
-					node.layer.json : {};
+			var json = (node && node.layer && node.layer.atlasLayer && node.layer.atlasLayer.json) ?
+					node.layer.atlasLayer.json : {};
 
 			//this.setTabsSrc(json['infoHtmlUrls']);
 			this.setTabsContent(json);

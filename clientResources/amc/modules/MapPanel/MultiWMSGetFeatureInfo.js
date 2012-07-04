@@ -107,7 +107,7 @@ Atlas.MapPanel.MultiWMSGetFeatureInfo = OpenLayers.Class(OpenLayers.Control.WMSG
 					var url = urls[j];
 					var wmsOptions = null;
 
-					if (layer.json['dataSourceType'] == 'NCWMS') {
+					if (layer.atlasLayer != null && layer.atlasLayer.json['dataSourceType'] == 'NCWMS') {
 						wmsOptions = this.buildWMSOptions(url, layer,
 							clickPosition, layer.params.FORMAT, true);
 					} else {
@@ -148,7 +148,7 @@ Atlas.MapPanel.MultiWMSGetFeatureInfo = OpenLayers.Class(OpenLayers.Control.WMSG
 			var layerId = evt.request.layerId;
 
 			for (var i=0, len=this.responses.length; i<len; i++) {
-				if (this.responses[i].layer.json['layerId'] == layerId) {
+				if (this.responses[i].layer.atlasLayer.json['layerId'] == layerId) {
 					this.responses[i].evt = evt;
 				}
 			}
@@ -166,7 +166,7 @@ Atlas.MapPanel.MultiWMSGetFeatureInfo = OpenLayers.Class(OpenLayers.Control.WMSG
 			}
 
 			// Analyse the response
-			if (this.responses[i].layer.json['dataSourceType'] == 'NCWMS') {
+			if (this.responses[i].layer.atlasLayer.json['dataSourceType'] == 'NCWMS') {
 				// Keep it if it has a value.
 				var value = evt.request.responseXML.getElementsByTagName('value')[0].childNodes[0].nodeValue;
 				if (typeof(value) != undefined && value != 'none') {
@@ -332,8 +332,8 @@ Atlas.MapPanel.MultiWMSGetFeatureInfo = OpenLayers.Class(OpenLayers.Control.WMSG
 		var urls = [];
 		// After the normalisation of the Core,
 		// this test is always true.
-		if (layer && layer.json && layer.json['wmsFeatureRequestLayers']) {
-			var json = layer.json['wmsFeatureRequestLayers'];
+		if (layer && layer.atlasLayer && layer.atlasLayer.json && layer.atlasLayer.json['wmsFeatureRequestLayers']) {
+			var json = layer.atlasLayer.json['wmsFeatureRequestLayers'];
 			for (var i=0; i<json.length; i++) {
 				var requestedLayer = json[i];
 				// After the normalisation of the Core, they all
@@ -364,7 +364,7 @@ Atlas.MapPanel.MultiWMSGetFeatureInfo = OpenLayers.Class(OpenLayers.Control.WMSG
 	 * format - {String} The format from the corresponding GetMap request
 	 */
 	buildWMSOptions: function(url, layer, clickPosition, format, isNcwms) {
-		var layerId = layer.json['layerId'];
+		var layerId = layer.atlasLayer.json['layerId'];
 		var layerNames = this.getLayerNames(layer, url);
 		var styleNames = this.getStyleNames(layer);
 
@@ -432,8 +432,8 @@ Atlas.MapPanel.MultiWMSGetFeatureInfo = OpenLayers.Class(OpenLayers.Control.WMSG
 	getLayerNames: function(layer, url) {
 		// After the normalisation of the Core,
 		// this test is always true.
-		if (layer && layer.json && layer.json['wmsFeatureRequestLayers']) {
-			var json = layer.json['wmsFeatureRequestLayers'];
+		if (layer && layer.atlasLayer && layer.atlasLayer.json && layer.atlasLayer.json['wmsFeatureRequestLayers']) {
+			var json = layer.atlasLayer.json['wmsFeatureRequestLayers'];
 			var layerNames = [];
 			for (var i=0; i<json.length; i++) {
 				var requestedLayer = json[i];

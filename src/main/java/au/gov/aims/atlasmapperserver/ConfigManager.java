@@ -1344,7 +1344,8 @@ public class ConfigManager {
 							imageUrl.append("&HEIGHT=" + height);
 
 							layerMap.put("imageUrl", imageUrl.toString());
-
+							layerMap.put("imageWidth", ""+width);
+							layerMap.put("imageHeight", ""+height);
 
 							String baseLayerServiceUrl = clientConfig.getListBaseLayerServiceUrl();
 							String baseLayerId = clientConfig.getListBaseLayerId();
@@ -1385,9 +1386,6 @@ public class ConfigManager {
 								baseLayerUrl.append("&HEIGHT=" + height);
 
 								layerMap.put("baseLayerUrl", baseLayerUrl.toString());
-
-								layerMap.put("imageWidth", ""+width);
-								layerMap.put("imageHeight", ""+height);
 							}
 						}
 					}

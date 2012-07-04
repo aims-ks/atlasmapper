@@ -49,8 +49,6 @@ Atlas.AbstractMapPanel = {
 	// The MapPanel is always in the center
 	region: 'center',
 
-	KML_ALLOW_JAVASCRIPT: false,
-
 	mapId: 0,
 	center: null,
 	zoom: 0,
@@ -329,22 +327,22 @@ Atlas.AbstractMapPanel = {
 		// for layers that has a json attribute (I.E. those methods
 		// do not apply to the markers)
 		this.map.events.on({"preaddlayer": function(evt) {
-			if (evt && evt.layer && evt.layer.json) {
+			if (evt && evt.layer && evt.layer.atlasLayer && evt.layer.atlasLayer.json) {
 				that._beforeLayerAdd(evt.layer);
 			}
 		}});
 		this.map.events.on({"addlayer": function(evt) {
-			if (evt && evt.layer && evt.layer.json) {
+			if (evt && evt.layer && evt.layer.atlasLayer && evt.layer.atlasLayer.json) {
 				that._afterLayerAdd(evt.layer);
 			}
 		}});
 		this.map.events.on({"preremovelayer": function(evt) {
-			if (evt && evt.layer && evt.layer.json) {
+			if (evt && evt.layer && evt.layer.atlasLayer && evt.layer.atlasLayer.json) {
 				that._beforeLayerRemove(evt.layer);
 			}
 		}});
 		this.map.events.on({"removelayer": function(evt) {
-			if (evt && evt.layer && evt.layer.json) {
+			if (evt && evt.layer && evt.layer.atlasLayer && evt.layer.atlasLayer.json) {
 				that._afterLayerRemove(evt.layer);
 			}
 		}});
@@ -360,7 +358,7 @@ Atlas.AbstractMapPanel = {
 			that.removeLayer(evt.layer);
 		});
 		this.ol_on("locateLayer", function(evt) {
-			that.locateLayer(evt.layer);
+			evt.layer.atlasLayer.locate();
 		});
 
 		// Add layers specified by the "layers" URL parameter
@@ -492,8 +490,11 @@ Atlas.AbstractMapPanel = {
 			var first = true;
 			for (var i=this.map.layers.length; i>=0; i--) {
 				var layer = this.map.layers[i];
-				if (layer != null && typeof(layer.json) !== 'undefined' && layer.json != null) {
-					var jsonLayer = layer.json;
+				if (layer != null &&
+						typeof(layer.atlasLayer) !== 'undefined' && layer.atlasLayer != null &&
+						typeof(layer.atlasLayer.json) !== 'undefined' && layer.atlasLayer.json != null) {
+
+					var jsonLayer = layer.atlasLayer.json;
 					if (this._isLayerNeededInUrl(jsonLayer)) {
 						if (!first) {
 							l0 += ',';
@@ -555,369 +556,6 @@ Atlas.AbstractMapPanel = {
 		return true;
 	},
 
-
-	/**
-	 * Return the Web Cache URL if every parameters are supported by the Web Cache server.
-	 * Return the WMS Service URL otherwise.
-	 */
-	getWMSServiceUrl: function(layerJSon, layerParams) {
-		var serviceUrl = layerJSon['wmsServiceUrl'];
-		if (layerJSon['webCacheUrl'] &&
-			this._canUseWebCache(layerJSon, layerParams)) {
-			serviceUrl = layerJSon['webCacheUrl'];
-		}
-		return serviceUrl;
-	},
-
-	_canUseWebCache: function(layerJSon, layerParams) {
-		if (typeof(layerJSon['cached']) !== 'undefined' && !layerJSon['cached']) {
-			return false;
-		}
-
-		var supportedParams = layerJSon['webCacheSupportedParameters'];
-		// IE6 can't use Web Cache (GeoServer Web Cache send blank tiles as PNG, even when requested as GIF)
-		// Equivalent to "if (Ext.isIE6)" without Ext dependencies
-		var userAgent = navigator.userAgent.toLowerCase();
-		if (!/opera/.test(userAgent) && /msie 6/.test(userAgent)) { return false; }
-
-		for(var paramName in layerParams){
-			if(layerParams.hasOwnProperty(paramName)){
-				if (layerParams[paramName] && !this._webCacheSupportParam(paramName, supportedParams)) {
-					// console.log('Can NOT use Web Cache ['+paramName+']');
-					return false;
-				}
-			}
-		}
-		// console.log('Can use Web Cache');
-		return true;
-	},
-
-	_applyOlOverrides: function(config, overrides) {
-		if (overrides == null) {
-			return config;
-		}
-		for (var key in overrides) {
-			if (overrides.hasOwnProperty(key)) {
-				config[key] = overrides[key];
-			}
-		}
-		return config;
-	},
-
-	_webCacheSupportParam: function(paramName, supportedParams) {
-		if (!supportedParams || supportedParams.length <= 0) {
-			// Supported parameters is not set:
-			// The Web Cache server support everything
-			return true;
-		}
-
-		for (var i=0; i < supportedParams.length; i++) {
-			var supportedParam = supportedParams[i];
-			if (supportedParam.toUpperCase() === paramName.toUpperCase()) {
-				return true;
-			}
-		}
-		return false;
-	},
-
-	_getTitle: function(layerJSon) {
-		var title = layerJSon['title'] || layerJSon['layerName'] || layerJSon['layerId'];
-		return title;
-	},
-
-	_getWMSExtraServiceUrls: function(layerJSon) {
-		return layerJSon['extraWmsServiceUrls'];
-	},
-
-	_getWMSLayerParams: function(layerJSon) {
-		var isBaseLayer = !!layerJSon['isBaseLayer'];
-
-		// Set the parameters used in the URL to request the tiles.
-		var layerParams = {
-			layers: layerJSon['layerName'] || layerJSon['layerId']
-		};
-		// The WMS version is also used in the WMS requests and the legend graphics.
-		if (layerJSon['wmsVersion']) {
-			layerParams.version = layerJSon['wmsVersion'];
-		}
-
-		if (layerJSon['wmsRequestMimeType']) {
-			layerParams.format = layerJSon['wmsRequestMimeType'];
-		}
-
-		// Select default style if needed
-		if (layerJSon['styles']) {
-			for (var styleName in layerJSon['styles']) {
-				var jsonStyle = layerJSon['styles'][styleName];
-				if (styleName && jsonStyle["default"]) {
-					layerParams.styles = styleName;
-					break;
-				}
-			}
-		}
-
-		layerParams.transparent = !isBaseLayer;
-
-		if (typeof(layerJSon['olParams']) !== 'undefined') {
-			layerParams = this._applyOlOverrides(layerParams, layerJSon['olParams']);
-		}
-
-		return layerParams;
-	},
-
-	_getWMSLayerOptions: function(layerJSon) {
-		var isBaseLayer = !!layerJSon['isBaseLayer'];
-
-		// Set the OpenLayer options, used by the library.
-		var layerOptions = {
-			isBaseLayer: isBaseLayer,
-			displayInLayerSwitcher: true,
-			wrapDateLine : true,
-			buffer: 0
-		};
-
-		if (layerJSon['projection']) {
-			layerOptions.projection = layerJSon['projection'];
-		} else {
-			layerOptions.projection = this.map.getProjectionObject()
-		}
-
-		if (Atlas.conf['mapOptions'] && Atlas.conf['mapOptions']['units']) {
-			layerOptions.units = Atlas.conf['mapOptions']['units'];
-		}
-
-		if (isBaseLayer) {
-			// Set the transition effect to something smooth.
-			// This effect allow the user to view the base layer
-			// when zooming in/out or panning, by resizing the
-			// existing tiles and display them while waiting for
-			// the new tiles.
-			layerOptions.transitionEffect = 'resize';
-		}
-
-		if (typeof(layerJSon['olOptions']) !== 'undefined') {
-			layerOptions = this._applyOlOverrides(layerOptions, layerJSon['olOptions']);
-		}
-
-		return layerOptions;
-	},
-
-	_getArcGISLayerOptions: function(layerJSon) {
-		var layerOptions = {
-			// Big tiles has less issues with labeling
-			tileSize: new OpenLayers.Size(512, 512),
-			isBaseLayer: false,
-			wrapDateLine: true
-			// Single tile make very nice map, with perfect labeling, but has some issues
-			// near the date line and it cost more for the server (need more resources).
-			//singleTile: true
-		};
-		// ESRI layers do not support
-		// Google projection (EPSG:900913) but they support
-		// ESRI projection (EPSG:102100) which is the same.
-		if (layerJSon['projection']) {
-			layerOptions.projection = layerJSon['projection'];
-		} else if (this.map && this.map.getProjection() === 'EPSG:900913') {
-			layerOptions.projection = 'EPSG:102100';
-		}
-
-		if (typeof(layerJSon['olOptions']) !== 'undefined') {
-			layerOptions = this._applyOlOverrides(layerOptions, layerJSon['olOptions']);
-		}
-
-		return layerOptions;
-	},
-
-	_createNCWMSLayer: function(layerJSon) {
-		// TODO Support Multiple URLS => this._getWMSExtraServiceUrls(layerJSon),
-		var layerParams = this._getWMSLayerParams(layerJSon);
-		return new OpenLayers.Layer.ux.NCWMS(
-			this._getTitle(layerJSon),
-			this.getWMSServiceUrl(layerJSon, layerParams),
-			layerParams,
-			this._getWMSLayerOptions(layerJSon)
-		);
-	},
-
-	_createArcGISMapServerLayer: function(layerJSon) {
-		var layerOptions = this._getArcGISLayerOptions(layerJSon);
-		var layerParams = {
-			layers: "show:" + (layerJSon['layerName'] || layerJSon['layerId']),
-			transparent: true
-		};
-
-		if (typeof(layerJSon['olParams']) !== 'undefined') {
-			layerParams = this._applyOlOverrides(layerParams, layerJSon['olParams']);
-		}
-
-		var url = layerJSon['wmsServiceUrl'];
-		if (layerJSon['arcGISPath']) {
-			url += '/' + layerJSon['arcGISPath'];
-		}
-		url += '/MapServer/export';
-
-		return new OpenLayers.Layer.ArcGIS93Rest(
-			layerJSon['title'],
-			url,
-			layerParams,
-			layerOptions
-		);
-	},
-
-	_createArcGISCacheLayer: function(layerJSon) {
-		// TODO Do not send all options to the client, use JSONP instead. Also change the logic; ArcGIS Cache are per Service, not per Layer.
-		// http://openlayers.org/dev/examples/arcgiscache_jsonp.html
-
-		// Temporary fix: Do not use the cache...
-		return this._createArcGISMapServerLayer(layerJSon);
-
-		/*
-		var layerOptions = this._getArcGISLayerOptions(layerJSon);
-
-		var url = layerJSon['wmsServiceUrl'];
-		if (layerJSon['arcGISPath']) {
-			url += '/' + layerJSon['arcGISPath'];
-		}
-		url += '/MapServer/export';
-
-		layerOptions.layers = "show:" + (layerJSon['layerName'] || layerJSon['layerId']);
-		layerOptions.tileSize = new OpenLayers.Size(layerJSon['arcGISCacheTileCols'], layerJSon['arcGISCacheTileRows']);
-		layerOptions.tileOrigin = new OpenLayers.LonLat(layerJSon['arcGISCacheTileOriginX'] , layerJSon['arcGISCacheTileOriginY']);
-		layerOptions.maxExtent = new OpenLayers.Bounds(layerJSon['layerBoundingBox'][0], layerJSon['layerBoundingBox'][1], layerJSon['layerBoundingBox'][2], layerJSon['layerBoundingBox'][3]);
-		layerOptions.resolutions = layerJSon['arcGISCacheTileResolutions'];
-		layerOptions.transparent = true;
-
-		return new OpenLayers.Layer.ArcGISCache(
-			layerJSon['title'],
-			url,
-			layerOptions
-		);
-		*/
-	},
-
-	_createWMSLayer: function(layerJSon) {
-		// TODO Support Multiple URLS => this._getWMSExtraServiceUrls(layerJSon),
-		var layerParams = this._getWMSLayerParams(layerJSon);
-		return new OpenLayers.Layer.WMS(
-			this._getTitle(layerJSon),
-			this.getWMSServiceUrl(layerJSon, layerParams),
-			layerParams,
-			this._getWMSLayerOptions(layerJSon)
-		);
-	},
-
-	_createWMTSLayer: function(layerJSon) {
-		// TODO Create a WMTS layer
-		return this._createWMSLayer(layerJSon);
-	},
-
-	_createKMLLayer: function(layerJSon) {
-		var kmlUrl = layerJSon['kmlUrl'];
-
-		// Set the OpenLayer options, used by the library.
-		var layerOptions = {
-			strategies: [new OpenLayers.Strategy.Fixed()],
-			//visibility: layerJSon['<initialState>']['<activated>'],
-			//opacity: layerJSon['<initialState>']['<opacity>'],
-			protocol: new OpenLayers.Protocol.HTTP({
-				url: kmlUrl,
-				format: new OpenLayers.Format.KML({
-					extractStyles: true,
-					extractAttributes: true
-				})
-			})
-		};
-
-		if (typeof(layerJSon['olOptions']) !== 'undefined') {
-			layerOptions = this._applyOlOverrides(layerOptions, layerJSon['olOptions']);
-		}
-
-		var kml = new OpenLayers.Layer.Vector(
-			this._getTitle(layerJSon),
-			layerOptions
-		);
-
-		var select = new OpenLayers.Control.SelectFeature(kml);
-
-		// OpenLayer events for KML layers
-		var that = this;
-		kml.events.on({
-			"featureselected": function(event) {
-				that._onFeatureSelect(event, select);
-			},
-			"featureunselected": function(event) {
-				that._onFeatureUnselect(event);
-			}
-		});
-
-		this.map.addControl(select);
-		select.activate();
-
-		return kml;
-	},
-
-	_createGoogleLayer: function(layerJSon) {
-		var layerOptions = {
-			// google.maps.MapTypeId.TERRAIN, google.maps.MapTypeId.ROADMAP, google.maps.MapTypeId.HYBRID, google.maps.MapTypeId.SATELLITE
-			type: google.maps.MapTypeId[layerJSon['layerName'] || layerJSon['layerId']]
-		};
-
-		if (typeof(layerJSon['olOptions']) !== 'undefined') {
-			layerOptions = this._applyOlOverrides(layerOptions, layerJSon['olOptions']);
-		}
-
-		return new OpenLayers.Layer.Google(
-			// "Google Physical", "Google Streets", "Google Hybrid", "Google Satellite"
-			this._getTitle(layerJSon),
-			layerOptions
-		);
-	},
-
-
-	_onPopupClose: function(evt, select) {
-		select.unselectAll();
-		// Stops an event from propagating.
-		// Otherwise, the close button may trigger a feature request.
-		OpenLayers.Event.stop(evt);
-	},
-	_onFeatureSelect: function(event, select) {
-		var feature = event.feature;
-		// Since KML is user-generated, do naive protection against
-		// Javascript.
-		var content = "<h2>"+feature.attributes.name + "</h2>" + feature.attributes.description;
-		// Javascript in KML can be unsafe.
-		if (!this.KML_ALLOW_JAVASCRIPT) {
-			if (content.search("<script") != -1) {
-				content = "Content contained Javascript! Escaped content below.<br />" + content.replace(/</g, "&lt;");
-			}
-		}
-		var that = this;
-		var popupId = 'kml-popup';
-		var popup = new OpenLayers.Popup.FramedCloud(
-			popupId,
-			feature.geometry.getBounds().getCenterLonLat(),
-			new OpenLayers.Size(100,100), // Initial content size
-			content,
-			null, true,
-			function(event) {that._onPopupClose(event, select);}
-		);
-		feature.popup = popup;
-		this.map.addPopup(popup);
-	},
-	_onFeatureUnselect: function(event) {
-		var feature = event.feature;
-		if(feature.popup) {
-			this.map.removePopup(feature.popup);
-			feature.popup.destroy();
-			delete feature.popup;
-		}
-	},
-
-	_createXYZLayer: function(layerJSon) {
-		alert('Layer type XYZ is not yet implemented.');
-		return null;
-	},
-
 	/**
 	 * Add layers from an array of layer IDs
 	 */
@@ -960,88 +598,60 @@ Atlas.AbstractMapPanel = {
 			return;
 		}
 
-		var layer = null;
+		var atlasLayer = Atlas.Layer.LayerHelper.createLayer(this, layerJSon);
+/*
+		var atlasLayer = null;
+
+		if (typeof(layerJSon['dataSourceType']) === 'undefined') {
+			alert('Layer '+layerJSon['layerId']+' has no dataSourceType defined.');
+			return;
+		}
+
 		switch (layerJSon['dataSourceType']) {
 			case 'NCWMS':
-				layer = this._createNCWMSLayer(layerJSon);
+				atlasLayer = new Atlas.Layer.NCWMS(this, layerJSon);
 				break;
 			case 'ARCGIS_MAPSERVER':
-				layer = this._createArcGISMapServerLayer(layerJSon);
+				atlasLayer = new Atlas.Layer.ArcGISMapServer(this, layerJSon);
 				break;
 			case 'ARCGIS_CACHE':
-				layer = this._createArcGISCacheLayer(layerJSon);
+				atlasLayer = new Atlas.Layer.ArcGISCache(this, layerJSon);
 				break;
 			case 'WMS':
-				layer = this._createWMSLayer(layerJSon);
+				atlasLayer = new Atlas.Layer.WMS(this, layerJSon);
 				break;
 			case 'WMTS':
-				layer = this._createWMTSLayer(layerJSon);
+				atlasLayer = new Atlas.Layer.WMTS(this, layerJSon);
 				break;
 			case 'KML':
-				layer = this._createKMLLayer(layerJSon);
+				atlasLayer = new Atlas.Layer.KML(this, layerJSon);
 				break;
 			case 'GOOGLE':
-				layer = this._createGoogleLayer(layerJSon);
+				atlasLayer = new Atlas.Layer.Google(this, layerJSon);
 				break;
 			case 'XYZ':
-				layer = this._createXYZLayer(layerJSon);
+				atlasLayer = new Atlas.Layer.XYZ(this, layerJSon);
 				break;
 			case 'FOLDER':
+				atlasLayer = new Atlas.Layer.Folder(this, layerJSon);
+				break;
 			case 'GROUP':
-				// Layer group
-				// The Folder itself is represented as a pseudo layer on the Map (basic OpenLayers layer without graphics)
-				// That pseudo layer is created and added by the GroupLayerLoader when needed (the insertion order is crucial).
-				// NOTE: There is no difference between a FOLDER and a GROUP. It's simply to differentiate between ArcGIS
-				//     layers with children (GROUP) and a ArcGIS Folders and Services (FOLDER).
-				if (layerJSon['layers'] && layerJSon['layers'].length > 0) {
-					// The "layers" attribute define the children layers of the group.
-					// NOTE: Since each layer may appear in multiple folders, the attribute path can
-					//     not be defined in the layer's configuration. It has to be dynamically
-					//     created for each instance of the layer.
-
-					// Path: Array of layerJSON object, with a unique ID for this instance of the group
-					var pathSuffixId = "_" + new Date().getTime();
-					var path = [];
-
-					// The path is dynamically created for the FOLDER / GROUP (folder)
-					if (layerJSon['path']) {
-						// Clone the path
-						path = layerJSon['path'].slice(0);
-					}
-
-					var pathPart = clone(layerJSon);
-					pathPart.id = (layerJSon['layerName'] || layerJSon['layerId']) + pathSuffixId;
-					path.push(pathPart);
-
-					// Add all children under that path. If a child is a FOLDER / GROUP, it will pass
-					// through this function again.
-					this.addLayersById(layerJSon['layers'], path);
-				}
-				return;
+				atlasLayer = new Atlas.Layer.Group(this, layerJSon);
+				break;
 			default:
-				alert('Layer type '+layerJSon['dataSourceType']+' is not implemented.');
+				alert('Layer type '+layerJSon['dataSourceType']+' for layer '+layerJSon['layerId']+', is not implemented.');
 		}
-		if (!layer) {
+*/
+		if (!atlasLayer) {
 			// TODO THROW EXCEPTION
 			return;
 		}
 
-		layer.json = layerJSon;
-		layer.hideInLegend = false;
-
-		if (typeof(layerJSon['path']) !== 'undefined') {
-			layer.path = layerJSon['path'];
+		if (atlasLayer.hasRealLayer()) {
+			// Add the layer to the Map
+			// NOTE: This method trigger _beforeLayerAdd and _afterLayerAdd
+			this.map.addLayer(atlasLayer.layer);
 		}
-
-		// TODO Remove this after implementing Save State
-		if (!layer.isBaseLayer && typeof(layerJSon['selected']) === 'boolean') {
-			layer.visibility = layerJSon['selected'];
-			delete(layerJSon['selected']);
-		}
-
-		// Add the layer to the Map
-		// NOTE: This method trigger _beforeLayerAdd and _afterLayerAdd
-		this.map.addLayer(layer);
 	},
 
 	removeLayer: function(layer) {
@@ -1051,36 +661,20 @@ Atlas.AbstractMapPanel = {
 	},
 
 	// Private
-	// This method augment the layer object by adding some methods to it.
-	// It should be called before adding the layer to the map since those
-	// methods may be called when the layer is added.
 	_beforeLayerAdd: function(layer) {
-		var that = this;
-		var layerJSon = layer.json;
-
-		// Add the functions setHideInLegend/getHideInLegend to all layers.
-		// It would just be too much trouble if all layer class had
-		// to be extend only to add those functions.
-		layer.setHideInLegend = function(hide) {
-			layer.hideInLegend = hide;
-			that.map.events.triggerEvent("changelayer", {
-				layer: layer,
-				property: "hideInLegend"
-			});
-			that.ol_fireEvent('legendVisibilityChange', {layer: layer});
-		};
-		layer.getHideInLegend = function() {
-			return layer.hideInLegend;
-		};
 	},
 
 	// Private
 	// This method fire events and set some attributes
 	_afterLayerAdd: function(layer) {
-		var layerJSon = layer.json;
+		if (layer == null || layer.atlasLayer == null || layer.atlasLayer.json == null) {
+			return;
+		}
+
+		var layerJSon = layer.atlasLayer.json;
 
 		// Add feature request listener for that layer, if needed
-		if (this.wmsFeatureInfo && layerJSon['wmsQueryable']) {
+		if (this.wmsFeatureInfo && (layerJSon['wmsQueryable'] || layerJSon['dataSourceType'] == 'ARCGIS_MAPSERVER')) {
 			this.wmsFeatureInfo.addLayer(layer);
 		}
 
@@ -1120,55 +714,21 @@ Atlas.AbstractMapPanel = {
 	_beforeLayerRemove: function(layer) {
 		var layerJSon = layer.json;
 
-		if (layerJSon && layerJSon['wmsQueryable']) {
+		if (layerJSon && (layerJSon['wmsQueryable'] || layerJSon['dataSourceType'] == 'ARCGIS_MAPSERVER')) {
 			this.wmsFeatureInfo.removeLayer(layer);
 		}
 	},
 
 	// Private
 	_afterLayerRemove: function(layer) {
-		var layerJSon = layer.json;
+		if (layer == null || layer.atlasLayer == null || layer.atlasLayer.json == null) {
+			return;
+		}
+
+		var layerJSon = layer.atlasLayer.json;
 
 		if (layerJSon) {
 			this.ol_fireEvent('layerRemoved', {layerJSon: layerJSon});
 		}
-	},
-
-	layerCanBeLocated: function(layer) {
-		return (this.getLayerExtent(layer) != null);
-	},
-
-	locateLayer: function(layer) {
-		var bounds = this.getLayerExtent(layer);
-		if (bounds != null) {
-			this.map.zoomToExtent(bounds, true);
-		} else {
-			alert("This layer can not be located");
-		}
-	},
-
-	getLayerExtent: function(layer) {
-		var bounds = null;
-		if (layer.json && layer.json['layerBoundingBox']) {
-			// Bounds order in JSon: left, bottom, right, top
-			var boundsArray = layer.json['layerBoundingBox'];
-
-			// Bounds order as requested by OpenLayers: left, bottom, right, top
-			// NOTE: Re-projection can not work properly if the top or bottom overpass 85
-			bounds = new OpenLayers.Bounds(
-				(boundsArray[0] < -180 ? -180 : (boundsArray[0] > 180 ? 180 : boundsArray[0])),
-				(boundsArray[1] < -85 ? -85 : (boundsArray[1] > 85 ? 85 : boundsArray[1])),
-				(boundsArray[2] < -180 ? -180 : (boundsArray[2] > 180 ? 180 : boundsArray[2])),
-				(boundsArray[3] < -85 ? -85 : (boundsArray[3] > 85 ? 85 : boundsArray[3]))
-			);
-
-			if (bounds != null) {
-				bounds = bounds.transform(this.defaultLonLatProjection, this.map.getProjectionObject());
-			}
-		}
-		if (bounds == null && typeof(layer.getDataExtent) === 'function') {
-			bounds = layer.getDataExtent();
-		}
-		return bounds;
 	}
 };

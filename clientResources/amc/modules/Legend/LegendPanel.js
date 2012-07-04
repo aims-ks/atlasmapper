@@ -46,8 +46,8 @@ Atlas.LegendPanel = Ext.extend(GeoExt.LegendPanel, {
 	autoScroll: true,
 
 	filter: function(record) {
-		var layerJSon = record.getLayer().json;
-		return layerJSon && layerJSon['hasLegend'];
+		var layer = record.getLayer();
+		return layer && layer.atlasLayer && layer.atlasLayer.json && layer.atlasLayer.json['hasLegend'];
 	},
 
 	mapPanel: null,
@@ -153,7 +153,7 @@ Atlas.LegendPanel = Ext.extend(GeoExt.LegendPanel, {
 						(layer.getVisibility() && layer.calculateInRange()))
 				};
 
-				Ext.applyIf(legendConfig.baseParams, layer.json['legendParameters']);
+				Ext.applyIf(legendConfig.baseParams, layer.atlasLayer.json['legendParameters']);
 
 				// IE6 can't use PNG legend
 				if (Ext.isIE6) {
@@ -179,10 +179,10 @@ Atlas.LegendPanel = Ext.extend(GeoExt.LegendPanel, {
 
 	getLegendGroup: function(record) {
 		var layer = record.getLayer();
-		var layerJSon = layer.json;
-		if (!layerJSon) {
+		if (!layer || !layer.atlasLayer || !layer.atlasLayer.json) {
 			return null;
 		}
+		var layerJSon = layer.atlasLayer.json;
 
 		var legendGroupName = layerJSon['legendGroup'] || '';
 		// legendGroupName false, null, undefined, empty string, etc. should all goes to the same Legend Group.
