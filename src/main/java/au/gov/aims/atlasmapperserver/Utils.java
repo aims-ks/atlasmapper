@@ -513,54 +513,88 @@ public class Utils {
 		return projections;
 	}
 
-	public static double[] reprojectCoordinatesToDegrees(double[] coordinates, String sourceCRSStr) throws FactoryException, TransformException {
-		double[] reprojectedCoordinates = reprojectCoordinates(coordinates, sourceCRSStr, "EPSG:4326");
+	public static double[] reprojectWKTCoordinatesToDegrees(double[] coordinates, String sourceWKT) throws FactoryException, TransformException {
+		CoordinateReferenceSystem targetCRS = CRS.decode("EPSG:4326");
+
+		CoordinateReferenceSystem sourceCRS = CRS.parseWKT(sourceWKT);
+
+		double[] reprojectedCoordinates = reprojectCoordinates(coordinates, sourceCRS, targetCRS);
 
 		// Verify out of range coordinates
-		for (int i=0; i+1 < reprojectedCoordinates.length; i += 2) {
-			double x = reprojectedCoordinates[i];
-			double y = reprojectedCoordinates[i+1];
+		if (!validateDegreesCoordinates(reprojectedCoordinates)) {
+			// Out of bound coordinates are usually due to invalid input. No data is better than wrong data.
+			throw new TransformException("Coordinates out of bounds");
+		}
+
+		return reprojectedCoordinates;
+	}
+
+	public static double[] reprojectWKIDCoordinatesToDegrees(double[] coordinates, String sourceWKID) throws FactoryException, TransformException {
+		CoordinateReferenceSystem targetCRS = CRS.decode("EPSG:4326");
+
+		// ESRI CRS 102100 is not supported, but it's the same as the google projection EPSG:900913
+		if ("EPSG:102100".equals(sourceWKID)) {
+			sourceWKID = "EPSG:900913";
+		}
+
+		// ESRI CRS 104199 is not supported, and it seems to look pretty similar to EPSG:4326
+		if ("EPSG:104199".equals(sourceWKID)) {
+			sourceWKID = "EPSG:4326";
+		}
+
+		CoordinateReferenceSystem sourceCRS = CRS.decode(sourceWKID);
+
+		double[] reprojectedCoordinates = reprojectCoordinates(coordinates, sourceCRS, targetCRS);
+
+		// Verify out of range coordinates
+		if (!validateDegreesCoordinates(reprojectedCoordinates)) {
+			// Out of bound coordinates are usually due to invalid input. No data is better than wrong data.
+			throw new TransformException("Coordinates out of bounds");
+		}
+
+		return reprojectedCoordinates;
+	}
+
+	private static boolean validateDegreesCoordinates(double[] coordinates) {
+		// Verify out of range coordinates
+		boolean valid = true;
+		for (int i=0; i+1 < coordinates.length; i += 2) {
+			double x = coordinates[i];
+			double y = coordinates[i+1];
 			final boolean xOut, yOut;
 			xOut = (Double.isNaN(x) || x < (Longitude.MIN_VALUE - ANGLE_TOLERANCE) || x > (Longitude.MAX_VALUE + ANGLE_TOLERANCE));
 			yOut = (Double.isNaN(y) || y < (Latitude.MIN_VALUE - ANGLE_TOLERANCE) || y > (Latitude .MAX_VALUE + ANGLE_TOLERANCE));
 
 			if (xOut || yOut) {
 				// Out of bound coordinates are usually due to invalid input. No data is better than wrong data.
-				throw new TransformException("Coordinates out of bounds: ["+x+", "+y+"] minimum values: ["+Longitude.MIN_VALUE+", "+Latitude.MIN_VALUE+"] maximum values: ["+Longitude.MAX_VALUE+", "+Latitude .MAX_VALUE+"]");
+				LOGGER.log(Level.WARNING, "Coordinates out of bounds: ["+x+", "+y+"] minimum values: ["+Longitude.MIN_VALUE+", "+Latitude.MIN_VALUE+"] maximum values: ["+Longitude.MAX_VALUE+", "+Latitude .MAX_VALUE+"]");
+				valid = false;
 			}
 		}
-
-		return reprojectedCoordinates;
+		return valid;
 	}
 
 	/**
 	 * NOTE: This class use GeoTools library to do the re-projection, which bound connections to a HSQL DB. The connections
 	 *     seems to not be managed properly, which lead to potential memory leak and random error messages in the server logs.
 	 * @param coordinates Array of coordinates [x1, y1, x2, y2, ...]
-	 * @param sourceCRSStr
-	 * @param cibleCRSStr
+	 * @param sourceCRS
+	 * @param targetCRS
 	 * @return
 	 * @throws FactoryException
 	 * @throws TransformException
 	 */
-	public static double[] reprojectCoordinates(double[] coordinates, String sourceCRSStr, String cibleCRSStr) throws FactoryException, TransformException {
-		if (coordinates == null || coordinates.length < 2 || sourceCRSStr == null || cibleCRSStr == null) {
+	public static double[] reprojectCoordinates(double[] coordinates, CoordinateReferenceSystem sourceCRS, CoordinateReferenceSystem targetCRS) throws FactoryException, TransformException {
+		if (coordinates == null || coordinates.length < 2 || sourceCRS == null || targetCRS == null) {
 			throw new IllegalArgumentException();
 		}
 
-		// ESRI CRS 102100 is not supported
-		if ("EPSG:102100".equals(sourceCRSStr)) {
-			sourceCRSStr = "EPSG:900913";
-		}
-
-		if (sourceCRSStr.equalsIgnoreCase(cibleCRSStr)) {
+		if (sourceCRS.equals(targetCRS)) {
 			// No conversion is needed
 			return coordinates;
 		}
 
 		double[] reprojectedCoordinates = new double[coordinates.length];
-		CoordinateReferenceSystem sourceCRS = CRS.decode(sourceCRSStr);
-		CoordinateReferenceSystem targetCRS = CRS.decode(cibleCRSStr);
 
 		MathTransform transform = CRS.findMathTransform(sourceCRS, targetCRS);
 

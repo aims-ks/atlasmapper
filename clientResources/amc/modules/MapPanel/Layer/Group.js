@@ -34,12 +34,10 @@ Atlas.Layer.Group = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 	initialize: function(mapPanel, jsonLayer) {
 		Atlas.Layer.AbstractLayer.prototype.initialize.apply(this, arguments);
 
-
-
 		if (this.json != null) {
 			if (this.json['layers'] && this.json['layers'].length > 0) {
 				// The "layers" attribute define the children layers of the group.
-				// NOTE: Since each layer may appear in multiple folders, the attribute path can
+				// NOTE: Since each layer may appear in multiple groups, the attribute path can
 				//     not be defined in the layer's configuration. It has to be dynamically
 				//     created for each instance of the layer.
 
@@ -47,7 +45,7 @@ Atlas.Layer.Group = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 				var pathSuffixId = "_" + new Date().getTime();
 				var path = [];
 
-				// The path is dynamically created for the FOLDER / GROUP (folder)
+				// The path is dynamically created for the GROUP (folder)
 				if (this.json['path']) {
 					// Clone the path
 					path = this.json['path'].slice(0);
@@ -57,7 +55,7 @@ Atlas.Layer.Group = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 				pathPart.id = (this.json['layerName'] || this.json['layerId']) + pathSuffixId;
 				path.push(pathPart);
 
-				// Add all children under that path. If a child is a FOLDER / GROUP, it will pass
+				// Add all children under that path. If a child is a GROUP, it will pass
 				// through this function again.
 				if (this.mapPanel) {
 					this.mapPanel.addLayersById(this.json['layers'], path);
@@ -68,5 +66,10 @@ Atlas.Layer.Group = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 
 		// TODO!!
 		this.layer = this.extendLayer({});
+	},
+
+	// TODO Check every children and listen on them
+	isLoading: function() {
+		return false;
 	}
 });

@@ -26,6 +26,9 @@ import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 
 public class ArcGISCacheLayerConfig extends ArcGISMapServerLayerConfig {
 	@ConfigField
+	private Boolean forcePNG24;
+
+	@ConfigField
 	private Integer tileCols;
 	@ConfigField
 	private Integer tileRows;
@@ -40,6 +43,14 @@ public class ArcGISCacheLayerConfig extends ArcGISMapServerLayerConfig {
 
 	public ArcGISCacheLayerConfig(ConfigManager configManager) {
 		super(configManager);
+	}
+
+	public Boolean isForcePNG24() {
+		return this.forcePNG24;
+	}
+
+	public void setForcePNG24(Boolean forcePNG24) {
+		this.forcePNG24 = forcePNG24;
 	}
 
 	public Integer getTileCols() {

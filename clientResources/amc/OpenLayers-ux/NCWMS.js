@@ -91,16 +91,16 @@ OpenLayers.Layer.ux.NCWMS = OpenLayers.Class(OpenLayers.Layer.WMS, {
 
 	// private
 	_reloadDates: function(callback, errorCallback, scope) {
-		if (!this.json) {
+		if (!this.atlasLayer || !this.atlasLayer.json) {
 			// This should not append
 			return;
 		}
 
-		var serviceUrl = this.json['wmsServiceUrl'];
+		var serviceUrl = this.atlasLayer.json['wmsServiceUrl'];
 
 		var url = serviceUrl + '?' + Ext.urlEncode({
 			item: 'layerDetails',
-			layerName: this.json['layerName'],
+			layerName: this.atlasLayer.json['layerName'],
 			request: 'GetMetadata'
 		});
 		/**
@@ -113,14 +113,13 @@ OpenLayers.Layer.ux.NCWMS = OpenLayers.Class(OpenLayers.Layer.WMS, {
 			Both callbacks optional (though silly)
 		*/
 		var that = this;
-		OpenLayers.loadURL(
-			url,
-			"",
-			this,
-			function (result, request) {
+		OpenLayers.Request.GET({
+			url: url,
+			scope: this,
+			success: function (result, request) {
 				that._reloadDatesCallback(result, request, callback, errorCallback, scope);
 			},
-			function (result, request) {
+			failure: function (result, request) {
 				var errorMessage = 'Unknown error';
 				try {
 					var jsonData = Ext.util.JSON.decode(result.responseText);
@@ -131,10 +130,10 @@ OpenLayers.Layer.ux.NCWMS = OpenLayers.Class(OpenLayers.Layer.WMS, {
 				if (errorCallback) {
 					errorCallback.call(scope, errorMessage);
 				} else {
-					alert('Error while loading the dates for the NCWMS layer "'+this.json['layerName']+'": ' + errorMessage);
+					alert('Error while loading the dates for the NCWMS layer "'+this.atlasLayer.json['layerName']+'": ' + errorMessage);
 				}
 			}
-		);
+		});
 	},
 
 	// private
@@ -147,7 +146,7 @@ OpenLayers.Layer.ux.NCWMS = OpenLayers.Class(OpenLayers.Layer.WMS, {
 			if (errorCallback) {
 				errorCallback.call(scope, errorMessage);
 			} else {
-				alert('Error while loading the dates for the NCWMS layer "'+this.json['layerName']+'": ' + errorMessage);
+				alert('Error while loading the dates for the NCWMS layer "'+this.atlasLayer.json['layerName']+'": ' + errorMessage);
 			}
 			return;
 		}
@@ -162,7 +161,7 @@ OpenLayers.Layer.ux.NCWMS = OpenLayers.Class(OpenLayers.Layer.WMS, {
 			if (errorCallback) {
 				errorCallback.call(scope, errorMessage);
 			} else {
-				alert('Error while loading the dates for the NCWMS layer "'+this.json['layerName']+'": ' + errorMessage);
+				alert('Error while loading the dates for the NCWMS layer "'+this.atlasLayer.json['layerName']+'": ' + errorMessage);
 			}
 			return;
 		}
@@ -203,7 +202,7 @@ OpenLayers.Layer.ux.NCWMS = OpenLayers.Class(OpenLayers.Layer.WMS, {
 	//     parameter: error (string)
 	// scope: Scope used to call the callbacks
 	getAvailableTimes: function(date, callback, errorCallback, scope) {
-		if (!this.json) {
+		if (!this.atlasLayer || !this.atlasLayer.json) {
 			// This should not append
 			return;
 		}
@@ -212,12 +211,12 @@ OpenLayers.Layer.ux.NCWMS = OpenLayers.Class(OpenLayers.Layer.WMS, {
 			scope = this;
 		}
 
-		var serviceUrl = this.json['wmsServiceUrl'];
+		var serviceUrl = this.atlasLayer.json['wmsServiceUrl'];
 		var dateStr = date.format(this.dateRequestFormat).trim();
 
 		var url = serviceUrl + '?' + Ext.urlEncode({
 			item: 'timesteps',
-			layerName: this.json['layerName'],
+			layerName: this.atlasLayer.json['layerName'],
 			day: dateStr,
 			request: 'GetMetadata'
 		});
@@ -232,14 +231,13 @@ OpenLayers.Layer.ux.NCWMS = OpenLayers.Class(OpenLayers.Layer.WMS, {
 			Both callbacks optional (though silly)
 		*/
 		var that = this;
-		OpenLayers.loadURL(
-			url,
-			"",
-			this,
-			function (result, request) {
+		OpenLayers.Request.GET({
+			url: url,
+			scope: this,
+			success: function (result, request) {
 				that._getAvailableTimesRawCallback(result, request, date, callback, errorCallback, scope);
 			},
-			function (result, request) {
+			failure: function (result, request) {
 				var errorMessage = 'Unknown error';
 				try {
 					var jsonData = Ext.util.JSON.decode(result.responseText);
@@ -250,10 +248,10 @@ OpenLayers.Layer.ux.NCWMS = OpenLayers.Class(OpenLayers.Layer.WMS, {
 				if (errorCallback) {
 					errorCallback.call(scope, errorMessage);
 				} else {
-					alert('Error while loading the times for the NCWMS layer "'+that.json['layerName']+'": ' + errorMessage);
+					alert('Error while loading the times for the NCWMS layer "'+that.atlasLayer.json['layerName']+'": ' + errorMessage);
 				}
 			}
-		);
+		});
 	},
 
 	// private
@@ -266,7 +264,7 @@ OpenLayers.Layer.ux.NCWMS = OpenLayers.Class(OpenLayers.Layer.WMS, {
 			if (errorCallback) {
 				errorCallback.call(scope, errorMessage);
 			} else {
-				alert('Error while loading the times for the NCWMS layer "'+this.json['layerName']+'": ' + errorMessage);
+				alert('Error while loading the times for the NCWMS layer "'+this.atlasLayer.json['layerName']+'": ' + errorMessage);
 			}
 			return;
 		}
@@ -280,7 +278,7 @@ OpenLayers.Layer.ux.NCWMS = OpenLayers.Class(OpenLayers.Layer.WMS, {
 			if (errorCallback) {
 				errorCallback.call(scope, errorMessage);
 			} else {
-				alert('Error while loading the times for the NCWMS layer "'+this.json['layerName']+'": ' + errorMessage);
+				alert('Error while loading the times for the NCWMS layer "'+this.atlasLayer.json['layerName']+'": ' + errorMessage);
 			}
 			return;
 		}

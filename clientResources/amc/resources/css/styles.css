@@ -43,6 +43,15 @@ body {
 	margin: 1em 0;
 }
 
+/* Strong emphasis in this element is represented with red text. */
+.noJavaScript strong {
+	font-style: normal;
+	color: #CC0000;
+}
+.noJavaScript em {
+	font-style: italic;
+}
+
 /* Button on Embedded map */
 #goToMap {
 	position: relative;

@@ -59,12 +59,13 @@ Atlas.Layer.LayerHelper = {
 			case 'GOOGLE':
 				atlasLayer = new Atlas.Layer.Google(mapPanel, layerJSon);
 				break;
+			case 'BING':
+				atlasLayer = new Atlas.Layer.Bing(mapPanel, layerJSon);
+				break;
 			case 'XYZ':
 				atlasLayer = new Atlas.Layer.XYZ(mapPanel, layerJSon);
 				break;
-			case 'FOLDER':
-				atlasLayer = new Atlas.Layer.Folder(mapPanel, layerJSon);
-				break;
+			case 'SERVICE':
 			case 'GROUP':
 				atlasLayer = new Atlas.Layer.Group(mapPanel, layerJSon);
 				break;

@@ -20,31 +20,18 @@
  */
 
 /*
- TODO Add comment about Folder reverse order
+TODO Add comment about Folder reverse order
 
- Save node state:
+Save node state:
 
- Each node has its state saved in its layer, so it can be re-created
- after it get deleted from the tree (it happen every time the tree is
- refreshed).
+Each node has its state saved in its layer, so it can be re-created
+after it get deleted from the tree (it happen every time the tree is
+refreshed).
 
- NOTE: The state can not be save in the node itself since it get
- destroyed. The object "_state" can be used in the future to store
- more information, if needed.
-
- node.layer._state: {
- disabled: boolean, true to
- grey out the layer node; it can't be select/unselect
- (usually mean that a parent folder is disabling it)
- expanded: boolean, true to recreate the folder in open mode
- (only apply to folders).
- checked: boolean, store the value of the ckeck box of
- the node before it is moved (layer.getVisibility() is
- always false after unchecking its layer group because the
- layer has been hidden from the map)
- visible: boolean, visibility of the layer, before it get disabled.
- }
- */
+NOTE: The state can not be save in the node itself since it get
+destroyed. The object "Atlas.Layer.LayerState" can be used in the future to store
+more information, if needed.
+*/
 
 Ext.namespace("GeoExt.ux.tree");
 
@@ -140,7 +127,7 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 				scope: this
 			});
 
-			if (node.layer != null && node.layer.atlasLayer != null && node.layer.atlasLayer.isGroupOrFolder()) {
+			if (node.layer != null && node.layer.atlasLayer != null && node.layer.atlasLayer.isGroup()) {
 				node.on("checkchange", this.onFolderCheckChange, this);
 			}
 		}
@@ -157,7 +144,7 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 			node.layer.events.remove('loadstart');
 			node.layer.events.remove('loadend');
 			node.layer.events.remove('loadcancel');
-			if (node.layer != null && node.layer.atlasLayer != null && node.layer.atlasLayer.isGroupOrFolder()) {
+			if (node.layer != null && node.layer.atlasLayer != null && node.layer.atlasLayer.isGroup()) {
 				node.un("checkchange", this.onFolderCheckChange, this);
 			}
 		}
@@ -260,7 +247,7 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 	 */
 	_beforeAddLayer: function(event) {
 		var newLayer = event.layer;
-		if (newLayer && newLayer.path && newLayer.path.length > 0 && !newLayer.atlasLayer.isGroupOrFolder()) {
+		if (newLayer && newLayer.path && newLayer.path.length > 0 && !newLayer.atlasLayer.isGroup()) {
 			var groupLayer = null;
 			var parentGroup = null;
 			for (var i=0; i<newLayer.path.length; i++) {
@@ -289,7 +276,7 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 					}
 
 					var disabled = false;
-					if (parentGroup != null && !parentGroup._state.checked) {
+					if (parentGroup != null && !parentGroup.atlasLayer.layerState.checked) {
 						checked = false;
 						disabled = true;
 					}
@@ -299,25 +286,24 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 							groupPathConf,
 							newLayer.path.slice(0,i));
 
-					groupLayer = groupAtlasLayer.layer;
-
-					groupLayer._state = {
+					groupAtlasLayer.layerState = new Atlas.Layer.LayerState({
 						disabled: disabled,
 						expanded: false,
 						checked: checked
-					};
+					});
 
+					groupLayer = groupAtlasLayer.layer;
 					this.store.map.addLayer(groupLayer);
 				}
 			}
 
 			// Layer initial state
-			if (groupLayer != null && !groupLayer._state.checked) {
+			if (groupLayer != null && !groupLayer.atlasLayer.layerState.checked) {
 				newLayer.setVisibility(false);
-				newLayer._state = {
+				newLayer.atlasLayer.layerState = new Atlas.Layer.LayerState({
 					disabled: true,
 					checked: false
-				};
+				});
 			}
 		}
 	},
@@ -389,21 +375,21 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 				layer: layer,
 				layerStore: this.store
 			};
-			if (atlasLayer.isGroupOrFolder()) {
+			if (atlasLayer.isGroup()) {
 				childLayerNodeConfig.cls = 'layerGroup';
 				childLayerNodeConfig.loader = new GeoExt.ux.tree.GroupLoader();
 			}
 
 			// Restore state
-			if (layer._state != null) {
-				if (typeof(layer._state.disabled) == 'boolean') {
-					childLayerNodeConfig.disabled = layer._state.disabled;
+			if (layer.atlasLayer.layerState != null) {
+				if (typeof(layer.atlasLayer.layerState.disabled) == 'boolean') {
+					childLayerNodeConfig.disabled = layer.atlasLayer.layerState.disabled;
 				}
-				if (typeof(layer._state.expanded) == 'boolean') {
-					childLayerNodeConfig.expanded = layer._state.expanded;
+				if (typeof(layer.atlasLayer.layerState.expanded) == 'boolean') {
+					childLayerNodeConfig.expanded = layer.atlasLayer.layerState.expanded;
 				}
-				if (typeof(layer._state.checked) == 'boolean') {
-					childLayerNodeConfig.checked = layer._state.checked;
+				if (typeof(layer.atlasLayer.layerState.checked) == 'boolean') {
+					childLayerNodeConfig.checked = layer.atlasLayer.layerState.checked;
 				}
 			}
 
@@ -441,14 +427,14 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 	},
 
 	onFolderCheckChange: function(node, checked) {
-		if (!node.layer._state) {
-			node.layer._state = {};
+		if (!node.layer.atlasLayer.layerState) {
+			node.layer.atlasLayer.layerState = new Atlas.Layer.LayerState();
 		}
 		// Keep the state in sync.
 		// Note: this operation is only to help other module that would like to get information about the layer's state.
 		//     The important operation to save the node state is _saveNodeState in onBeforeMove method.
-		node.layer._state.checked = checked;
-		node.layer._state.disabled = !checked;
+		node.layer.atlasLayer.layerState.checked = checked;
+		node.layer.atlasLayer.layerState.disabled = !checked;
 
 		if (node.hasChildNodes()) {
 			if (checked) {
@@ -462,13 +448,13 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 	},
 
 	_enableNode: function(node) {
-		if (!node.layer._state) {
-			node.layer._state = {};
+		if (!node.layer.atlasLayer.layerState) {
+			node.layer.atlasLayer.layerState = new Atlas.Layer.LayerState();
 		}
 		// Keep the state in sync.
 		// Note: this operation is only to help other module that would like to get information about the layer's state.
 		//     The important operation to save the node state is _saveNodeState in onBeforeMove method.
-		node.layer._state.disabled = false;
+		node.layer.atlasLayer.layerState.disabled = false;
 
 		if (node.disabled) {
 			node.enable();
@@ -480,26 +466,26 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 
 			if (node.hasChildNodes() && checked) {
 				node.eachChild(this._enableNode, this);
-			} else if (node.layer != null && node.layer.atlasLayer != null && !node.layer.atlasLayer.isGroupOrFolder()) {
-				node.layer.setVisibility(node.layer._state && node.layer._state.visible);
+			} else if (node.layer != null && node.layer.atlasLayer != null && !node.layer.atlasLayer.isGroup()) {
+				node.layer.setVisibility(node.layer.atlasLayer.layerState && node.layer.atlasLayer.layerState.visible);
 			}
 		}
 	},
 	_disableNode: function(node) {
-		if (!node.layer._state) {
-			node.layer._state = {};
+		if (!node.layer.atlasLayer.layerState) {
+			node.layer.atlasLayer.layerState = new Atlas.Layer.LayerState();
 		}
 		// Keep the state in sync.
 		// Note: this operation is only to help other module that would like to get information about the layer's state.
 		//     The important operation to save the node state is _saveNodeState in onBeforeMove method.
-		node.layer._state.disabled = true;
+		node.layer.atlasLayer.layerState.disabled = true;
 
 		if (!node.disabled) {
 			node.disable();
 			if (node.hasChildNodes()) {
 				node.eachChild(this._disableNode, this);
-			} else if (node.layer != null && node.layer.atlasLayer != null && !node.layer.atlasLayer.isGroupOrFolder()) {
-				node.layer._state.visible = node.layer.getVisibility();
+			} else if (node.layer != null && node.layer.atlasLayer != null && !node.layer.atlasLayer.isGroup()) {
+				node.layer.atlasLayer.layerState.visible = node.layer.getVisibility();
 				node.layer.setVisibility(false);
 			}
 		}
@@ -519,15 +505,15 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 			if (node.layer != null) {
 				// Save the state in the layer, since the layer do not
 				// get deleted when the tree is refreshed.
-				if (!node.layer._state) {
-					node.layer._state = {};
+				if (!node.layer.atlasLayer.layerState) {
+					node.layer.atlasLayer.layerState = new Atlas.Layer.LayerState();
 				}
 
-				node.layer._state.disabled = node.disabled;
-				node.layer._state.expanded = node.isExpanded();
+				node.layer.atlasLayer.layerState.disabled = node.disabled;
+				node.layer.atlasLayer.layerState.expanded = node.isExpanded();
 
 				if (node.ui != null) {
-					node.layer._state.checked = node.ui.isChecked();
+					node.layer.atlasLayer.layerState.checked = node.ui.isChecked();
 				}
 			}
 

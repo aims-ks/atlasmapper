@@ -24,7 +24,6 @@ package au.gov.aims.atlasmapperserver;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
-import au.gov.aims.atlasmapperserver.layerConfig.FolderLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.GroupLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerConfigHelper;
 import au.gov.aims.atlasmapperserver.servlet.FileFinder;
@@ -700,9 +699,6 @@ public class ClientConfig extends AbstractConfig {
 		//     setting "shownOnlyInLayerGroup" to true in the layers overrides.
 		for (AbstractLayerConfig layer : overriddenLayerConfigs.values()) {
 			String[] layers = null;
-			if (layer instanceof FolderLayerConfig) {
-				layers = ((FolderLayerConfig)layer).getLayers();
-			}
 			if (layer instanceof GroupLayerConfig) {
 				layers = ((GroupLayerConfig)layer).getLayers();
 			}
@@ -745,9 +741,6 @@ public class ClientConfig extends AbstractConfig {
 				htmlList.append(title);
 
 				String[] childLayers = null;
-				if (child instanceof FolderLayerConfig) {
-					childLayers = ((FolderLayerConfig)child).getLayers();
-				}
 				if (child instanceof GroupLayerConfig) {
 					childLayers = ((GroupLayerConfig)child).getLayers();
 				}

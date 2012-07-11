@@ -78,7 +78,7 @@ It contains:\n\
 		<!-- Database containing the information about the EPSG CRS projections - dependencies (1.3M) -->
 		<!-- Available database format:
 			* hsql (gt-epsg-hsql - 1.8M) (SQL database in memory)
-			* wkt (gt-epsg-wkt - 87.3k) (Well Known Text)
+			* wkt (gt-epsg-wkt - 87.3k) (Well Known Text - Deprecated)
 			* PostgreSQL (gt-epsg-postgresql)
 			* Oracle (gt-epsg-oracle)
 			* Access (gt-epsg-access)
@@ -131,6 +131,7 @@ It contains:\n\
 					<exclude>amc/GeoExt/license.txt</exclude>
 
 					<exclude>amc/OpenLayers/OpenLayers-2.10/**</exclude>
+					<!--
 					<exclude>amc/OpenLayers/OpenLayers-2.11/apidoc_config/**</exclude>
 					<exclude>amc/OpenLayers/OpenLayers-2.11/art/**</exclude>
 					<exclude>amc/OpenLayers/OpenLayers-2.11/build/**</exclude>
@@ -140,6 +141,18 @@ It contains:\n\
 					<exclude>amc/OpenLayers/OpenLayers-2.11/lib/**</exclude>
 					<exclude>amc/OpenLayers/OpenLayers-2.11/tests/**</exclude>
 					<exclude>amc/OpenLayers/OpenLayers-2.11/tools/**</exclude>
+					-->
+					<exclude>amc/OpenLayers/OpenLayers-2.11/**</exclude>
+					<exclude>amc/OpenLayers/OpenLayers-2.12/apidoc_config/**</exclude>
+					<exclude>amc/OpenLayers/OpenLayers-2.12/art/**</exclude>
+					<exclude>amc/OpenLayers/OpenLayers-2.12/build/**</exclude>
+					<exclude>amc/OpenLayers/OpenLayers-2.12/doc/**</exclude>
+					<exclude>amc/OpenLayers/OpenLayers-2.12/doc_config/**</exclude>
+					<exclude>amc/OpenLayers/OpenLayers-2.12/examples/**</exclude>
+					<exclude>amc/OpenLayers/OpenLayers-2.12/lib/**</exclude>
+					<exclude>amc/OpenLayers/OpenLayers-2.12/notes/**</exclude>
+					<exclude>amc/OpenLayers/OpenLayers-2.12/tests/**</exclude>
+					<exclude>amc/OpenLayers/OpenLayers-2.12/tools/**</exclude>
 
 					<exclude>amc/extjs/3.3.0/ext-3.3.0/docs/**</exclude>
 					<exclude>amc/extjs/3.3.0/ext-3.3.0/examples/**</exclude>

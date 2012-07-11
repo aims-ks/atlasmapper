@@ -43,6 +43,10 @@ var dataSourceTypes = {
 		display: 'Google',
 		qtipHtml: 'Google base layers:<ul><li>Google Physical</li><li>Google Streets</li><li>Google Hybrid</li><li>Google Satellite</li></ul>'
 	},
+	'BING': {
+		display: 'Bing',
+		qtipHtml: 'Bing base layers:<ul><li>Bing Road</li><li>Bing Hybrid</li><li>Bing Aerial</li></ul>'
+	},
 	'WMTS': {
 		display: 'WMTS',
 		disabled: true,
@@ -143,6 +147,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 			'dataSourceType': 'WMS',
 			'cachingDisabled': false,
 			'showInLegend': true,
+			'forcePNG24': true,
 			'legendParameters': 'FORMAT=image/png\nHEIGHT=10\nWIDTH=20',
 			'webCacheParameters': 'LAYERS, TRANSPARENT, SERVICE, VERSION, REQUEST, EXCEPTIONS, FORMAT, SRS, BBOX, WIDTH, HEIGHT'
 		});
@@ -322,10 +327,25 @@ Ext.define('Writer.LayerServerConfigForm', {
 			height: 100
 		};
 
+		var forcePNG24 = {
+			qtipHtml: 'Force PNG24 format for tiles requests. Uncheck this box to use OpenLayers default format (PNG), which is rendered as PNG8 on most ArcGIS server and give poor image quality for imagery layers.',
+			boxLabel: 'Force PNG24',
+			name: 'forcePNG24',
+			xtype: 'checkboxfield'
+		};
+
 		var ignoredArcGISPath = {
 			fieldLabel: 'Ignored ArcGIS path',
 			qtipHtml: 'This field is used to work around a none standard configuration on the GBRMPA ArcGIS MapServer. If this data source is pulling it\'s configuration from GBRMPA ArcGIS MapServer, set this field to "Public/".',
 			name: 'ignoredArcGISPath'
+		};
+
+		var bingAPIKey = {
+			fieldLabel: 'Bing <a href="http://bingmapsportal.com" target="_blank">API key</a>',
+			qtipTitle: 'Bing API key',
+			qtipHtml: 'Bing layers need an API key. Get your own API key from bingmapsportal.com.',
+			name: 'bingAPIKey',
+			allowBlank: false
 		};
 
 
@@ -395,6 +415,14 @@ Ext.define('Writer.LayerServerConfigForm', {
 				advancedItems.push(blackAndWhiteListedLayers);
 				break;
 
+			case 'BING':
+				items.push(bingAPIKey);
+				items.push(comment);
+
+				advancedItems.push(globalManualOverride);
+				advancedItems.push(blackAndWhiteListedLayers);
+				break;
+
 			case 'ARCGIS_MAPSERVER':
 				items.push(Ext.apply(serviceUrl, { fieldLabel: 'ArcGIS service URL' }));
 				items.push(baseLayers);
@@ -405,6 +433,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 				advancedItems.push(blackAndWhiteListedLayers);
 				advancedItems.push(showInLegend);
 				advancedItems.push(legendUrl);
+				advancedItems.push(forcePNG24);
 				advancedItems.push(ignoredArcGISPath);
 				break;
 		}
@@ -609,6 +638,11 @@ Ext.define('Writer.LayerServerConfigGrid', {
 					width: 100,
 					sortable: true,
 					dataIndex: 'dataSourceId'
+				}, {
+					header: 'Type',
+					width: 80,
+					sortable: true,
+					dataIndex: 'dataSourceType'
 				}, {
 					header: 'Data source name',
 					flex: 1,
@@ -932,7 +966,7 @@ Ext.define('Writer.LayerServerConfig', {
 	// Grids records must have an unmutable ID
 
 	// Default values:
-	// Set default values in the defaultValues instance (lines 80~100).
+	// Set default values in the defaultValues instance (lines 140~150).
 	// Only set default value "false" for checkboxes:
 	// The form do not return the value when they are unchecked,
 	// forcing the model to set them to their 'model default value'.
@@ -959,8 +993,10 @@ Ext.define('Writer.LayerServerConfig', {
 		'globalManualOverride',
 		{name: 'cachingDisabled', type: 'boolean', defaultValue: false},
 		{name: 'showInLegend', type: 'boolean', defaultValue: false},
+		{name: 'forcePNG24', type: 'boolean', defaultValue: false},
 		'ignoredArcGISPath',
-		'comment'
+		'comment',
+		'bingAPIKey'
 	],
 	validations: [{
 		field: 'dataSourceId',

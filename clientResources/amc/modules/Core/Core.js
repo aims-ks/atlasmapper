@@ -70,21 +70,21 @@ Atlas.Core = OpenLayers.Class({
 
 		if (configUrl) {
 			this.configFileUrl = configUrl;
-			OpenLayers.loadURL(
-				this.configFileUrl,
-				{
+			OpenLayers.Request.GET({
+				url: this.configFileUrl,
+				params: {
 					ver: this.version // timestamp of last generation, to avoid caching
 				},
-				this,
-				this.preLoad,
-				function (result, request) {
+				scope: this,
+				success: this.preLoad,
+				failure: function (result, request) {
 					// TODO Error on the page
 					alert('The application has failed to load its configuration.');
 				}
-			);
+			});
 		} else {
 			// TODO Error on the page
-			alert("The application can not be loaded.\nThe specified config file can not be loaded...\n" + configUrl);
+			alert("The application can not be loaded.\nNo config file specified...");
 		}
 
 		if (layersFileUrl) {
@@ -480,25 +480,16 @@ Atlas.Core = OpenLayers.Class({
 					}
 				};
 
-				/**
-				 Parameters
-				 uri         {String} URI of source doc
-				 params      {String} Params on get
-				 caller      {Object} object which gets callbacks
-				 onComplete  {Function} callback for success
-				 onFailure   {Function} callback for failure
-				 Both callbacks optional (though silly)
-				 */
-				OpenLayers.loadURL(
-					url,
-					params,
-					this,
-					received,
-					function (result, request) {
+				OpenLayers.Request.GET({
+					url: url,
+					params: params,
+					scope: this,
+					success: received,
+					failure: function (result, request) {
 						// TODO Error on the page
 						alert('The application has failed to load the requested layers');
 					}
-				);
+				});
 			}
 		} else if (cachedLayersJSon.length > 0) {
 			// Call the callback with found layers

@@ -22,13 +22,13 @@
 package au.gov.aims.atlasmapperserver.layerGenerator;
 
 import au.gov.aims.atlasmapperserver.ClientConfig;
+import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.URLCache;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.ArcGISMapServerDataSourceConfig;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.ArcGISCacheLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.ArcGISMapServerLayerConfig;
-import au.gov.aims.atlasmapperserver.layerConfig.FolderLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.GroupLayerConfig;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -64,8 +64,8 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 
 		if (layer instanceof ArcGISMapServerLayerConfig) {
 			arcGISPath = ((ArcGISMapServerLayerConfig)layer).getArcGISPath();
-		} else if (layer instanceof FolderLayerConfig) {
-			arcGISPath = ((FolderLayerConfig)layer).getFolderPath();
+//		} else if (layer instanceof FolderLayerConfig) {
+//			arcGISPath = ((FolderLayerConfig)layer).getFolderPath();
 		} else if (layer instanceof GroupLayerConfig) {
 			arcGISPath = ((GroupLayerConfig)layer).getGroupPath();
 		}
@@ -78,7 +78,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 		// Add the layer ID and the layer title for readability
 		//     I.E. Animals/0_Turtle
 		// NOTE: Only add those for layers (not folders)
-		if (!"FOLDER".equals(layer.getDataSourceType())) {
+		if (!"FOLDER".equals(layer.getDataSourceType()) && !"SERVICE".equals(layer.getDataSourceType())) {
 			layerUniqueId.append(layer.getLayerId());
 			layerUniqueId.append("_");
 			layerUniqueId.append(layer.getTitle());
@@ -93,7 +93,10 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 		}
 
 		Map<String, AbstractLayerConfig> layers = new HashMap<String, AbstractLayerConfig>();
-		parseJSON(layers, null, null, dataSourceConfig);
+
+		// Fill the Map of layers
+		parseJSON(layers, null, null, null, dataSourceConfig);
+
 		return layers;
 	}
 
@@ -130,10 +133,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 		return Utils.setUrlParameter(Utils.setUrlParameter(url.toString(), "f", "json"), "pretty", "true");
 	}
 
-	private List<AbstractLayerConfig> parseJSON(Map<String, AbstractLayerConfig> allLayers, String arcGISPath, String type, ArcGISMapServerDataSourceConfig dataSourceConfig) throws IOException, JSONException {
-		return parseJSON(allLayers, arcGISPath, type, dataSourceConfig, null);
-	}
-	private List<AbstractLayerConfig> parseJSON(Map<String, AbstractLayerConfig> allLayers, String arcGISPath, String type, ArcGISMapServerDataSourceConfig dataSourceConfig, JSONObject jsonParentService) throws IOException, JSONException {
+	private List<AbstractLayerConfig> parseJSON(Map<String, AbstractLayerConfig> allLayers, String wmsPath, String arcGISPath, String type, ArcGISMapServerDataSourceConfig dataSourceConfig) throws IOException, JSONException {
 		// We currently only support MapServer. Other possible values: GlobeServer
 		if (type != null && !this.isServiceSupported(type)) {
 			return null;
@@ -176,6 +176,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 						if (Utils.isNotBlank(arcGISPath)) {
 							groupLayer.setGroupPath(arcGISPath);
 						}
+
 						layer = groupLayer;
 					} else {
 						// Request more info about the layer (Max extent, description, etc.)
@@ -188,15 +189,12 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 							);
 						}
 
-						ArcGISMapServerLayerConfig arcGISLayer = null;
-						if (jsonParentService != null && jsonParentService.has("tileInfo")) {
-							arcGISLayer = this.getLayerCacheConfig(jsonLayer, jsonLayerExtra, jsonParentService, dataSourceConfig);
-						} else {
-							arcGISLayer = this.getLayerConfig(jsonLayer, jsonLayerExtra, dataSourceConfig);
-						}
+						ArcGISMapServerLayerConfig arcGISLayer = this.getLayerConfig(jsonLayer, jsonLayerExtra, dataSourceConfig);
+
 						if (Utils.isNotBlank(arcGISPath)) {
 							arcGISLayer.setArcGISPath(arcGISPath);
 						}
+
 						layer = arcGISLayer;
 					}
 
@@ -217,9 +215,6 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 				List<AbstractLayerConfig> childrenToRemove = new ArrayList<AbstractLayerConfig>();
 				for (AbstractLayerConfig layer : children) {
 					String[] subLayerIds = null;
-					if (layer instanceof FolderLayerConfig) {
-						subLayerIds = ((FolderLayerConfig)layer).getLayers();
-					}
 					if (layer instanceof GroupLayerConfig) {
 						subLayerIds = ((GroupLayerConfig)layer).getLayers();
 					}
@@ -248,25 +243,12 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 				for (int i = 0; i < jsonFolders.length(); i++) {
 					String childArcGISPath = this.getArcGISPath(jsonFolders.optString(i, null), dataSourceConfig);
 
-					// This "if" prevent a possible infinite loop:
+					// Recursive call of parseJSON using childArcGISPath (the name of the current folder) as wmsPath
+					// NOTE: This "if" prevent a possible infinite loop:
 					// If one of the folder name is null or an empty string, the URL will be the same, returning the
 					// same folder name including the null / empty string.
 					if (Utils.isNotBlank(childArcGISPath)) {
-						List<AbstractLayerConfig> subChildren = parseJSON(allLayers, childArcGISPath, null, dataSourceConfig, null);
-						if (subChildren != null) {
-							AbstractLayerConfig layerFolder = this.getLayerFolderConfig(childArcGISPath, subChildren, null, dataSourceConfig);
-							this.ensureUniqueLayerId(layerFolder, dataSourceConfig);
-
-							// Check the layer catalog for this data source to be sure that the layer ID do not already exists.
-							if (this.isUniqueId(allLayers, layerFolder)) {
-								allLayers.put(layerFolder.getLayerId(), layerFolder);
-								children.add(layerFolder);
-							} else {
-								String errorMsg = "Two layers from the data source ["+dataSourceConfig.getDataSourceName()+"] are returning the same ID: ["+layerFolder.getLayerId()+"]";
-								LOGGER.log(Level.SEVERE, errorMsg);
-								throw new IllegalStateException(errorMsg);
-							}
-						}
+						parseJSON(allLayers, childArcGISPath, childArcGISPath, null, dataSourceConfig);
 					}
 				}
 			}
@@ -286,10 +268,14 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 						);
 					}
 
-					List<AbstractLayerConfig> subChildren = parseJSON(allLayers, childArcGISPath, childType, dataSourceConfig, jsonServiceExtra);
+					List<AbstractLayerConfig> subChildren = parseJSON(allLayers, wmsPath, childArcGISPath, childType, dataSourceConfig);
 					if (subChildren != null) {
-						AbstractLayerConfig layerService = this.getLayerFolderConfig(childArcGISPath, subChildren, jsonServiceExtra, dataSourceConfig);
+						AbstractLayerConfig layerService = this.getLayerServiceConfig(childArcGISPath, subChildren, jsonServiceExtra, dataSourceConfig);
 						this.ensureUniqueLayerId(layerService, dataSourceConfig);
+
+						if (Utils.isNotBlank(wmsPath)) {
+							layerService.setWmsPath(wmsPath);
+						}
 
 						// Check the layer catalog for this data source to be sure that the layer ID do not already exists.
 						if (this.isUniqueId(allLayers, layerService)) {
@@ -359,6 +345,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 		return layer;
 	}
 
+	// TODO Change the logic - Only the service (map) is cache, not the layers individually
 	private ArcGISCacheLayerConfig getLayerCacheConfig(JSONObject jsonLayer, JSONObject jsonLayerExtra, JSONObject jsonParentService, ArcGISMapServerDataSourceConfig dataSourceConfig) {
 		ArcGISCacheLayerConfig layer = new ArcGISCacheLayerConfig(dataSourceConfig.getConfigManager());
 
@@ -445,11 +432,11 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 		return groupLayer;
 	}
 
-	private FolderLayerConfig getLayerFolderConfig(String childArcGISPath, List<AbstractLayerConfig> children, JSONObject jsonFolderExtra, ArcGISMapServerDataSourceConfig dataSourceConfig) {
+	private GroupLayerConfig getLayerServiceConfig(String childArcGISPath, List<AbstractLayerConfig> children, JSONObject jsonServiceExtra, ArcGISMapServerDataSourceConfig dataSourceConfig) {
 		if (childArcGISPath == null) {
 			return null;
 		}
-		FolderLayerConfig folderLayer = new FolderLayerConfig(dataSourceConfig.getConfigManager());
+		GroupLayerConfig serviceLayer = new GroupLayerConfig(dataSourceConfig.getConfigManager());
 
 		// Keep only the lase part of the path for the folder display title
 		String groupName = childArcGISPath;
@@ -465,30 +452,30 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 			layers[i++] = layer.getLayerId();
 		}
 
-		folderLayer.setLayerId(groupName);
-		folderLayer.setDataSourceId(dataSourceConfig.getDataSourceId());
-		folderLayer.setDataSourceType("FOLDER");
+		serviceLayer.setLayerId(groupName);
+		serviceLayer.setDataSourceId(dataSourceConfig.getDataSourceId());
+		serviceLayer.setDataSourceType("SERVICE");
 
-		folderLayer.setTitle(groupTitle);
-		folderLayer.setLayers(layers);
+		serviceLayer.setTitle(groupTitle);
+		serviceLayer.setLayers(layers);
 
 		// TODO folderLayer.maxExtent
-		if (jsonFolderExtra != null) {
-			folderLayer.setDescription(jsonFolderExtra.optString("serviceDescription", null));
+		if (jsonServiceExtra != null) {
+			serviceLayer.setDescription(jsonServiceExtra.optString("serviceDescription", null));
 
-			double[] extent = this.getExtent(jsonFolderExtra.optJSONObject("initialExtent"), folderLayer.getTitle(), dataSourceConfig.getDataSourceName());
+			double[] extent = this.getExtent(jsonServiceExtra.optJSONObject("initialExtent"), serviceLayer.getTitle(), dataSourceConfig.getDataSourceName());
 			if (extent == null) {
-				extent = this.getExtent(jsonFolderExtra.optJSONObject("fullExtent"), folderLayer.getTitle(), dataSourceConfig.getDataSourceName());
+				extent = this.getExtent(jsonServiceExtra.optJSONObject("fullExtent"), serviceLayer.getTitle(), dataSourceConfig.getDataSourceName());
 			}
 			if (extent != null) {
-				folderLayer.setLayerBoundingBox(extent);
+				serviceLayer.setLayerBoundingBox(extent);
 			}
 		}
 
 		// childArcGISPath contains the current layerGroup
-		folderLayer.setFolderPath(childArcGISPath);
+		serviceLayer.setGroupPath(childArcGISPath);
 
-		return folderLayer;
+		return serviceLayer;
 	}
 
 	/**
@@ -516,19 +503,29 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 				jsonExtent.optDouble("ymax")
 			};
 
-			String sourceCRSStr = "EPSG:" + jsonSourceCRS.optString("wkid", null);
-
-			try {
-				reprojectedExtent = Utils.reprojectCoordinatesToDegrees(extent, sourceCRSStr);
-			} catch (NoSuchAuthorityCodeException ex) {
-				LOGGER.log(Level.WARNING, "The layer ["+layerTitle+"] from the data source ["+dataSourceTitle+"] has an unknown extent CRS. " + ex.getMessage());
-			} catch (Exception ex) {
-				LOGGER.log(Level.WARNING, "The layer ["+layerTitle+"] from the data source ["+dataSourceTitle+"] has an unsupported extent. " + ex.getMessage());
+			String wkid = jsonSourceCRS.optString("wkid", null);
+			String wkt = jsonSourceCRS.optString("wkt", null);
+			if (Utils.isNotBlank(wkid)) {
+				try {
+					reprojectedExtent = Utils.reprojectWKIDCoordinatesToDegrees(extent, "EPSG:" + wkid);
+				} catch (NoSuchAuthorityCodeException ex) {
+					LOGGER.log(Level.WARNING, "The layer ["+layerTitle+"] from the data source ["+dataSourceTitle+"] has an unknown extent CRS. " + ex.getMessage());
+				} catch (Exception ex) {
+					LOGGER.log(Level.WARNING, "The layer ["+layerTitle+"] from the data source ["+dataSourceTitle+"] has an unsupported extent. " + ex.getMessage());
+				}
+			} else if (Utils.isNotBlank(wkt)) {
+				try {
+					reprojectedExtent = Utils.reprojectWKTCoordinatesToDegrees(extent, wkt);
+				} catch (NoSuchAuthorityCodeException ex) {
+					LOGGER.log(Level.WARNING, "The layer ["+layerTitle+"] from the data source ["+dataSourceTitle+"] has an unknown extent CRS. " + ex.getMessage());
+				} catch (Exception ex) {
+					LOGGER.log(Level.WARNING, "The layer ["+layerTitle+"] from the data source ["+dataSourceTitle+"] has an unsupported extent. " + ex.getMessage());
+				}
 			}
 		}
 
 		if (reprojectedExtent != null) {
-			// Ensure that the conversion was successful
+			// Ensure that the conversion is usable
 			boolean valid = true;
 			for (int i=0; i<reprojectedExtent.length; i++) {
 				if (Double.isNaN(reprojectedExtent[i])) {

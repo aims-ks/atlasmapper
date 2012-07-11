@@ -23,12 +23,13 @@ package au.gov.aims.atlasmapperserver;
 import au.gov.aims.atlasmapperserver.collection.MultiKeyHashMap;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfigInterface;
+import au.gov.aims.atlasmapperserver.dataSourceConfig.ArcGISMapServerDataSourceConfigInterface;
+import au.gov.aims.atlasmapperserver.dataSourceConfig.BingDataSourceConfig;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.DataSourceConfigHelper;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.WMSDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.ArcGISCacheLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.ArcGISMapServerLayerConfig;
-import au.gov.aims.atlasmapperserver.layerConfig.FolderLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.GroupLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.KMLLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerOptionConfig;
@@ -1767,6 +1768,22 @@ public class ConfigManager {
 			}
 		}
 
+		if (dataSourceConfig instanceof ArcGISMapServerDataSourceConfigInterface) {
+			ArcGISMapServerDataSourceConfigInterface arcGISDataSource = (ArcGISMapServerDataSourceConfigInterface)dataSourceConfig;
+
+			if (arcGISDataSource.isForcePNG24() != null) {
+				dataSource.put("forcePNG24", arcGISDataSource.isForcePNG24());
+			}
+		}
+
+		if (dataSourceConfig instanceof BingDataSourceConfig) {
+			BingDataSourceConfig bingDataSource = (BingDataSourceConfig)dataSourceConfig;
+
+			if (bingDataSource.getBingAPIKey() != null) {
+				dataSource.put("bingAPIKey", bingDataSource.getBingAPIKey());
+			}
+		}
+
 		return dataSource;
 	}
 
@@ -2122,6 +2139,8 @@ public class ConfigManager {
 				jsonLayer.put("layers", groupLayers);
 			}
 
+/*
+		// TODO DELETE
 		} else if (layerConfig instanceof FolderLayerConfig) {
 			FolderLayerConfig folderLayerConfig = (FolderLayerConfig)layerConfig;
 			if(Utils.isNotBlank(folderLayerConfig.getFolderPath())) {
@@ -2132,6 +2151,7 @@ public class ConfigManager {
 			if (groupLayers != null && groupLayers.length > 0) {
 				jsonLayer.put("layers", groupLayers);
 			}
+*/
 
 		} else if (layerConfig instanceof KMLLayerConfig) {
 			KMLLayerConfig kmlLayerConfig = (KMLLayerConfig)layerConfig;

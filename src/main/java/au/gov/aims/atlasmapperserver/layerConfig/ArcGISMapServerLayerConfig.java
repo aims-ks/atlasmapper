@@ -27,6 +27,9 @@ import au.gov.aims.atlasmapperserver.dataSourceConfig.ArcGISMapServerDataSourceC
 
 public class ArcGISMapServerLayerConfig extends AbstractLayerConfig implements ArcGISMapServerDataSourceConfigInterface {
 	@ConfigField
+	private Boolean forcePNG24;
+
+	@ConfigField
 	private String arcGISPath;
 
 	@ConfigField
@@ -36,6 +39,13 @@ public class ArcGISMapServerLayerConfig extends AbstractLayerConfig implements A
 		super(configManager);
 	}
 
+	public Boolean isForcePNG24() {
+		return this.forcePNG24;
+	}
+
+	public void setForcePNG24(Boolean forcePNG24) {
+		this.forcePNG24 = forcePNG24;
+	}
 
 	@Override
 	public String getIgnoredArcGISPath() {

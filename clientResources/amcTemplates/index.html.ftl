@@ -52,8 +52,9 @@
 	</div>
 	<noscript>
 		<hr/>
-		<p>
-			You need to have JavaScript enabled to use the Map.
+		<p class="noJavaScript">
+			Error: <strong>JavaScript is disabled</strong>.<br/>
+			You need to have <em>JavaScript enabled</em> to use the Map.
 		</p>
 	</noscript>
 	<script type="text/javascript">
@@ -72,7 +73,7 @@
 	</script>
 	<![endif]-->
 
-	<script type="text/javascript" src="OpenLayers/OpenLayers-2.11/OpenLayers.js"></script>
+	<script type="text/javascript" src="OpenLayers/OpenLayers-2.12/OpenLayers.js"></script>
 	<script type="text/javascript" src="OpenLayers-ux/NCWMS.js"></script>
 	<script type="text/javascript" src="OpenLayers-ux/NCTimeSeriesClickControl.js"></script>
 	<script type="text/javascript" src="OpenLayers-ux/NCTransectDrawControl.js"></script>
@@ -116,13 +117,14 @@
 	<script type="text/javascript" src="GeoExt-ux/GroupLayerLoader.js"></script>
 
 	<script type="text/javascript" src="modules/Core/Core.js"></script>
+	<script type="text/javascript" src="modules/MapPanel/Layer/LayerState.js"></script>
 	<script type="text/javascript" src="modules/MapPanel/Layer/AbstractLayer.js"></script>
 		<script type="text/javascript" src="modules/MapPanel/Layer/ArcGISMapServer.js"></script>
 			<script type="text/javascript" src="modules/MapPanel/Layer/ArcGISCache.js"></script>
 		<script type="text/javascript" src="modules/MapPanel/Layer/Dummy.js"></script>
-		<script type="text/javascript" src="modules/MapPanel/Layer/Folder.js"></script>
 		<script type="text/javascript" src="modules/MapPanel/Layer/Group.js"></script>
 		<script type="text/javascript" src="modules/MapPanel/Layer/Google.js"></script>
+		<script type="text/javascript" src="modules/MapPanel/Layer/Bing.js"></script>
 		<script type="text/javascript" src="modules/MapPanel/Layer/KML.js"></script>
 		<script type="text/javascript" src="modules/MapPanel/Layer/WMS.js"></script>
 			<script type="text/javascript" src="modules/MapPanel/Layer/NCWMS.js"></script>

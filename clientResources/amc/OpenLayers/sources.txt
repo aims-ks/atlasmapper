@@ -1,1 +1,1 @@
-http://trac.osgeo.org/openlayers/wiki/HowToDownload
+http://openlayers.org/download/OpenLayers-2.12.tar.gz

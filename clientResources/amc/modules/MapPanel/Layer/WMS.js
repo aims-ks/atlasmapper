@@ -106,7 +106,7 @@ Atlas.Layer.WMS = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 
 		if (this.json['projection']) {
 			layerOptions.projection = this.json['projection'];
-		} else if (this.mapPanel.map) {
+		} else if (this.mapPanel) {
 			layerOptions.projection = this.mapPanel.map.getProjectionObject()
 		}
 

@@ -381,14 +381,13 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 					});
 
 					var that = this;
-					OpenLayers.loadURL(
-						url,
-						"",
-						this,
-						function (result, request) {
+					OpenLayers.Request.GET({
+						url: url,
+						scope: this,
+						success: function (result, request) {
 							that._setNCWMSOptions(result, request, layer);
 						},
-						function (result, request) {
+						failure: function (result, request) {
 							var resultMessage = 'Unknown error';
 							try {
 								var jsonData = Ext.util.JSON.decode(result.responseText);
@@ -399,7 +398,7 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 							// TODO Error on the page
 							alert('Error while loading ncWMS options: ' + resultMessage);
 						}
-					);
+					});
 				}
 
 				// User defined in the Manual layer override

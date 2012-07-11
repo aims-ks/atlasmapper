@@ -151,7 +151,7 @@
 			<tr>
 				<td>layerBoundingBox</td>
 				<td>[134.91053, -29.91797, 156.53147, -8.29703]</td>
-				<td>The cumulated bounding box of all layers of the group, to enable the locate feature.</td>
+				<td>The cumulative bounding box of all layers of the group, to enable the locate feature.</td>
 			</tr>
 			<tr>
 				<td>layers</td>
@@ -234,7 +234,7 @@
 			<tr>
 				<td class="attr">layerBoundingBox</td> <!-- TODO Is this field work? -->
 				<td class="type">Array of 4 decimal numbers</td>
-				<td class="desc">The coordinate of the top-left corner and the bottom left corder of the layer. Those coordinates are used to locate the layer when the <i>Locate</i> button is pressed.</td>
+				<td class="desc">The coordinate of the top-left corner and the bottom-right corner of the layer. Those coordinates are used to locate the layer when the <i>Locate</i> button is pressed.</td>
 			</tr>
 			<tr>
 				<td class="attr">wmsQueryable</td>
@@ -502,7 +502,8 @@
 	}
 }
 </pre>
-					See: <a href="http://dev.openlayers.org/releases/OpenLayers-2.11/doc/apidocs/files/OpenLayers/Layer/Grid-js.html">OpenLayers Grid layer API</a>, list of <i>Properties</i>.
+					See: <a href="http://dev.openlayers.org/releases/OpenLayers-2.11/doc/apidocs/files/OpenLayers/Layer/Grid-js.html">OpenLayers Grid layer API</a>, list of <i>Properties</i>.<br/>
+					NOTE: the option <i>singleTile</i> should not be used with <i>ncWMS</i> since the tiles can not exceed 1024x1024.
 				</td>
 			</tr>
 			<!-- styles & layerOptions: [name, type, mandatory, defaultValue] -->

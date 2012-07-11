@@ -34,16 +34,6 @@ Atlas.Layer.ArcGISMapServer = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 	initialize: function(mapPanel, jsonLayer) {
 		Atlas.Layer.AbstractLayer.prototype.initialize.apply(this, arguments);
 
-		var layerOptions = this.getArcGISLayerOptions();
-		var layerParams = {
-			layers: "show:" + (this.json['layerName'] || this.json['layerId']),
-			transparent: true
-		};
-
-		if (typeof(this.json['olParams']) !== 'undefined') {
-			layerParams = this.applyOlOverrides(layerParams, this.json['olParams']);
-		}
-
 		var url = this.json['wmsServiceUrl'];
 		if (this.json['arcGISPath']) {
 			url += '/' + this.json['arcGISPath'];
@@ -53,9 +43,26 @@ Atlas.Layer.ArcGISMapServer = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 		this.layer = this.extendLayer(new OpenLayers.Layer.ArcGIS93Rest(
 			this.getTitle(),
 			url,
-			layerParams,
-			layerOptions
+			this.getArcGISLayerParams(),
+			this.getArcGISLayerOptions()
 		));
+	},
+
+	getArcGISLayerParams: function() {
+		var layerParams = {
+			layers: "show:" + (this.json['layerName'] || this.json['layerId']),
+			transparent: true
+		};
+
+		if (typeof(this.json['forcePNG24']) !== 'undefined' && this.json['forcePNG24']) {
+			layerParams['format'] = 'PNG24';
+		}
+
+		if (typeof(this.json['olParams']) !== 'undefined') {
+			layerParams = this.applyOlOverrides(layerParams, this.json['olParams']);
+		}
+
+		return layerParams;
 	},
 
 	getArcGISLayerOptions: function() {

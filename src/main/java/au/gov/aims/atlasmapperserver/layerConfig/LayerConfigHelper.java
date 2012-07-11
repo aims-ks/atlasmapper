@@ -39,8 +39,6 @@ public class LayerConfigHelper {
 			layerConfig = new TilesLayerConfig(configManager);
 		} else if ("XYZ".equals(dataSourceType)) {
 			layerConfig = new XYZLayerConfig(configManager);
-		} else if ("FOLDER".equals(dataSourceType)) {
-			layerConfig = new FolderLayerConfig(configManager);
 		} else if ("GROUP".equals(dataSourceType)) {
 			layerConfig = new GroupLayerConfig(configManager);
 		} else {

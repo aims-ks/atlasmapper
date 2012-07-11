@@ -335,8 +335,8 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 		embeddedMap.style.width = width+'px';
 		embeddedMap.style.height = height+'px';
 
-		fullLink.innerHTML = fullUrlStr;
-		embeddedCode.innerHTML = '<iframe src="' + embeddedUrlStr + '" style="border:none;width:'+width+'px;height:'+height+'px"></iframe>';
+		fullLink.value = fullUrlStr;
+		embeddedCode.value = '<iframe src="' + embeddedUrlStr + '" style="border:none;width:'+width+'px;height:'+height+'px"></iframe>';
 	},
 
 	showEmbeddedLinkWindow: function() {
@@ -375,13 +375,13 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 			bodyStyle: 'padding: 4px',
 
 			html: 'Copy / Paste URL in email<br/>\n' +
-				'<textarea onClick="this.select()" id="fullLink'+uid+'" readonly="true" style="width:500px; height:40px;">' +
+				'<input type="text" onClick="this.select()" id="fullLink'+uid+'" readonly="true" style="width:500px;" value="' +
 				fullUrlStr +
-				'</textarea><br/><br/>\n' +
+				'"><br/>\n' +
 				'Copy / Paste <b>HTML</b> to create an <i>Embedded map</i><br/>\n' +
-				'<textarea onClick="this.select()" id="embeddedCode'+uid+'" readonly="true" style="width:500px; height:100px;">' +
+				'<input type="text" onClick="this.select()" id="embeddedCode'+uid+'" readonly="true" style="width:500px;" value=\'' +
 				'<iframe src="' + embeddedUrlStr + '" style="border:none;width:500px;height:500px"></iframe>' +
-				'</textarea><br/><br/>\n' + 
+				'\'><br/>\n' +
 				warningMsg +
 				'Size: <input id="w'+uid+'" type="text" value="500" style="width:50px"/>px'+
 				' X <input id="h'+uid+'" type="text" value="500" style="width:50px"/>px<br/><br/>\n'+

@@ -39,6 +39,9 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 	supportLoadEvents: true,
 	loaded: false,
 
+	// Save state, using URL parameters
+	layerState: null,
+
 	/**
 	 * Private Constructor: Atlas.Layer.AbstractLayer
 	 *
@@ -161,7 +164,7 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 				layer: this.layer,
 				property: "hideInLegend"
 			});
-			this.ol_fireEvent('legendVisibilityChange', {layer: this.layer});
+			this.mapPanel.ol_fireEvent('legendVisibilityChange', {layer: this.layer});
 		}
 	},
 
@@ -251,24 +254,14 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 		return this instanceof Atlas.Layer.Dummy;
 	},
 
-	isFolder: function() {
-		return this instanceof Atlas.Layer.Folder;
-	},
-
 	isGroup: function() {
 		return this instanceof Atlas.Layer.Group;
-	},
-
-	// Seems a bit redundant, but it's save a lot of code
-	isGroupOrFolder: function() {
-		return this.isGroup() || this.isFolder();
 	},
 
 	hasRealLayer: function() {
 		return typeof(this.layer) != 'undefined' &&
 			this.layer != null &&
 			!this.isDummy() &&
-			!this.isFolder() &&
 			!this.isGroup();
 	}
 });

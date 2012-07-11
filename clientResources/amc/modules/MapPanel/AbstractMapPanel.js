@@ -166,7 +166,7 @@ Atlas.AbstractMapPanel = {
 		var controls = [];
 		if (this.embedded) {
 			controls = [
-				new OpenLayers.Control.ZoomPanel(),
+				new OpenLayers.Control.Zoom(), // Nice looking, simple zoom box
 				new OpenLayers.Control.ScaleLine({geodesic: true}),     // Displays a small line indicator representing the current map scale on the map. ("geodesic: true" has to be set to recalculate the scale line when the map get span closer to the poles)
 				//new OpenLayers.Control.Scale(),         // Displays the map scale (example: 1:1M).
 				new OpenLayers.Control.MousePosition({
@@ -228,7 +228,7 @@ Atlas.AbstractMapPanel = {
 			}
 		}
 
-		// 3 options required object instanciation
+		// Options required object instanciation
 		mapOptions['projection'] = projection;
 		mapOptions['maxExtent'] = maxExtent;
 		mapOptions['controls'] = controls;
@@ -540,7 +540,7 @@ Atlas.AbstractMapPanel = {
 
 	_isLayerNeededInUrl: function(jsonLayer) {
 		// Layer group are not added to the URL (but not their layers)
-		if (jsonLayer['dataSourceType'] == 'FOLDER' || jsonLayer['dataSourceType'] == 'GROUP') {
+		if (jsonLayer['dataSourceType'] == 'SERVICE' || jsonLayer['dataSourceType'] == 'GROUP') {
 			return false;
 		}
 
@@ -599,49 +599,7 @@ Atlas.AbstractMapPanel = {
 		}
 
 		var atlasLayer = Atlas.Layer.LayerHelper.createLayer(this, layerJSon);
-/*
-		var atlasLayer = null;
 
-		if (typeof(layerJSon['dataSourceType']) === 'undefined') {
-			alert('Layer '+layerJSon['layerId']+' has no dataSourceType defined.');
-			return;
-		}
-
-		switch (layerJSon['dataSourceType']) {
-			case 'NCWMS':
-				atlasLayer = new Atlas.Layer.NCWMS(this, layerJSon);
-				break;
-			case 'ARCGIS_MAPSERVER':
-				atlasLayer = new Atlas.Layer.ArcGISMapServer(this, layerJSon);
-				break;
-			case 'ARCGIS_CACHE':
-				atlasLayer = new Atlas.Layer.ArcGISCache(this, layerJSon);
-				break;
-			case 'WMS':
-				atlasLayer = new Atlas.Layer.WMS(this, layerJSon);
-				break;
-			case 'WMTS':
-				atlasLayer = new Atlas.Layer.WMTS(this, layerJSon);
-				break;
-			case 'KML':
-				atlasLayer = new Atlas.Layer.KML(this, layerJSon);
-				break;
-			case 'GOOGLE':
-				atlasLayer = new Atlas.Layer.Google(this, layerJSon);
-				break;
-			case 'XYZ':
-				atlasLayer = new Atlas.Layer.XYZ(this, layerJSon);
-				break;
-			case 'FOLDER':
-				atlasLayer = new Atlas.Layer.Folder(this, layerJSon);
-				break;
-			case 'GROUP':
-				atlasLayer = new Atlas.Layer.Group(this, layerJSon);
-				break;
-			default:
-				alert('Layer type '+layerJSon['dataSourceType']+' for layer '+layerJSon['layerId']+', is not implemented.');
-		}
-*/
 		if (!atlasLayer) {
 			// TODO THROW EXCEPTION
 			return;

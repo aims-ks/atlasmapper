@@ -30,12 +30,23 @@ import au.gov.aims.atlasmapperserver.layerGenerator.ArcGISMapServerLayerGenerato
 import java.io.IOException;
 
 public class ArcGISMapServerDataSourceConfig extends AbstractDataSourceConfig implements ArcGISMapServerDataSourceConfigInterface {
+	@ConfigField
+	private Boolean forcePNG24;
+
 	// This field is used to work around a none standard configuration on the GBRMPA ArcGIS server.
 	@ConfigField
 	private String ignoredArcGISPath;
 
 	public ArcGISMapServerDataSourceConfig(ConfigManager configManager) {
 		super(configManager);
+	}
+
+	public Boolean isForcePNG24() {
+		return this.forcePNG24;
+	}
+
+	public void setForcePNG24(Boolean forcePNG24) {
+		this.forcePNG24 = forcePNG24;
 	}
 
 	public String getIgnoredArcGISPath() {

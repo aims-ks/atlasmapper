@@ -32,6 +32,8 @@ public class DataSourceConfigHelper {
 			dataSourceConfig = new ArcGISMapServerDataSourceConfig(configManager);
 		} else if ("GOOGLE".equals(dataSourceType)) {
 			dataSourceConfig = new GoogleDataSourceConfig(configManager);
+		} else if ("BING".equals(dataSourceType)) {
+			dataSourceConfig = new BingDataSourceConfig(configManager);
 		} else if ("KML".equals(dataSourceType)) {
 			dataSourceConfig = new KMLDataSourceConfig(configManager);
 		} else if ("NCWMS".equals(dataSourceType)) {
