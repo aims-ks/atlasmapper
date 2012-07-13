@@ -26,6 +26,7 @@ window["Atlas"]["Layer"] = window["Atlas"]["Layer"] || {};
 Atlas.Layer.AbstractLayer = OpenLayers.Class({
 	// OpenLayers layer object
 	layer: null,
+	parent: null,
 
 	// MapPanel instance in which the layer is used (GeoExtMapPanel, EmbeddedMapPanel, etc.)
 	mapPanel: null,
@@ -49,9 +50,10 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 	 * jsonLayer - {Object} Hashtable of layer attributes
 	 * mapPanel - {Object} Instance of the MapPanel in which the layer is used
 	 */
-	initialize: function(mapPanel, jsonLayer) {
+	initialize: function(mapPanel, jsonLayer, parent) {
 		this.mapPanel = mapPanel;
 		this.json = jsonLayer;
+		this.parent = parent;
 	},
 
 

@@ -31,7 +31,7 @@ Atlas.Layer.Group = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 	 * jsonLayer - {Object} Hashtable of layer attributes
 	 * mapPanel - {Object} Instance of the MapPanel in which the layer is used
 	 */
-	initialize: function(mapPanel, jsonLayer) {
+	initialize: function(mapPanel, jsonLayer, parent) {
 		Atlas.Layer.AbstractLayer.prototype.initialize.apply(this, arguments);
 
 		if (this.json != null) {
@@ -58,7 +58,7 @@ Atlas.Layer.Group = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 				// Add all children under that path. If a child is a GROUP, it will pass
 				// through this function again.
 				if (this.mapPanel) {
-					this.mapPanel.addLayersById(this.json['layers'], path);
+					this.mapPanel.addLayersById(this.json['layers'], path, this);
 				}
 			}
 		}

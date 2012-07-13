@@ -49,31 +49,44 @@ Atlas.MapPanel.GetFeatureInfo = OpenLayers.Class({
 
 	addLayer: function(atlasLayer) {
 		if (atlasLayer) {
-			var featureInfo = new Atlas.MapPanel.SingleLayerFeatureInfo({
-				featureInfoManager: this,
-				map: this.map,
-				atlasLayer: atlasLayer,
-				eventListeners: {
-					getfeatureinfo: this.parseFeatureInfoResponse,
-					scope: this
+			var key = atlasLayer.getFeatureInfoLayerID();
+			if (key !== null) {
+				// Do not add the same layer twice
+				if (typeof(this.featureInfoObjects[key]) === 'undefined') {
+					var featureInfo = new Atlas.MapPanel.SingleLayerFeatureInfo({
+						featureInfoManager: this,
+						map: this.map,
+						atlasLayer: atlasLayer,
+						eventListeners: {
+							getfeatureinfo: this.parseFeatureInfoResponse,
+							scope: this
+						}
+					});
+
+					featureInfo.activate();
+
+					this.featureInfoObjects[key] = featureInfo;
+				} else {
+					this.featureInfoObjects[key].addLayer(atlasLayer);
 				}
-			});
-
-			featureInfo.activate();
-
-			this.featureInfoObjects[atlasLayer.getFeatureInfoLayerID()] = featureInfo;
+			}
 		}
 	},
 
 	removeLayer: function(atlasLayer) {
 		if (atlasLayer) {
 			var key = atlasLayer.getFeatureInfoLayerID();
-			var featureInfo = this.featureInfoObjects[key];
-			if (featureInfo) {
-				featureInfo.deactivate();
-				featureInfo.destroy();
+			if (key !== null && typeof(this.featureInfoObjects[key]) === 'undefined') {
+				var featureInfo = this.featureInfoObjects[key];
+				featureInfo.removeLayer(atlasLayer);
+				if (featureInfo.layerCount() <= 0) {
+					if (featureInfo) {
+						featureInfo.deactivate();
+						featureInfo.destroy();
+					}
+					delete this.featureInfoObjects[key];
+				}
 			}
-			delete this.featureInfoObjects[key];
 		}
 	},
 
@@ -171,17 +184,14 @@ Atlas.MapPanel.GetFeatureInfo = OpenLayers.Class({
 		}
 	},
 
-	_addResponses: function(layers) {
+	_addRequestedLayer: function(layer) {
 		if (this.responses == null) {
 			this.responses = [];
 		}
 		if (this.requestedLayers == null) {
 			this.requestedLayers = [];
 		}
-
-		for(var i=0, len=layers.length; i<len; i++) {
-			this.requestedLayers.push(layers[i]);
-		}
+		this.requestedLayers.push(layer);
 
 		this.responses = this._createSortedLayerResponses(this.requestedLayers);
 	},
@@ -232,6 +242,21 @@ Atlas.MapPanel.SingleLayerFeatureInfo = OpenLayers.Class(OpenLayers.Control.WMSG
 		}]);
 	},
 
+	addLayer: function(atlasLayer) {
+		this.layers.push(atlasLayer.layer);
+	},
+
+	removeLayer: function(atlasLayer) {
+		var layerIndex = this.findLayerIndex(atlasLayer.layer);
+		if (layerIndex >= 0) {
+			this.layers.splice(layerIndex, 1);
+		}
+	},
+
+	layerCount: function() {
+		this.layers.length;
+	},
+
 	/**
 	 * Method: request
 	 * Sends a GetFeatureInfo request to each WMS servers imply in the feature request.
@@ -245,6 +270,50 @@ Atlas.MapPanel.SingleLayerFeatureInfo = OpenLayers.Class(OpenLayers.Control.WMSG
 	 * - *hover* {Boolean} true if we do the request for the hover handler
 	 */
 	// Override
+	request: function(clickPosition, options) {
+		// Only show feature requests for this popup
+		// If request has been sent but not yet received, they will be ignored.
+		this.featureInfoManager._setActivePopup(clickPosition.x + "-" + clickPosition.y);
+
+		var layers = this.findLayers();
+		if(layers.length == 0) {
+			// Remove the waiting cursor
+			return OpenLayers.Control.WMSGetFeatureInfo.prototype.request.apply(this, [clickPosition, options]);
+		}
+
+		this.featureInfoManager.waitingForResponse = true;
+
+		options = options || {};
+		if(this.drillDown === false) {
+			OpenLayers.Control.WMSGetFeatureInfo.prototype.request.apply(this, [clickPosition, options]);
+		} else {
+			// All candidate layers should be equivalent
+			var layer = layers[0];
+			this.featureInfoManager._addRequestedLayer(layer);
+
+			var urls = this.getInfoServers(layer);
+			for (var j=0, ulen=urls.length; j<ulen; j++) {
+				var url = urls[j];
+				var urlOptions = layer.atlasLayer.getFeatureInfoURL(url, layer,
+					clickPosition, layer.params.FORMAT);
+
+				if (urlOptions != null) {
+					urlOptions.callback = function(request) {
+						// Add the layer ID to the request.
+						// It will be used to know for which layer the
+						// request was for, when parsing the response.
+						request.layerId = layer.atlasLayer.json['layerId'];
+						this.handleResponse(clickPosition, request);
+					};
+					urlOptions.scope = this;
+
+					OpenLayers.Request.GET(urlOptions);
+				}
+			}
+		}
+	},
+
+	/*
 	request: function(clickPosition, options) {
 		// Only show feature requests for this popup
 		// If request has been sent but not yet received, they will be ignored.
@@ -288,6 +357,7 @@ Atlas.MapPanel.SingleLayerFeatureInfo = OpenLayers.Class(OpenLayers.Control.WMSG
 			}
 		}
 	},
+	*/
 
 	/**
 	 * Method: findLayers

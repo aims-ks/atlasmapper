@@ -33,7 +33,7 @@ Atlas.Layer.Google = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 	 * jsonLayer - {Object} Hashtable of layer attributes
 	 * mapPanel - {Object} Instance of the MapPanel in which the layer is used
 	 */
-	initialize: function(mapPanel, jsonLayer) {
+	initialize: function(mapPanel, jsonLayer, parent) {
 		Atlas.Layer.AbstractLayer.prototype.initialize.apply(this, arguments);
 
 		if (this.json != null) {

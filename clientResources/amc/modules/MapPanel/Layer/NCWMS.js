@@ -31,7 +31,7 @@ Atlas.Layer.NCWMS = OpenLayers.Class(Atlas.Layer.WMS, {
 	 * jsonLayer - {Object} Hashtable of layer attributes
 	 * mapPanel - {Object} Instance of the MapPanel in which the layer is used
 	 */
-	initialize: function(mapPanel, jsonLayer) {
+	initialize: function(mapPanel, jsonLayer, parent) {
 		// Do not call initialize from WMS because it would create a useless WMS layer.
 		Atlas.Layer.AbstractLayer.prototype.initialize.apply(this, arguments);
 

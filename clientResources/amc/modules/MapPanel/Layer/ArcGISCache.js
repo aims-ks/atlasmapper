@@ -31,7 +31,7 @@ Atlas.Layer.ArcGISCache = OpenLayers.Class(/*Atlas.Layer.AbstractLayer*/ Atlas.L
 	 * jsonLayer - {Object} Hashtable of layer attributes
 	 * mapPanel - {Object} Instance of the MapPanel in which the layer is used
 	 */
-	initialize: function(mapPanel, jsonLayer) {
+	initialize: function(mapPanel, jsonLayer, parent) {
 
 		// TODO Do not send all options to the client, use JSONP instead. Also change the logic; ArcGIS Cache are per Service, not per Layer.
 		// http://openlayers.org/dev/examples/arcgiscache_jsonp.html

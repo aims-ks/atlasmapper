@@ -31,7 +31,7 @@ Atlas.Layer.WMTS = OpenLayers.Class(Atlas.Layer.WMS, {
 	 * jsonLayer - {Object} Hashtable of layer attributes
 	 * mapPanel - {Object} Instance of the MapPanel in which the layer is used
 	 */
-	initialize: function(mapPanel, jsonLayer) {
+	initialize: function(mapPanel, jsonLayer, parent) {
 		Atlas.Layer.WMS.prototype.initialize.apply(this, arguments);
 
 		// TODO Do not call initialize from WMS, create a real WMTS layer.

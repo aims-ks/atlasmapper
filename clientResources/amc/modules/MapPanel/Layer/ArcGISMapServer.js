@@ -34,7 +34,7 @@ Atlas.Layer.ArcGISMapServer = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 	 * jsonLayer - {Object} Hashtable of layer attributes
 	 * mapPanel - {Object} Instance of the MapPanel in which the layer is used
 	 */
-	initialize: function(mapPanel, jsonLayer) {
+	initialize: function(mapPanel, jsonLayer, parent) {
 		Atlas.Layer.AbstractLayer.prototype.initialize.apply(this, arguments);
 
 		var url = this.json['wmsServiceUrl'];
@@ -52,6 +52,14 @@ Atlas.Layer.ArcGISMapServer = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 			this.getArcGISLayerParams(),
 			this.getArcGISLayerOptions()
 		));
+	},
+
+	getServiceLayer: function() {
+		var serviceLayer = this;
+		while (serviceLayer != null && serviceLayer.json['dataSourceType'] != 'SERVICE') {
+			serviceLayer = serviceLayer.parent;
+		}
+		return serviceLayer;
 	},
 
 	getArcGISLayerParams: function() {
@@ -153,6 +161,9 @@ Atlas.Layer.ArcGISMapServer = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 			layers: 'all:'+this.json['layerName'] // Query only the current layer, from the list of all layers from the service. See the API.
 		};
 
+		// ACTIVATE FOR SERVICE REQUESTS - Request all layers of the service at once
+		//params.layers = 'all';
+
 		// Since there is no OpenLayers API for this class, it can be useful to see the resulted URL.
 		// If you want to do some debugging, activate the following line in the generated client.
 		//console.log(OpenLayers.Util.urlAppend(this.identifyUrl, OpenLayers.Util.getParameterString(params || {})));
@@ -162,6 +173,17 @@ Atlas.Layer.ArcGISMapServer = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 			params: params
 		};
 	},
+
+	// ACTIVATE FOR SERVICE REQUESTS - One request per service (instead of the same request repeated for all layers)
+	/*
+	getFeatureInfoLayerID: function() {
+		var serviceLayer = this.getServiceLayer();
+		if (serviceLayer == null) {
+			return null;
+		}
+		return serviceLayer.json['layerId'];
+	},
+	*/
 
 	// Override
 	getFeatureInfoResponseFormat: function() {
@@ -185,7 +207,16 @@ Atlas.Layer.ArcGISMapServer = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 			return false;
 		}
 
+		var title = this.getTitle();
+		/*
+		// ACTIVATE FOR SERVICE REQUESTS - display service name instead of the top layer name
+		var serviceLayer = this.getServiceLayer();
+		if (serviceLayer != null) {
+			title = serviceLayer.getTitle();
+		}
+		*/
+
 		// TODO Parse jsonResponse attributes according to a template specified for this layer / service / data source.
-		return '<h3>' + this.getTitle() + '</h3><pre>' + responseEvent.text + '</pre>';
+		return '<h3>' + title + '</h3><pre>' + responseEvent.text + '</pre>';
 	}
 });

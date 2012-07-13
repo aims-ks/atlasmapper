@@ -558,8 +558,9 @@ Atlas.AbstractMapPanel = {
 
 	/**
 	 * Add layers from an array of layer IDs
+	 * Parent is a layer group (AtlasLayer) when the layer is a child of that group
 	 */
-	addLayersById: function(layerIds, path) {
+	addLayersById: function(layerIds, path, parent) {
 		var that = this;
 		Atlas.core.requestLayersJSon(layerIds, function(layersJSon) {
 			if (typeof(path) != 'undefined' && path.length > 0) {
@@ -569,7 +570,7 @@ Atlas.AbstractMapPanel = {
 					layersJSon[i].path = path;
 				}
 			}
-			that.addLayers(layersJSon);
+			that.addLayers(layersJSon, parent);
 		});
 	},
 
@@ -579,26 +580,28 @@ Atlas.AbstractMapPanel = {
 
 	/**
 	 * layerJSon: Layer object as returned by Atlas.core.getLayerJSon
+	 * Parent is a layer group (AtlasLayer) when the layer is a child of that group
 	 */
-	addLayers: function(layersJSon) {
+	addLayers: function(layersJSon, parent) {
 		for (var i=layersJSon.length-1; i>=0; i--) {
-			this.addLayer(layersJSon[i]);
+			this.addLayer(layersJSon[i], parent);
 		}
 	},
 
 	/**
 	 * layerJSon: Layer object as returned by Atlas.core.getLayerJSon
+	 * Parent is a layer group (AtlasLayer) when the layer is a child of that group
 	 */
-	addLayer: function(layerJSon) {
+	addLayer: function(layerJSon, parent) {
 		var that = this;
 		if (!this.isRendered) {
 			this.ol_on("render", function(evt) {
-				that.addLayer(layerJSon);
+				that.addLayer(layerJSon, parent);
 			});
 			return;
 		}
 
-		var atlasLayer = Atlas.Layer.LayerHelper.createLayer(this, layerJSon);
+		var atlasLayer = Atlas.Layer.LayerHelper.createLayer(this, layerJSon, parent);
 
 		if (!atlasLayer) {
 			// TODO THROW EXCEPTION
