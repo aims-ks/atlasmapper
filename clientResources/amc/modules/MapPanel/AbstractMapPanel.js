@@ -57,7 +57,7 @@ Atlas.AbstractMapPanel = {
 	embedded: false,
 
 	// The feature request manager
-	wmsFeatureInfo: null,
+	featureInfo: null,
 
 	// Avoid clash with "rendered", which is defined in GeoExt.MapPanel
 	isRendered: false,
@@ -316,12 +316,12 @@ Atlas.AbstractMapPanel = {
 		}
 
 		// Initialise the feature request manager
-		if (Atlas.MapPanel.MultiWMSGetFeatureInfo) {
-			this.wmsFeatureInfo = new Atlas.MapPanel.MultiWMSGetFeatureInfo({
+		if (Atlas.MapPanel.GetFeatureInfo) {
+			this.featureInfo = new Atlas.MapPanel.GetFeatureInfo({
 				map: this.map
 			});
-			this.wmsFeatureInfo.activate();
 		}
+
 
 		// Auto-set some extra layer attributes and methods
 		// for layers that has a json attribute (I.E. those methods
@@ -632,8 +632,8 @@ Atlas.AbstractMapPanel = {
 		var layerJSon = layer.atlasLayer.json;
 
 		// Add feature request listener for that layer, if needed
-		if (this.wmsFeatureInfo && (layerJSon['wmsQueryable'] || layerJSon['dataSourceType'] == 'ARCGIS_MAPSERVER')) {
-			this.wmsFeatureInfo.addLayer(layer);
+		if (this.featureInfo && (layerJSon['wmsQueryable'] || layerJSon['dataSourceType'] == 'ARCGIS_MAPSERVER')) {
+			this.featureInfo.addLayer(layer.atlasLayer);
 		}
 
 		if (layer.isBaseLayer) {
@@ -670,10 +670,10 @@ Atlas.AbstractMapPanel = {
 
 	// Private
 	_beforeLayerRemove: function(layer) {
-		var layerJSon = layer.json;
+		var layerJSon = layer.atlasLayer.json;
 
 		if (layerJSon && (layerJSon['wmsQueryable'] || layerJSon['dataSourceType'] == 'ARCGIS_MAPSERVER')) {
-			this.wmsFeatureInfo.removeLayer(layer);
+			this.featureInfo.removeLayer(layer.atlasLayer);
 		}
 	},
 

@@ -134,7 +134,7 @@
 	<script type="text/javascript" src="modules/MapPanel/Layer/LayerHelper.js"></script>
 	<script type="text/javascript" src="modules/MapPanel/AbstractMapPanel.js"></script>
 	<script type="text/javascript" src="modules/MapPanel/GeoExtMapPanel.js"></script>
-	<script type="text/javascript" src="modules/MapPanel/MultiWMSGetFeatureInfo.js"></script>
+	<script type="text/javascript" src="modules/MapPanel/GetFeatureInfo.js"></script>
 	<script type="text/javascript" src="modules/Legend/Legend.js"></script>
 	<script type="text/javascript" src="modules/Legend/LegendPanel.js"></script>
 	<script type="text/javascript" src="modules/LayersPanel/LayersPanel.js"></script>

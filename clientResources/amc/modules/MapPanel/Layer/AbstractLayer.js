@@ -263,5 +263,147 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 			this.layer != null &&
 			!this.isDummy() &&
 			!this.isGroup();
+	},
+
+
+	/**
+	 * Feature Info methods.
+	 */
+
+	/**
+	 * Method: getFeatureInfoURL
+	 * Build an object with the relevant options for the GetFeatureInfo request
+	 *
+	 * Parameters:
+	 * url - {String} The url to be used for sending the request
+	 * layers - {Array(<OpenLayers.Layer.WMS)} An array of layers
+	 * clickPosition - {<OpenLayers.Pixel>} The position on the map where the mouse
+	 *     event occurred. This can be transform in a LonLat obj (in the unit of the map)
+	 *     using map.getLonLatFromPixel(clickPosition)
+	 * format - {String} The format from the corresponding GetMap request
+	 *
+	 * return {
+	 *     url: String
+	 *     params: { String: String }
+	 * }
+	 */
+	// Need to be overridden
+	getFeatureInfoURL: function(url, layer, clickPosition, format) {
+		return null;
+	},
+
+	/**
+	 * Return an OpenLayers.Format used to parse the response for this type of layer.
+	 * (default: OpenLayers.Format.WMSGetFeatureInfo)
+	 * http://dev.openlayers.org/docs/files/OpenLayers/Format-js.html
+	 * @return {OpenLayers.Format}
+	 */
+	// Need to be overridden
+	getFeatureInfoResponseFormat: function() {
+		return null;
+	},
+
+	/**
+	 * Return the HTML chunk that will be displayed in the balloon.
+	 * @param responseEvent The response event. The text response is available with responseEvent.text,
+	 *     and the XML DOM tree is accessible with responseEvent.request.responseXML. The helper method
+	 *     this.xmlToHtml can be used to format the XML DOM tree.
+	 * @return {String} The HTML content of the feature info balloon, or null if the layer info should not be shown.
+	 */
+	// Need to be overridden
+	processFeatureInfoResponse: function(responseEvent) {
+		return (responseEvent.text ? responseEvent.text : this.xmlToHtml(responseEvent.request.responseXML));
+	},
+
+	// Can be overridden, is special cases (for example; to send only one request for a ArcGIS service).
+	getFeatureInfoLayerID: function() {
+		return this.json['layerId'];
+	},
+
+
+
+	/**
+	 * HELPERS
+	 */
+
+	/**
+	 * Return true is the responseText parameter contains non empty HTML data.
+	 * @param responseText
+	 * @return {Boolean}
+	 */
+	isHtmlResponse: function(responseText) {
+		if (responseText == null || responseText == '') {
+			return false;
+		}
+
+		var match = responseText.match(/<body[^>]*>([\s\S]*)<\/body>/);
+		return (match && !match[1].match(/^\s*$/));
+	},
+
+	// http://www.w3schools.com/Xml/xml_dom.asp
+	xmlToHtml: function(xml) {
+		var output = '';
+		var lon = parseFloat(xml.getElementsByTagName('longitude')[0].childNodes[0].nodeValue);
+		var lat = parseFloat(xml.getElementsByTagName('latitude')[0].childNodes[0].nodeValue);
+
+		if (typeof(lon) != 'undefined' && typeof(lat) != 'undefined') {
+			output += 'Longitude: ' + lon.toFixed(5) + '<br/>' +
+					'Latitude: ' + lat.toFixed(5) + '<br/>';
+		}
+
+		var featureInfoNodes = xml.getElementsByTagName('FeatureInfo');
+		for (var i=0; i<featureInfoNodes.length; i++) {
+			output += this._parseXmlTag(featureInfoNodes[i], false);
+		}
+
+		return output;
+	},
+	_parseXmlTag: function(tag, printLabel) {
+		// Undefined tagName => text tag between tags
+		if (tag == null || typeof(tag.tagName) == 'undefined') {
+			return '';
+		}
+
+		var output = '';
+		if (printLabel) {
+			output += tag.tagName + ': ';
+		}
+		if (this._hasRealChildNodes(tag)) {
+			for (var i=0; i<tag.childNodes.length; i++) {
+				output += this._parseXmlTag(tag.childNodes[i], true);
+			}
+		} else {
+			// The only nodes are text nodes
+			if (tag.tagName == 'time') {
+				output += this._formatDate(tag.childNodes[0].nodeValue);
+			} else {
+				output += tag.childNodes[0].nodeValue;
+			}
+		}
+		output += '<br />';
+		return output;
+	},
+	// The date is returned by ncWMS is in the following format:
+	// 2011-03-30T14:00:00.000Z
+	// Javascript do not provide any good tools to format dates.
+	// It's easier to simply do some string manipulations.
+	_formatDate: function(dateStr) {
+		return dateStr.replace('T', ' ').replace('\.000Z', '');
+		/*
+		var date = new Date(dateStr.replace('Z', ''));
+		return date.getDate() + '/' +
+			(date.getMonth()+1) + '/' +
+			date.getFullYear() + ' ' +
+			date.getHours() + ':' +
+			date.getMinutes();
+		*/
+	},
+	_hasRealChildNodes: function(tag) {
+		for (var i=0; i<tag.childNodes.length; i++) {
+			if (typeof(tag.childNodes[i].tagName) != 'undefined') {
+				return true;
+			}
+		}
+		return false;
 	}
 });

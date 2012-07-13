@@ -24,6 +24,9 @@ window["Atlas"] = window["Atlas"] || {};
 window["Atlas"]["Layer"] = window["Atlas"]["Layer"] || {};
 
 Atlas.Layer.ArcGISMapServer = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
+	exportUrl: null,
+	identifyUrl: null,
+
 	/**
 	 * Constructor: Atlas.Layer.ArcGISMapServer
 	 *
@@ -38,11 +41,14 @@ Atlas.Layer.ArcGISMapServer = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 		if (this.json['arcGISPath']) {
 			url += '/' + this.json['arcGISPath'];
 		}
-		url += '/MapServer/export';
+		url += '/MapServer/';
+
+		this.exportUrl = url + 'export';
+		this.identifyUrl = url + 'identify';
 
 		this.layer = this.extendLayer(new OpenLayers.Layer.ArcGIS93Rest(
 			this.getTitle(),
-			url,
+			this.exportUrl,
 			this.getArcGISLayerParams(),
 			this.getArcGISLayerOptions()
 		));
@@ -93,5 +99,93 @@ Atlas.Layer.ArcGISMapServer = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 		}
 
 		return layerOptions;
+	},
+
+	/**
+	 * Method: getFeatureInfoURL
+	 * Build an object with the relevant options for the GetFeatureInfo request
+	 *
+	 * Parameters:
+	 * url - {String} The url to be used for sending the request
+	 * layers - {Array(<OpenLayers.Layer.WMS)} An array of layers
+	 * clickPosition - {<OpenLayers.Pixel>} The position on the map where the mouse
+	 *     event occurred.
+	 * format - {String} The format from the corresponding GetMap request
+	 *
+	 * return {
+	 *     url: String
+	 *     params: { String: String }
+	 * }
+	 */
+	// Override
+	getFeatureInfoURL: function(url, layer, clickPosition, format) {
+		var layerId = layer.atlasLayer.json['layerId'];
+		var layerProjection = this.layer.projection;
+
+		// Remove EPSG from the projection code.
+		var layerProjectionWKID = layerProjection.getCode().replace(/EPSG:\s*/gi, "");
+
+		// clickPosition is in pixels
+		var lonLatPoint = this.mapPanel.map.getLonLatFromPixel(clickPosition);
+
+		// lonLatPoint is in the unit of the map, which is probably not in longitude-latitude. I prefer to make a point with it (x, y), to avoid confusion.
+		var reprojectedPoint = new OpenLayers.Geometry.Point(lonLatPoint.lon, lonLatPoint.lat);
+		var reprojectedMapExtent = this.mapPanel.map.getExtent();
+
+		// The reprojectedPoint and reprojectedMapExtent are not reprojected yet.
+		if (this.mapPanel.map.getProjectionObject() != layerProjection) {
+			reprojectedPoint.transform(this.mapPanel.map.getProjectionObject(), layerProjection);
+			reprojectedMapExtent.transform(this.mapPanel.map.getProjectionObject(), layerProjection);
+		}
+
+		// IMPORTANT: Spaces are not welcome in params values (ArcGIS has some problems reading values with encoded spaces)
+		// API Doc: http://resources.esri.com/help/9.3/arcgisserver/apis/rest/identify.html
+		var params = {
+			f: "json",
+			pretty: "true", // Some server don't return the same value without this...
+			geometry: '{"x":'+reprojectedPoint.x+',"y":'+reprojectedPoint.y+',"spatialReference":{"wkid":'+layerProjectionWKID+'}}',
+			tolerance: 5,
+			returnGeometry: false, //true, TODO Enable geometry highlight
+			mapExtent: '{"xmin":'+reprojectedMapExtent.left+',"ymin":'+reprojectedMapExtent.bottom+',"xmax":'+reprojectedMapExtent.right+',"ymax":'+reprojectedMapExtent.top+',"spatialReference":{"wkid":'+layerProjectionWKID+'}}',
+			imageDisplay: '400,400,96', // ??
+			geometryType: 'esriGeometryPoint',
+			sr: layerProjectionWKID,
+			layers: 'all:'+this.json['layerName'] // Query only the current layer, from the list of all layers from the service. See the API.
+		};
+
+		// Since there is no OpenLayers API for this class, it can be useful to see the resulted URL.
+		// If you want to do some debugging, activate the following line in the generated client.
+		//console.log(OpenLayers.Util.urlAppend(this.identifyUrl, OpenLayers.Util.getParameterString(params || {})));
+
+		return {
+			url: this.identifyUrl,
+			params: params
+		};
+	},
+
+	// Override
+	getFeatureInfoResponseFormat: function() {
+		return new OpenLayers.Format.WMSGetFeatureInfo();
+	},
+
+	/**
+	 * Return the HTML chunk that will be displayed in the balloon.
+	 * @param xmlResponse RAW XML response
+	 * @param textResponse RAW text response
+	 * @return {String} The HTML content of the feature info balloon, or null if the layer info should not be shown.
+	 */
+	// Override
+	processFeatureInfoResponse: function(responseEvent) {
+		if (!responseEvent || !responseEvent.text) {
+			return false;
+		}
+
+		var jsonResponse = eval("(" + responseEvent.text + ")");
+		if (!jsonResponse || !jsonResponse['results'] || !jsonResponse['results'][0]) {
+			return false;
+		}
+
+		// TODO Parse jsonResponse attributes according to a template specified for this layer / service / data source.
+		return '<h3>' + this.getTitle() + '</h3><pre>' + responseEvent.text + '</pre>';
 	}
 });

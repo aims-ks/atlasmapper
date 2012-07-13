@@ -155,6 +155,7 @@ public class Proxy extends HttpServlet {
 
 	// Return all allowed hosts, at a data source level, before overrides...
 	// This is only used with script that can be used with any clients / data source (even when no clients are defined)
+	// Example: In the www folder
 	private static Set<String> getAllProxyAllowedHosts(ConfigManager configManager) throws FileNotFoundException, JSONException {
 		Set<String> allowedHosts = new HashSet<String>();
 
@@ -185,7 +186,7 @@ public class Proxy extends HttpServlet {
 					JSONObject dataSource = dataSources.optJSONObject(keys.next());
 
 					addProxyAllowedHost(allowedHosts, dataSource.optString("featureRequestsUrl"));
-					addProxyAllowedHost(allowedHosts, dataSource.optString("serviceUrl"));
+					addProxyAllowedHost(allowedHosts, dataSource.optString("wmsServiceUrl")); // TODO change wmsServiceUrl to serviceUrl
 				}
 			}
 		}
@@ -198,7 +199,7 @@ public class Proxy extends HttpServlet {
 
 					addProxyAllowedHost(allowedHosts, layer.optString("kmlUrl"));
 					addProxyAllowedHost(allowedHosts, layer.optString("featureRequestsUrl"));
-					addProxyAllowedHost(allowedHosts, layer.optString("serviceUrl"));
+					addProxyAllowedHost(allowedHosts, layer.optString("wmsServiceUrl")); // TODO change wmsServiceUrl to serviceUrl
 				}
 			}
 		}
