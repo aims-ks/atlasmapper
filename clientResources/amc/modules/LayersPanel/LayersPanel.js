@@ -336,7 +336,8 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 		embeddedMap.style.height = height+'px';
 
 		fullLink.value = fullUrlStr;
-		embeddedCode.value = '<iframe src="' + embeddedUrlStr + '" style="border:none;width:'+width+'px;height:'+height+'px"></iframe>';
+		// IE8 need frameborder (it do not understand CSS border)
+		embeddedCode.value = '<iframe src="' + embeddedUrlStr + '" frameborder="0" style="border:none;width:'+width+'px;height:'+height+'px"></iframe>';
 	},
 
 	showEmbeddedLinkWindow: function() {
@@ -372,20 +373,18 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 
 		var windowContent = new Ext.Panel({
 			autoScroll: true,
-			bodyStyle: 'padding: 4px',
+			// For some reason, the input widget need a large (10px) right padding when set with 100% width.
+			bodyStyle: 'padding: 4px 10px 4px 4px',
 
+			// IE8 need frameborder (it do not understand CSS border)
 			html: 'Copy / Paste URL in email<br/>\n' +
-				'<input type="text" onClick="this.select()" id="fullLink'+uid+'" readonly="true" style="width:500px;" value="' +
-				fullUrlStr +
-				'"><br/>\n' +
+				'<input type="text" onClick="this.select()" id="fullLink'+uid+'" style="width:100%;" value="Loading..."><br/>\n' +
 				'Copy / Paste <b>HTML</b> to create an <i>Embedded map</i><br/>\n' +
-				'<input type="text" onClick="this.select()" id="embeddedCode'+uid+'" readonly="true" style="width:500px;" value=\'' +
-				'<iframe src="' + embeddedUrlStr + '" style="border:none;width:500px;height:500px"></iframe>' +
-				'\'><br/>\n' +
+				'<input type="text" onClick="this.select()" id="embeddedCode'+uid+'" style="width:100%;" value="Loading..."><br/>\n' +
 				warningMsg +
 				'Size: <input id="w'+uid+'" type="text" value="500" style="width:50px"/>px'+
-				' X <input id="h'+uid+'" type="text" value="500" style="width:50px"/>px<br/><br/>\n'+
-				'<iframe id="previewEmbeddedMap'+uid+'" src="' + embeddedUrlStr + '&pullState=true" style="border:none;width:500px;height:500px"></iframe>'
+				' X <input id="h'+uid+'" type="text" value="400" style="width:50px"/>px<br/><br/>\n'+
+				'<iframe id="previewEmbeddedMap'+uid+'" src="' + embeddedUrlStr + '&pullState=true" frameborder="0" style="border:none;width:500px;height:400px"></iframe>'
 		});
 		
 		// Add some event listeners on the size input fields
@@ -407,7 +406,7 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 			title: 'Map URL and Embedded map',
 			layout:'fit',
 			modal: true,
-			width: 530,
+			width: 524,
 			constrainHeader: true,
 			closeAction: 'destroy',
 

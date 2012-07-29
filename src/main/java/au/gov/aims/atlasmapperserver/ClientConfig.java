@@ -36,6 +36,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.servlet.ServletContext;
 
 import org.json.JSONArray;
@@ -48,6 +50,8 @@ import org.json.JSONSortedObject;
  * @author glafond
  */
 public class ClientConfig extends AbstractConfig {
+	private static final Logger LOGGER = Logger.getLogger(ClientConfig.class.getName());
+
 	// Grids records must have an unmutable ID
 	@ConfigField
 	private Integer id;
@@ -681,14 +685,18 @@ public class ClientConfig extends AbstractConfig {
 				if (!overriddenLayerConfigs.containsKey(layerId)) {
 					JSONObject jsonClientOverride = clientOverrides.optJSONObject(layerId);
 					if (jsonClientOverride != null && jsonClientOverride.length() > 0) {
-						AbstractLayerConfig manualLayer = LayerConfigHelper.createLayerConfig(
-								jsonClientOverride.optString("dataSourceType"), jsonClientOverride, this.getConfigManager());
+						try {
+							AbstractLayerConfig manualLayer = LayerConfigHelper.createLayerConfig(
+									jsonClientOverride.optString("dataSourceType"), jsonClientOverride, this.getConfigManager());
 
-						manualLayer.setLayerId(layerId);
+							manualLayer.setLayerId(layerId);
 
-						overriddenLayerConfigs.put(
-								manualLayer.getLayerId(),
-								manualLayer);
+							overriddenLayerConfigs.put(
+									manualLayer.getLayerId(),
+									manualLayer);
+						} catch(Exception ex) {
+							LOGGER.log(Level.SEVERE, "Unexpected error occurred while parsing the following layer override for the client ["+this.getClientName()+"]:\n" + jsonClientOverride.toString(4), ex);
+						}
 					}
 				}
 			}

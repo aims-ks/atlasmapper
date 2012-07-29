@@ -60,7 +60,7 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 	/**
 	 * Add attributes and functions to OpenLayers layers without extending every classes individually.
 	 */
-	extendLayer: function(layer) {
+	setLayer: function(layer) {
 		layer.atlasLayer = this;
 		layer.hideInLegend = false;
 
@@ -74,9 +74,13 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 			delete(this.json['selected']);
 		}
 
+		this.layer = layer;
+
 		//this._registerEvents();
 
-		return layer;
+//		if (this.parent != null && typeof(this.parent.addChild) === 'function') {
+//			this.parent.addChild(this);
+//		}
 	},
 
 /*

@@ -39,7 +39,7 @@ Atlas.Layer.WMS = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 
 		// TODO Support Multiple URLS => this._getWMSExtraServiceUrls(),
 		var layerParams = this.getWMSLayerParams();
-		this.layer = this.extendLayer(new OpenLayers.Layer.WMS(
+		this.setLayer(new OpenLayers.Layer.WMS(
 			this.getTitle(),
 			this.getServiceUrl(layerParams),
 			layerParams,

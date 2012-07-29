@@ -78,7 +78,7 @@ Atlas.Layer.KML = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 			this.mapPanel.map.addControl(select);
 			select.activate();
 
-			this.layer = this.extendLayer(kml);
+			this.setLayer(kml);
 		}
 	},
 

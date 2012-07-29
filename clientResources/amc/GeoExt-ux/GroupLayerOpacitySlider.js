@@ -106,7 +106,12 @@ GeoExt.ux.GroupLayerOpacitySlider = Ext.extend(GeoExt.LayerOpacitySlider, {
 			value = this.maxValue - this.minValue - value;
 		}
 
-		return Math.round(value / this._getParentOpacity());
+		var parentOpacity = this._getParentOpacity();
+		if (parentOpacity <= 0) {
+			return 0;
+		}
+
+		return Math.round(value / parentOpacity);
 	},
 
 	/**

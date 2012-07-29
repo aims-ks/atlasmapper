@@ -24,6 +24,8 @@ window["Atlas"] = window["Atlas"] || {};
 window["Atlas"]["Layer"] = window["Atlas"]["Layer"] || {};
 
 Atlas.Layer.Group = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
+	children: null,
+
 	/**
 	 * Constructor: Atlas.Layer.Group
 	 *
@@ -33,6 +35,8 @@ Atlas.Layer.Group = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 	 */
 	initialize: function(mapPanel, jsonLayer, parent) {
 		Atlas.Layer.AbstractLayer.prototype.initialize.apply(this, arguments);
+
+		this.children = [];
 
 		if (this.json != null) {
 			if (this.json['layers'] && this.json['layers'].length > 0) {
@@ -58,18 +62,76 @@ Atlas.Layer.Group = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 				// Add all children under that path. If a child is a GROUP, it will pass
 				// through this function again.
 				if (this.mapPanel) {
+					// layerJSON, folder Path, parent
 					this.mapPanel.addLayersById(this.json['layers'], path, this);
 				}
 			}
 		}
 
-
-		// TODO!!
-		this.layer = this.extendLayer({});
+		this.setLayer(new OpenLayers.Layer(jsonLayer['title'], jsonLayer.olOptions));
+		this.layer.id = jsonLayer['id'];
 	},
 
-	// TODO Check every children and listen on them
-	isLoading: function() {
-		return false;
+	isLoading: function(ignoredLayer) {
+		if (!this.supportLoadEvents) {
+			return false;
+		}
+
+		var isLoaded = true;
+		if (typeof(ignoredLayer) === 'undefined') {
+			ignoredLayer = null;
+		}
+		for (var i=0; i < this.children.length && isLoaded; i++) {
+			if (this.children[i] != ignoredLayer && this.children[i].isLoading()) {
+				isLoaded = false;
+			}
+		}
+
+		if (isLoaded) {
+			this.loaded = true;
+		}
+
+		return !this.loaded;
+	},
+
+	addChild: function(childAtlasLayer) {
+		this.children.push(childAtlasLayer);
+		this._addChildEventListeners(childAtlasLayer);
+	},
+
+	_addChildEventListeners: function (childAtlasLayer) {
+		if (childAtlasLayer && childAtlasLayer.layer && childAtlasLayer.layer.events) {
+			childAtlasLayer.layer.events.on({
+				'loadstart': function(event) {
+					this._onChildLayerLoadStart(childAtlasLayer);
+				},
+				'loadend': function(event) {
+					this._onChildLayerLoadEnd(childAtlasLayer);
+				},
+				// This event is not triggered anywhere, but maybe someday it will be...
+				'loadcancel': function(event) {
+					this._onChildLayerLoadCancel(childAtlasLayer);
+				},
+				scope: this
+			});
+		}
+	},
+
+	_onChildLayerLoadStart: function(childAtlasLayer) {
+		if (this.loaded) {
+			this.loaded = false;
+			this.layer.events.triggerEvent('loadstart');
+		}
+	},
+
+	_onChildLayerLoadEnd: function(childAtlasLayer) {
+		childAtlasLayer.layer.loaded = true;
+		if (!this.loaded && !this.isLoading(childAtlasLayer)) {
+			this.layer.events.triggerEvent('loadend');
+		}
+	},
+
+	_onChildLayerLoadCancel: function(childAtlasLayer) {
+		this._onChildLayerLoadEnd();
 	}
 });

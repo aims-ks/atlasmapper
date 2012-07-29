@@ -24,12 +24,12 @@
 <!-- Generated with AtlasMapper version ${version!} -->
 <head>
 	<title>${clientName!} layers</title>
-	<link rel="icon" type="image/png" href="resources/favicon.png" />
+	<link rel="icon" type="image/png" href="resources/favicon.png?atlasmapperVer=${version}" />
 	<meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
-	<link rel="stylesheet" type="text/css" href="resources/css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="resources/css/styles.css?atlasmapperVer=${version}" />
 	<!--[if lte IE 6 ]>
-		<link rel="stylesheet" type="text/css" href="resources/css/styles-ie6.css" />
+		<link rel="stylesheet" type="text/css" href="resources/css/styles-ie6.css?atlasmapperVer=${version}" />
 	<![endif]-->
 
 	<style>

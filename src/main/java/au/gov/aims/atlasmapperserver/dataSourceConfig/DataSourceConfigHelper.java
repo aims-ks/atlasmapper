@@ -24,7 +24,11 @@ package au.gov.aims.atlasmapperserver.dataSourceConfig;
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import org.json.JSONObject;
 
+import java.util.logging.Logger;
+
 public class DataSourceConfigHelper {
+	private static final Logger LOGGER = Logger.getLogger(DataSourceConfigHelper.class.getName());
+
 	public static AbstractDataSourceConfig createDataSourceConfig(JSONObject dataSourceConfigJSON, ConfigManager configManager) {
 		AbstractDataSourceConfig dataSourceConfig = null;
 		String dataSourceType = dataSourceConfigJSON.optString("dataSourceType");
@@ -42,9 +46,11 @@ public class DataSourceConfigHelper {
 			dataSourceConfig = new TilesDataSourceConfig(configManager);
 		} else if ("XYZ".equals(dataSourceType)) {
 			dataSourceConfig = new XYZDataSourceConfig(configManager);
-		} else {
-			// WMS, WMTS and other
+		} else if ("WMS".equals(dataSourceType)) {
 			dataSourceConfig = new WMSDataSourceConfig(configManager);
+		} else {
+			// Unsupported
+			throw new IllegalArgumentException("Unsupported data source type [" + dataSourceType + "]");
 		}
 
 		// Set all data source values into the data source bean

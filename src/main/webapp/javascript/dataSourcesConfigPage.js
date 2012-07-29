@@ -62,9 +62,8 @@ var dataSourceTypes = {
 		qtipHtml: 'Sorry, not supported yet'
 	},
 	'XYZ': {
-		display: 'XYZ',
-		disabled: true,
-		qtipHtml: 'Sorry, not supported yet'
+		display: 'XYZ / OSM',
+		qtipHtml: 'XYZ and OSM (Open Street Map) layers.'
 	}
 };
 
@@ -268,10 +267,27 @@ Ext.define('Writer.LayerServerConfigForm', {
 			qtipHtml: 'URL to the layer service. This URL is used by a java library to download the layers or the WMS capabilities document. Setting this field alone with <em>Data source ID</em> and <em>Data source name</em> is usually enough. Note that a full URL to the capabilities document can also be provided, including additional parameters.',
 			name: 'serviceUrl'
 		};
+		var serviceUrls = {
+			fieldLabel: '<a href="http://dev.openlayers.org/docs/files/OpenLayers/Layer/OSM-js.html" target="_blank">Service URLs</a>',
+			qtipTitle: 'Service URLs',
+			qtipHtml: 'List of URLs, separated by coma or new line, used for the layer services. Place holders may by used to specify the layer name and the format:\nhttp://tile.stamen.com/{layerName}/${z}/${x}/${y}.{format}',
+			name: 'serviceUrls',
+			xtype: 'textareafield',
+			resizable: {transparent: true}, resizeHandles: 's',
+			height: 100
+		};
 		var baseLayers = {
 			fieldLabel: 'Base layers',
 			qtipHtml: 'List of layer ids, separated by coma or new line. The layers listed here will considered as base layers by all the AtlasMapper clients.',
 			name: 'baseLayers',
+			xtype: 'textareafield',
+			resizable: {transparent: true}, resizeHandles: 's',
+			height: 100
+		};
+		var overlayLayers = {
+			fieldLabel: 'Overlay layers',
+			qtipHtml: 'List of layer ids, separated by coma or new line. The layers listed here will considered as overlay layers by all the AtlasMapper clients, meaning that all other layers will be base layers.',
+			name: 'overlayLayers',
 			xtype: 'textareafield',
 			resizable: {transparent: true}, resizeHandles: 's',
 			height: 100
@@ -348,6 +364,19 @@ Ext.define('Writer.LayerServerConfigForm', {
 			allowBlank: false
 		};
 
+		var osm = {
+			fieldLabel: 'OSM',
+			qtipHtml: 'Check this box if the layer is a OSM layer (OpenStreetMap). This is used to pre-define common options used with OSM layers.',
+			name: 'osm',
+			xtype: 'checkboxfield'
+		};
+
+		var crossOriginKeyword = {
+			fieldLabel: '<a href="http://dev.openlayers.org/apidocs/files/OpenLayers/Tile/Image-js.html#OpenLayers.Tile.Image.crossOriginKeyword" target="_blank">Cross Origin Keyword</a>',
+			qtipTitle: 'Cross Origin Keyword',
+			qtipHtml: 'The value of the crossorigin keyword to use when loading images. Leave blank (null) for "Stamen" layers, or set it to either "anonymous" or "use-credentials".',
+			name: 'crossOriginKeyword'
+		};
 
 		// Set the Form items for the different data source types
 		switch(this.dataSourceType) {
@@ -435,6 +464,15 @@ Ext.define('Writer.LayerServerConfigForm', {
 				advancedItems.push(legendUrl);
 				advancedItems.push(forcePNG24);
 				advancedItems.push(ignoredArcGISPath);
+				break;
+
+			case 'XYZ':
+				items.push(serviceUrls);
+				items.push(crossOriginKeyword);
+				items.push(osm);
+				items.push(globalManualOverride);
+				items.push(overlayLayers);
+				items.push(comment);
 				break;
 		}
 
@@ -980,6 +1018,7 @@ Ext.define('Writer.LayerServerConfig', {
 		{name: 'dataSourceName', sortType: 'asUCString'},
 		{name: 'dataSourceType', type: 'string'},
 		'serviceUrl',
+		'serviceUrls',
 		'getMapUrl',
 		'extraWmsServiceUrls',
 		'kmlUrls',
@@ -990,13 +1029,16 @@ Ext.define('Writer.LayerServerConfig', {
 		'legendParameters',
 		'blackAndWhiteListedLayers',
 		'baseLayers',
+		'overlayLayers',
 		'globalManualOverride',
 		{name: 'cachingDisabled', type: 'boolean', defaultValue: false},
 		{name: 'showInLegend', type: 'boolean', defaultValue: false},
 		{name: 'forcePNG24', type: 'boolean', defaultValue: false},
 		'ignoredArcGISPath',
 		'comment',
-		'bingAPIKey'
+		'bingAPIKey',
+		'osm',
+		'crossOriginKeyword'
 	],
 	validations: [{
 		field: 'dataSourceId',

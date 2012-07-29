@@ -47,7 +47,7 @@ Atlas.Layer.Bing = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 				layerOptions = this.applyOlOverrides(layerOptions, this.json['olOptions']);
 			}
 
-			this.layer = this.extendLayer(new OpenLayers.Layer.Bing(layerOptions));
+			this.setLayer(new OpenLayers.Layer.Bing(layerOptions));
 		}
 	}
 });

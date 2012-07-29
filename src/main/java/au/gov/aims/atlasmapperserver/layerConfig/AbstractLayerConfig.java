@@ -28,6 +28,8 @@ import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfigInterface;
 import org.json.JSONException;
@@ -41,6 +43,8 @@ import org.json.JSONSortedObject;
 // NOTE Layers can override any fields of it's data source's interface
 // TODO WMSLayerConfig extends AbstractLayerConfig
 public abstract class AbstractLayerConfig extends AbstractConfig implements AbstractDataSourceConfigInterface {
+	private static final Logger LOGGER = Logger.getLogger(AbstractLayerConfig.class.getName());
+
 	// Unique ID for the layer, it has to be unique between all layers used by the client.
 	// The id is not a ConfigField to avoid having it in the JSon object
 	// I.E. The layer ID is the ID of the object: layerId: { ... layer attributes... }
@@ -457,8 +461,12 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 		if (globalOverrides != null && globalOverrides.length() > 0) {
 			JSONObject globalOverride = globalOverrides.optJSONObject(this.layerId);
 			if (globalOverride != null && globalOverride.length() > 0) {
-				layerGlobalOverride = LayerConfigHelper.createLayerConfig(
-						globalOverride.optString("dataSourceType", this.getDataSourceType()), globalOverride, this.getConfigManager());
+				try {
+					layerGlobalOverride = LayerConfigHelper.createLayerConfig(
+							globalOverride.optString("dataSourceType", this.getDataSourceType()), globalOverride, this.getConfigManager());
+				} catch(Exception ex) {
+					LOGGER.log(Level.SEVERE, "Unexpected error occurred while parsing the following layer override for the data source ["+this.getDataSourceName()+"]:\n" + globalOverride.toString(4), ex);
+				}
 			}
 		}
 
@@ -469,8 +477,12 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 				if (layerGlobalOverride != null) {
 					layerGlobalOverride.update(clientOverride);
 				} else {
-					layerGlobalOverride = LayerConfigHelper.createLayerConfig(
-							clientOverride.optString("dataSourceType", this.getDataSourceType()), clientOverride, this.getConfigManager());
+					try {
+						layerGlobalOverride = LayerConfigHelper.createLayerConfig(
+								clientOverride.optString("dataSourceType", this.getDataSourceType()), clientOverride, this.getConfigManager());
+					} catch(Exception ex) {
+						LOGGER.log(Level.SEVERE, "Unexpected error occurred while parsing the following client layer override for the data source ["+this.getDataSourceName()+"]:\n" + clientOverride.toString(4), ex);
+					}
 				}
 			}
 		}

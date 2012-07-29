@@ -22,9 +22,33 @@
 package au.gov.aims.atlasmapperserver.layerConfig;
 
 import au.gov.aims.atlasmapperserver.ConfigManager;
+import au.gov.aims.atlasmapperserver.annotation.ConfigField;
+import org.json.JSONArray;
 
 public class XYZLayerConfig extends AbstractLayerConfig {
+	@ConfigField
+	private JSONArray serviceUrls;
+
+	@ConfigField
+	private String format;
+
 	public XYZLayerConfig(ConfigManager configManager) {
 		super(configManager);
+	}
+
+	public JSONArray getServiceUrls() {
+		return this.serviceUrls;
+	}
+
+	public void setServiceUrls(JSONArray serviceUrls) {
+		this.serviceUrls = serviceUrls;
+	}
+
+	public String getFormat() {
+		return this.format;
+	}
+
+	public void setFormat(String format) {
+		this.format = format;
 	}
 }

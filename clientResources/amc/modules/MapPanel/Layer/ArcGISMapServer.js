@@ -46,7 +46,7 @@ Atlas.Layer.ArcGISMapServer = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 		this.exportUrl = url + 'export';
 		this.identifyUrl = url + 'identify';
 
-		this.layer = this.extendLayer(new OpenLayers.Layer.ArcGIS93Rest(
+		this.setLayer(new OpenLayers.Layer.ArcGIS93Rest(
 			this.getTitle(),
 			this.exportUrl,
 			this.getArcGISLayerParams(),
@@ -216,7 +216,27 @@ Atlas.Layer.ArcGISMapServer = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 		}
 		*/
 
+		var htmlResponse = '';
+		for (var i=0; i < jsonResponse['results'].length; i++) {
+			var attributes = jsonResponse['results'][i]['attributes'];
+			if (attributes) {
+				htmlResponse += '<table>';
+				var odd = true;
+				for (var key in attributes) {
+					if (attributes.hasOwnProperty(key)) {
+						var value = attributes[key];
+						htmlResponse += '<tr class="' + (odd?'odd':'even') + '">';
+						htmlResponse += '<td class="key">'+key+'</td>';
+						htmlResponse += '<td class="value">'+value+'</td>';
+						htmlResponse += '</tr>';
+						odd = !odd;
+					}
+				}
+				htmlResponse += '</table>';
+			}
+		}
+
 		// TODO Parse jsonResponse attributes according to a template specified for this layer / service / data source.
-		return '<h3>' + title + '</h3><pre>' + responseEvent.text + '</pre>';
+		return '<div class="arcgisFeatureInfo"><h3>' + title + '</h3>' + (htmlResponse ? htmlResponse : ('<pre>' + responseEvent.text + '</pre>')) + '</div>';
 	}
 });

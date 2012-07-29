@@ -72,6 +72,10 @@ public class ClientServlet extends HttpServlet {
 		// PathTranslated: [/home/reefatlas/e-atlas_site/maps/tomcat/webapps/atlasmapper/lg/arrow.gif]  <=  Useful, but not quite what we are looking for
 		//System.out.println("RequestURI: [" + request.getRequestURI() + "]  ServletPath: [" + request.getServletPath() + "]  PathInfo: [" + request.getPathInfo() + "]  ContextPath: [" + request.getContextPath() + "]  PathTranslated: [" + request.getPathTranslated() + "]");
 		String fileRelativePath = null;
+
+		// Only used for error messages
+		String urlRelativePath = null;
+
 		String filePath = fileRelativePath;
 		File file = null;
 
@@ -79,17 +83,30 @@ public class ClientServlet extends HttpServlet {
 		try {
 			// Get the file to view
 			fileRelativePath = request.getPathInfo();
+
+			// Only used for error messages
+			urlRelativePath = request.getRequestURI();
+
 			String clientId = FileFinder.getClientId(fileRelativePath);
-			if (FileFinder.PUBLIC_FOLDER.equals(clientId)) {
-				file = FileFinder.getPublicFile(this.getServletContext(), fileRelativePath);
-			} else {
-				ClientConfig client = FileFinder.getClientConfig(this.getServletContext(), clientId);
-				if (client != null) {
-					if (client.isEnable()) {
-						file = FileFinder.getClientFile(this.getServletContext(), fileRelativePath);
-					} else {
-						response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-						ServletUtils.sendResponse(response, client.getClientName() + " mapping service has been disabled.");
+			if (clientId != null) {
+				if (FileFinder.PUBLIC_FOLDER.equals(clientId)) {
+					file = FileFinder.getPublicFile(this.getServletContext(), fileRelativePath);
+				} else {
+					ClientConfig client = FileFinder.getClientConfig(this.getServletContext(), clientId);
+					if (client != null) {
+						if (client.isEnable()) {
+							file = FileFinder.getClientFile(this.getServletContext(), fileRelativePath);
+						} else {
+							response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+							ServletUtils.sendResponse(response, client.getClientName() + " mapping service has been disabled.");
+							return;
+						}
+					}
+
+					// If the file is a folder, try to add "index.html".
+					if (file.isDirectory()) {
+						String indexURL = FileFinder.getAtlasMapperClientURL(this.getServletContext(), client, false);
+						response.sendRedirect(indexURL);
 						return;
 					}
 				}
@@ -98,9 +115,11 @@ public class ClientServlet extends HttpServlet {
 			// No file, nothing to view
 			if (file == null) {
 				response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-				ServletUtils.sendResponse(response, "File not found [" + fileRelativePath + "]");
+				LOGGER.log(Level.INFO, "File not found [{0}]", fileRelativePath);
+				ServletUtils.sendResponse(response, "File not found [" + urlRelativePath + "]");
 				return;
 			}
+
 			filePath = file.getAbsolutePath();
 
 			// Get and set the type of the file
@@ -111,16 +130,16 @@ public class ClientServlet extends HttpServlet {
 			ServletUtils.sendResponse(response, file);
 		} catch (FileNotFoundException e) {
 			response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-			LOGGER.log(Level.WARNING, "File not found [{0}]", filePath);
-			ServletUtils.sendResponse(response, "File not found [" + filePath + "]");
+			LOGGER.log(Level.INFO, "File not found [{0}]", filePath);
+			ServletUtils.sendResponse(response, "File not found [" + urlRelativePath + "]");
 		} catch (IOException e) {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			LOGGER.log(Level.SEVERE, "Problem sending file [" + filePath + "]: ", e);
-			ServletUtils.sendResponse(response, "Problem sending file [" + filePath + "]: " + e.getMessage());
+			ServletUtils.sendResponse(response, "Problem sending file [" + urlRelativePath + "]: " + e.getMessage());
 		} catch (JSONException e) {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			LOGGER.log(Level.SEVERE, "Error occurred while loading the configuration file [" + filePath + "]: ", e);
-			ServletUtils.sendResponse(response, "Error occurred while loading the configuration file [" + filePath + "]: " + e.getMessage());
+			ServletUtils.sendResponse(response, "Error occurred while loading the configuration file [" + urlRelativePath + "]: " + e.getMessage());
 		}
 	}
 }

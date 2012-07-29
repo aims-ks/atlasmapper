@@ -31,6 +31,8 @@ public class LayerConfigHelper {
 			layerConfig = new ArcGISMapServerLayerConfig(configManager);
 		} else if ("GOOGLE".equals(dataSourceType)) {
 			layerConfig = new GoogleLayerConfig(configManager);
+		} else if ("BING".equals(dataSourceType)) {
+			layerConfig = new BingLayerConfig(configManager);
 		} else if ("KML".equals(dataSourceType)) {
 			layerConfig = new KMLLayerConfig(configManager);
 		} else if ("NCWMS".equals(dataSourceType)) {
@@ -39,11 +41,13 @@ public class LayerConfigHelper {
 			layerConfig = new TilesLayerConfig(configManager);
 		} else if ("XYZ".equals(dataSourceType)) {
 			layerConfig = new XYZLayerConfig(configManager);
+		} else if ("WMS".equals(dataSourceType)) {
+			layerConfig = new WMSLayerConfig(configManager);
 		} else if ("GROUP".equals(dataSourceType)) {
 			layerConfig = new GroupLayerConfig(configManager);
 		} else {
-			// WMS, WMTS and other
-			layerConfig = new WMSLayerConfig(configManager);
+			// Unsupported
+			throw new IllegalArgumentException("Unsupported data source type [" + dataSourceType + "]");
 		}
 
 		// Set all data source values into the data source bean

@@ -27,6 +27,7 @@ import au.gov.aims.atlasmapperserver.dataSourceConfig.ArcGISMapServerDataSourceC
 import au.gov.aims.atlasmapperserver.dataSourceConfig.BingDataSourceConfig;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.DataSourceConfigHelper;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.WMSDataSourceConfig;
+import au.gov.aims.atlasmapperserver.dataSourceConfig.XYZDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.ArcGISCacheLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.ArcGISMapServerLayerConfig;
@@ -35,6 +36,7 @@ import au.gov.aims.atlasmapperserver.layerConfig.KMLLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerOptionConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerStyleConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.WMSLayerConfig;
+import au.gov.aims.atlasmapperserver.layerConfig.XYZLayerConfig;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
 import au.gov.aims.atlasmapperserver.servlet.FileFinder;
 import au.gov.aims.atlasmapperserver.servlet.Proxy;
@@ -286,15 +288,20 @@ public class ConfigManager {
 			for (int i=0; i<dataSourceConfigsArray.length(); i++) {
 				JSONObject rawDataSourceConfig = dataSourceConfigsArray.optJSONObject(i);
 				if (rawDataSourceConfig != null) {
-					AbstractDataSourceConfig dataSourceConfig = DataSourceConfigHelper.createDataSourceConfig(rawDataSourceConfig, this);
-					Integer dataSourceId = dataSourceConfig.getId();
-					if (dataSourceId != null && dataSourceId > this.lastDataSourceId) {
-						this.lastDataSourceId = dataSourceId;
+					try {
+						AbstractDataSourceConfig dataSourceConfig = DataSourceConfigHelper.createDataSourceConfig(rawDataSourceConfig, this);
+
+						Integer dataSourceId = dataSourceConfig.getId();
+						if (dataSourceId != null && dataSourceId > this.lastDataSourceId) {
+							this.lastDataSourceId = dataSourceId;
+						}
+						this.dataSourceConfigs.put(
+								dataSourceId,
+								dataSourceConfig.getDataSourceId(),
+								dataSourceConfig);
+					} catch (Exception ex) {
+						LOGGER.log(Level.SEVERE, "Unexpected error while parsing the following data source:\n" + rawDataSourceConfig.toString(4), ex);
 					}
-					this.dataSourceConfigs.put(
-							dataSourceId,
-							dataSourceConfig.getDataSourceId(),
-							dataSourceConfig);
 				} else {
 					LOGGER.log(Level.WARNING, "Malformed AtlasMapper JSON config file: a data source is not set properly [{0}]", rawDataSourceConfig);
 				}
@@ -1176,7 +1183,6 @@ public class ConfigManager {
 			listValues.put("layerBoxHeight", height + 45); // +45 to let some room for the text bellow the layer - This value can be overridden using CSS
 			listValues.put("listPageHeader", clientConfig.getListPageHeader());
 			listValues.put("listPageFooter", clientConfig.getListPageFooter());
-			Utils.processTemplate(templatesConfig, "fullList.html", listValues, atlasMapperClientFolder);
 			Utils.processTemplate(templatesConfig, "list.html", listValues, atlasMapperClientFolder);
 
 			this.parsePreviewTemplate(clientConfig, useGoogle);
@@ -1643,27 +1649,27 @@ public class ConfigManager {
 							configs.get2(dataSourceName);
 					if (dataSourceConfig != null) {
 						try {
-							AbstractDataSourceConfig overridenDataSourceConfig = dataSourceConfig;
+							AbstractDataSourceConfig overriddenDataSourceConfig = dataSourceConfig;
 
 							// Apply overrides from the capabilities document
 							AbstractLayerGenerator layersGenerator = dataSourceConfig.getLayerGenerator();
 							if (layersGenerator != null) {
-								overridenDataSourceConfig = layersGenerator.applyOverrides(
+								overriddenDataSourceConfig = layersGenerator.applyOverrides(
 										dataSourceConfig);
 							}
 
 
-							if (overridenDataSourceConfig != null) {
+							if (overriddenDataSourceConfig != null) {
 								// Apply overrides from the data source
-								overridenDataSourceConfig =
-										overridenDataSourceConfig.applyOverrides();
+								overriddenDataSourceConfig =
+										overriddenDataSourceConfig.applyOverrides();
 							}
 
-							if (overridenDataSourceConfig != null) {
+							if (overriddenDataSourceConfig != null) {
 								JSONObject dataSource =
-										this.generateDataSource(overridenDataSourceConfig, clientConfig);
+										this.generateDataSource(overriddenDataSourceConfig, clientConfig);
 								if (dataSource != null) {
-									dataSources.put(overridenDataSourceConfig.getDataSourceId(), dataSource);
+									dataSources.put(overriddenDataSourceConfig.getDataSourceId(), dataSource);
 								}
 							}
 						} catch(IOException ex) {
@@ -1774,6 +1780,23 @@ public class ConfigManager {
 			if (arcGISDataSource.isForcePNG24() != null) {
 				dataSource.put("forcePNG24", arcGISDataSource.isForcePNG24());
 			}
+		}
+
+		if (dataSourceConfig instanceof XYZDataSourceConfig) {
+			XYZDataSourceConfig xyzDataSource = (XYZDataSourceConfig)dataSourceConfig;
+
+			if (xyzDataSource.getServiceUrlsSet() != null) {
+				dataSource.put("serviceUrls", xyzDataSource.getServiceUrlsSet());
+			}
+
+			if (xyzDataSource.isOsm() != null) {
+				dataSource.put("osm", xyzDataSource.isOsm());
+			}
+
+			if (Utils.isNotBlank(xyzDataSource.getCrossOriginKeyword())) {
+				dataSource.put("crossOriginKeyword", xyzDataSource.getCrossOriginKeyword().trim());
+			}
+
 		}
 
 		if (dataSourceConfig instanceof BingDataSourceConfig) {
@@ -1909,30 +1932,10 @@ public class ConfigManager {
 		return moduleJSONConfig;
 	}
 
+	// TODO Move this logic to the layerConfig classes
 	private JSONObject generateLayer(AbstractLayerConfig layerConfig) throws JSONException {
 		// AbstractLayerConfig implements AbstractDataSourceConfigInterface
 		JSONObject jsonLayer = this.generateDataSourceInterface(layerConfig, null);
-
-		if (layerConfig instanceof WMSLayerConfig) {
-			WMSLayerConfig wmsLayerConfig = (WMSLayerConfig)layerConfig;
-			if (Utils.isNotBlank(wmsLayerConfig.getExtraWmsServiceUrls())) {
-				jsonLayer.put("extraWmsServiceUrls", wmsLayerConfig.getExtraWmsServiceUrls().trim());
-			}
-
-			if (Utils.isNotBlank(wmsLayerConfig.getWebCacheUrl())) {
-				jsonLayer.put("webCacheUrl", wmsLayerConfig.getWebCacheUrl().trim());
-			}
-
-			String[] webCacheParametersArray = wmsLayerConfig.getWebCacheParametersArray();
-			if (webCacheParametersArray != null && webCacheParametersArray.length > 0) {
-				JSONArray webCacheParameters = new JSONArray(webCacheParametersArray);
-				jsonLayer.put("webCacheSupportedParameters", webCacheParameters);
-			}
-
-			if (Utils.isNotBlank(wmsLayerConfig.getWmsVersion())) {
-				jsonLayer.put("wmsVersion", wmsLayerConfig.getWmsVersion().trim());
-			}
-		}
 
 		if (layerConfig.isCached() != null) {
 			jsonLayer.put("cached", layerConfig.isCached());
@@ -2078,14 +2081,25 @@ public class ConfigManager {
 		*/
 
 
+		// Specific layer fields
 		if (layerConfig instanceof WMSLayerConfig) {
 			WMSLayerConfig wmsLayerConfig = (WMSLayerConfig)layerConfig;
-			if(wmsLayerConfig.isWmsQueryable() != null) {
-				jsonLayer.put("wmsQueryable", wmsLayerConfig.isWmsQueryable());
+			if (Utils.isNotBlank(wmsLayerConfig.getWebCacheUrl())) {
+				jsonLayer.put("webCacheUrl", wmsLayerConfig.getWebCacheUrl().trim());
 			}
 
-			if(Utils.isNotBlank(wmsLayerConfig.getWmsVersion())) {
+			String[] webCacheParametersArray = wmsLayerConfig.getWebCacheParametersArray();
+			if (webCacheParametersArray != null && webCacheParametersArray.length > 0) {
+				JSONArray webCacheParameters = new JSONArray(webCacheParametersArray);
+				jsonLayer.put("webCacheSupportedParameters", webCacheParameters);
+			}
+
+			if (Utils.isNotBlank(wmsLayerConfig.getWmsVersion())) {
 				jsonLayer.put("wmsVersion", wmsLayerConfig.getWmsVersion().trim());
+			}
+
+			if(wmsLayerConfig.isWmsQueryable() != null) {
+				jsonLayer.put("wmsQueryable", wmsLayerConfig.isWmsQueryable());
 			}
 
 			if (Utils.isNotBlank(wmsLayerConfig.getExtraWmsServiceUrls())) {
@@ -2104,10 +2118,8 @@ public class ConfigManager {
 			if(wmsLayerConfig.isWmsTransectable() != null) {
 				jsonLayer.put("wmsTransectable", wmsLayerConfig.isWmsTransectable());
 			}
-		}
 
-		// Specific layer fields
-		if (layerConfig instanceof ArcGISMapServerLayerConfig) {
+		} else if (layerConfig instanceof ArcGISMapServerLayerConfig) {
 			ArcGISMapServerLayerConfig arcGISLayerConfig = (ArcGISMapServerLayerConfig)layerConfig;
 			if(Utils.isNotBlank(arcGISLayerConfig.getArcGISPath())) {
 				jsonLayer.put("arcGISPath", arcGISLayerConfig.getArcGISPath().trim());
@@ -2139,19 +2151,11 @@ public class ConfigManager {
 				jsonLayer.put("layers", groupLayers);
 			}
 
-/*
-		// TODO DELETE
-		} else if (layerConfig instanceof FolderLayerConfig) {
-			FolderLayerConfig folderLayerConfig = (FolderLayerConfig)layerConfig;
-			if(Utils.isNotBlank(folderLayerConfig.getFolderPath())) {
-				// TODO folderPath instead of arcGISPath
-				jsonLayer.put("arcGISPath", folderLayerConfig.getFolderPath().trim());
+		} else if (layerConfig instanceof XYZLayerConfig) {
+			XYZLayerConfig xyzLayerConfig = (XYZLayerConfig)layerConfig;
+			if (Utils.isNotBlank(xyzLayerConfig.getFormat())) {
+				jsonLayer.put("format", xyzLayerConfig.getFormat().trim());
 			}
-			String[] groupLayers = folderLayerConfig.getLayers();
-			if (groupLayers != null && groupLayers.length > 0) {
-				jsonLayer.put("layers", groupLayers);
-			}
-*/
 
 		} else if (layerConfig instanceof KMLLayerConfig) {
 			KMLLayerConfig kmlLayerConfig = (KMLLayerConfig)layerConfig;

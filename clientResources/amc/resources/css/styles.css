@@ -134,10 +134,33 @@ body {
 .x-tree-noicon .x-tree-node-delete{
 	width:0; height:0;
 }
-.x-tree-node .x-tree-node-disabled .x-tree-node-delete{
+.x-tree-node .x-tree-node-disabled .x-tree-node-delete {
 	-moz-opacity: 0.5;
 	opacity:.5;
 	filter: alpha(opacity=50);
+}
+
+.arcgisFeatureInfo {
+	font: normal 14px arial, tahoma, helvetica, sans-serif;
+}
+.arcgisFeatureInfo table {
+	margin-top: 1em;
+	border-collapse: collapse;
+}
+.arcgisFeatureInfo table tr.odd {
+	background-color: #EEEEEE;
+}
+.arcgisFeatureInfo table td {
+	padding: 0.2em 0.4em;
+}
+.arcgisFeatureInfo table td.key {
+	font-weight: bold;
+}
+.arcgisFeatureInfo table,
+.arcgisFeatureInfo table th,
+.arcgisFeatureInfo table td,
+.arcgisFeatureInfo table tr {
+	border: 1px solid black;
 }
 
 /* Open Layer */

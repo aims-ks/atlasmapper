@@ -21,17 +21,73 @@
 
 package au.gov.aims.atlasmapperserver.dataSourceConfig;
 
+import au.gov.aims.atlasmapperserver.AbstractConfig;
 import au.gov.aims.atlasmapperserver.ConfigManager;
+import au.gov.aims.atlasmapperserver.Utils;
+import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+import au.gov.aims.atlasmapperserver.layerGenerator.XYZLayerGenerator;
+
+import java.util.Set;
 
 public class XYZDataSourceConfig extends AbstractDataSourceConfig {
+	/**
+	 * List of URLs used to request the tiles (load balancing)
+	 */
+	@ConfigField
+	private String serviceUrls;
+	// Cache - avoid parsing baseLayers string every times.
+	private Set<String> serviceUrlsSet = null;
+
+	@ConfigField
+	private Boolean osm;
+
+	@ConfigField
+	private String crossOriginKeyword;
+
 	public XYZDataSourceConfig(ConfigManager configManager) {
 		super(configManager);
 	}
 
+	public String getServiceUrls() {
+		return this.serviceUrls;
+	}
+	public Set<String> getServiceUrlsSet() {
+		if (this.serviceUrlsSet == null && Utils.isNotBlank(this.serviceUrls)) {
+			this.serviceUrlsSet = AbstractConfig.toSet(this.serviceUrls);
+		}
+
+		return this.serviceUrlsSet;
+	}
+
+	public void setServiceUrls(String serviceUrls) {
+		this.serviceUrls = serviceUrls;
+		this.serviceUrlsSet = null;
+	}
+
+	public Boolean isOsm() {
+		return this.osm;
+	}
+
+	public void setOsm(Boolean osm) {
+		this.osm = osm;
+	}
+
+	public String getCrossOriginKeyword() {
+		return this.crossOriginKeyword;
+	}
+
+	public void setCrossOriginKeyword(String crossOriginKeyword) {
+		this.crossOriginKeyword = crossOriginKeyword;
+	}
+
+	@Override
+	public boolean isDefaultAllBaseLayers() {
+		return true; // default: all base layers
+	}
+
 	@Override
 	public AbstractLayerGenerator getLayerGenerator() {
-		throw new NotImplementedException();
+		return new XYZLayerGenerator();
 	}
 }

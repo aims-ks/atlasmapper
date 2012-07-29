@@ -35,6 +35,6 @@ Atlas.Layer.Dummy = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 	 */
 	initialize: function(mapPanel, jsonLayer, parent) {
 		Atlas.Layer.AbstractLayer.prototype.initialize.apply(this, arguments);
-		this.layer = this.extendLayer({});
+		this.setLayer({});
 	}
 });

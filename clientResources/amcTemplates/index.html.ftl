@@ -26,22 +26,22 @@
 	<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE8" />
 	<!-- IE9 is not support by GeoExt yet, the emulation mode is supposed to fix this...
 		IMPORTANT!!! The IE-EmulateIE8 MUST be the first line of the header otherwise IE9 ignore it. -->
-
-	<title>${clientName}</title>
-	<link rel="icon" type="image/png" href="resources/favicon.png" />
 	<meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
+	<title>${clientName}</title>
+	<link rel="icon" type="image/png" href="resources/favicon.png?atlasmapperVer=${version}" />
 
-	<link rel="stylesheet" type="text/css" href="resources/css/styles.css" />
-	<!--[if lte IE 6 ]>
-		<link rel="stylesheet" type="text/css" href="resources/css/styles-ie6.css" />
-	<![endif]-->
 	<#if (theme?? && theme != "")>
-		<link rel="stylesheet" type="text/css" href="extjs/3.3.0/ext-3.3.0/resources/css/ext-all-notheme.css" />
-		<link rel="stylesheet" type="text/css" href="extjs/3.3.0/ext-3.3.0/resources/css/${theme}.css" />
+		<link rel="stylesheet" type="text/css" href="extjs/3.3.0/ext-3.3.0/resources/css/ext-all-notheme.css?atlasmapperVer=${version}" />
+		<link rel="stylesheet" type="text/css" href="extjs/3.3.0/ext-3.3.0/resources/css/${theme}.css?atlasmapperVer=${version}" />
 	<#else>
-		<link rel="stylesheet" type="text/css" href="extjs/3.3.0/ext-3.3.0/resources/css/ext-all.css" />
+		<link rel="stylesheet" type="text/css" href="extjs/3.3.0/ext-3.3.0/resources/css/ext-all.css?atlasmapperVer=${version}" />
 	</#if>
+
+	<link rel="stylesheet" type="text/css" href="resources/css/styles.css?atlasmapperVer=${version}" />
+	<!--[if lte IE 6 ]>
+		<link rel="stylesheet" type="text/css" href="resources/css/styles-ie6.css?atlasmapperVer=${version}" />
+	<![endif]-->
 </head>
 
 <body id="fullClient">
@@ -73,10 +73,10 @@
 	</script>
 	<![endif]-->
 
-	<script type="text/javascript" src="OpenLayers/OpenLayers-2.12/OpenLayers.js"></script>
-	<script type="text/javascript" src="OpenLayers-ux/NCWMS.js"></script>
-	<script type="text/javascript" src="OpenLayers-ux/NCTimeSeriesClickControl.js"></script>
-	<script type="text/javascript" src="OpenLayers-ux/NCTransectDrawControl.js"></script>
+	<script type="text/javascript" src="OpenLayers/OpenLayers-2.12/OpenLayers.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="OpenLayers-ux/NCWMS.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="OpenLayers-ux/NCTimeSeriesClickControl.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="OpenLayers-ux/NCTransectDrawControl.js?atlasmapperVer=${version}"></script>
 
 	<!-- OpenLayers support for Google layer, in version <= 2.11, has to be patched to support V > 3.6
 			(since google do not support V <= 3.6 anymore)
@@ -84,63 +84,63 @@
 		Patch: https://github.com/openlayers/openlayers/commit/92f04a7a4277a6c818ef2d40a2856910ed72d3d6
 		Date: 18-05-2012
 	-->
-	<script type="text/javascript" src="OpenLayers-ux/Google-v3.js"></script>
+	<!-- <script type="text/javascript" src="OpenLayers-ux/Google-v3.js?atlasmapperVer=${version}"></script> -->
 
 	<#if (useGoogle)>
 		<!-- If the client use any Google Layers -->
-		<script type="text/javascript" src="http://maps.google.com/maps/api/js?v=3.7&amp;sensor=false"></script>
+		<script type="text/javascript" src="http://maps.google.com/maps/api/js?v=3.7&amp;sensor=false&amp;atlasmapperVer=${version}"></script>
 	</#if>
 
-	<script type="text/javascript" src="extjs/3.3.0/ext-3.3.0/adapter/ext/ext-base.js"></script>
-	<script type="text/javascript" src="extjs/3.3.0/ext-3.3.0/ext-all.js"></script>
+	<script type="text/javascript" src="extjs/3.3.0/ext-3.3.0/adapter/ext/ext-base.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="extjs/3.3.0/ext-3.3.0/ext-all.js?atlasmapperVer=${version}"></script>
 	<!-- The un-minimized version (in folder lib) do not works with FF4 (it's components are loaded async) -->
-	<!--<script type="text/javascript" src="GeoExt/lib/GeoExt.js"></script> -->
-	<script type="text/javascript" src="GeoExt/script/GeoExt.js"></script>
+	<!--<script type="text/javascript" src="GeoExt/lib/GeoExt.js?atlasmapperVer=${version}"></script> -->
+	<script type="text/javascript" src="GeoExt/script/GeoExt.js?atlasmapperVer=${version}"></script>
 
 	<!-- Personal addition to GeoExt -->
-	<script type="text/javascript" src="Ext-ux/CompositeFieldAnchor.js"></script>
-	<script type="text/javascript" src="Ext-ux/IFramePanel.js"></script>
-	<script type="text/javascript" src="Ext-ux/LayerTreeLoader.js"></script>
-	<script type="text/javascript" src="Ext-ux/LayerNode.js"></script>
-	<script type="text/javascript" src="Ext-ux/MinMaxField.js"></script>
-	<script type="text/javascript" src="Ext-ux/DateField.js"></script>
-	<script type="text/javascript" src="Ext-ux/NCDatetimeField.js"></script>
-	<script type="text/javascript" src="Ext-ux/NCPlotPanel.js"></script>
+	<script type="text/javascript" src="Ext-ux/CompositeFieldAnchor.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="Ext-ux/IFramePanel.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="Ext-ux/LayerTreeLoader.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="Ext-ux/LayerNode.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="Ext-ux/MinMaxField.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="Ext-ux/DateField.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="Ext-ux/NCDatetimeField.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="Ext-ux/NCPlotPanel.js?atlasmapperVer=${version}"></script>
 
-	<script type="text/javascript" src="GeoExt-ux/LayerLegend.js"></script>
-	<script type="text/javascript" src="GeoExt-ux/WMSLegend.js"></script>
-	<script type="text/javascript" src="GeoExt-ux/NCWMSLegend.js"></script>
-	<script type="text/javascript" src="GeoExt-ux/VectorLegend.js"></script>
-	<script type="text/javascript" src="GeoExt-ux/LegendImage.js"></script>
-	<script type="text/javascript" src="GeoExt-ux/LegendGroup.js"></script>
-	<script type="text/javascript" src="GeoExt-ux/GroupLayerOpacitySlider.js"></script>
-	<script type="text/javascript" src="GeoExt-ux/GroupLayerLoader.js"></script>
+	<script type="text/javascript" src="GeoExt-ux/LayerLegend.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="GeoExt-ux/WMSLegend.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="GeoExt-ux/NCWMSLegend.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="GeoExt-ux/VectorLegend.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="GeoExt-ux/LegendImage.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="GeoExt-ux/LegendGroup.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="GeoExt-ux/GroupLayerOpacitySlider.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="GeoExt-ux/GroupLayerLoader.js?atlasmapperVer=${version}"></script>
 
-	<script type="text/javascript" src="modules/Core/Core.js"></script>
-	<script type="text/javascript" src="modules/MapPanel/Layer/LayerState.js"></script>
-	<script type="text/javascript" src="modules/MapPanel/Layer/AbstractLayer.js"></script>
-		<script type="text/javascript" src="modules/MapPanel/Layer/ArcGISMapServer.js"></script>
-			<script type="text/javascript" src="modules/MapPanel/Layer/ArcGISCache.js"></script>
-		<script type="text/javascript" src="modules/MapPanel/Layer/Dummy.js"></script>
-		<script type="text/javascript" src="modules/MapPanel/Layer/Group.js"></script>
-		<script type="text/javascript" src="modules/MapPanel/Layer/Google.js"></script>
-		<script type="text/javascript" src="modules/MapPanel/Layer/Bing.js"></script>
-		<script type="text/javascript" src="modules/MapPanel/Layer/KML.js"></script>
-		<script type="text/javascript" src="modules/MapPanel/Layer/WMS.js"></script>
-			<script type="text/javascript" src="modules/MapPanel/Layer/NCWMS.js"></script>
-			<script type="text/javascript" src="modules/MapPanel/Layer/WMTS.js"></script>
-		<script type="text/javascript" src="modules/MapPanel/Layer/XYZ.js"></script>
-	<script type="text/javascript" src="modules/MapPanel/Layer/LayerHelper.js"></script>
-	<script type="text/javascript" src="modules/MapPanel/AbstractMapPanel.js"></script>
-	<script type="text/javascript" src="modules/MapPanel/GeoExtMapPanel.js"></script>
-	<script type="text/javascript" src="modules/MapPanel/GetFeatureInfo.js"></script>
-	<script type="text/javascript" src="modules/Legend/Legend.js"></script>
-	<script type="text/javascript" src="modules/Legend/LegendPanel.js"></script>
-	<script type="text/javascript" src="modules/LayersPanel/LayersPanel.js"></script>
-	<script type="text/javascript" src="modules/LayersPanel/AddLayersWindow.js"></script>
-	<script type="text/javascript" src="modules/Trees/Trees.js"></script>
-	<script type="text/javascript" src="modules/Info/Info.js"></script>
-	<script type="text/javascript" src="modules/Info/OptionsPanel.js"></script>
+	<script type="text/javascript" src="modules/Core/Core.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="modules/MapPanel/Layer/LayerState.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="modules/MapPanel/Layer/AbstractLayer.js?atlasmapperVer=${version}"></script>
+		<script type="text/javascript" src="modules/MapPanel/Layer/ArcGISMapServer.js?atlasmapperVer=${version}"></script>
+			<script type="text/javascript" src="modules/MapPanel/Layer/ArcGISCache.js?atlasmapperVer=${version}"></script>
+		<script type="text/javascript" src="modules/MapPanel/Layer/Dummy.js?atlasmapperVer=${version}"></script>
+		<script type="text/javascript" src="modules/MapPanel/Layer/Group.js?atlasmapperVer=${version}"></script>
+		<script type="text/javascript" src="modules/MapPanel/Layer/Google.js?atlasmapperVer=${version}"></script>
+		<script type="text/javascript" src="modules/MapPanel/Layer/Bing.js?atlasmapperVer=${version}"></script>
+		<script type="text/javascript" src="modules/MapPanel/Layer/KML.js?atlasmapperVer=${version}"></script>
+		<script type="text/javascript" src="modules/MapPanel/Layer/WMS.js?atlasmapperVer=${version}"></script>
+			<script type="text/javascript" src="modules/MapPanel/Layer/NCWMS.js?atlasmapperVer=${version}"></script>
+			<script type="text/javascript" src="modules/MapPanel/Layer/WMTS.js?atlasmapperVer=${version}"></script>
+		<script type="text/javascript" src="modules/MapPanel/Layer/XYZ.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="modules/MapPanel/Layer/LayerHelper.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="modules/MapPanel/AbstractMapPanel.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="modules/MapPanel/GeoExtMapPanel.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="modules/MapPanel/GetFeatureInfo.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="modules/Legend/Legend.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="modules/Legend/LegendPanel.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="modules/LayersPanel/LayersPanel.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="modules/LayersPanel/AddLayersWindow.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="modules/Trees/Trees.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="modules/Info/Info.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="modules/Info/OptionsPanel.js?atlasmapperVer=${version}"></script>
 
 	<script type="text/javascript">
 
@@ -160,6 +160,8 @@
 		}
 
 		Ext.onReady(function() {
+			var welcomeWindow = null;
+
 			if (intro) {
 				var showWelcomeWindow = function() {
 					var welcomeMsg = welcomeMsgObj.innerHTML;
@@ -170,7 +172,7 @@
 					}
 
 					if (welcomeMsg) {
-						Ext.Msg.show({
+						welcomeWindow = Ext.Msg.show({
 							title:'Welcome',
 							msg: welcomeMsg,
 							cls: 'welcomeCls',
@@ -184,7 +186,7 @@
 					// This Warning window will only show up if IE is not running in compatibility mode (if it ignores the directive in the header)
 					Ext.Msg.show({
 						title:'WARNING',
-						msg: '<p>Your browser is not well supported. It\'s strongly recommended to activate the browser compatibility mode!</p><img src="resources/images/IE9-compatibility-mode.png">',
+						msg: '<p>Your browser is not well supported. It\'s strongly recommended to activate the browser compatibility mode!</p><img src="resources/images/IE9-compatibility-mode.png?atlasmapperVer=${version}">',
 						cls: 'welcomeCls',
 						width: 750,
 						minWidth: 750,
@@ -249,7 +251,15 @@
 								html: "${pageFooter}"
 							}
 						</#if>
-					]
+					],
+					listeners: {
+						// OpenLayers steal the focus of the welcome window, preventing the user from closing it using ESC or Enter.
+						'afterrender': function() {
+							if (welcomeWindow && welcomeWindow.getDialog()) {
+								welcomeWindow.getDialog().focus.defer(1, welcomeWindow.getDialog());
+							}
+						}
+					}
 				});
 			};
 

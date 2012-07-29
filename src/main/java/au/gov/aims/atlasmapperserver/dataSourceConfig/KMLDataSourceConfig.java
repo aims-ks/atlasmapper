@@ -21,6 +21,7 @@
 
 package au.gov.aims.atlasmapperserver.dataSourceConfig;
 
+import au.gov.aims.atlasmapperserver.AbstractConfig;
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
@@ -44,7 +45,7 @@ public class KMLDataSourceConfig extends AbstractDataSourceConfig {
 	}
 	public Set<String> getKmlUrlsSet() {
 		if (this.kmlUrlsSet == null && Utils.isNotBlank(this.kmlUrls)) {
-			this.kmlUrlsSet = toSet(this.kmlUrls);
+			this.kmlUrlsSet = AbstractConfig.toSet(this.kmlUrls);
 		}
 
 		return this.kmlUrlsSet;
@@ -72,7 +73,7 @@ public class KMLDataSourceConfig extends AbstractDataSourceConfig {
 				(Utils.isBlank(this.getFeatureRequestsUrl()) ? "" :    "	featureRequestsUrl=" + this.getFeatureRequestsUrl() + "\n") +
 				(Utils.isBlank(this.getLegendUrl()) ? "" :             "	legendUrl=" + this.getLegendUrl() + "\n") +
 				(this.getLegendParameters()==null ? "" :               "	legendParameters=" + this.getLegendParameters() + "\n") +
-				(Utils.isBlank(this.getBlacklistedLayers()) ? "" :     "	blacklistedLayers=" + this.getBlacklistedLayers() + "\n") +
+				(Utils.isBlank(this.getBlackAndWhiteListedLayers()) ? "" :     "	blackAndWhiteListedLayers=" + this.getBlackAndWhiteListedLayers() + "\n") +
 				(this.isShowInLegend()==null ? "" :                    "	showInLegend=" + this.isShowInLegend() + "\n") +
 				(Utils.isBlank(this.getComment()) ? "" :               "	comment=" + this.getComment() + "\n") +
 				'}';

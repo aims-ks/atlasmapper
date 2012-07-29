@@ -287,13 +287,13 @@ Atlas.Core = OpenLayers.Class({
 		this.moving = true;
 
 		// When a map has move, move all other maps as well
-		var masterMap = this.mapPanels[mapIndex].map;
+		var masterMapPanel = this.mapPanels[mapIndex];
 		for (var i=0; i<this.mapPanels.length; i++) {
 			if (i != mapIndex) {
-				var anotherMap = this.mapPanels[i].map;
-				anotherMap.setCenter(
-					masterMap.getCenter().clone().transform(masterMap.getProjectionObject(), anotherMap.getProjectionObject()),
-					masterMap.getZoom()
+				var anotherMapPanel = this.mapPanels[i];
+				anotherMapPanel.setStandardCenter(
+					masterMapPanel.map.getCenter().clone().transform(masterMapPanel.map.getProjectionObject(), anotherMapPanel.map.getProjectionObject()),
+					masterMapPanel.getStandardZoomLevel()
 				);
 			}
 		}
@@ -474,8 +474,8 @@ Atlas.Core = OpenLayers.Class({
 						// We have new layers to request. Reset the attempts counter.
 						that.requestLayersJSon(layerIds, callback);
 					} else {
-						// The request has failed to return all requested layers.
-						// This situation should occurred very rarely.
+						// Some layers are not in the cache. Try to load them.
+						// The application will try to load the layers a maximum of 5 times.
 						that.requestLayersJSon(layerIds, callback, attemptsLeft-1);
 					}
 				};

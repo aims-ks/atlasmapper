@@ -85,6 +85,10 @@ public class FileFinder {
 	}
 
 	public static String getClientId(String fileRelativePathWithClientPath) {
+		if (fileRelativePathWithClientPath == null) {
+			return null;
+		}
+
 		// The client ID is the first none empty folder in the path
 		// 1. Count how many slash are at the beginning of the string (it may be something like: "///clientId/folder/file")
 		// NOTE: Tomcat seems to remove redundant slashes, so this loop is just to increase the stability.
@@ -92,8 +96,13 @@ public class FileFinder {
 		while (fileRelativePathWithClientPath.charAt(clientIdStart) == '/') {
 			clientIdStart++;
 		}
+
+		int clientIdEnd = fileRelativePathWithClientPath.indexOf('/', clientIdStart) > 0 ?
+				fileRelativePathWithClientPath.indexOf('/', clientIdStart) :
+				fileRelativePathWithClientPath.length();
+
 		// 2. Get everything between the last starting slash and the next one ("///clientId/folder/file" => "clientId")
-		return fileRelativePathWithClientPath.substring(clientIdStart, fileRelativePathWithClientPath.indexOf('/', clientIdStart));
+		return fileRelativePathWithClientPath.substring(clientIdStart, clientIdEnd);
 	}
 
 	public static ClientConfig getClientConfig(ServletContext context, String clientId) throws FileNotFoundException, JSONException {

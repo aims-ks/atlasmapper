@@ -34,7 +34,47 @@ Atlas.Layer.XYZ = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 	initialize: function(mapPanel, jsonLayer, parent) {
 		Atlas.Layer.AbstractLayer.prototype.initialize.apply(this, arguments);
 
-		alert('Layer type XYZ is not yet implemented.');
-		this.layer = null;
+		var layer = {};
+		if (this.json) {
+			var title = this.getTitle();
+
+			var serviceUrls = [];
+			for (var i=0; i<this.json['serviceUrls'].length; i++) {
+				serviceUrls[i] = this.parseServiceUrl(this.json['serviceUrls'][i]);
+			}
+
+			var crossOriginKeyword = null;
+			if (typeof(this.json['crossOriginKeyword']) !== 'undefined') {
+				crossOriginKeyword = this.json['crossOriginKeyword'];
+			}
+
+			var olOptions = OpenLayers.Util.extend({
+					"tileOptions": {
+						"crossOriginKeyword": crossOriginKeyword
+					}
+				},
+				this.json['olOptions']
+			);
+
+			// OpenLayers.Util.extend wont extend the tileOptions if this.json['olOptions'] already contains a tileOptions
+			if (typeof(this.json['olOptions']) !== 'undefined' && typeof(this.json['olOptions']['tileOptions']) !== 'undefined') {
+				olOptions['tileOptions'] = OpenLayers.Util.extend({
+					"crossOriginKeyword": crossOriginKeyword
+				}, this.json['olOptions']['tileOptions']);
+			}
+
+			if (typeof(this.json['osm']) === 'boolean' && this.json['osm'] === true) {
+				layer = new OpenLayers.Layer.OSM(title, serviceUrls, olOptions);
+			} else {
+				layer = new OpenLayers.Layer.XYZ(title, serviceUrls, olOptions);
+			}
+		}
+
+		this.setLayer(layer);
+	},
+
+	parseServiceUrl: function(serviceUrl) {
+		return serviceUrl.replace("{layerName}", this.json['layerName'])
+				.replace("{format}", this.json['format']);
 	}
 });

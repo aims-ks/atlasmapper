@@ -166,25 +166,27 @@ Atlas.AbstractMapPanel = {
 		var controls = [];
 		if (this.embedded) {
 			controls = [
-				new OpenLayers.Control.Zoom(), // Nice looking, simple zoom box
+				new OpenLayers.Control.Zoom(),          // Nice looking, simple zoom box
+				new OpenLayers.Control.PinchZoom(),     // Mobile device zooming, with 2 fingers
 				new OpenLayers.Control.ScaleLine({geodesic: true}),     // Displays a small line indicator representing the current map scale on the map. ("geodesic: true" has to be set to recalculate the scale line when the map get span closer to the poles)
 				//new OpenLayers.Control.Scale(),         // Displays the map scale (example: 1:1M).
 				new OpenLayers.Control.MousePosition({
 					displayProjection: this.defaultLonLatProjection
 				}),                                     // Displays geographic coordinates of the mouse pointer
-				new OpenLayers.Control.Navigation(),
+				new OpenLayers.Control.Navigation(),    // Including TouchNavigation
 				new OpenLayers.Control.KeyboardDefaults(), // Adds panning and zooming functions, controlled with the keyboard.  By default arrow keys pan, +/- keys zoom & Page Up/Page Down/Home/End scroll by three quarters of a page.
 				new OpenLayers.Control.ZoomBox()        // Enables zooming directly to a given extent, by drawing a box on the map.  The box is drawn by holding down shift, whilst dragging the mouse.
 			];
 		} else {
 			controls = [
 				new OpenLayers.Control.PanZoomBar(),    // Pan and Zoom (with a zoom bar) controls, in the top left corner
+				new OpenLayers.Control.PinchZoom(),     // Mobile device zooming, with 2 fingers
 				new OpenLayers.Control.ScaleLine({geodesic: true}),     // Displays a small line indicator representing the current map scale on the map. ("geodesic: true" has to be set to recalculate the scale line when the map get span closer to the poles)
 				//new OpenLayers.Control.Scale(),         // Displays the map scale (example: 1:1M).
 				new OpenLayers.Control.MousePosition({
 					displayProjection: this.defaultLonLatProjection
 				}),                                     // Displays geographic coordinates of the mouse pointer
-				new OpenLayers.Control.Navigation(),
+				new OpenLayers.Control.Navigation(),    // Including TouchNavigation
 				/*
 				new OpenLayers.Control.OverviewMap({
 					layers: [
@@ -456,6 +458,42 @@ Atlas.AbstractMapPanel = {
 		this.events.triggerEvent(event, attributes);
 	},
 
+	// Simply return the map Zoom level, patched for Bing layers (you did it again, Microsoft!)
+	getStandardZoomLevel: function() {
+		var zoom = this.map.getZoom();
+
+		if (this.map.baseLayer instanceof OpenLayers.Layer.Bing) {
+			zoom++;
+		}
+
+		return zoom;
+	},
+
+	// Simply set the map Zoom level, patched for Bing layers (you did it again, Microsoft!)
+	setStandardZoomLevel: function(zoomLevel) {
+		var zoom = zoomLevel;
+
+		if (this.map.baseLayer instanceof OpenLayers.Layer.Bing) {
+			zoom--;
+		}
+
+		this.map.zoomTo(zoom);
+	},
+
+	// Simply set the map Center and Zoom level, patched for Bing layers (you did it again, Microsoft!)
+	setStandardCenter: function(center, zoomLevel) {
+		var zoom = null;
+
+		if (typeof(zoomLevel) !== 'undefined' && zoomLevel !== null) {
+			zoom = zoomLevel;
+
+			if (this.map.baseLayer instanceof OpenLayers.Layer.Bing) {
+				zoom--;
+			}
+		}
+
+		this.map.setCenter(center, zoom);
+	},
 
 	_createUrlSaveState: function() {
 		if (this.map == null) {
@@ -465,9 +503,7 @@ Atlas.AbstractMapPanel = {
 		var state = {};
 
 		// Zoom level (z)
-		if (typeof(this.map.getZoom) === 'function') {
-			state['z'] = this.map.getZoom();
-		}
+		state['z'] = this.getStandardZoomLevel();
 
 		// Center (ll)
 		if (typeof(this.map.getCenter) === 'function') {

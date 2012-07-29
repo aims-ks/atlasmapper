@@ -88,7 +88,7 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 			}
 		});
 
-		this.opacitySlider = new GeoExt.ux.GroupLayerOpacitySlider({
+		var opacitySliderConfig = {
 			fieldLabel: 'Opacity',
 			node: this.currentNode,
 			aggressive: false,
@@ -96,10 +96,18 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 			// This option do not works with group layers
 			//changeVisibility: true,
 			value: 0,
-			plugins: new GeoExt.LayerOpacitySliderTip({template: '<div>{opacity}%</div>'}),
-			// Fix the bug of the thumb on top of other elements. WARNING: topThumbZIndex is not in the API.
-			topThumbZIndex: 'auto'
-		});
+			plugins: new GeoExt.LayerOpacitySliderTip({template: '<div>{opacity}%</div>'})
+		};
+
+		// Fix the bug of the thumb on top of other elements.
+		// WARNING: topThumbZIndex is not in the API doc of ExtJS.
+		// IE NOTE: This bug do not occur with IE6 & 7, and the fix give errors,
+		//     but the bug do occur with IE8 and later.
+		if (!Ext.isIE6 && !Ext.isIE7) {
+			opacitySliderConfig.topThumbZIndex = 'auto';
+		}
+
+		this.opacitySlider = new GeoExt.ux.GroupLayerOpacitySlider(opacitySliderConfig);
 
 		this.optionsFieldSet = new Ext.form.FieldSet({
 			hidden: true,

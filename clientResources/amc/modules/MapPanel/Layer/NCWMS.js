@@ -37,7 +37,7 @@ Atlas.Layer.NCWMS = OpenLayers.Class(Atlas.Layer.WMS, {
 
 		// TODO Support Multiple URLS => this._getWMSExtraServiceUrls(),
 		var layerParams = this.getWMSLayerParams();
-		this.layer = this.extendLayer(new OpenLayers.Layer.ux.NCWMS(
+		this.setLayer(new OpenLayers.Layer.ux.NCWMS(
 			this.getTitle(),
 			this.getServiceUrl(layerParams),
 			layerParams,

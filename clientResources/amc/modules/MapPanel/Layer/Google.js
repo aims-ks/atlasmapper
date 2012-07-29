@@ -46,7 +46,7 @@ Atlas.Layer.Google = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 				layerOptions = this.applyOlOverrides(layerOptions, this.json['olOptions']);
 			}
 
-			this.layer = this.extendLayer(new OpenLayers.Layer.Google(
+			this.setLayer(new OpenLayers.Layer.Google(
 				// "Google Physical", "Google Streets", "Google Hybrid", "Google Satellite"
 				this.getTitle(),
 				layerOptions
