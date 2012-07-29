@@ -93,19 +93,30 @@ public class ClientServlet extends HttpServlet {
 					file = FileFinder.getPublicFile(this.getServletContext(), fileRelativePath);
 				} else {
 					ClientConfig client = FileFinder.getClientConfig(this.getServletContext(), clientId);
-					if (client != null) {
-						if (client.isEnable()) {
-							file = FileFinder.getClientFile(this.getServletContext(), fileRelativePath);
-						} else {
-							response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-							ServletUtils.sendResponse(response, client.getClientName() + " mapping service has been disabled.");
-							return;
-						}
+
+					if (client == null) {
+						response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+						ServletUtils.sendResponse(response, clientId + " do not exists.");
+						return;
+					}
+
+					if (client.isEnable()) {
+						file = FileFinder.getClientFile(this.getServletContext(), fileRelativePath);
+					} else {
+						response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+						ServletUtils.sendResponse(response, client.getClientName() + " mapping service has been disabled.");
+						return;
 					}
 
 					// If the file is a folder, try to add "index.html".
-					if (file.isDirectory()) {
+					if (file != null && file.isDirectory()) {
 						String indexURL = FileFinder.getAtlasMapperClientURL(this.getServletContext(), client, false);
+						if (indexURL == null) {
+							response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+							LOGGER.log(Level.WARNING, "{0} do not have an index.html file.", client.getClientName());
+							ServletUtils.sendResponse(response, client.getClientName() + " do not have an index.html file.");
+							return;
+						}
 						response.sendRedirect(indexURL);
 						return;
 					}
