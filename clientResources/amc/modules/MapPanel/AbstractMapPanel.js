@@ -39,7 +39,7 @@ Atlas.AbstractMapPanel = {
 		"addLayerIds", "addLayers", "layerAdded",
 		"removeLayer", "layerRemoved",
 		"locateLayer", "saveStateChange",
-		'legendVisibilityChange',
+		'legendVisibilityChange', 'dpiChange',
 		'render'
 	],
 
@@ -52,6 +52,9 @@ Atlas.AbstractMapPanel = {
 	mapId: 0,
 	center: null,
 	zoom: 0,
+	// http://docs.geoserver.org/latest/en/user/services/wms/vendor.html#format-options
+	DEFAULT_DPI: 90,
+	dpi: this.DEFAULT_DPI,
 
 	renderTo: null,
 	embedded: false,
@@ -74,6 +77,7 @@ Atlas.AbstractMapPanel = {
 
 		// Basic save-state
 		var parameters = OpenLayers.Util.getParameters();
+
 		this.urlState = {
 			layerIds: null,
 			styles: null,
@@ -218,8 +222,11 @@ Atlas.AbstractMapPanel = {
 			}
 		}
 
-		// Designed for the GeoWebCache
-		var mapOptions = {};
+		var mapOptions = {
+			'projection' : projection,
+			'maxExtent' : maxExtent,
+			'controls' : controls
+		};
 
 		// Copy all options of Atlas.conf['mapOptions'] to mapOptions.
 		// NOTE: Do not assign mapOptions = Atlas.conf['mapOptions'] since the options of mapOptions can change and
@@ -230,17 +237,12 @@ Atlas.AbstractMapPanel = {
 			}
 		}
 
-		// Options required object instanciation
-		mapOptions['projection'] = projection;
-		mapOptions['maxExtent'] = maxExtent;
-		mapOptions['controls'] = controls;
-
 		// This attribute should NOT be true or else it cause all sort of
 		// weird side effects with base layers. The default value is false
-		// but, for some reason, it is changed to true somewhere.
+		// but, it is changed to true at some point, probably by GeoEXT.
 		if (typeof(mapOptions['allOverlays']) == 'undefined') { mapOptions['allOverlays'] = false; }
 
-		// Set the default values
+		// Set the default values for the map: those values are modified when a new base layer is added
 		if (typeof(mapOptions['maxResolution']) == 'undefined') { mapOptions['maxResolution'] = 0.703125; }
 		if (typeof(mapOptions['numZoomLevels']) == 'undefined') { mapOptions['numZoomLevels'] = 16; }
 
@@ -283,7 +285,7 @@ Atlas.AbstractMapPanel = {
 			}, 1);
 		};
 
-		// Add a dummy base layer to solve all the problems related with
+		// Add a dummy base layer to solve all the problems related to
 		// maps without base layer.
 		var dummyBaseLayerOptions = {
 			maxExtent: maxExtent,
@@ -580,6 +582,11 @@ Atlas.AbstractMapPanel = {
 			return false;
 		}
 
+		// Ignore fake layers, print frame layers, etc.
+		if (typeof(jsonLayer['layerId']) === 'undefined' || jsonLayer['layerId'] == null) {
+			return false;
+		}
+
 		// Add this to remove Default layers from the URL and change the logic at the end of AbstractMapPanel.initComponent
 		/*
 		for(var i=0; i<Atlas.conf['defaultLayers'].length; i++){
@@ -655,6 +662,21 @@ Atlas.AbstractMapPanel = {
 		// Remove the layer from the Map
 		// NOTE: This method trigger _afterLayerRemove
 		this.map.removeLayer(layer);
+	},
+
+	changeDpi: function(dpi) {
+		if (this.dpi != dpi) {
+			// for validation
+			var dpiMin = 10, dpiMax = 1440;
+
+			if (dpi >= dpiMin && dpi <= dpiMax) {
+				this.dpi = dpi;
+				this.ol_fireEvent('dpiChange', {dpi: dpi});
+			} else {
+				// TODO Error message on the page
+				alert('Invalid DPI value. Please, select a value between ' + dpiMin + ' and ' + dpiMax + '.');
+			}
+		}
 	},
 
 	// Private

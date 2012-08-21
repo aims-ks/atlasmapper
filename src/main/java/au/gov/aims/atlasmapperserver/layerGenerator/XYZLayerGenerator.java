@@ -21,13 +21,16 @@
 
 package au.gov.aims.atlasmapperserver.layerGenerator;
 
-import au.gov.aims.atlasmapperserver.ClientConfig;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.XYZDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.XYZLayerConfig;
 
-import java.util.Map;
+import java.util.Collection;
 
 public class XYZLayerGenerator extends AbstractLayerGenerator<XYZLayerConfig, XYZDataSourceConfig> {
+
+	public XYZLayerGenerator(XYZDataSourceConfig dataSource) {
+		super(dataSource);
+	}
 
 	/**
 	 * We thrust the Admin to choose Unique IDs for all it's XYZ layers. Nothing to do here.
@@ -41,7 +44,7 @@ public class XYZLayerGenerator extends AbstractLayerGenerator<XYZLayerConfig, XY
 	}
 
 	@Override
-	public Map<String, XYZLayerConfig> generateLayerConfigs(ClientConfig clientConfig, XYZDataSourceConfig dataSourceConfig) throws Exception {
+	public Collection<XYZLayerConfig> generateLayerConfigs(XYZDataSourceConfig dataSourceConfig) throws Exception {
 		return null; // All layers are created using the layer overrides
 	}
 

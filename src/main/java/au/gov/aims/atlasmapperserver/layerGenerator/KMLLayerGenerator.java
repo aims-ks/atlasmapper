@@ -21,16 +21,20 @@
 
 package au.gov.aims.atlasmapperserver.layerGenerator;
 
-import au.gov.aims.atlasmapperserver.ClientConfig;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.KMLDataSourceConfig;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.layerConfig.KMLLayerConfig;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 
 public class KMLLayerGenerator extends AbstractLayerGenerator<KMLLayerConfig, KMLDataSourceConfig> {
+
+	public KMLLayerGenerator(KMLDataSourceConfig dataSource) {
+		super(dataSource);
+	}
 
 	/**
 	 * We thrust the Admin to choose Unique IDs for all it's KMLs. Nothing to do here.
@@ -44,8 +48,8 @@ public class KMLLayerGenerator extends AbstractLayerGenerator<KMLLayerConfig, KM
 	}
 
 	@Override
-	public Map<String, KMLLayerConfig> generateLayerConfigs(ClientConfig clientConfig, KMLDataSourceConfig dataSourceConfig) throws Exception {
-		Map<String, KMLLayerConfig> layersConfig = null;
+	public Collection<KMLLayerConfig> generateLayerConfigs(KMLDataSourceConfig dataSourceConfig) throws Exception {
+		List<KMLLayerConfig> layersConfig = null;
 
 		Set<String> _kmlUrlsSet = dataSourceConfig.getKmlUrlsSet();
 		if (_kmlUrlsSet != null && !_kmlUrlsSet.isEmpty()) {
@@ -58,18 +62,18 @@ public class KMLLayerGenerator extends AbstractLayerGenerator<KMLLayerConfig, KM
 					String layerId = kmlUrl.substring(layerIdStart, layerIdEnd);
 
 					KMLLayerConfig layer = new KMLLayerConfig(dataSourceConfig.getConfigManager());
-					layer.setDataSourceId(dataSourceConfig.getDataSourceId());
 					layer.setLayerId(layerId);
 					layer.setTitle(layerId);
 					layer.setKmlUrl(kmlUrl);
 
 					if (layersConfig == null) {
-						layersConfig = new HashMap<String, KMLLayerConfig>();
+						layersConfig = new ArrayList<KMLLayerConfig>();
 					}
 
+					dataSourceConfig.bindLayer(layer);
 					this.ensureUniqueLayerId(layer, dataSourceConfig);
 
-					layersConfig.put(layer.getLayerId(), layer);
+					layersConfig.add(layer);
 				}
 			}
 		}

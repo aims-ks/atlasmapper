@@ -22,8 +22,11 @@
 package au.gov.aims.atlasmapperserver.layerConfig;
 
 import au.gov.aims.atlasmapperserver.ConfigManager;
+import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.ArcGISMapServerDataSourceConfigInterface;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class ArcGISMapServerLayerConfig extends AbstractLayerConfig implements ArcGISMapServerDataSourceConfigInterface {
 	@ConfigField
@@ -55,6 +58,21 @@ public class ArcGISMapServerLayerConfig extends AbstractLayerConfig implements A
 	@Override
 	public void setIgnoredArcGISPath(String ignoredArcGISPath) {
 		this.ignoredArcGISPath = ignoredArcGISPath;
+	}
+
+	@Override
+	public JSONObject generateLayer() throws JSONException {
+		JSONObject jsonLayer = super.generateLayer();
+
+		if (this.isForcePNG24() != null) {
+			jsonLayer.put("forcePNG24", this.isForcePNG24());
+		}
+
+		if(Utils.isNotBlank(this.getArcGISPath())) {
+			jsonLayer.put("arcGISPath", this.getArcGISPath().trim());
+		}
+
+		return jsonLayer;
 	}
 
 	public String getArcGISPath() {

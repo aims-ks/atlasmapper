@@ -21,17 +21,18 @@
 
 package au.gov.aims.atlasmapperserver.layerGenerator;
 
-import au.gov.aims.atlasmapperserver.ClientConfig;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
 
-import java.util.Map;
+import java.util.Collection;
 
 public abstract class AbstractLayerGenerator<L extends AbstractLayerConfig, D extends AbstractDataSourceConfig> {
-	public abstract Map<String, L> generateLayerConfigs(ClientConfig clientConfig, D dataSourceConfig) throws Exception;
-	protected abstract String getUniqueLayerId(L layer, D dataSourceConfig);
-
 	protected long instanceTimestamp = -1;
+
+	public AbstractLayerGenerator(D dataSourceConfig) {}
+
+	protected abstract String getUniqueLayerId(L layer, D dataSourceConfig);
+	public abstract Collection<L> generateLayerConfigs(D dataSourceConfig) throws Exception;
 
 	// The layer name used to request the layer. Usually, the layerName is
 	// the same as the layerId, so this field is let blank. This attribute

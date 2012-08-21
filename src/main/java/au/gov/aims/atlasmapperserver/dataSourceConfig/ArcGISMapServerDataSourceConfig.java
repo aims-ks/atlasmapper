@@ -21,11 +21,14 @@
 
 package au.gov.aims.atlasmapperserver.dataSourceConfig;
 
+import au.gov.aims.atlasmapperserver.ClientConfig;
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
 import au.gov.aims.atlasmapperserver.layerGenerator.ArcGISMapServerLayerGenerator;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
 
@@ -59,7 +62,19 @@ public class ArcGISMapServerDataSourceConfig extends AbstractDataSourceConfig im
 
 	@Override
 	public AbstractLayerGenerator getLayerGenerator() throws IOException {
-		return new ArcGISMapServerLayerGenerator();
+		return new ArcGISMapServerLayerGenerator(this);
+	}
+
+	@Override
+	// TODO Remove clientConfig parameter!!
+	public JSONObject generateDataSource(ClientConfig clientConfig) throws JSONException {
+		JSONObject dataSource = super.generateDataSource(clientConfig);
+
+		if (this.isForcePNG24() != null) {
+			dataSource.put("forcePNG24", this.isForcePNG24());
+		}
+
+		return dataSource;
 	}
 
 	@Override
@@ -74,7 +89,7 @@ public class ArcGISMapServerDataSourceConfig extends AbstractDataSourceConfig im
 				(Utils.isBlank(this.getFeatureRequestsUrl()) ? "" :    "	featureRequestsUrl=" + this.getFeatureRequestsUrl() + "\n") +
 				(Utils.isBlank(this.getLegendUrl()) ? "" :             "	legendUrl=" + this.getLegendUrl() + "\n") +
 				(this.getLegendParameters()==null ? "" :               "	legendParameters=" + this.getLegendParameters() + "\n") +
-				(Utils.isBlank(this.getBlacklistedLayers()) ? "" :     "	blacklistedLayers=" + this.getBlacklistedLayers() + "\n") +
+				(Utils.isBlank(this.getBlackAndWhiteListedLayers()) ? "" :     "	blackAndWhiteListedLayers=" + this.getBlackAndWhiteListedLayers() + "\n") +
 				(this.isShowInLegend()==null ? "" :                    "	showInLegend=" + this.isShowInLegend() + "\n") +
 				(Utils.isBlank(this.getComment()) ? "" :               "	comment=" + this.getComment() + "\n") +
 				'}';

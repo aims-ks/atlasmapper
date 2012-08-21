@@ -875,11 +875,16 @@ Atlas.Core = OpenLayers.Class({
 				}
 			}
 		}
-		if (jsonLayer['description']) {
-			desc += '<br/>' + this.urlsToHTML(this.lineBreaksToHTML(this.safeHtml(jsonLayer['description'])));
-		}
-		if (jsonLayer['htmlDescription']) {
-			desc += '<br/>' + jsonLayer['htmlDescription'];
+
+		if (jsonLayer['description'] || jsonLayer['htmlDescription']) {
+			desc += '<div class="description">';
+			if (jsonLayer['description']) {
+				desc += this.urlsToHTML(this.lineBreaksToHTML(this.safeHtml(jsonLayer['description'])));
+			}
+			if (jsonLayer['htmlDescription']) {
+				desc += jsonLayer['htmlDescription'];
+			}
+			desc += '</div>';
 		}
 
 		if (jsonLayer['layerId']) {

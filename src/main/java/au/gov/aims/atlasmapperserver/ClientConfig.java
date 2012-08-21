@@ -25,10 +25,9 @@ import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.GroupLayerConfig;
-import au.gov.aims.atlasmapperserver.layerConfig.LayerConfigHelper;
+import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
 import au.gov.aims.atlasmapperserver.servlet.FileFinder;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -183,6 +182,148 @@ public class ClientConfig extends AbstractConfig {
 		super(configManager);
 	}
 
+	// LayerCatalog - Before data source overrides
+	private LayerCatalog getRawLayerCatalog() throws GetCapabilitiesExceptions, FileNotFoundException, JSONException {
+		LayerCatalog rawLayerCatalog = new LayerCatalog();
+
+		// Retrieved all layers for all data sources of this client
+		GetCapabilitiesExceptions errors = new GetCapabilitiesExceptions();
+
+		for (AbstractDataSourceConfig dataSource : this.getDataSourceConfigs()) {
+			try {
+				if (dataSource != null) {
+					rawLayerCatalog.addLayers(dataSource.getLayerCatalog().getLayers());
+				}
+			} catch(Exception ex) {
+				// Collect all errors
+				errors.add(dataSource, ex);
+			}
+		}
+
+		if (!errors.isEmpty()) {
+			throw errors;
+		}
+
+		return rawLayerCatalog;
+	}
+
+	// LayerCatalog - After data source overrides
+	public LayerCatalog getLayerCatalog() throws GetCapabilitiesExceptions, FileNotFoundException, JSONException {
+		LayerCatalog rawLayerCatalog = this.getRawLayerCatalog();
+
+		// Map of layers, after overrides, used to create the final layer catalog
+		HashMap<String, AbstractLayerConfig> layersMap = new HashMap<String, AbstractLayerConfig>();
+
+		JSONObject clientOverrides = this.manualOverride;
+
+		// Apply manual overrides, if needed
+		if (!rawLayerCatalog.isEmpty()) {
+			for (AbstractLayerConfig layerConfig : rawLayerCatalog.getLayers()) {
+				if (layerConfig != null) {
+					AbstractLayerConfig overriddenLayerConfig =
+							layerConfig.applyOverrides(clientOverrides);
+					layersMap.put(
+							overriddenLayerConfig.getLayerId(),
+							overriddenLayerConfig);
+				}
+			}
+		}
+
+		// Create manual layers defined for this client
+		if (clientOverrides != null && clientOverrides.length() > 0) {
+			Iterator<String> layerIds = clientOverrides.keys();
+			while (layerIds.hasNext()) {
+				String layerId = layerIds.next();
+				if (!layersMap.containsKey(layerId)) {
+					JSONObject jsonClientOverride = clientOverrides.optJSONObject(layerId);
+					if (jsonClientOverride != null && jsonClientOverride.length() > 0) {
+						try {
+							String dataSourceId = jsonClientOverride.optString("dataSourceId");
+							String dataSourceType = jsonClientOverride.optString("dataSourceType");
+
+							AbstractDataSourceConfig dataSource = null;
+							if (Utils.isNotBlank(dataSourceId)) {
+								dataSource = this.getDataSourceConfig(dataSourceId);
+
+								if (dataSource == null) {
+									LOGGER.log(Level.WARNING, "The manual override for the layer {0} of the client {1} is defining an invalid data source {2}.",
+											new String[]{layerId, this.getClientName(), dataSourceId});
+									continue;
+								}
+							}
+
+							if (Utils.isBlank(dataSourceType)) {
+								if (dataSource != null) {
+									dataSourceType = dataSource.getDataSourceType();
+								} else {
+									LOGGER.log(Level.WARNING, "The manual override for the layer {0} of the client {1} do not exists and can not be created because it do not define its data source type.",
+											new String[]{layerId, this.getClientName(), dataSourceId});
+									continue;
+								}
+							}
+
+							AbstractLayerConfig manualLayer = LayerCatalog.createLayer(
+									dataSourceType, jsonClientOverride, this.getConfigManager());
+
+							manualLayer.setLayerId(layerId);
+
+							if (dataSource != null) {
+								dataSource.bindLayer(manualLayer);
+							}
+
+							layersMap.put(
+									manualLayer.getLayerId(),
+									manualLayer);
+						} catch(Exception ex) {
+							LOGGER.log(Level.SEVERE, "Unexpected error occurred while parsing the following layer override for the client ["+this.getClientName()+"]:\n" + jsonClientOverride.toString(4), ex);
+						}
+					}
+				}
+			}
+		}
+
+		// Add layer group content in the description, and hide children layers from the catalog (the add layer tree).
+		// I.E. Layers that are present in a layer group are not shown in the tree. This can be overridden by
+		//     setting "shownOnlyInLayerGroup" to true in the layers overrides.
+		for (AbstractLayerConfig layer : layersMap.values()) {
+			String[] layers = null;
+			if (layer instanceof GroupLayerConfig) {
+				layers = ((GroupLayerConfig)layer).getLayers();
+			}
+
+			if (layers != null && layers.length > 0) {
+				String layerGroupHTMLList = this.getHTMLListAndHideChildrenLayers(layersMap, layers);
+				if (Utils.isNotBlank(layerGroupHTMLList)) {
+					StringBuilder groupHtmlDescription = new StringBuilder();
+					groupHtmlDescription.append("<div class=\"descriptionLayerGroupContent\">");
+					groupHtmlDescription.append("This layer regroup the following list of layers:");
+					groupHtmlDescription.append(layerGroupHTMLList);
+					groupHtmlDescription.append("</div>");
+
+					layer.setHtmlDescription(groupHtmlDescription.toString());
+				}
+			}
+		}
+
+		// Set base layer attribute
+		for (AbstractLayerConfig layerConfig : layersMap.values()) {
+			// Set Baselayer flag if the layer is defined as a base layer in the client OR the client do not define any base layers and the layer is defined as a baselayer is the global config
+			if (this.isBaseLayer(layerConfig.getLayerId())) {
+				layerConfig.setIsBaseLayer(true);
+			} else if (this.isBaseLayer(layerConfig.getLayerName())) {
+				// Backward compatibility
+				LOGGER.log(Level.WARNING, "DEPRECATED LAYER ID USED FOR BASE LAYERS: Layer id [{0}] should be [{1}].", new String[]{layerConfig.getLayerName(), layerConfig.getLayerId()});
+				layerConfig.setIsBaseLayer(true);
+			}
+		}
+
+		// LayerCatalog after overrides
+		LayerCatalog layerCatalog = new LayerCatalog();
+		layerCatalog.addLayers(layersMap.values());
+
+		return layerCatalog;
+	}
+
 	@Override
 	public void setJSONObjectKey(String key) {
 		if (Utils.isBlank(this.clientId)) {
@@ -220,7 +361,7 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	public String getClientId() {
-		// Error protection against erronous manual config file edition
+		// Error protection against erroneous manual config file edition
 		if (this.clientId == null) {
 			if (this.clientName != null) {
 				return this.clientName;
@@ -654,78 +795,31 @@ public class ClientConfig extends AbstractConfig {
 		return dataSourceConfigs;
 	}
 
-	// Helper
-	public Map<String, AbstractLayerConfig> generateLayerConfigs() throws GetCapabilitiesExceptions, Exception {
-		Map<String, AbstractLayerConfig> overriddenLayerConfigs = new HashMap<String, AbstractLayerConfig>();
-
-		// Retrieved all layers for all data sources of this client
-		GetCapabilitiesExceptions errors = new GetCapabilitiesExceptions();
-		for (AbstractDataSourceConfig dataSourceConfig : this.getDataSourceConfigs()) {
-			try {
-				if (dataSourceConfig != null) {
-					overriddenLayerConfigs.putAll(
-							dataSourceConfig.generateLayerConfigs(this));
-				}
-			} catch(IOException ex) {
-				// Collect all errors
-				errors.add(dataSourceConfig, ex);
-			}
+	public AbstractDataSourceConfig getDataSourceConfig(String dataSourceId) throws JSONException, FileNotFoundException {
+		if (Utils.isBlank(dataSourceId)) {
+			return null;
 		}
 
-		if (!errors.isEmpty()) {
-			throw errors;
-		}
-
-		// Create manual layers defined for this client
-		JSONObject clientOverrides = this.manualOverride;
-		if (clientOverrides != null && clientOverrides.length() > 0) {
-			Iterator<String> layerIds = clientOverrides.keys();
-			while (layerIds.hasNext()) {
-				String layerId = layerIds.next();
-				if (!overriddenLayerConfigs.containsKey(layerId)) {
-					JSONObject jsonClientOverride = clientOverrides.optJSONObject(layerId);
-					if (jsonClientOverride != null && jsonClientOverride.length() > 0) {
-						try {
-							AbstractLayerConfig manualLayer = LayerConfigHelper.createLayerConfig(
-									jsonClientOverride.optString("dataSourceType"), jsonClientOverride, this.getConfigManager());
-
-							manualLayer.setLayerId(layerId);
-
-							overriddenLayerConfigs.put(
-									manualLayer.getLayerId(),
-									manualLayer);
-						} catch(Exception ex) {
-							LOGGER.log(Level.SEVERE, "Unexpected error occurred while parsing the following layer override for the client ["+this.getClientName()+"]:\n" + jsonClientOverride.toString(4), ex);
-						}
-					}
+		// Ensure that the client has the requested data source
+		boolean valid = false;
+		JSONArray dataSourcesArray = this.getDataSources();
+		if (dataSourcesArray != null) {
+			for (int i=0; i < dataSourcesArray.length(); i++) {
+				String clientDataSourceId = dataSourcesArray.optString(i, null);
+				if (dataSourceId.equals(clientDataSourceId)) {
+					valid = true;
 				}
 			}
 		}
-
-		// Add layer group content in the description, and hide children layers from the catalog (the add layer tree).
-		// I.E. Layers that are present in a layer group are not shown in the tree. This can be overridden by
-		//     setting "shownOnlyInLayerGroup" to true in the layers overrides.
-		for (AbstractLayerConfig layer : overriddenLayerConfigs.values()) {
-			String[] layers = null;
-			if (layer instanceof GroupLayerConfig) {
-				layers = ((GroupLayerConfig)layer).getLayers();
-			}
-
-			if (layers != null && layers.length > 0) {
-				String layerGroupHTMLList = this.getHTMLListAndHideChildrenLayers(overriddenLayerConfigs, layers);
-				if (Utils.isNotBlank(layerGroupHTMLList)) {
-					StringBuilder groupHtmlDescription = new StringBuilder();
-					groupHtmlDescription.append("<div class=\"descriptionLayerGroupContent\">");
-					groupHtmlDescription.append("This layer regroup the following list of layers:");
-					groupHtmlDescription.append(layerGroupHTMLList);
-					groupHtmlDescription.append("</div>");
-
-					layer.setHtmlDescription(groupHtmlDescription.toString());
-				}
-			}
+		if (!valid) {
+			return null;
 		}
 
-		return overriddenLayerConfigs;
+		// Get the data source
+		AbstractDataSourceConfig dataSourceConfig =
+				this.getConfigManager().getDataSourceConfigs().get2(dataSourceId);
+
+		return dataSourceConfig;
 	}
 
 	private String getHTMLListAndHideChildrenLayers(Map<String, AbstractLayerConfig> completeLayerMap, String[] layersIds) {

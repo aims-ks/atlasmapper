@@ -22,7 +22,10 @@
 package au.gov.aims.atlasmapperserver.layerConfig;
 
 import au.gov.aims.atlasmapperserver.ConfigManager;
+import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class GroupLayerConfig extends AbstractLayerConfig {
 	@ConfigField
@@ -50,5 +53,21 @@ public class GroupLayerConfig extends AbstractLayerConfig {
 
 	public void setLayers(String[] layers) {
 		this.layers = layers;
+	}
+
+	@Override
+	public JSONObject generateLayer() throws JSONException {
+		JSONObject jsonLayer = super.generateLayer();
+
+		if(Utils.isNotBlank(this.getGroupPath())) {
+			// TODO groupPath instead of arcGISPath
+			jsonLayer.put("arcGISPath", this.getGroupPath().trim());
+		}
+		String[] groupLayers = this.getLayers();
+		if (groupLayers != null && groupLayers.length > 0) {
+			jsonLayer.put("layers", groupLayers);
+		}
+
+		return jsonLayer;
 	}
 }

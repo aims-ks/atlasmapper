@@ -326,6 +326,76 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 		return this.json['layerId'];
 	},
 
+	// Can be overridden
+	getAttributions: function() {
+		return null;
+	},
+
+	// Can be overridden
+	setOptions: function(optionsPanel) {
+		// optionsPanel.addOption(this, ???);
+	},
+
+	// Determine if the layer need a reload by comparing the values
+	// of the new parameters with the one in the layer URL.
+	// layer: OpenLayers layer
+	// newParams: Map of key value pairs
+	// private
+	setParameters: function(newParams) {
+		if (this.layer == null || typeof(this.layer.mergeNewParams) !== 'function') {
+			return;
+		}
+
+		// Change the URL of the layer to use the appropriate server
+		// NOTE: setUrl must be called before mergeNewParams (mergeNewParams reload the tiles, setUrl don't; when called in wrong order, tiles are requested against the wrong server)
+		var needReload = false;
+
+		// Merge the actual parameters with the new one (clone obj before to not modify the original)
+		var newUrl = this.getServiceUrl(OpenLayers.Util.extend(OpenLayers.Util.extend({}, this.layer.params), newParams));
+		if (newUrl != this.layer.url) {
+			this.layer.setUrl(newUrl);
+			needReload = true;
+		}
+
+		// Loop through all params and check if it's value is the
+		// same as the one set for the layer. If not, ask for a
+		// layer reload (stop as soon as one is different)
+		if (!needReload) {
+			var currentValue = null;
+			Ext.iterate(newParams, function(key, value) {
+				currentValue = this.getParameter(key, null);
+				if (currentValue != value) {
+					needReload = true;
+					// Stop the iteration
+					return false;
+				}
+			}, this);
+		}
+
+		if (needReload) {
+			// Merge params add the new params or change the values
+			// of existing one and reload the tiles.
+			this.layer.mergeNewParams(newParams);
+		}
+	},
+
+	getParameter: function(param, defaultValue) {
+		if (!this.layer || !this.layer.params) {
+			return defaultValue;
+		}
+
+		if (typeof(this.layer.params[param]) !== 'undefined') {
+			return this.layer.params[param];
+		}
+
+		// Try with to uppercase the parameter; OpenLayers usually put all parameters in uppercase.
+		var uppercaseParam = param.toUpperCase();
+		if (typeof(this.layer.params[uppercaseParam]) !== 'undefined') {
+			return this.layer.params[uppercaseParam];
+		}
+
+		return defaultValue;
+	},
 
 
 	/**

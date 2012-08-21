@@ -103,7 +103,7 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 		node.on("checkchange", this.onCheckChange, this);
 		node.on("beforechildrenrendered", this.onBeforeChildrenRendered, this);
 
-		if (typeof(node.layer) != 'undefined' && node.layer != null) {
+		if (typeof(node.layer) != 'undefined' && node.layer != null && typeof(node.layer.atlasLayer) != 'undefined') {
 			if (node.layer.atlasLayer.isLoading()) {
 				this.onLayerLoadStart(node);
 			}
@@ -357,21 +357,24 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 				layer: layer,
 				layerStore: this.store
 			};
-			if (atlasLayer.isGroup()) {
-				childLayerNodeConfig.cls = 'layerGroup';
-				childLayerNodeConfig.loader = new GeoExt.ux.tree.GroupLoader();
-			}
 
-			// Restore state
-			if (layer.atlasLayer.layerState != null) {
-				if (typeof(layer.atlasLayer.layerState.disabled) == 'boolean') {
-					childLayerNodeConfig.disabled = layer.atlasLayer.layerState.disabled;
+			if (atlasLayer) {
+				if (atlasLayer.isGroup()) {
+					childLayerNodeConfig.cls = 'layerGroup';
+					childLayerNodeConfig.loader = new GeoExt.ux.tree.GroupLoader();
 				}
-				if (typeof(layer.atlasLayer.layerState.expanded) == 'boolean') {
-					childLayerNodeConfig.expanded = layer.atlasLayer.layerState.expanded;
-				}
-				if (typeof(layer.atlasLayer.layerState.checked) == 'boolean') {
-					childLayerNodeConfig.checked = layer.atlasLayer.layerState.checked;
+
+				// Restore state
+				if (atlasLayer.layerState != null) {
+					if (typeof(atlasLayer.layerState.disabled) == 'boolean') {
+						childLayerNodeConfig.disabled = atlasLayer.layerState.disabled;
+					}
+					if (typeof(atlasLayer.layerState.expanded) == 'boolean') {
+						childLayerNodeConfig.expanded = atlasLayer.layerState.expanded;
+					}
+					if (typeof(atlasLayer.layerState.checked) == 'boolean') {
+						childLayerNodeConfig.checked = atlasLayer.layerState.checked;
+					}
 				}
 			}
 
@@ -487,7 +490,7 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 		// All movable nodes have a layer. The only nodes that doesn't
 		// are the LayerContainers (Overlays & Base layers containers)
 		if (node != null) {
-			if (node.layer != null) {
+			if (node.layer != null && node.layer.atlasLayer != null) {
 				// Save the state in the layer, since the layer do not
 				// get deleted when the tree is refreshed.
 				if (!node.layer.atlasLayer.layerState) {

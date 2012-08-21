@@ -21,12 +21,16 @@
 
 package au.gov.aims.atlasmapperserver.dataSourceConfig;
 
+import au.gov.aims.atlasmapperserver.ClientConfig;
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
 import au.gov.aims.atlasmapperserver.layerGenerator.WMSLayerGenerator;
 import org.geotools.ows.ServiceException;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.Set;
@@ -150,6 +154,37 @@ public class WMSDataSourceConfig extends AbstractDataSourceConfig implements WMS
 	}
 
 	@Override
+	// TODO Remove clientConfig parameter!!
+	public JSONObject generateDataSource(ClientConfig clientConfig) throws JSONException {
+		JSONObject dataSource = super.generateDataSource(clientConfig);
+
+		if (Utils.isNotBlank(this.getGetMapUrl())) {
+			// TODO remove wms from the property name
+			dataSource.put("wmsServiceUrl", this.getGetMapUrl().trim());
+		}
+
+		if (Utils.isNotBlank(this.getExtraWmsServiceUrls())) {
+			dataSource.put("extraWmsServiceUrls", this.getExtraWmsServiceUrls().trim());
+		}
+
+		if (Utils.isNotBlank(this.getWebCacheUrl())) {
+			dataSource.put("webCacheUrl", this.getWebCacheUrl().trim());
+		}
+
+		String[] webCacheParametersArray = this.getWebCacheParametersArray();
+		if (webCacheParametersArray != null && webCacheParametersArray.length > 0) {
+			JSONArray webCacheParameters = new JSONArray(webCacheParametersArray);
+			dataSource.put("webCacheSupportedParameters", webCacheParameters);
+		}
+
+		if (Utils.isNotBlank(this.getWmsVersion())) {
+			dataSource.put("wmsVersion", this.getWmsVersion().trim());
+		}
+
+		return dataSource;
+	}
+
+	@Override
 	public String toString() {
 		return "WMSDataSourceConfig {\n" +
 				(this.getId()==null ? "" :                             "	id=" + this.getId() + "\n") +
@@ -166,7 +201,7 @@ public class WMSDataSourceConfig extends AbstractDataSourceConfig implements WMS
 				(Utils.isBlank(this.getFeatureRequestsUrl()) ? "" :    "	featureRequestsUrl=" + this.getFeatureRequestsUrl() + "\n") +
 				(Utils.isBlank(this.getLegendUrl()) ? "" :             "	legendUrl=" + this.getLegendUrl() + "\n") +
 				(this.getLegendParameters()==null ? "" :               "	legendParameters=" + this.getLegendParameters() + "\n") +
-				(Utils.isBlank(this.getBlacklistedLayers()) ? "" :     "	blacklistedLayers=" + this.getBlacklistedLayers() + "\n") +
+				(Utils.isBlank(this.getBlackAndWhiteListedLayers()) ? "" :     "	blackAndWhiteListedLayers=" + this.getBlackAndWhiteListedLayers() + "\n") +
 				(this.isShowInLegend()==null ? "" :                    "	showInLegend=" + this.isShowInLegend() + "\n") +
 				(Utils.isBlank(this.getComment()) ? "" :               "	comment=" + this.getComment() + "\n") +
 				'}';

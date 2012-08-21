@@ -67,7 +67,13 @@
 			<#list layers[dataSourceName] as layer>
 				<div class="layerBlock">
 					<#if layer["imageUrl"]??>
-						<div class="image" style="width:${layer["imageWidth"]!200}px; height:${layer["imageHeight"]!180}px; background-image:url('${layer["baseLayerUrl"]!}');"><a href="${layer["mapUrl"]!}" target="_blank"><img alt="${layer["title"]}" src="${layer["imageUrl"]!}" style="border: none" /></a></div>
+						<div class="image" style="width:${layer["imageWidth"]!200}px; height:${layer["imageHeight"]!180}px; background-image:url('${layer["baseLayerUrl"]!}');">
+							<#if layer["mapUrl"]??>
+								<a href="${layer["mapUrl"]!}" target="_blank"><img alt="${layer["title"]!"Untitled"}" src="${layer["imageUrl"]!}" style="border: none" /></a>
+							<#else>
+								<img alt="${layer["title"]!"Untitled"}" src="${layer["imageUrl"]!}" style="border: none" />
+							</#if>
+						</div>
 					</#if>
 					<!-- ${layer["id"]!} -->
 					${layer["title"]!"Untitled"}

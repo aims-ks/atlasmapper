@@ -101,6 +101,199 @@ Atlas.Layer.NCWMS = OpenLayers.Class(Atlas.Layer.WMS, {
 		};
 	},
 
+	// Override
+	setOptions: function(optionsPanel) {
+		// optionsPanel.addOption(???);
+		var serviceUrl = this.json['wmsServiceUrl'];
+
+		// TODO Remove ExtJS dependency!!
+		var url = serviceUrl + '?' + Ext.urlEncode({
+			item: 'layerDetails',
+			layerName: this.json['layerName'],
+			request: 'GetMetadata'
+		});
+
+		var that = this;
+		OpenLayers.Request.GET({
+			url: url,
+			scope: this,
+			success: function (result, request) {
+				this._setOptions(result, request, optionsPanel);
+			},
+			failure: function (result, request) {
+				var resultMessage = 'Unknown error';
+				try {
+					var jsonData = Ext.util.JSON.decode(result.responseText);
+					resultMessage = jsonData.data.result;
+				} catch (err) {
+					resultMessage = result.responseText;
+				}
+				// TODO Error on the page
+				alert('Error while loading ncWMS options: ' + resultMessage);
+			}
+		});
+	},
+
+	/**
+	 * Inspired on godiva2.js
+	 * http://e-atlas.org.au/ncwms/js/godiva2.js
+	 */
+	_setOptions: function(result, request, optionsPanel) {
+		if (this.layer == (optionsPanel.currentNode ? optionsPanel.currentNode.layer : null)) {
+			var layerDetails = null;
+			try {
+				// TODO Remove ExtJS dependency!!
+				layerDetails = Ext.util.JSON.decode(result.responseText);
+			} catch (err) {
+				var resultMessage = result.responseText;
+				// TODO Error on the page
+				alert('Error while loading ncWMS options: ' + resultMessage);
+				return;
+			}
+
+			if (layerDetails == null) {
+				return;
+			}
+
+			if (layerDetails.exception) {
+				// TODO Error on the page
+				alert('Error while loading ncWMS options: ' +
+					(layerDetails.exception.message ? layerDetails.exception.message : layerDetails.exception));
+				return;
+			}
+
+			// TODO Do something with those
+			var units = layerDetails.units;
+			var copyright = layerDetails.copyright;
+			var palettes = layerDetails.palettes;
+
+			// Z Axis (Elevation/Depth) option
+			var zAxis = layerDetails.zaxis;
+			if (zAxis != null) {
+				var zAxisParam = 'ELEVATION';
+
+				// Currently selected value.
+				var zValue = this.getParameter(zAxisParam, 0);
+
+				var zAxisOptions = [];
+				var zAxisLabel = (zAxis.positive ? 'Elevation' : 'Depth') + ' (' + zAxis.units + ')';
+				// Populate the drop-down list of z values
+				// Make z range selector invisible if there are no z values
+				var zValues = zAxis.values;
+				var zDiff = 1e10; // Set to some ridiculously-high value
+				var defaultValue = 0;
+				for (var j = 0; j < zValues.length; j++) {
+					// Create an item in the drop-down list for this z level
+					var zLabel = zAxis.positive ? zValues[j] : -zValues[j];
+					zAxisOptions[j] = [zValues[j], zLabel];
+					// Find the nearest value to the currently-selected
+					// depth level
+					var diff = Math.abs(parseFloat(zValues[j]) - zValue);
+					if (diff < zDiff) {
+						zDiff = diff;
+						defaultValue = zValues[j];
+					}
+				}
+
+				if (zAxisOptions.length > 1) {
+					var zAxisSelect = {
+						xtype: "combo",
+						name: zAxisParam,
+						fieldLabel: zAxisLabel,
+						value: defaultValue,
+						typeAhead: false,
+						triggerAction: 'all',
+						lazyRender: true,
+						mode: 'local',
+						store: new Ext.data.ArrayStore({
+							id: 0,
+							fields: [
+								'name',
+								'title'
+							],
+							data: zAxisOptions
+						}),
+						valueField: 'name',
+						displayField: 'title',
+						allowBlank: false,
+						listeners: {
+							scope: this,
+							select: this.onOptionChange
+						}
+					};
+					optionsPanel.addOption(this, zAxisSelect);
+				}
+			}
+
+			// Set the scale value if this is present in the metadata
+			if (typeof(layerDetails.scaleRange) !== 'undefined' &&
+					layerDetails.scaleRange != null &&
+					layerDetails.scaleRange.length > 1 &&
+					layerDetails.scaleRange[0] != layerDetails.scaleRange[1]) {
+				var scaleParam = 'COLORSCALERANGE';
+
+				var scaleMinVal = null;
+				var scaleMaxVal = null;
+
+				var minmaxField = new Ext.ux.form.MinMaxField({
+					fieldLabel: 'Color ranges',
+					name: scaleParam,
+					decimalPrecision: 4,
+					listeners: {
+						scope: this,
+						change: this.onOptionChange
+					}
+				});
+
+				var actualValue = this.getParameter(scaleParam, null);
+
+				if (actualValue != null) {
+					var values = actualValue.split(minmaxField.spacer);
+					scaleMinVal = values[0];
+					scaleMaxVal = values[1];
+				}
+
+				if (scaleMinVal == null) {
+					scaleMinVal = parseFloat(layerDetails.scaleRange[0]);
+				}
+				if (scaleMaxVal == null) {
+					scaleMaxVal = parseFloat(layerDetails.scaleRange[1]);
+				}
+
+				minmaxField.setValue(scaleMinVal, scaleMaxVal);
+
+				optionsPanel.addOption(this, minmaxField);
+			}
+		}
+	},
+
+	onOptionChange: function(evt) {
+		var field = evt[0], newValue = evt[1], oldValue = evt[2];
+		var newParams = {};
+
+		// Workaround - Listeners of minMaxField are sent to their children.
+		if (field.minMaxField) {
+			field = field.minMaxField;
+		}
+
+		var fieldName = field.getName();
+		if (fieldName) {
+			var fieldValue = field.getValue();
+
+			// Set the new parameter, or unset it if it has a null value (don't remove STYLES - it's mandatory).
+			if (typeof(fieldValue) == 'undefined' || fieldValue == null || fieldValue == '') {
+				// Remove the param from the URL - Some server don't like to have en empty parameter
+				// NOTE: OpenLayers filter null values
+				newParams[fieldName] = null;
+			} else {
+				newParams[fieldName] = fieldValue;
+			}
+		}
+
+		this.setParameters(newParams);
+	},
+
+
 	/**
 	 * Return the HTML chunk that will be displayed in the balloon.
 	 * @param xmlResponse RAW XML response

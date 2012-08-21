@@ -280,7 +280,8 @@ Ext.define('Writer.ClientConfigForm', {
 								qtipHtml: 'Projection for this client. Default is <em>EPSG:4326</em>. See the spatial reference Web Site for more info.',
 								name: 'projection',
 								xtype: 'combobox',
-								forceSelection: true, // Force the user to choose something from the list (do not allow random value)
+								editable: false,
+								//forceSelection: true, // Force the user to choose something from the list (do not allow random value)
 								valueField: 'name',
 								displayField: 'title',
 								allowBlank: false,

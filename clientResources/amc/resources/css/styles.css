@@ -125,7 +125,7 @@ body {
 }
 
 .ext-ie .x-tree-node-delete {
-    vertical-align: middle !important;
+	vertical-align: middle !important;
 }
 
 .ext-strict .ext-ie8 .x-tree-node-delete {
@@ -166,7 +166,7 @@ body {
 /* Open Layer */
 /* Color of the coordinate of the mouse pointer, on the map (on mouse over) */
 /* NOTE The default black color is usually okay, but it's good to have an
-       alternative solution for when it's not readable. */
+	alternative solution for when it's not readable. */
 div.olControlMousePosition:hover {
 	color: #FFFFFF;
 }
@@ -184,19 +184,23 @@ div.olFramedCloudPopupContent {
 /* ExtJS remove the bullets to start from a known point
 	(some browser (IE) are really bad at following standards)
 	This class Reset bullet for chosen lists */
+.description ul,
 ul.bullet-list {
 	padding-left: 2em;
 	list-style-type: disc;
 }
+.description ol,
 ol.bullet-list {
 	padding-left: 2em;
 	list-style-type: decimal;
 }
 /* ExtJS remove the bullets on li instead of ul. It has to be reset in both. */
+.description ul > li,
 ul.bullet-list > li {
 	list-style-type: disc;
 	margin: 0.2em 0;
 }
+.description ol > li,
 ol.bullet-list > li {
 	list-style-type: decimal;
 	margin: 0.2em 0;
@@ -204,7 +208,7 @@ ol.bullet-list > li {
 
 /* NOTE: "font-size: 0" remove the extra padding added for the text */
 .layers-btn {
-	font-size: 0 !important;
+	font-size: 0;
 	float: left;
 	margin-left: 4px;
 }
@@ -212,20 +216,16 @@ ol.bullet-list > li {
 	margin-right: 20px;
 }
 .layers-btn .link {
-	background-image: url('../images/link.png') !important;
-	font-size: 0 !important;
+	background-image: url('../images/link.png');
 }
 .layers-btn .add {
-	background-image: url('../images/add.png') !important;
-	font-size: 0 !important;
+	background-image: url('../images/add.png');
 }
 .layers-btn .remove {
-	background-image: url('../images/remove.png') !important;
-	font-size: 0 !important;
+	background-image: url('../images/remove.png');
 }
 .layers-btn .hide {
-	background-image: url('../images/hide.png') !important;
-	font-size: 0 !important;
+	background-image: url('../images/hide.png');
 }
 
 .layerGroup span {
@@ -237,4 +237,9 @@ ol.bullet-list > li {
 	color: #AAAAAA;
 	font-size: 0.8em;
 	margin-top: 1em;
+}
+
+/* Print Frame */
+.layers-btn .printFrame {
+	background-image: url('../images/picture.png');
 }

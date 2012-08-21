@@ -26,6 +26,10 @@ window["Atlas"]["Layer"] = window["Atlas"]["Layer"] || {};
 Atlas.Layer.Google = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 	supportLoadEvents: false,
 
+	// private
+	_attributionsElement: null,
+	_previousAttributions: null,
+
 	/**
 	 * Constructor: Atlas.Layer.Google
 	 *
@@ -46,11 +50,126 @@ Atlas.Layer.Google = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 				layerOptions = this.applyOlOverrides(layerOptions, this.json['olOptions']);
 			}
 
-			this.setLayer(new OpenLayers.Layer.Google(
+			var layer = new OpenLayers.Layer.Google(
 				// "Google Physical", "Google Streets", "Google Hybrid", "Google Satellite"
 				this.getTitle(),
 				layerOptions
-			));
+			);
+			layer.events.on({
+				'added': function(e) {
+					// Try until it works (maximum 15 tries =~ 2^(20+1) ms =~ 30 minute).
+					this._tryToSetAttributionsElement(20);
+				},
+				scope: this
+			});
+
+			this.setLayer(layer);
 		}
+	},
+
+	/**
+	 * Try to initialise the attribution DOM element.
+	 * This will probably fail a few times since Google take its time to create the DOM elements.
+	 * This method will try again and again until it succeed, or reach the trial limit.
+	 * The delay between tries increase exponentially (*2), starting at 1ms.
+	 */
+	// private
+	_tryToSetAttributionsElement: function(triesLeft, wait) {
+		wait = wait || 1;
+		
+		if (triesLeft <= 0) {
+			if (typeof(console) !== 'undefined' && typeof(console.log) === 'function') {
+				console.log('ERROR: Google attributions SPAN element can not be found.');
+			}
+		} else {
+			if (!this._setAttributionsElement()) {
+				var that = this;
+				window.setTimeout(function() {
+					that._tryToSetAttributionsElement(triesLeft-1, wait*2);
+				}, wait);
+			}
+		}
+	},
+
+
+	/**
+	 * This method set the "_attributionsElement" class property
+	 * and add an event listener on the attributions element,
+	 * to automatically change the attributions when Google
+	 * change them; it usually occur about 1/2 sec after the
+	 *     map is panned or zoomed. Google probably use an Ajax
+	 *     query to render it. This event is fired immediatelly
+	 *     after, solving that problem.
+	 * NOTE: The "DOMSubtreeModified" event is not supported by
+	 *     Opera nor IE (IE 9 has some support but it doesn't work
+	 *     in this context). There is not alternative for those
+	 *     browsers, so they will have to call "getAttributions"
+	 *     again to have up-to-date attributions.
+	 *
+	 * Event:
+	 *     'attributionsChange'
+	 *         Attributes:
+	 *             layer: this instance,
+	 *             attributions: the new attribution string
+	 */
+	// private
+	_setAttributionsElement: function() {
+		var cache = OpenLayers.Layer.Google.cache[this.mapPanel.map.id];
+		if (!cache) {
+			// Cache not ready yet...
+			return false;
+		}
+		
+		var termsOfUseDiv = cache.termsOfUse;
+		if (!termsOfUseDiv) {
+			// "Terms of use" DOM element not ready yet...
+			return false;
+		}
+
+		var spans = termsOfUseDiv.getElementsByTagName("span");
+		if (!spans || !spans[0]) {
+			// "Terms of use" children elements not ready yet...
+			return false;
+		}
+
+		// Attribution element is now ready!
+		this._attributionsElement = spans[0];
+
+		// Add the event listener on the attributions element.
+		// (this is equivalent to an "onChange", for a DOM element)
+		if (this._attributionsElement.addEventListener) {
+			var that = this;
+			function onChange(evt) {
+				if (that.layer.visibility && that.layer.opacity > 0) {
+					var newAttributions = that.getAttributions();
+					if (newAttributions != that._previousAttributions) {
+						that.mapPanel.map.events.triggerEvent('attributionsChange', {layer: this, attributions: newAttributions});
+						that._previousAttributions = newAttributions;
+					}
+				}
+			}
+
+			this._attributionsElement.addEventListener('DOMSubtreeModified', onChange);
+		}
+
+		// Ready and initialised
+		return true;
+	},
+
+
+	// override
+	getAttributions: function() {
+		if (this._attributionsElement) {
+			// textContent: W3C properties supported by Chrome, Firefox and all major browsers, except IE 8 and earlier.
+			// innerText: Supported by all browser (all version of IE) except Firefox (all versions).
+			// innerHTML: Fallback that works well in all browsers (it has some flaw when used as a setter, but not as a getter).
+			var spanContent = this._attributionsElement.textContent || this._attributionsElement.innerText || this._attributionsElement.innerHTML;
+
+			// Add "Google" to the attributions string, since it's not always part of it
+			if (spanContent) {
+				return 'Google: [' + spanContent.replace(/^\s\s*/, '').replace(/\s\s*$/, '') + ']';
+			}
+		}
+		return 'Google';
 	}
 });

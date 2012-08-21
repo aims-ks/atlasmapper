@@ -47,6 +47,9 @@
 <body id="fullClient">
 	<div id="loading"></div>
 
+	<!-- This div is used to increase the view port size, to do high-res print screenshot -->
+	<div id="highRes" style=""></div>
+
 	<div id="welcomeMsg">
 		${welcomeMsg!''}
 	</div>
@@ -74,6 +77,7 @@
 	<![endif]-->
 
 	<script type="text/javascript" src="OpenLayers/OpenLayers-2.12/OpenLayers.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="OpenLayers-ux/PrintFrame.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="OpenLayers-ux/NCWMS.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="OpenLayers-ux/NCTimeSeriesClickControl.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="OpenLayers-ux/NCTransectDrawControl.js?atlasmapperVer=${version}"></script>
@@ -126,6 +130,7 @@
 		<script type="text/javascript" src="modules/MapPanel/Layer/Google.js?atlasmapperVer=${version}"></script>
 		<script type="text/javascript" src="modules/MapPanel/Layer/Bing.js?atlasmapperVer=${version}"></script>
 		<script type="text/javascript" src="modules/MapPanel/Layer/KML.js?atlasmapperVer=${version}"></script>
+		<script type="text/javascript" src="modules/MapPanel/Layer/PrintFrame.js?atlasmapperVer=${version}"></script>
 		<script type="text/javascript" src="modules/MapPanel/Layer/WMS.js?atlasmapperVer=${version}"></script>
 			<script type="text/javascript" src="modules/MapPanel/Layer/NCWMS.js?atlasmapperVer=${version}"></script>
 			<script type="text/javascript" src="modules/MapPanel/Layer/WMTS.js?atlasmapperVer=${version}"></script>
@@ -145,6 +150,11 @@
 	<script type="text/javascript">
 
 		var parameters = OpenLayers.Util.getParameters();
+
+		var printMode = 0;
+		if (parameters.printMode) {
+			printMode = parseInt(parameters.printMode);
+		}
 
 		// Multi-maps
 		var nbMaps = 1;
@@ -225,7 +235,7 @@
 					);
 				}
 
-				new Ext.Viewport({
+				var viewportConfig = {
 					layout: "border",
 					hideBorders: true,
 					items: [
@@ -260,7 +270,23 @@
 							}
 						}
 					}
-				});
+				};
+
+
+				if (printMode > 1) {
+					var body = document.getElementsByTagName('body')[0];
+					body.style.overflow = 'auto';
+
+					var highRes = document.getElementById('highRes');
+					highRes.style.width = '5000px';
+					highRes.style.height = '3300px';
+
+					viewportConfig.height = 3300;
+					viewportConfig.renderTo = 'highRes';
+					new Ext.Panel(viewportConfig);
+				} else {
+					new Ext.Viewport(viewportConfig);
+				}
 			};
 
 			Ext.QuickTips.init();

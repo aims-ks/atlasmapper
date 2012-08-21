@@ -21,10 +21,11 @@
 
 package au.gov.aims.atlasmapperserver.layerGenerator;
 
-import au.gov.aims.atlasmapperserver.ClientConfig;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.GoogleDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.GoogleLayerConfig;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -34,7 +35,11 @@ import java.util.Map;
  */
 public class GoogleLayerGenerator extends AbstractLayerGenerator<GoogleLayerConfig, GoogleDataSourceConfig> {
 	// The layers do not changes often enough to develop some sort of parser.
-	private static Map<String, GoogleLayerConfig> googleLayersCache = null;
+	private static Collection<GoogleLayerConfig> googleLayersCache = null;
+
+	public GoogleLayerGenerator(GoogleDataSourceConfig dataSource) {
+		super(dataSource);
+	}
 
 	/**
 	 * The number of Google Layers is fix and they already have unique IDs. Nothing to do here.
@@ -53,28 +58,23 @@ public class GoogleLayerGenerator extends AbstractLayerGenerator<GoogleLayerConf
 	 *     * Google Streets
 	 *     * Google Hybrid
 	 *     * Google Satellite
-	 * @param clientConfig
 	 * @return
 	 */
 	@Override
-	public Map<String, GoogleLayerConfig> generateLayerConfigs(ClientConfig clientConfig, GoogleDataSourceConfig dataSourceConfig) {
+	public Collection<GoogleLayerConfig> generateLayerConfigs(GoogleDataSourceConfig dataSourceConfig) {
 		if (googleLayersCache == null) {
-			googleLayersCache = new HashMap<String, GoogleLayerConfig>();
+			googleLayersCache = new ArrayList<GoogleLayerConfig>();
 
-			GoogleLayerConfig terrain = this.createGoogleLayer(dataSourceConfig, "TERRAIN", "Google Physical", null, 16);
-			googleLayersCache.put(terrain.getLayerId(), terrain);
+			googleLayersCache.add(this.createGoogleLayer(dataSourceConfig, "TERRAIN", "Google Physical", null, 16));
 
 			// This layer goes up to 22, but it's pointless to go that close... 20 is good enough
-			GoogleLayerConfig roadmap = this.createGoogleLayer(dataSourceConfig, "ROADMAP", "Google Streets", null, 20);
-			googleLayersCache.put(roadmap.getLayerId(), roadmap);
+			googleLayersCache.add(this.createGoogleLayer(dataSourceConfig, "ROADMAP", "Google Streets", null, 20));
 
 			// The number of zoom level is a mix of 20 - 22, depending on the location, OpenLayers do not support that very well...
-			GoogleLayerConfig hybrid = this.createGoogleLayer(dataSourceConfig, "HYBRID", "Google Hybrid", null, 20);
-			googleLayersCache.put(hybrid.getLayerId(), hybrid);
+			googleLayersCache.add(this.createGoogleLayer(dataSourceConfig, "HYBRID", "Google Hybrid", null, 20));
 
 			// The number of zoom level is a mix of 20 - 22, depending on the location, OpenLayers do not support that very well...
-			GoogleLayerConfig satellite = this.createGoogleLayer(dataSourceConfig, "SATELLITE", "Google Satellite", null, 20);
-			googleLayersCache.put(satellite.getLayerId(), satellite);
+			googleLayersCache.add(this.createGoogleLayer(dataSourceConfig, "SATELLITE", "Google Satellite", null, 20));
 		}
 		return googleLayersCache;
 	}
@@ -86,7 +86,6 @@ public class GoogleLayerGenerator extends AbstractLayerGenerator<GoogleLayerConf
 
 	private GoogleLayerConfig createGoogleLayer(GoogleDataSourceConfig dataSourceConfig, String googleLayerType, String name, String description, Integer numZoomLevels) {
 		GoogleLayerConfig layerConfig = new GoogleLayerConfig(dataSourceConfig.getConfigManager());
-		layerConfig.setDataSourceId(dataSourceConfig.getDataSourceId());
 
 		layerConfig.setLayerId(googleLayerType);
 		layerConfig.setTitle(name);
@@ -98,6 +97,7 @@ public class GoogleLayerGenerator extends AbstractLayerGenerator<GoogleLayerConf
 			layerConfig.setNumZoomLevels(numZoomLevels);
 		}
 
+		dataSourceConfig.bindLayer(layerConfig);
 		this.ensureUniqueLayerId(layerConfig, dataSourceConfig);
 
 		return layerConfig;

@@ -30,6 +30,7 @@ import java.util.Map;
 
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
+import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
 import au.gov.aims.atlasmapperserver.layerConfig.WMSLayerConfig;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -51,7 +52,7 @@ public class Tree extends AbstractModule {
 	}
 
 	@Override
-	public JSONObject getJSONConfiguration(ClientConfig clientConfig, Map<String, AbstractLayerConfig> layers) throws JSONException {
+	public JSONObject getJSONConfiguration(ClientConfig clientConfig, LayerCatalog layerCatalog) throws JSONException {
 		try {
 			List<AbstractDataSourceConfig> dataSourcesList = clientConfig.getDataSourceConfigs();
 			if (dataSourcesList != null) {
@@ -61,8 +62,8 @@ public class Tree extends AbstractModule {
 				}
 
 				JSONObject treeConfig = new JSONObject();
-				if (layers != null) {
-					for (AbstractLayerConfig layerConfig : layers.values()) {
+				if (layerCatalog != null) {
+					for (AbstractLayerConfig layerConfig : layerCatalog.getLayers()) {
 						if (layerConfig.isShownOnlyInLayerGroup() == null || !layerConfig.isShownOnlyInLayerGroup()) {
 							this.addLayer(treeConfig, clientConfig, dataSourcesMap.get(layerConfig.getDataSourceId()), layerConfig);
 						}

@@ -27,6 +27,10 @@ Atlas.Layer.WMS = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 	featureInfoMaxFeatures: 10,
 	featureInfoFormat: 'text/html',
 
+	// Tile size are 256 x 256.
+	DEFAULT_TILE_SIZE: 256,
+	MAX_TILE_SIZE: 1024,
+
 	/**
 	 * Constructor: Atlas.Layer.WMS
 	 *
@@ -35,6 +39,31 @@ Atlas.Layer.WMS = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 	 * mapPanel - {Object} Instance of the MapPanel in which the layer is used
 	 */
 	initialize: function(mapPanel, jsonLayer, parent) {
+		if (mapPanel && mapPanel.dpi != mapPanel.DEFAULT_DPI) {
+			// Set the initial layer DPI
+			// Clone jsonLayer
+			jsonLayer = OpenLayers.Util.extend({}, jsonLayer);
+
+			// Clone jsonLayer['olParams'] object or create a new one
+			jsonLayer['olParams'] = OpenLayers.Util.extend({}, jsonLayer['olParams'] || {});
+			jsonLayer['olParams']['format_options'] = 'dpi:' + mapPanel.dpi;
+
+			// Set the initial layer tile size
+			this.mapPanel = mapPanel; // This is done automatically later, but it's needed now...
+			var newTileSize = this._getTileSizeForDPI(mapPanel.dpi);
+			if (newTileSize != this.DEFAULT_TILE_SIZE) {
+				var newTileSizeObj = new OpenLayers.Size(newTileSize, newTileSize);
+
+				// Clone jsonLayer
+				jsonLayer = OpenLayers.Util.extend({}, jsonLayer);
+
+				// Double tiles
+				// Clone jsonLayer['olOptions'] object or create a new one
+				jsonLayer['olOptions'] = OpenLayers.Util.extend({}, jsonLayer['olOptions'] || {});
+				jsonLayer['olOptions']['tileSize'] = newTileSizeObj;
+			}
+		}
+
 		Atlas.Layer.AbstractLayer.prototype.initialize.apply(this, arguments);
 
 		// TODO Support Multiple URLS => this._getWMSExtraServiceUrls(),
@@ -45,6 +74,52 @@ Atlas.Layer.WMS = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 			layerParams,
 			this.getWMSLayerOptions()
 		));
+
+		if (mapPanel) {
+			var that = this;
+			mapPanel.ol_on("dpiChange", function(evt) {
+				that._dpiChange(evt.dpi);
+			});
+		}
+	},
+
+	// Called when the DPI change on the mapPanel
+	_dpiChange: function(dpi) {
+		this._setTileSizeForDPI(dpi);
+		this.setParameters({'format_options': 'dpi:' + dpi});
+	},
+
+	_getTileSizeForDPI: function(dpi) {
+		var defaultDPI = this.mapPanel.DEFAULT_DPI;
+		var tileSizeRatio = Math.ceil(dpi / defaultDPI);
+
+		// Adjustment: The ratio must be in log 2, to fit with the date time line.
+		var validRatio = 1;
+		while (validRatio < tileSizeRatio) {
+			// square the validRatio, to stay in log 2.
+			validRatio = validRatio * 2;
+		}
+
+		// calculate the new tile size
+		var newTileSize = this.DEFAULT_TILE_SIZE * validRatio;
+		if (newTileSize > this.MAX_TILE_SIZE) {
+			newTileSize = this.MAX_TILE_SIZE;
+		}
+
+		return newTileSize;
+	},
+
+	_setTileSizeForDPI: function(dpi) {
+		if (this.layer) {
+			var newTileSize = this._getTileSizeForDPI(dpi);
+			var newTileSizeObj = new OpenLayers.Size(newTileSize, newTileSize);
+			var currentTileSizeObj = this.layer.tileSize;
+
+			if (newTileSizeObj != currentTileSizeObj) {
+				// OpenLayers.Layer.Grid.setTileSize(OpenLayers.Size);
+				this.layer.setTileSize(newTileSizeObj);
+			}
+		}
 	},
 
 	getWMSLayerParams: function() {
@@ -205,5 +280,10 @@ Atlas.Layer.WMS = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 		}
 
 		return '<h3>' + this.getTitle() + '</h3>' + responseEvent.text;
+	},
+
+	// override
+	getCredentials: function() {
+		return this.getTitle();
 	}
 });

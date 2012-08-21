@@ -36,7 +36,7 @@
  *     -> Was working after implementation of "Add Group"
  * [X] Description / Options on folder (like Opacity, multi-checkbox for legend, etc.)
  *     -> No multi checkboxes for now
- * [ ] Opacity slider calculate ratio of parents (layer opacity * parent opacity * grand-parent opacity * etc.)
+ * [X] Opacity slider calculate ratio of parents (layer opacity * parent opacity * grand-parent opacity * etc.)
  * [ ] The tree do not take highlight info from the map... issue when layers removed from other mean than the remove button
  * [ ] WMS Queryable for group
  */
@@ -340,6 +340,24 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 		embeddedCode.value = '<iframe src="' + embeddedUrlStr + '" frameborder="0" style="border:none;width:'+width+'px;height:'+height+'px"></iframe>';
 	},
 
+	addPrintFrame: function() {
+		var printFrameLayer = new Atlas.Layer.PrintFrame(this.mapPanel, {
+			title: 'Print frame',
+			htmlDescription: 'This layer is used to facilitate screenshot. For a complete tutorial about how to make high definition screenshot, see: <a href="http://TODO-ADD-A-LINK/" target="_black">http://TODO-ADD-A-LINK/</a><br/>\n' +
+				'Quick reminder, for the easy low resolution screenshot:<br/>\n' +
+				'<ol>\n' +
+				'    <li>Draw a rectangle in the screen, after clicking the "Print frame" button, to select the region you which to print.</li>\n' +
+				'    <li>Adjust the "Print frame" to accurately frame desired location.</li>\n' +
+				'    <li>Expend your browser window as necessary (larger is better).</li>\n' +
+				'    <li>Use the button "locate" to zoom as much as possible, without hiding the frame.</li>\n' +
+				'    <li>Adjust the position of the north arrow and the scale line, if necessary.</li>\n' +
+				'    <li>Take a screenshot using the "Print Screen" key from your key board.</li>\n' +
+				'    <li>Crop the image using an image editor software, to remove any part of the image exceeding the print frame.</li>\n' +
+				'</ol>'
+		});
+		this.mapPanel.map.addLayer(printFrameLayer.layer);
+	},
+
 	showEmbeddedLinkWindow: function() {
 		var that = this;
 		var fullUrlStr = this._getUrlForSaveState(null, false);
@@ -376,11 +394,11 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 			// For some reason, the input widget need a large (10px) right padding when set with 100% width.
 			bodyStyle: 'padding: 4px 10px 4px 4px',
 
-			// IE8 need frameborder (it do not understand CSS border)
-			html: 'Copy / Paste URL in email<br/>\n' +
-				'<input type="text" onClick="this.select()" id="fullLink'+uid+'" style="width:100%;" value="Loading..."><br/>\n' +
-				'Copy / Paste <b>HTML</b> to create an <i>Embedded map</i><br/>\n' +
-				'<input type="text" onClick="this.select()" id="embeddedCode'+uid+'" style="width:100%;" value="Loading..."><br/>\n' +
+			// IE8 need frameborder attribute for the iframe (it do not understand CSS border)
+			html: 'Copy / Paste URL in email\n' +
+				'<div><input type="text" onClick="this.select()" id="fullLink'+uid+'" style="width:100%;" value="Loading..."></div>\n' +
+				'Copy / Paste <b>HTML</b> to create an <i>Embedded map</i>\n' +
+				'<div><input type="text" onClick="this.select()" id="embeddedCode'+uid+'" style="width:100%;" value="Loading..."></div>\n' +
 				warningMsg +
 				'Size: <input id="w'+uid+'" type="text" value="500" style="width:50px"/>px'+
 				' X <input id="h'+uid+'" type="text" value="400" style="width:50px"/>px<br/><br/>\n'+
@@ -435,6 +453,13 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 		Ext.defer(function() {
 			var el = Ext.get('layers-ctl_'+that.mapPanel.mapId);
 
+			new Ext.Button({
+				renderTo: el,
+				iconCls: 'printFrame',
+				tooltip: 'Prepare map for printing',
+				cls: 'layers-btn',
+				handler: function() {that.addPrintFrame();}
+			});
 			new Ext.Button({
 				renderTo: el,
 				iconCls: 'link',

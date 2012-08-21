@@ -23,6 +23,8 @@ package au.gov.aims.atlasmapperserver.layerConfig;
 
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class ArcGISCacheLayerConfig extends ArcGISMapServerLayerConfig {
 	@ConfigField
@@ -91,5 +93,24 @@ public class ArcGISCacheLayerConfig extends ArcGISMapServerLayerConfig {
 
 	public void setTileResolutions(Double[] tileResolutions) {
 		this.tileResolutions = tileResolutions;
+	}
+
+	@Override
+	public JSONObject generateLayer() throws JSONException {
+		JSONObject jsonLayer = super.generateLayer();
+
+		if (this.getTileCols() != null && this.getTileRows() != null) {
+			jsonLayer.put("arcGISCacheTileCols", this.getTileCols());
+			jsonLayer.put("arcGISCacheTileRows", this.getTileRows());
+		}
+		if (this.getTileOriginX() != null && this.getTileOriginY() != null) {
+			jsonLayer.put("arcGISCacheTileOriginX", this.getTileOriginX());
+			jsonLayer.put("arcGISCacheTileOriginY", this.getTileOriginY());
+		}
+		if (this.getTileResolutions() != null) {
+			jsonLayer.put("arcGISCacheTileResolutions", this.getTileResolutions());
+		}
+
+		return jsonLayer;
 	}
 }

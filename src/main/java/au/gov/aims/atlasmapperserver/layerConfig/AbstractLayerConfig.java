@@ -32,6 +32,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfigInterface;
+import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfigInterfaceHelper;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONSortedObject;
@@ -41,7 +43,6 @@ import org.json.JSONSortedObject;
  * @author glafond
  */
 // NOTE Layers can override any fields of it's data source's interface
-// TODO WMSLayerConfig extends AbstractLayerConfig
 public abstract class AbstractLayerConfig extends AbstractConfig implements AbstractDataSourceConfigInterface {
 	private static final Logger LOGGER = Logger.getLogger(AbstractLayerConfig.class.getName());
 
@@ -454,15 +455,15 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 	}
 
 	public AbstractLayerConfig applyOverrides(
-			JSONObject globalOverrides,
-			JSONObject clientOverrides) throws JSONException {
+			JSONObject globalOverrides) throws JSONException {
 
+		// Create an AbstractLayerConfig from the layer override
 		AbstractLayerConfig layerGlobalOverride = null;
 		if (globalOverrides != null && globalOverrides.length() > 0) {
 			JSONObject globalOverride = globalOverrides.optJSONObject(this.layerId);
 			if (globalOverride != null && globalOverride.length() > 0) {
 				try {
-					layerGlobalOverride = LayerConfigHelper.createLayerConfig(
+					layerGlobalOverride = LayerCatalog.createLayer(
 							globalOverride.optString("dataSourceType", this.getDataSourceType()), globalOverride, this.getConfigManager());
 				} catch(Exception ex) {
 					LOGGER.log(Level.SEVERE, "Unexpected error occurred while parsing the following layer override for the data source ["+this.getDataSourceName()+"]:\n" + globalOverride.toString(4), ex);
@@ -470,38 +471,210 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 			}
 		}
 
-		AbstractLayerConfig layerClientOverride = null;
-		if (clientOverrides != null && clientOverrides.length() > 0) {
-			JSONObject clientOverride = clientOverrides.optJSONObject(this.layerId);
-			if (clientOverride != null && clientOverride.length() > 0) {
-				if (layerGlobalOverride != null) {
-					layerGlobalOverride.update(clientOverride);
-				} else {
-					try {
-						layerGlobalOverride = LayerConfigHelper.createLayerConfig(
-								clientOverride.optString("dataSourceType", this.getDataSourceType()), clientOverride, this.getConfigManager());
-					} catch(Exception ex) {
-						LOGGER.log(Level.SEVERE, "Unexpected error occurred while parsing the following client layer override for the data source ["+this.getDataSourceName()+"]:\n" + clientOverride.toString(4), ex);
+		// Apply the layer override on a clone of the current layer (do not modify the original layer)
+		AbstractLayerConfig clone = (AbstractLayerConfig)this.clone();
+		clone.applyOverrides(layerGlobalOverride);
+
+		return clone;
+	}
+
+	// TODO Specific pieces into specific classes (example: WMSLayerConfig parts goes into WMSLayerConfig class)
+	public JSONObject generateLayer() throws JSONException {
+		// AbstractLayerConfig implements AbstractDataSourceConfigInterface
+		JSONObject jsonLayer = AbstractDataSourceConfigInterfaceHelper.generateDataSourceInterface(this, null);
+
+		if (this.isCached() != null) {
+			jsonLayer.put("cached", this.isCached());
+		}
+
+		if (this.getOlParams() != null) {
+			jsonLayer.put("olParams", this.getOlParams());
+		}
+		if (this.getOlOptions() != null) {
+			jsonLayer.put("olOptions", this.getOlOptions());
+		}
+
+		jsonLayer.put(ConfigManager.CONFIG_VERSION_KEY, ConfigManager.CURRENT_LAYER_CONFIG_VERSION);
+
+		String layerName = this.getLayerName();
+		if (Utils.isNotBlank(layerName) && !layerName.equals(this.getLayerId())) {
+			jsonLayer.put("layerName", layerName.trim());
+		}
+
+		if (Utils.isNotBlank(this.getTitle())) {
+			jsonLayer.put("title", this.getTitle().trim());
+		}
+
+		if (Utils.isNotBlank(this.getDescription())) {
+			jsonLayer.put("description", this.getDescription().trim());
+		}
+		if (Utils.isNotBlank(this.getHtmlDescription())) {
+			jsonLayer.put("htmlDescription", this.getHtmlDescription().trim());
+		}
+
+		if (Utils.isNotBlank(this.getProjection())) {
+			jsonLayer.put("projection", this.getProjection().trim());
+		}
+
+		// serverId
+		if (Utils.isNotBlank(this.getDataSourceId())) {
+			jsonLayer.put("dataSourceId", this.getDataSourceId().trim());
+		}
+
+		double[] boundingBox = this.getLayerBoundingBox();
+		if (boundingBox != null && boundingBox.length > 0) {
+			jsonLayer.put("layerBoundingBox", boundingBox);
+		}
+
+		if (this.isIsBaseLayer() != null) {
+			jsonLayer.put("isBaseLayer", this.isIsBaseLayer());
+		}
+
+		if (this.isHasLegend() != null) {
+			jsonLayer.put("hasLegend", this.isHasLegend());
+		}
+
+		// No need for a legend URL + Filename since there is no more Layer Groups
+		if (Utils.isNotBlank(this.getLegendUrl())) {
+			jsonLayer.put("legendUrl", this.getLegendUrl().trim());
+		}
+
+		if(Utils.isNotBlank(this.getLegendGroup())) {
+			jsonLayer.put("legendGroup", this.getLegendGroup().trim());
+		}
+
+		if(Utils.isNotBlank(this.getLegendTitle())) {
+			jsonLayer.put("legendTitle", this.getLegendTitle().trim());
+		}
+
+		String[] infoHtmlUrls = this.getInfoHtmlUrls();
+		if(infoHtmlUrls != null && infoHtmlUrls.length > 0) {
+			jsonLayer.put("infoHtmlUrls", infoHtmlUrls);
+		}
+
+		String[] aliasIds = this.getAliasIds();
+		if (aliasIds != null && aliasIds.length > 0) {
+			jsonLayer.put("aliasIds", aliasIds);
+		}
+
+		List<LayerStyleConfig> styles = this.getStyles();
+		// Browsers do not have to keep the order in JavaScript objects, but they often do.
+		if (styles != null && !styles.isEmpty()) {
+			JSONObject jsonStyles = new JSONObject();
+			if (!styles.isEmpty()) {
+				boolean firstStyle = true;
+				for (LayerStyleConfig style : styles) {
+					String styleName = style.getName();
+					if (firstStyle) {
+						firstStyle = false;
+						styleName = "";
+					}
+					if (styleName != null) {
+						JSONObject jsonStyle = this.generateLayerStyle(style);
+						if (jsonStyle != null && jsonStyle.length() > 0) {
+							jsonStyles.put(styleName.trim(), jsonStyle);
+						}
 					}
 				}
 			}
+			if (jsonStyles.length() > 0) {
+				jsonLayer.put("styles", jsonStyles);
+			}
 		}
 
-		return applyOverrides(layerGlobalOverride, layerClientOverride);
+		List<LayerOptionConfig> options = this.getOptions();
+		if (options != null && !options.isEmpty()) {
+			JSONArray optionsArray = new JSONArray();
+
+			for (LayerOptionConfig option : options) {
+				JSONObject jsonOption = this.generateLayerOption(option);
+				if (jsonOption != null && jsonOption.length() > 0) {
+					optionsArray.put(jsonOption);
+				}
+			}
+
+			if (optionsArray.length() > 0) {
+				jsonLayer.put("layerOptions", optionsArray);
+			}
+		}
+
+		// Initial state is related to the Client saved state
+		// TODO delete after implementing Save State
+		if(this.isSelected() != null) {
+			jsonLayer.put("selected", this.isSelected());
+		}
+
+		return jsonLayer;
 	}
 
-	public AbstractLayerConfig applyOverrides(
-			AbstractLayerConfig globalOverride,
-			AbstractLayerConfig clientOverride) {
-
-		AbstractLayerConfig clone = (AbstractLayerConfig)this.clone();
-
-		if (clone != null) {
-			clone.applyOverrides(globalOverride);
-			clone.applyOverrides(clientOverride);
+	private JSONObject generateLayerStyle(LayerStyleConfig style) throws JSONException {
+		if (style == null) {
+			return null;
 		}
 
-		return clone;
+		JSONObject jsonStyle = new JSONObject();
+		if (style.isDefault() != null) {
+			jsonStyle.put("default", style.isDefault());
+		}
+
+		if (Utils.isNotBlank(style.getTitle())) {
+			jsonStyle.put("title", style.getTitle().trim());
+		}
+
+		if (Utils.isNotBlank(style.getDescription())) {
+			jsonStyle.put("description", style.getDescription().trim());
+		}
+
+		//if (Utils.isNotBlank(style.getLegendUrl())) {
+		//	jsonStyle.put("legendUrl", style.getLegendUrl().trim());
+		//}
+
+		//if (Utils.isNotBlank(style.getLegendFilename())) {
+		//	jsonStyle.put("legendFilename", style.getLegendFilename().trim());
+		//}
+
+		return jsonStyle;
+	}
+
+	/**
+	 * "layerOptions": [
+	 *     {
+	 *         "name": "String, mandatory: name of the url parameter",
+	 *         "title": "String, optional (default: name): title displayed in the layer options",
+	 *         "type": "String, optional (default: text): type of the parameter, to specify which UI to use",
+	 *         "mandatory": "Boolean, optional (default: false): set to true is the field is not allow to contains an empty string"
+	 *         "defaultValue": "String, optional (default: empty string): default value"
+	 *     },
+	 *     ...
+	 * ]
+	 */
+	private JSONObject generateLayerOption(LayerOptionConfig option) throws JSONException {
+		if (option == null) {
+			return null;
+		}
+
+		JSONObject jsonOption = new JSONObject();
+		if (Utils.isNotBlank(option.getName())) {
+			jsonOption.put("name", option.getName().trim());
+		}
+
+		if (Utils.isNotBlank(option.getTitle())) {
+			jsonOption.put("title", option.getTitle().trim());
+		}
+
+		if (Utils.isNotBlank(option.getType())) {
+			jsonOption.put("type", option.getType().trim());
+		}
+
+		if (option.isMandatory() != null) {
+			jsonOption.put("mandatory", option.isMandatory());
+		}
+
+		if (Utils.isNotBlank(option.getDefaultValue())) {
+			jsonOption.put("defaultValue", option.getDefaultValue().trim());
+		}
+
+		return jsonOption;
 	}
 
 	@Override

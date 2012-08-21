@@ -22,11 +22,9 @@
 package au.gov.aims.atlasmapperserver.module;
 
 import au.gov.aims.atlasmapperserver.ClientConfig;
-import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
+import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import java.util.Map;
 
 /**
  *
@@ -34,5 +32,5 @@ import java.util.Map;
  */
 public abstract class AbstractModule {
 	public abstract double getVersion();
-	public abstract JSONObject getJSONConfiguration(ClientConfig clientConfig, Map<String, AbstractLayerConfig> layers) throws JSONException;
+	public abstract JSONObject getJSONConfiguration(ClientConfig clientConfig, LayerCatalog layerCatalog) throws JSONException;
 }

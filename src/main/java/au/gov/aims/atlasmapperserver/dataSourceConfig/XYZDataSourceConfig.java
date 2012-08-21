@@ -22,11 +22,14 @@
 package au.gov.aims.atlasmapperserver.dataSourceConfig;
 
 import au.gov.aims.atlasmapperserver.AbstractConfig;
+import au.gov.aims.atlasmapperserver.ClientConfig;
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
 import au.gov.aims.atlasmapperserver.layerGenerator.XYZLayerGenerator;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.Set;
 
@@ -88,6 +91,26 @@ public class XYZDataSourceConfig extends AbstractDataSourceConfig {
 
 	@Override
 	public AbstractLayerGenerator getLayerGenerator() {
-		return new XYZLayerGenerator();
+		return new XYZLayerGenerator(this);
+	}
+
+	@Override
+	// TODO Remove clientConfig parameter!!
+	public JSONObject generateDataSource(ClientConfig clientConfig) throws JSONException {
+		JSONObject dataSource = super.generateDataSource(clientConfig);
+
+		if (this.getServiceUrlsSet() != null) {
+			dataSource.put("serviceUrls", this.getServiceUrlsSet());
+		}
+
+		if (this.isOsm() != null) {
+			dataSource.put("osm", this.isOsm());
+		}
+
+		if (Utils.isNotBlank(this.getCrossOriginKeyword())) {
+			dataSource.put("crossOriginKeyword", this.getCrossOriginKeyword().trim());
+		}
+
+		return dataSource;
 	}
 }

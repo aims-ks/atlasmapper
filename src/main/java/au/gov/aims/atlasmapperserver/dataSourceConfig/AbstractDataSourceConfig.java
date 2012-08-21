@@ -25,20 +25,19 @@ import au.gov.aims.atlasmapperserver.AbstractConfig;
 import au.gov.aims.atlasmapperserver.ClientConfig;
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.collection.BlackAndWhiteListFilter;
-import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
-import au.gov.aims.atlasmapperserver.layerConfig.LayerConfigHelper;
+import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
+import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -113,6 +112,112 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 
 	protected AbstractDataSourceConfig(ConfigManager configManager) {
 		super(configManager);
+	}
+
+	// Called with all layers generated with generateLayerConfigs
+	public AbstractLayerConfig bindLayer(AbstractLayerConfig layer) {
+		if (Utils.isBlank(layer.getDataSourceId())) {
+			layer.setDataSourceId(this.dataSourceId);
+		}
+		if (Utils.isBlank(layer.getDataSourceType())) {
+			layer.setDataSourceType(this.dataSourceType);
+		}
+		return layer;
+	}
+
+	// LayerCatalog - Before data source overrides
+	private LayerCatalog getRawLayerCatalog() throws Exception {
+		LayerCatalog rawLayerCatalog = new LayerCatalog();
+		AbstractLayerGenerator layerGenerator = this.getLayerGenerator();
+
+		if (layerGenerator != null) {
+			rawLayerCatalog.addLayers(layerGenerator.generateLayerConfigs(this));
+		}
+
+		return rawLayerCatalog;
+	}
+
+	// LayerCatalog - After data source overrides
+	public LayerCatalog getLayerCatalog() throws Exception {
+		// LayerCatalog before overrides
+		LayerCatalog rawLayerCatalog = this.getRawLayerCatalog();
+
+		// Map of layers, after overrides, used to create the final layer catalog
+		HashMap<String, AbstractLayerConfig> layersMap = new HashMap<String, AbstractLayerConfig>();
+
+		JSONSortedObject globalOverrides = this.globalManualOverride;
+
+		// Apply manual overrides, if needed
+		if (!rawLayerCatalog.isEmpty()) {
+			for (AbstractLayerConfig layerConfig : rawLayerCatalog.getLayers()) {
+				if (layerConfig != null) {
+					AbstractLayerConfig overriddenLayerConfig =
+							layerConfig.applyOverrides(globalOverrides);
+					layersMap.put(
+							overriddenLayerConfig.getLayerId(),
+							overriddenLayerConfig);
+				}
+			}
+		}
+
+		// Create manual layers defined for this data source
+		if (globalOverrides != null && globalOverrides.length() > 0) {
+			Iterator<String> layerIds = globalOverrides.keys();
+			while (layerIds.hasNext()) {
+				String layerId = layerIds.next();
+				if (!layersMap.containsKey(layerId)) {
+					JSONObject jsonGlobalOverride = globalOverrides.optJSONObject(layerId);
+					if (jsonGlobalOverride != null && jsonGlobalOverride.length() > 0) {
+						try {
+							AbstractLayerConfig manualLayer = LayerCatalog.createLayer(
+									jsonGlobalOverride.optString("dataSourceType"), jsonGlobalOverride, this.getConfigManager());
+
+							manualLayer.setLayerId(layerId);
+
+							// Add data source info if omitted
+							this.bindLayer(manualLayer);
+
+							layersMap.put(
+									manualLayer.getLayerId(),
+									manualLayer);
+						} catch(Exception ex) {
+							LOGGER.log(Level.SEVERE, "Unexpected error occurred while parsing the following layer override for the data source ["+this.getDataSourceName()+"]:\n" + jsonGlobalOverride.toString(4), ex);
+						}
+					}
+				}
+			}
+		}
+
+		// Set base layer attribute
+		for (AbstractLayerConfig layerConfig : layersMap.values()) {
+			// Set Baselayer flag if the layer is defined as a base layer in the client OR the client do not define any base layers and the layer is defined as a baselayer is the global config
+			if (this.isDefaultAllBaseLayers()) {
+				// Only set the attribute if the layer is NOT a base layer
+				if (!this.isBaseLayer(layerConfig.getLayerId())) {
+					layerConfig.setIsBaseLayer(false);
+				}
+			} else {
+				// Only set the attribute if the layer IS a base layer
+				if (this.isBaseLayer(layerConfig.getLayerId())) {
+					layerConfig.setIsBaseLayer(true);
+				} else if (this.isBaseLayer(layerConfig.getLayerName())) {
+					// Backward compatibility for AtlasMapper client ver. 1.2
+					LOGGER.log(Level.WARNING, "DEPRECATED LAYER ID USED FOR BASE LAYERS: Layer id [{0}] should be [{1}].", new String[]{layerConfig.getLayerName(), layerConfig.getLayerId()});
+					layerConfig.setIsBaseLayer(true);
+				}
+			}
+		}
+
+		// Remove blacklisted layers
+		BlackAndWhiteListFilter<AbstractLayerConfig> blackAndWhiteFilter =
+				new BlackAndWhiteListFilter<AbstractLayerConfig>(this.getBlackAndWhiteListedLayers());
+		layersMap = blackAndWhiteFilter.filter(layersMap);
+
+		// LayerCatalog after overrides
+		LayerCatalog layerCatalog = new LayerCatalog();
+		layerCatalog.addLayers(layersMap.values());
+
+		return layerCatalog;
 	}
 
 	@Override
@@ -288,12 +393,10 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 	}
 
 	// Helper
-	public boolean isBaseLayer(String layerId) {
+	private boolean isBaseLayer(String layerId) {
 		if (Utils.isBlank(layerId)) {
 			return false;
 		}
-
-System.out.println("==> ["+layerId+"] ["+this.getClass().getName()+"] DEFAULT: " + (this.isDefaultAllBaseLayers()? "BASE LAYER" : "OVERLAY"));
 
 		if (this.isDefaultAllBaseLayers()) {
 			String overlayLayersStr = this.getOverlayLayers();
@@ -305,11 +408,9 @@ System.out.println("==> ["+layerId+"] ["+this.getClass().getName()+"] DEFAULT: "
 			}
 
 			if (this.overlayLayersSet == null || this.overlayLayersSet.isEmpty()) {
-System.out.println("==> " + layerId + " BASE LAYER: No overlay layers set");
 				return true;
 			}
 
-System.out.println("==> " + layerId + " BASE LAYER: ["+(this.overlayLayersSet.contains(layerId)?"FALSE":"TRUE")+"]");
 			return !this.overlayLayersSet.contains(layerId);
 		} else {
 			String baseLayersStr = this.getBaseLayers();
@@ -329,90 +430,6 @@ System.out.println("==> " + layerId + " BASE LAYER: ["+(this.overlayLayersSet.co
 	}
 
 	public abstract AbstractLayerGenerator getLayerGenerator() throws IOException;
-
-	// Helper
-	public Map<String, AbstractLayerConfig> generateLayerConfigs(ClientConfig clientConfig) throws Exception {
-		HashMap<String, AbstractLayerConfig> overriddenLayerConfigs = new HashMap<String, AbstractLayerConfig>();
-
-		JSONSortedObject globalOverrides = this.globalManualOverride;
-		JSONObject clientOverrides = clientConfig.getManualOverride();
-
-		// Retrieved raw layers, according to the data source type
-		Map<String, AbstractLayerConfig> layerConfigs = null;
-
-		AbstractLayerGenerator layerGenerator = this.getLayerGenerator();
-
-		if (layerGenerator != null) {
-			layerConfigs = layerGenerator.generateLayerConfigs(clientConfig, this);
-		}
-
-		// Apply manual overrides, if needed
-		if (layerConfigs != null) {
-			for (AbstractLayerConfig layerConfig : layerConfigs.values()) {
-				if (layerConfig != null) {
-					AbstractLayerConfig overriddenLayerConfig =
-							layerConfig.applyOverrides(
-									globalOverrides,
-									clientOverrides);
-					overriddenLayerConfigs.put(
-							overriddenLayerConfig.getLayerId(),
-							overriddenLayerConfig);
-				}
-			}
-		}
-
-		// Create manual layers defined for this data source
-		if (globalOverrides != null && globalOverrides.length() > 0) {
-			Iterator<String> layerIds = globalOverrides.keys();
-			while (layerIds.hasNext()) {
-				String layerId = layerIds.next();
-				if (!overriddenLayerConfigs.containsKey(layerId)) {
-					JSONObject jsonGlobalOverride = globalOverrides.optJSONObject(layerId);
-					if (jsonGlobalOverride != null && jsonGlobalOverride.length() > 0) {
-						try {
-							AbstractLayerConfig manualLayer = LayerConfigHelper.createLayerConfig(
-									jsonGlobalOverride.optString("dataSourceType"), jsonGlobalOverride, this.getConfigManager());
-
-							manualLayer.setLayerId(layerId);
-
-							// Apply client override if any
-							if (clientOverrides != null && clientOverrides.has(layerId)) {
-								JSONObject jsonClientOverride = clientOverrides.optJSONObject(layerId);
-								try {
-									if (jsonClientOverride != null && jsonClientOverride.length() > 0) {
-										AbstractLayerConfig clientOverride = LayerConfigHelper.createLayerConfig(
-												jsonClientOverride.optString("dataSourceType"), jsonClientOverride, this.getConfigManager());
-
-										manualLayer.applyOverrides(clientOverride);
-									}
-								} catch(Exception ex) {
-									LOGGER.log(Level.SEVERE, "Unexpected error occurred while parsing the following layer override for the client ["+clientConfig.getClientName()+"]:\n" + jsonClientOverride.toString(4), ex);
-								}
-							}
-
-							// Add data source info if omitted
-							if (Utils.isBlank(manualLayer.getDataSourceId())) {
-								manualLayer.setDataSourceId(this.dataSourceId);
-							}
-
-							overriddenLayerConfigs.put(
-									manualLayer.getLayerId(),
-									manualLayer);
-						} catch(Exception ex) {
-							LOGGER.log(Level.SEVERE, "Unexpected error occurred while parsing the following layer override for the data source ["+this.getDataSourceName()+"]:\n" + jsonGlobalOverride.toString(4), ex);
-						}
-					}
-				}
-			}
-		}
-
-		// Remove blacklisted layers
-		BlackAndWhiteListFilter<AbstractLayerConfig> blackAndWhiteFilter =
-				new BlackAndWhiteListFilter<AbstractLayerConfig>(this.getBlackAndWhiteListedLayers());
-		overriddenLayerConfigs = blackAndWhiteFilter.filter(overriddenLayerConfigs);
-
-		return overriddenLayerConfigs;
-	}
 
 	@Override
 	// Order data sources by data source name
@@ -434,6 +451,14 @@ System.out.println("==> " + layerId + " BASE LAYER: ["+(this.overlayLayersSet.co
 	// Nothing to do here
 	public AbstractDataSourceConfig applyOverrides() {
 		return this;
+	}
+
+	// Generate the config to be sent to the clients
+	// TODO Remove clientConfig parameter!!
+	public JSONObject generateDataSource(ClientConfig clientConfig) throws JSONException {
+		JSONObject dataSource = AbstractDataSourceConfigInterfaceHelper.generateDataSourceInterface(this, clientConfig);
+
+		return dataSource;
 	}
 
 	@Override

@@ -22,7 +22,6 @@
 package au.gov.aims.atlasmapperserver.layerGenerator;
 
 import au.gov.aims.atlasmapperserver.ConfigManager;
-import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.NcWMSDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.NcWMSLayerConfig;
 import org.geotools.ows.ServiceException;
@@ -33,7 +32,7 @@ import java.util.logging.Logger;
 public class NcWMSLayerGenerator extends AbstractWMSLayerGenerator<NcWMSLayerConfig, NcWMSDataSourceConfig> {
 	private static final Logger LOGGER = Logger.getLogger(NcWMSLayerGenerator.class.getName());
 
-	public NcWMSLayerGenerator(AbstractDataSourceConfig dataSource) throws IOException, ServiceException {
+	public NcWMSLayerGenerator(NcWMSDataSourceConfig dataSource) throws IOException, ServiceException {
 		super(dataSource);
 	}
 

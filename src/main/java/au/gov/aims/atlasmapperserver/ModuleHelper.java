@@ -22,7 +22,7 @@
 package au.gov.aims.atlasmapperserver;
 
 import au.gov.aims.atlasmapperserver.annotation.Module;
-import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
+import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
 import au.gov.aims.atlasmapperserver.module.AbstractModule;
 import au.gov.aims.atlasmapperserver.module.Info;
 import au.gov.aims.atlasmapperserver.module.Tree;
@@ -48,12 +48,12 @@ public class ModuleHelper {
 	 * @return
 	 * @throws JSONException
 	 */
-	public static JSONObject generateModuleConfiguration(String moduleName, ClientConfig clientConfig, Map<String, AbstractLayerConfig> layers) throws JSONException {
+	public static JSONObject generateModuleConfiguration(String moduleName, ClientConfig clientConfig, LayerCatalog layerCatalog) throws JSONException {
 		AbstractModule moduleObj = getModules().get(moduleName);
 		if (moduleObj != null) {
 			JSONObject moduleJSon = new JSONObject();
 			moduleJSon.put("version", moduleObj.getVersion());
-			moduleJSon.put("config", moduleObj.getJSONConfiguration(clientConfig, layers));
+			moduleJSon.put("config", moduleObj.getJSONConfiguration(clientConfig, layerCatalog));
 			return moduleJSon;
 		}
 		return null;

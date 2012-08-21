@@ -44,6 +44,7 @@ Ext.ux.form.MinMaxField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 		// shared between all instances)
 
 		var minFieldConfig = {
+			minMaxField: this,
 			fieldLabel: 'Min',
 			anchor: '50%'
 		};
@@ -57,6 +58,7 @@ Ext.ux.form.MinMaxField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 
 
 		var maxFieldConfig = {
+			minMaxField: this,
 			fieldLabel: 'Max',
 			anchor: '50%'
 		};

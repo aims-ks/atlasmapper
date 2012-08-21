@@ -21,7 +21,6 @@
 
 package au.gov.aims.atlasmapperserver.layerGenerator;
 
-import au.gov.aims.atlasmapperserver.ClientConfig;
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.URLCache;
 import au.gov.aims.atlasmapperserver.Utils;
@@ -42,10 +41,9 @@ import org.opengis.util.InternationalString;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -62,7 +60,8 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 	private URL wmsServiceUrl = null;
 	private URL legendUrl = null;
 
-	public AbstractWMSLayerGenerator(AbstractDataSourceConfig dataSource) throws IOException, ServiceException {
+	public AbstractWMSLayerGenerator(D dataSource) throws IOException, ServiceException {
+		super(dataSource);
 //		this.layerConfigsCache = new HashMap<String, Map<String, L>>();
 
 		this.wmsCapabilities = URLCache.getWMSCapabilitiesResponse(dataSource, dataSource.getServiceUrl());
@@ -94,8 +93,8 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 	}
 
 	@Override
-	public Map<String, L> generateLayerConfigs(ClientConfig clientConfig, D dataSourceConfig) {
-		return this.getLayersInfoFromCaps(clientConfig, dataSourceConfig);
+	public Collection<L> generateLayerConfigs(D dataSourceConfig) {
+		return this.getLayersInfoFromCaps(dataSourceConfig);
 	}
 
 	private URL getOperationUrl(OperationType op) {
@@ -105,18 +104,18 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 		return op.getGet();
 	}
 
-	private Map<String, L> getLayersInfoFromCaps(
-			ClientConfig clientConfig,        // Client's specific layers information (base layers list override, etc.)
+	private Collection<L> getLayersInfoFromCaps(
 			D dataSourceConfig // Data source of layers (to link the layer to its data source)
 	) {
 
 		// http://docs.geotools.org/stable/javadocs/org/geotools/data/wms/WebMapServer.html
 		Layer rootLayer = this.wmsCapabilities.getLayer();
 
-		Map<String, L> layerInfos = new HashMap<String, L>();
-		// Can add it in the config if some users think it's usefull to see the root...
+		Collection<L> layerConfigs = new ArrayList<L>();
+		// The boolean at the end is use to ignore the root from the capabilities document. It can be added (change to false) if some users think it's useful to see the root...
+		this._getLayersInfoFromGeoToolRootLayer(layerConfigs, rootLayer, new LinkedList<String>(), dataSourceConfig, true);
 
-		return this._getLayersInfoFromGeoToolRootLayer(layerInfos, rootLayer, new LinkedList<String>(), clientConfig, dataSourceConfig, true);
+		return layerConfigs;
 	}
 
 	/**
@@ -160,16 +159,15 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 	// give the same result as
 	//     getXmlLayersFromGeoToolRootLayer(xmlLayers, childLayer, childrenWmsPath);
 	// The first one is just visualy more easy to understand.
-	private Map<String, L> _getLayersInfoFromGeoToolRootLayer(
-			Map<String, L> layerConfigs,
+	private void _getLayersInfoFromGeoToolRootLayer(
+			Collection<L> layerConfigs,
 			Layer layer,
 			List<String> wmsPath,
-			ClientConfig clientConfig,
 			D dataSourceConfig,
 			boolean isRoot) {
 
 		if (layer == null) {
-			return layerConfigs;
+			return;
 		}
 
 		// GeoTools API documentation is hopeless and the code is build on compile time.
@@ -193,7 +191,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 			}
 
 			for (Layer childLayer : children) {
-				layerConfigs = _getLayersInfoFromGeoToolRootLayer(layerConfigs, childLayer, childrenWmsPath, clientConfig, dataSourceConfig, false);
+				this._getLayersInfoFromGeoToolRootLayer(layerConfigs, childLayer, childrenWmsPath, dataSourceConfig, false);
 			}
 		} else {
 			// The layer do not have any children, so it is a real layer
@@ -209,25 +207,19 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 				}
 			}
 
-			L layerConfig = this.layerToLayerConfig(layer, wmsPathBuf.toString(), clientConfig, dataSourceConfig);
+			L layerConfig = this.layerToLayerConfig(layer, wmsPathBuf.toString(), dataSourceConfig);
 			if (layerConfig != null) {
-				layerConfigs.put(layerConfig.getLayerId(), layerConfig);
+				layerConfigs.add(layerConfig);
 			}
 		}
-
-		return layerConfigs;
 	}
 
 	private L layerToLayerConfig(
 			Layer layer,
 			String wmsPath,
-			ClientConfig clientConfig,
 			D dataSourceConfig) {
 
-		L layerConfig = this.createLayerConfig(clientConfig.getConfigManager());
-
-		// Link the layer to it's data source
-		layerConfig.setDataSourceId(dataSourceConfig.getDataSourceId());
+		L layerConfig = this.createLayerConfig(dataSourceConfig.getConfigManager());
 
 		String layerId = layer.getName();
 		if (Utils.isBlank(layerId)) {
@@ -260,26 +252,11 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 			layerConfig.setWmsPath(wmsPath);
 		}
 
-		// Set Baselayer flag if the layer is defined as a base layer in the client OR the client do not define any base layers and the layer is defined as a baselayer is the global config
-		if (clientConfig.isOverrideBaseLayers() != null && clientConfig.isOverrideBaseLayers()) {
-			if (clientConfig.isBaseLayer(layerId)) {
-				layerConfig.setIsBaseLayer(true);
-			}
-		} else {
-			if (dataSourceConfig.isBaseLayer(layerId)) {
-				layerConfig.setIsBaseLayer(true);
-			} else if (dataSourceConfig.isBaseLayer(layer.getName())) {
-				// Backward compatibility
-				LOGGER.log(Level.WARNING, "DEPRECATED LAYER ID USED FOR BASE LAYERS: Layer id [{0}] should be [{1}].", new String[]{layer.getName(), layerId});
-				layerConfig.setIsBaseLayer(true);
-			}
-		}
-
 		List<StyleImpl> styleImpls = layer.getStyles();
 		if (styleImpls != null && !styleImpls.isEmpty()) {
 			List<LayerStyleConfig> styles = new ArrayList<LayerStyleConfig>(styleImpls.size());
 			for (StyleImpl styleImpl : styleImpls) {
-				LayerStyleConfig styleConfig = styleToLayerStyleConfig(clientConfig.getConfigManager(), styleImpl);
+				LayerStyleConfig styleConfig = styleToLayerStyleConfig(dataSourceConfig.getConfigManager(), styleImpl);
 
 				if (styleConfig != null) {
 					styles.add(styleConfig);
@@ -298,6 +275,9 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 			};
 			layerConfig.setLayerBoundingBox(boundingBoxArray);
 		}
+
+		// Link the layer to it's data source
+		dataSourceConfig.bindLayer(layerConfig);
 
 		return layerConfig;
 	}

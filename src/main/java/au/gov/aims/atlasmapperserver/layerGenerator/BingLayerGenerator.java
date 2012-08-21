@@ -21,16 +21,19 @@
 
 package au.gov.aims.atlasmapperserver.layerGenerator;
 
-import au.gov.aims.atlasmapperserver.ClientConfig;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.BingDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.BingLayerConfig;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.Collection;
 
 public class BingLayerGenerator extends AbstractLayerGenerator<BingLayerConfig, BingDataSourceConfig> {
 	// The layers do not changes often enough to develop some sort of parser.
-	private static Map<String, BingLayerConfig> bingLayersCache = null;
+	private static Collection<BingLayerConfig> bingLayersCache = null;
+
+	public BingLayerGenerator(BingDataSourceConfig dataSource) {
+		super(dataSource);
+	}
 
 	/**
 	 * The number of Bing Layers is fix and they already have unique IDs. Nothing to do here.
@@ -48,22 +51,16 @@ public class BingLayerGenerator extends AbstractLayerGenerator<BingLayerConfig, 
 	 *     * Bing Road
 	 *     * Bing Hybrid
 	 *     * Bing Aerial
-	 * @param clientConfig
 	 * @return
 	 */
 	@Override
-	public Map<String, BingLayerConfig> generateLayerConfigs(ClientConfig clientConfig, BingDataSourceConfig dataSourceConfig) {
+	public Collection<BingLayerConfig> generateLayerConfigs(BingDataSourceConfig dataSourceConfig) {
 		if (bingLayersCache == null) {
-			bingLayersCache = new HashMap<String, BingLayerConfig>();
+			bingLayersCache = new ArrayList<BingLayerConfig>();
 
-			BingLayerConfig road = this.createBingLayer(dataSourceConfig, "Road", "Bing Road", null);
-			bingLayersCache.put(road.getLayerId(), road);
-
-			BingLayerConfig roadmap = this.createBingLayer(dataSourceConfig, "AerialWithLabels", "Bing Hybrid", null);
-			bingLayersCache.put(roadmap.getLayerId(), roadmap);
-
-			BingLayerConfig satellite = this.createBingLayer(dataSourceConfig, "Aerial", "Bing Aerial", null);
-			bingLayersCache.put(satellite.getLayerId(), satellite);
+			bingLayersCache.add(this.createBingLayer(dataSourceConfig, "Road", "Bing Road", null));
+			bingLayersCache.add(this.createBingLayer(dataSourceConfig, "AerialWithLabels", "Bing Hybrid", null));
+			bingLayersCache.add(this.createBingLayer(dataSourceConfig, "Aerial", "Bing Aerial", null));
 		}
 		return bingLayersCache;
 	}
@@ -75,7 +72,6 @@ public class BingLayerGenerator extends AbstractLayerGenerator<BingLayerConfig, 
 
 	private BingLayerConfig createBingLayer(BingDataSourceConfig dataSourceConfig, String bingLayerType, String name, String description) {
 		BingLayerConfig layerConfig = new BingLayerConfig(dataSourceConfig.getConfigManager());
-		layerConfig.setDataSourceId(dataSourceConfig.getDataSourceId());
 
 		layerConfig.setLayerId(bingLayerType);
 		layerConfig.setTitle(name);
@@ -83,6 +79,7 @@ public class BingLayerGenerator extends AbstractLayerGenerator<BingLayerConfig, 
 		layerConfig.setIsBaseLayer(true);
 		layerConfig.setLayerBoundingBox(new double[]{-180, -90, 180, 90});
 
+		dataSourceConfig.bindLayer(layerConfig);
 		this.ensureUniqueLayerId(layerConfig, dataSourceConfig);
 
 		return layerConfig;

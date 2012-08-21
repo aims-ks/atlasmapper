@@ -21,8 +21,6 @@
 
 package au.gov.aims.atlasmapperserver.layerGenerator;
 
-import au.gov.aims.atlasmapperserver.ClientConfig;
-import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.URLCache;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.ArcGISMapServerDataSourceConfig;
 import au.gov.aims.atlasmapperserver.Utils;
@@ -38,6 +36,7 @@ import org.opengis.referencing.NoSuchAuthorityCodeException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +47,10 @@ import java.util.logging.Logger;
 // http://services.arcgisonline.com/ArcGIS/SDK/REST/index.html?mapserver.html
 public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<AbstractLayerConfig, ArcGISMapServerDataSourceConfig> {
 	private static final Logger LOGGER = Logger.getLogger(ArcGISMapServerLayerGenerator.class.getName());
+
+	public ArcGISMapServerLayerGenerator(ArcGISMapServerDataSourceConfig dataSource) {
+		super(dataSource);
+	}
 
 	/**
 	 * ArcGIS server have a LOT of layer ID duplications. The server assume that the client
@@ -87,7 +90,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 	}
 
 	@Override
-	public Map<String, AbstractLayerConfig> generateLayerConfigs(ClientConfig clientConfig, ArcGISMapServerDataSourceConfig dataSourceConfig) throws Exception {
+	public Collection<AbstractLayerConfig> generateLayerConfigs(ArcGISMapServerDataSourceConfig dataSourceConfig) throws Exception {
 		if (dataSourceConfig == null) {
 			throw new IllegalArgumentException("ArcGIS Map Server generation requested for a null data source.");
 		}
@@ -95,9 +98,9 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 		Map<String, AbstractLayerConfig> layers = new HashMap<String, AbstractLayerConfig>();
 
 		// Fill the Map of layers
-		parseJSON(layers, null, null, null, dataSourceConfig);
+		this.parseJSON(layers, null, null, null, dataSourceConfig);
 
-		return layers;
+		return layers.values();
 	}
 
 	@Override
@@ -248,7 +251,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 					// If one of the folder name is null or an empty string, the URL will be the same, returning the
 					// same folder name including the null / empty string.
 					if (Utils.isNotBlank(childArcGISPath)) {
-						parseJSON(allLayers, childArcGISPath, childArcGISPath, null, dataSourceConfig);
+						this.parseJSON(allLayers, childArcGISPath, childArcGISPath, null, dataSourceConfig);
 					}
 				}
 			}
@@ -268,7 +271,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 						);
 					}
 
-					List<AbstractLayerConfig> subChildren = parseJSON(allLayers, wmsPath, childArcGISPath, childType, dataSourceConfig);
+					List<AbstractLayerConfig> subChildren = this.parseJSON(allLayers, wmsPath, childArcGISPath, childType, dataSourceConfig);
 					if (subChildren != null) {
 						AbstractLayerConfig layerService = this.getLayerServiceConfig(childArcGISPath, subChildren, jsonServiceExtra, dataSourceConfig);
 						this.ensureUniqueLayerId(layerService, dataSourceConfig);
@@ -332,8 +335,6 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 		String layerId = jsonLayer.optString("id", null);
 
 		layer.setLayerId(layerId);
-		layer.setDataSourceId(dataSourceConfig.getDataSourceId());
-
 		layer.setTitle(jsonLayer.optString("name", null));
 		layer.setSelected(jsonLayer.optBoolean("defaultVisibility", true));
 
@@ -341,6 +342,8 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 			layer.setDescription(jsonLayerExtra.optString("description", null));
 			layer.setLayerBoundingBox(this.getExtent(jsonLayerExtra.optJSONObject("extent"), layer.getTitle(), dataSourceConfig.getDataSourceName()));
 		}
+
+		dataSourceConfig.bindLayer(layer);
 
 		return layer;
 	}
@@ -453,8 +456,6 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 		}
 
 		serviceLayer.setLayerId(groupName);
-		serviceLayer.setDataSourceId(dataSourceConfig.getDataSourceId());
-		serviceLayer.setDataSourceType("SERVICE");
 
 		serviceLayer.setTitle(groupTitle);
 		serviceLayer.setLayers(layers);
@@ -474,6 +475,10 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 
 		// childArcGISPath contains the current layerGroup
 		serviceLayer.setGroupPath(childArcGISPath);
+
+		dataSourceConfig.bindLayer(serviceLayer);
+		// Override the data source type
+		serviceLayer.setDataSourceType("SERVICE");
 
 		return serviceLayer;
 	}

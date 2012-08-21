@@ -86,7 +86,7 @@ public abstract class AbstractConfig implements Cloneable {
 	public abstract void setJSONObjectKey(String key);
 	public abstract String getJSONObjectKey();
 
-	protected static Set<String> toSet(String setStr) {
+	public static Set<String> toSet(String setStr) {
 		Set<String> set = new HashSet<String>();
 		String[] strArray = setStr.split(SPLIT_PATTERN);
 		if (strArray != null) {

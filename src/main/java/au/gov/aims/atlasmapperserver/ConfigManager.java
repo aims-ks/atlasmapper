@@ -22,21 +22,10 @@ package au.gov.aims.atlasmapperserver;
 
 import au.gov.aims.atlasmapperserver.collection.MultiKeyHashMap;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
-import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfigInterface;
-import au.gov.aims.atlasmapperserver.dataSourceConfig.ArcGISMapServerDataSourceConfigInterface;
-import au.gov.aims.atlasmapperserver.dataSourceConfig.BingDataSourceConfig;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.DataSourceConfigHelper;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.WMSDataSourceConfig;
-import au.gov.aims.atlasmapperserver.dataSourceConfig.XYZDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
-import au.gov.aims.atlasmapperserver.layerConfig.ArcGISCacheLayerConfig;
-import au.gov.aims.atlasmapperserver.layerConfig.ArcGISMapServerLayerConfig;
-import au.gov.aims.atlasmapperserver.layerConfig.GroupLayerConfig;
-import au.gov.aims.atlasmapperserver.layerConfig.KMLLayerConfig;
-import au.gov.aims.atlasmapperserver.layerConfig.LayerOptionConfig;
-import au.gov.aims.atlasmapperserver.layerConfig.LayerStyleConfig;
-import au.gov.aims.atlasmapperserver.layerConfig.WMSLayerConfig;
-import au.gov.aims.atlasmapperserver.layerConfig.XYZLayerConfig;
+import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
 import au.gov.aims.atlasmapperserver.servlet.FileFinder;
 import au.gov.aims.atlasmapperserver.servlet.Proxy;
@@ -59,9 +48,7 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -84,7 +71,7 @@ public class ConfigManager {
 	private static final String SERVER_DEFAULT_CONFIG_FILENAME = "defaultServer.json";
 	private static final String USERS_DEFAULT_CONFIG_FILENAME = "defaultUsers.json";
 
-	private static final String CONFIG_VERSION_KEY = "version";
+	public static final String CONFIG_VERSION_KEY = "version";
 
 	// Used to generate and parse server config
 	private static final double CURRENT_SERVER_CONFIG_VERSION = 1.0;
@@ -93,7 +80,7 @@ public class ConfigManager {
 	// Used to generated clients config
 	// NOTE: The version must match the version in the client /clientResources/amc/modules/Core/Core.js
 	private static final double CURRENT_MAIN_CONFIG_VERSION = 1.1;
-	private static final double CURRENT_LAYER_CONFIG_VERSION = 1.1;
+	public static final double CURRENT_LAYER_CONFIG_VERSION = 1.1;
 
 	// Will eventually be used for backward compatibility
 	private double configVersion;
@@ -872,13 +859,13 @@ public class ConfigManager {
 	}
 
 	// Sometime, layers are required to be in an Array to keep their order
-	private Object _getClientLayers(Map<String, AbstractLayerConfig> layers, ClientConfig clientConfig, Collection<String> layerIds, boolean live, String jsonClass) throws GetCapabilitiesExceptions, Exception {
+	private Object _getClientLayers(LayerCatalog layerCatalog, ClientConfig clientConfig, Collection<String> layerIds, boolean live, String jsonClass) throws GetCapabilitiesExceptions, Exception {
 		if (clientConfig == null) { return null; }
 
 		JSONObject foundLayersObj = new JSONObject();
 		JSONArray foundLayersArr = new JSONArray();
 
-		JSONObject clientLayers = this.getClientConfigFileJSon(layers, clientConfig, ConfigType.LAYERS, live, live);
+		JSONObject clientLayers = this.getClientConfigFileJSon(layerCatalog, clientConfig, ConfigType.LAYERS, live, live);
 
 		boolean asJSONObject = !"JSONArray".equalsIgnoreCase(jsonClass);
 		for (String rawLayerId : layerIds) {
@@ -1074,15 +1061,15 @@ public class ConfigManager {
 			return;
 		}
 
-		Map<String, AbstractLayerConfig> layers = clientConfig.generateLayerConfigs();
+		LayerCatalog layerCatalog = clientConfig.getLayerCatalog();
 
 		boolean useGoogle = clientConfig.useGoogle(this);
 
 		this.copyClientFilesIfNeeded(clientConfig, complete);
-		JSONObject generatedMainConfig = this.getClientConfigFileJSon(layers, clientConfig, ConfigType.MAIN, false, true);
-		JSONObject generatedEmbeddedConfig = this.getClientConfigFileJSon(layers, clientConfig, ConfigType.EMBEDDED, false, true);
-		JSONObject generatedLayers = this.getClientConfigFileJSon(layers, clientConfig, ConfigType.LAYERS, false, true);
-		this.parseTemplates(layers, generatedMainConfig, clientConfig, useGoogle);
+		JSONObject generatedMainConfig = this.getClientConfigFileJSon(layerCatalog, clientConfig, ConfigType.MAIN, false, true);
+		JSONObject generatedEmbeddedConfig = this.getClientConfigFileJSon(layerCatalog, clientConfig, ConfigType.EMBEDDED, false, true);
+		JSONObject generatedLayers = this.getClientConfigFileJSon(layerCatalog, clientConfig, ConfigType.LAYERS, false, true);
+		this.parseTemplates(layerCatalog, generatedMainConfig, clientConfig, useGoogle);
 		this.saveGeneratedConfigs(clientConfig, generatedMainConfig, generatedEmbeddedConfig, generatedLayers);
 
 		// Flush the proxy cache for both the preview and the generated clients
@@ -1119,7 +1106,7 @@ public class ConfigManager {
 	}
 
 	// Create all files that required a template processing
-	private void parseTemplates(Map<String, AbstractLayerConfig> layers, JSONObject generatedMainConfig, ClientConfig clientConfig, boolean useGoogle) throws IOException, TemplateException {
+	private void parseTemplates(LayerCatalog layerCatalog, JSONObject generatedMainConfig, ClientConfig clientConfig, boolean useGoogle) throws IOException, TemplateException {
 		if (clientConfig == null) { return; }
 
 		File atlasMapperClientFolder =
@@ -1178,7 +1165,7 @@ public class ConfigManager {
 			Map<String, Object> listValues = new HashMap<String, Object>();
 			listValues.put("version", ProjectInfo.getVersion());
 			listValues.put("clientName", clientConfig.getClientName() != null ? clientConfig.getClientName() : clientConfig.getClientId());
-			listValues.put("layers", this.generateLayerList(clientConfig, layers, generatedMainConfig));
+			listValues.put("layers", this.generateLayerList(clientConfig, layerCatalog, generatedMainConfig));
 			listValues.put("layerBoxWidth", width + 2); // +2 for the 1 px border - This value can be overridden using CSS
 			listValues.put("layerBoxHeight", height + 45); // +45 to let some room for the text bellow the layer - This value can be overridden using CSS
 			listValues.put("listPageHeader", clientConfig.getListPageHeader());
@@ -1236,20 +1223,15 @@ public class ConfigManager {
 	 *         imageWidth: Image width
 	 *         imageHeight: Image height
 	 *         mapUrl: URL of the AtlasMapper map that display that layer
-	 * @param layers Map of layers, after overrides
+	 * @param layerCatalog LayerCatalog, after overrides
 	 * @param generatedMainConfig Client JSON config, to get the data sources (after overrides), the client projection and the default layers.
 	 * @return
 	 */
-	private Map<String, List<Map<String, String>>> generateLayerList(ClientConfig clientConfig, Map<String, AbstractLayerConfig> layers, JSONObject generatedMainConfig) throws UnsupportedEncodingException {
-		if (layers == null || layers.isEmpty()) {
+	private Map<String, List<Map<String, String>>> generateLayerList(ClientConfig clientConfig, LayerCatalog layerCatalog, JSONObject generatedMainConfig) throws UnsupportedEncodingException {
+		if (layerCatalog == null || layerCatalog.isEmpty()) {
 			return null;
 		}
 		Map<String, List<Map<String, String>>> layersMap = new LinkedHashMap<String, List<Map<String, String>>>();
-
-		// Order the layers in alphabetic order
-		// Order it according to it's layer ID; it's easier that way...
-		List<String> orderedLayerIds = new ArrayList<String>(layers.keySet());
-		Collections.sort(orderedLayerIds);
 
 		JSONObject dataSources = generatedMainConfig.optJSONObject("dataSources");
 		String projection = "EPSG:4326";
@@ -1264,146 +1246,148 @@ public class ConfigManager {
 			defaultHeight = Integer.valueOf(clientConfig.getListLayerImageHeight());
 		}
 
-		for (String layerId : orderedLayerIds) {
-			AbstractLayerConfig layerConfig = layers.get(layerId);
-
+		for (AbstractLayerConfig layerConfig : layerCatalog.getLayers()) {
 			// Ignore layer groups
 			if (layerConfig.getLayerName() != null) {
 				// Data source object containing overridden values
 				JSONObject dataSource = null;
 				// Raw data source object containing values before override
 
-				AbstractDataSourceConfig rawDataSourceConfig = null;
+				AbstractDataSourceConfig rawDataSourceConfig = this.dataSourceConfigs.get2(layerConfig.getDataSourceId());
 				if (dataSources != null) {
 					dataSource = dataSources.optJSONObject(layerConfig.getDataSourceId());
-					rawDataSourceConfig = this.dataSourceConfigs.get2(layerConfig.getDataSourceId());
 				}
 
-				String dataSourceName = rawDataSourceConfig.getDataSourceName();
+				if (rawDataSourceConfig == null) {
+					LOGGER.log(Level.WARNING, "The client [{0}] define a layer [{1}] using an invalid data source [{2}].",
+							new String[]{clientConfig.getClientName(), layerConfig.getLayerName(), layerConfig.getDataSourceId()});
+				} else {
+					String dataSourceName = rawDataSourceConfig.getDataSourceName();
 
-				// Find (or create) the layer list for this data source
-				List<Map<String, String>> dataSourceLayerList = layersMap.get(dataSourceName);
-				if (dataSourceLayerList == null) {
-					dataSourceLayerList = new ArrayList<Map<String, String>>();
-					layersMap.put(dataSourceName, dataSourceLayerList);
-				}
-
-				Map<String, String> layerMap = new HashMap<String, String>();
-
-
-				String serviceUrl = layerConfig.getServiceUrl();
-				if (serviceUrl == null || serviceUrl.isEmpty()) {
-					if (dataSource != null) {
-						serviceUrl = dataSource.optString("wmsServiceUrl", null);
+					// Find (or create) the layer list for this data source
+					List<Map<String, String>> dataSourceLayerList = layersMap.get(dataSourceName);
+					if (dataSourceLayerList == null) {
+						dataSourceLayerList = new ArrayList<Map<String, String>>();
+						layersMap.put(dataSourceName, dataSourceLayerList);
 					}
-				}
 
-				// http://e-atlas.localhost/maps/ea/wms
-				// LAYERS=ea%3AQLD_DEEDI_Coastal-wetlands
-				// FORMAT=image%2Fpng
-				// SERVICE=WMS
-				// VERSION=1.1.1
-				// REQUEST=GetMap
-				// EXCEPTIONS=application%2Fvnd.ogc.se_inimage
-				// SRS=EPSG%3A4326
-				// BBOX=130.20938085938,-37.1985,161.23261914062,-1.0165
-				// WIDTH=439
-				// HEIGHT=512
-				if (serviceUrl != null && !serviceUrl.isEmpty()) {
-					if (rawDataSourceConfig instanceof WMSDataSourceConfig) {
-						double[] bbox = layerConfig.getLayerBoundingBox();
-						if (bbox != null && bbox.length == 4) {
-							StringBuilder imageUrl = new StringBuilder(serviceUrl);
-							if (!serviceUrl.endsWith("&") && !serviceUrl.endsWith("?")) {
-								imageUrl.append(serviceUrl.contains("?") ? "&" : "?");
-							}
-							imageUrl.append("LAYERS="); imageUrl.append(URLEncoder.encode(layerConfig.getLayerName(), "UTF-8"));
-							imageUrl.append("&STYLES="); // Some servers need this parameter, even set to nothing
-							imageUrl.append("&FORMAT="); imageUrl.append(URLEncoder.encode("image/png", "UTF-8"));
-							imageUrl.append("&TRANSPARENT=true");
-							imageUrl.append("&SERVICE=WMS");
-							imageUrl.append("&VERSION=1.1.1");
-							imageUrl.append("&REQUEST=GetMap");
-							imageUrl.append("&EXCEPTIONS="); imageUrl.append(URLEncoder.encode("application/vnd.ogc.se_inimage", "UTF-8"));
-							imageUrl.append("&SRS="); imageUrl.append(URLEncoder.encode(projection, "UTF-8")); // TODO Use client projection
+					Map<String, String> layerMap = new HashMap<String, String>();
 
-							imageUrl.append("&BBOX=");
-							imageUrl.append(bbox[0]); imageUrl.append(",");
-							imageUrl.append(bbox[1]); imageUrl.append(",");
-							imageUrl.append(bbox[2]); imageUrl.append(",");
-							imageUrl.append(bbox[3]);
 
-							// Lon x Lat ratio (width / height  or  lon / lat)
-							double ratio = (bbox[2] - bbox[0]) / (bbox[3] - bbox[1]);
+					String serviceUrl = layerConfig.getServiceUrl();
+					if (serviceUrl == null || serviceUrl.isEmpty()) {
+						if (dataSource != null) {
+							serviceUrl = dataSource.optString("wmsServiceUrl", null);
+						}
+					}
 
-							int width = defaultWidth;
-							int height = defaultHeight;
-
-							if (ratio > (((double)width)/height)) {
-								// Reduce height
-								height = (int)Math.round(width / ratio);
-							} else {
-								// Reduce width
-								width = (int)Math.round(height * ratio);
-							}
-
-							imageUrl.append("&WIDTH=" + width);
-							imageUrl.append("&HEIGHT=" + height);
-
-							layerMap.put("imageUrl", imageUrl.toString());
-							layerMap.put("imageWidth", ""+width);
-							layerMap.put("imageHeight", ""+height);
-
-							String baseLayerServiceUrl = clientConfig.getListBaseLayerServiceUrl();
-							String baseLayerId = clientConfig.getListBaseLayerId();
-							if (Utils.isNotBlank(baseLayerServiceUrl) && Utils.isNotBlank(baseLayerId)) {
-								// Base layer - Hardcoded
-								// http://maps.e-atlas.org.au/maps/gwc/service/wms
-								// LAYERS=ea%3AWorld_NED_NE2
-								// TRANSPARENT=FALSE
-								// SERVICE=WMS
-								// VERSION=1.1.1
-								// REQUEST=GetMap
-								// FORMAT=image%2Fjpeg
-								// SRS=EPSG%3A4326
-								// BBOX=149.0625,-22.5,151.875,-19.6875
-								// WIDTH=256
-								// HEIGHT=256
-								StringBuilder baseLayerUrl = new StringBuilder(baseLayerServiceUrl);
-								if (!baseLayerServiceUrl.endsWith("&") && !baseLayerServiceUrl.endsWith("?")) {
-									baseLayerUrl.append(baseLayerServiceUrl.contains("?") ? "&" : "?");
+					// http://e-atlas.localhost/maps/ea/wms
+					// LAYERS=ea%3AQLD_DEEDI_Coastal-wetlands
+					// FORMAT=image%2Fpng
+					// SERVICE=WMS
+					// VERSION=1.1.1
+					// REQUEST=GetMap
+					// EXCEPTIONS=application%2Fvnd.ogc.se_inimage
+					// SRS=EPSG%3A4326
+					// BBOX=130.20938085938,-37.1985,161.23261914062,-1.0165
+					// WIDTH=439
+					// HEIGHT=512
+					if (serviceUrl != null && !serviceUrl.isEmpty()) {
+						if (rawDataSourceConfig instanceof WMSDataSourceConfig) {
+							double[] bbox = layerConfig.getLayerBoundingBox();
+							if (bbox != null && bbox.length == 4) {
+								StringBuilder imageUrl = new StringBuilder(serviceUrl);
+								if (!serviceUrl.endsWith("&") && !serviceUrl.endsWith("?")) {
+									imageUrl.append(serviceUrl.contains("?") ? "&" : "?");
 								}
-								baseLayerUrl.append("LAYERS="); baseLayerUrl.append(URLEncoder.encode(baseLayerId, "UTF-8"));
-								baseLayerUrl.append("&STYLES="); // Some servers need this parameter, even set to nothing
-								baseLayerUrl.append("&FORMAT="); baseLayerUrl.append(URLEncoder.encode("image/jpeg", "UTF-8"));
-								baseLayerUrl.append("&TRANSPARENT=false");
-								baseLayerUrl.append("&SERVICE=WMS");
-								baseLayerUrl.append("&VERSION=1.1.1");
-								baseLayerUrl.append("&REQUEST=GetMap");
-								baseLayerUrl.append("&EXCEPTIONS="); baseLayerUrl.append(URLEncoder.encode("application/vnd.ogc.se_inimage", "UTF-8"));
-								baseLayerUrl.append("&SRS="); baseLayerUrl.append(URLEncoder.encode(projection, "UTF-8")); // TODO Use client projection
+								imageUrl.append("LAYERS="); imageUrl.append(URLEncoder.encode(layerConfig.getLayerName(), "UTF-8"));
+								imageUrl.append("&STYLES="); // Some servers need this parameter, even set to nothing
+								imageUrl.append("&FORMAT="); imageUrl.append(URLEncoder.encode("image/png", "UTF-8"));
+								imageUrl.append("&TRANSPARENT=true");
+								imageUrl.append("&SERVICE=WMS");
+								imageUrl.append("&VERSION=1.1.1");
+								imageUrl.append("&REQUEST=GetMap");
+								imageUrl.append("&EXCEPTIONS="); imageUrl.append(URLEncoder.encode("application/vnd.ogc.se_inimage", "UTF-8"));
+								imageUrl.append("&SRS="); imageUrl.append(URLEncoder.encode(projection, "UTF-8")); // TODO Use client projection
 
-								baseLayerUrl.append("&BBOX=");
-								baseLayerUrl.append(bbox[0]); baseLayerUrl.append(",");
-								baseLayerUrl.append(bbox[1]); baseLayerUrl.append(",");
-								baseLayerUrl.append(bbox[2]); baseLayerUrl.append(",");
-								baseLayerUrl.append(bbox[3]);
+								imageUrl.append("&BBOX=");
+								imageUrl.append(bbox[0]); imageUrl.append(",");
+								imageUrl.append(bbox[1]); imageUrl.append(",");
+								imageUrl.append(bbox[2]); imageUrl.append(",");
+								imageUrl.append(bbox[3]);
 
-								baseLayerUrl.append("&WIDTH=" + width);
-								baseLayerUrl.append("&HEIGHT=" + height);
+								// Lon x Lat ratio (width / height  or  lon / lat)
+								double ratio = (bbox[2] - bbox[0]) / (bbox[3] - bbox[1]);
 
-								layerMap.put("baseLayerUrl", baseLayerUrl.toString());
+								int width = defaultWidth;
+								int height = defaultHeight;
+
+								if (ratio > (((double)width)/height)) {
+									// Reduce height
+									height = (int)Math.round(width / ratio);
+								} else {
+									// Reduce width
+									width = (int)Math.round(height * ratio);
+								}
+
+								imageUrl.append("&WIDTH=" + width);
+								imageUrl.append("&HEIGHT=" + height);
+
+								layerMap.put("imageUrl", imageUrl.toString());
+								layerMap.put("imageWidth", ""+width);
+								layerMap.put("imageHeight", ""+height);
+
+								String baseLayerServiceUrl = clientConfig.getListBaseLayerServiceUrl();
+								String baseLayerId = clientConfig.getListBaseLayerId();
+								if (Utils.isNotBlank(baseLayerServiceUrl) && Utils.isNotBlank(baseLayerId)) {
+									// Base layer - Hardcoded
+									// http://maps.e-atlas.org.au/maps/gwc/service/wms
+									// LAYERS=ea%3AWorld_NED_NE2
+									// TRANSPARENT=FALSE
+									// SERVICE=WMS
+									// VERSION=1.1.1
+									// REQUEST=GetMap
+									// FORMAT=image%2Fjpeg
+									// SRS=EPSG%3A4326
+									// BBOX=149.0625,-22.5,151.875,-19.6875
+									// WIDTH=256
+									// HEIGHT=256
+									StringBuilder baseLayerUrl = new StringBuilder(baseLayerServiceUrl);
+									if (!baseLayerServiceUrl.endsWith("&") && !baseLayerServiceUrl.endsWith("?")) {
+										baseLayerUrl.append(baseLayerServiceUrl.contains("?") ? "&" : "?");
+									}
+									baseLayerUrl.append("LAYERS="); baseLayerUrl.append(URLEncoder.encode(baseLayerId, "UTF-8"));
+									baseLayerUrl.append("&STYLES="); // Some servers need this parameter, even set to nothing
+									baseLayerUrl.append("&FORMAT="); baseLayerUrl.append(URLEncoder.encode("image/jpeg", "UTF-8"));
+									baseLayerUrl.append("&TRANSPARENT=false");
+									baseLayerUrl.append("&SERVICE=WMS");
+									baseLayerUrl.append("&VERSION=1.1.1");
+									baseLayerUrl.append("&REQUEST=GetMap");
+									baseLayerUrl.append("&EXCEPTIONS="); baseLayerUrl.append(URLEncoder.encode("application/vnd.ogc.se_inimage", "UTF-8"));
+									baseLayerUrl.append("&SRS="); baseLayerUrl.append(URLEncoder.encode(projection, "UTF-8")); // TODO Use client projection
+
+									baseLayerUrl.append("&BBOX=");
+									baseLayerUrl.append(bbox[0]); baseLayerUrl.append(",");
+									baseLayerUrl.append(bbox[1]); baseLayerUrl.append(",");
+									baseLayerUrl.append(bbox[2]); baseLayerUrl.append(",");
+									baseLayerUrl.append(bbox[3]);
+
+									baseLayerUrl.append("&WIDTH=" + width);
+									baseLayerUrl.append("&HEIGHT=" + height);
+
+									layerMap.put("baseLayerUrl", baseLayerUrl.toString());
+								}
 							}
 						}
 					}
+
+					layerMap.put("id", layerConfig.getLayerId());
+					layerMap.put("title", layerConfig.getTitle());
+					layerMap.put("description", layerConfig.getDescription());
+					layerMap.put("mapUrl", "index.html?intro=f&dl=t&loc=" + URLEncoder.encode(layerConfig.getLayerId(), "UTF-8") + "&l0=" + URLEncoder.encode(layerConfig.getLayerId(), "UTF-8"));
+
+					dataSourceLayerList.add(layerMap);
 				}
-
-				layerMap.put("id", layerId);
-				layerMap.put("title", layerConfig.getTitle());
-				layerMap.put("description", layerConfig.getDescription());
-				layerMap.put("mapUrl", "index.html?intro=f&dl=t&loc=" + URLEncoder.encode(layerId, "UTF-8") + "&l0=" + URLEncoder.encode(layerId, "UTF-8"));
-
-				dataSourceLayerList.add(layerMap);
 			}
 		}
 
@@ -1440,21 +1424,21 @@ public class ConfigManager {
 			return null;
 		}
 
-		Map<String, AbstractLayerConfig> layers = clientConfig.generateLayerConfigs();
+		LayerCatalog layerCatalog = clientConfig.getLayerCatalog();
 
 		JSONObject debug = new JSONObject();
 
 		JSONObject mainClientJSON = new JSONObject();
-		mainClientJSON.put("current", Utils.jsonToStr(this.getClientConfigFileJSon(layers, clientConfig, ConfigType.MAIN, false, false)));
-		mainClientJSON.put("generated", Utils.jsonToStr(this.getClientConfigFileJSon(layers, clientConfig, ConfigType.MAIN, true, true)));
+		mainClientJSON.put("current", Utils.jsonToStr(this.getClientConfigFileJSon(layerCatalog, clientConfig, ConfigType.MAIN, false, false)));
+		mainClientJSON.put("generated", Utils.jsonToStr(this.getClientConfigFileJSon(layerCatalog, clientConfig, ConfigType.MAIN, true, true)));
 
 		JSONObject embeddedClientJSON = new JSONObject();
-		embeddedClientJSON.put("current", Utils.jsonToStr(this.getClientConfigFileJSon(layers, clientConfig, ConfigType.EMBEDDED, false, false)));
-		embeddedClientJSON.put("generated", Utils.jsonToStr(this.getClientConfigFileJSon(layers, clientConfig, ConfigType.EMBEDDED, true, true)));
+		embeddedClientJSON.put("current", Utils.jsonToStr(this.getClientConfigFileJSon(layerCatalog, clientConfig, ConfigType.EMBEDDED, false, false)));
+		embeddedClientJSON.put("generated", Utils.jsonToStr(this.getClientConfigFileJSon(layerCatalog, clientConfig, ConfigType.EMBEDDED, true, true)));
 
 		JSONObject layersJSON = new JSONObject();
-		layersJSON.put("current", Utils.jsonToStr(this.getClientConfigFileJSon(layers, clientConfig, ConfigType.LAYERS, false, false)));
-		layersJSON.put("generated", Utils.jsonToStr(this.getClientConfigFileJSon(layers, clientConfig, ConfigType.LAYERS, true, true)));
+		layersJSON.put("current", Utils.jsonToStr(this.getClientConfigFileJSon(layerCatalog, clientConfig, ConfigType.LAYERS, false, false)));
+		layersJSON.put("generated", Utils.jsonToStr(this.getClientConfigFileJSon(layerCatalog, clientConfig, ConfigType.LAYERS, true, true)));
 
 		debug.put("mainClient", mainClientJSON);
 		debug.put("embeddedClient", embeddedClientJSON);
@@ -1466,16 +1450,16 @@ public class ConfigManager {
 	public JSONObject getClientConfigFileJSon(ClientConfig clientConfig, ConfigType configType, boolean live, boolean generate)
 			throws GetCapabilitiesExceptions, Exception {
 
-		Map<String, AbstractLayerConfig> layers = null;
+		LayerCatalog layerCatalog = null;
 		if (generate) {
-			layers = clientConfig.generateLayerConfigs();
+			layerCatalog = clientConfig.getLayerCatalog();
 		}
-		return this.getClientConfigFileJSon(layers, clientConfig, configType, live, generate);
+		return this.getClientConfigFileJSon(layerCatalog, clientConfig, configType, live, generate);
 	}
 
 	/**
 	 *
-	 * @param layers Map of layers, to avoid overhead with generation.
+	 * @param layerCatalog The client LayerCatalog, to avoid overhead with generation.
 	 * @param clientConfig Client to generate
 	 * @param configType Type of generation requested
 	 * @param live True to use the list of allowed for the current config, false to use the list for the list of layer from the saved config file.
@@ -1484,7 +1468,7 @@ public class ConfigManager {
 	 * @throws GetCapabilitiesExceptions
 	 * @throws Exception
 	 */
-	public JSONObject getClientConfigFileJSon(Map<String, AbstractLayerConfig> layers, ClientConfig clientConfig, ConfigType configType, boolean live, boolean generate)
+	public JSONObject getClientConfigFileJSon(LayerCatalog layerCatalog, ClientConfig clientConfig, ConfigType configType, boolean live, boolean generate)
 			throws GetCapabilitiesExceptions, Exception {
 
 		if (clientConfig == null || configType == null) { return null; }
@@ -1496,12 +1480,12 @@ public class ConfigManager {
 		switch (configType) {
 			case MAIN:
 				if (generate) {
-					mainConfig = this._generateAbstractClientConfig(layers, clientConfig);
+					mainConfig = this._generateAbstractClientConfig(layerCatalog, clientConfig);
 					if (mainConfig != null) {
 						JSONObject modules = this.generateModules(
 								clientConfig.getMainClientModules(),
 								clientConfig,
-								layers
+								layerCatalog
 						);
 						if (modules != null && modules.length() > 0) {
 							mainConfig.put("modules", modules);
@@ -1516,12 +1500,12 @@ public class ConfigManager {
 
 			case EMBEDDED:
 				if (generate) {
-					embeddedConfig = this._generateAbstractClientConfig(layers, clientConfig);
+					embeddedConfig = this._generateAbstractClientConfig(layerCatalog, clientConfig);
 
 					JSONObject modules = this.generateModules(
 							clientConfig.getEmbeddedClientModules(),
 							clientConfig,
-							layers
+							layerCatalog
 					);
 					if (modules != null && modules.length() > 0) {
 						embeddedConfig.put("modules", modules);
@@ -1536,9 +1520,9 @@ public class ConfigManager {
 			case LAYERS:
 				if (generate) {
 					layersConfig = new JSONObject();
-					if (layers != null) {
-						for (AbstractLayerConfig layerConfig : layers.values()) {
-							JSONObject layerJSON = this.generateLayer(layerConfig);
+					if (layerCatalog != null) {
+						for (AbstractLayerConfig layerConfig : layerCatalog.getLayers()) {
+							JSONObject layerJSON = layerConfig.generateLayer();
 
 							String layerId = layerConfig.getLayerId();
 							if (layerId != null) {
@@ -1557,8 +1541,8 @@ public class ConfigManager {
 			case FULL:
 				// FULL is only used by the Preview
 
-				mainConfig = this.getClientConfigFileJSon(layers, clientConfig, ConfigType.MAIN, live, generate);
-				layersConfig = this.getClientConfigFileJSon(layers, clientConfig, ConfigType.LAYERS, live, generate);
+				mainConfig = this.getClientConfigFileJSon(layerCatalog, clientConfig, ConfigType.MAIN, live, generate);
+				layersConfig = this.getClientConfigFileJSon(layerCatalog, clientConfig, ConfigType.LAYERS, live, generate);
 
 				if (live) {
 					// Every time a preview is loaded, we reload the proxy cache for that preview.
@@ -1579,7 +1563,7 @@ public class ConfigManager {
 	}
 
 	// Use as a base for Main and Embedded config
-	private JSONObject _generateAbstractClientConfig(Map<String, AbstractLayerConfig> layers, ClientConfig clientConfig)
+	private JSONObject _generateAbstractClientConfig(LayerCatalog layerCatalog, ClientConfig clientConfig)
 			throws GetCapabilitiesExceptions, Exception {
 		if (clientConfig == null) { return null; }
 
@@ -1591,7 +1575,7 @@ public class ConfigManager {
 		}
 
 		// TODO Remove when the default saved state will be implemented
-		json.put("defaultLayers", this.getClientDefaultLayers(layers, clientConfig.getClientId()));
+		json.put("defaultLayers", this.getClientDefaultLayers(layerCatalog, clientConfig.getClientId()));
 
 		if (Utils.isNotBlank(clientConfig.getProjection())) {
 			json.put("projection", clientConfig.getProjection().trim());
@@ -1667,7 +1651,7 @@ public class ConfigManager {
 
 							if (overriddenDataSourceConfig != null) {
 								JSONObject dataSource =
-										this.generateDataSource(overriddenDataSourceConfig, clientConfig);
+										overriddenDataSourceConfig.generateDataSource(clientConfig);
 								if (dataSource != null) {
 									dataSources.put(overriddenDataSourceConfig.getDataSourceId(), dataSource);
 								}
@@ -1724,11 +1708,11 @@ public class ConfigManager {
 		}
 	}
 
-	private JSONArray getClientDefaultLayers(Map<String, AbstractLayerConfig> layers, String clientId) throws GetCapabilitiesExceptions, Exception {
+	private JSONArray getClientDefaultLayers(LayerCatalog layerCatalog, String clientId) throws GetCapabilitiesExceptions, Exception {
 		if (Utils.isBlank(clientId)) { return null; }
 
 		return (JSONArray)this._getClientLayers(
-				layers,
+				layerCatalog,
 				this.getClientConfig(clientId),
 				this._getClientDefaultLayerIds(clientId),
 				true,
@@ -1744,172 +1728,14 @@ public class ConfigManager {
 		return clientConfig.getDefaultLayersList();
 	}
 
-	private JSONObject generateDataSource(AbstractDataSourceConfig dataSourceConfig, ClientConfig clientConfig) throws JSONException {
-		JSONObject dataSource = this.generateDataSourceInterface(dataSourceConfig, clientConfig);
-
-		if (dataSourceConfig instanceof WMSDataSourceConfig) {
-			WMSDataSourceConfig wmsDataSourceConfig = (WMSDataSourceConfig)dataSourceConfig;
-
-			if (Utils.isNotBlank(wmsDataSourceConfig.getGetMapUrl())) {
-				// TODO remove wms from the property name
-				dataSource.put("wmsServiceUrl", wmsDataSourceConfig.getGetMapUrl().trim());
-			}
-
-			if (Utils.isNotBlank(wmsDataSourceConfig.getExtraWmsServiceUrls())) {
-				dataSource.put("extraWmsServiceUrls", wmsDataSourceConfig.getExtraWmsServiceUrls().trim());
-			}
-
-			if (Utils.isNotBlank(wmsDataSourceConfig.getWebCacheUrl())) {
-				dataSource.put("webCacheUrl", wmsDataSourceConfig.getWebCacheUrl().trim());
-			}
-
-			String[] webCacheParametersArray = wmsDataSourceConfig.getWebCacheParametersArray();
-			if (webCacheParametersArray != null && webCacheParametersArray.length > 0) {
-				JSONArray webCacheParameters = new JSONArray(webCacheParametersArray);
-				dataSource.put("webCacheSupportedParameters", webCacheParameters);
-			}
-
-			if (Utils.isNotBlank(wmsDataSourceConfig.getWmsVersion())) {
-				dataSource.put("wmsVersion", wmsDataSourceConfig.getWmsVersion().trim());
-			}
-		}
-
-		if (dataSourceConfig instanceof ArcGISMapServerDataSourceConfigInterface) {
-			ArcGISMapServerDataSourceConfigInterface arcGISDataSource = (ArcGISMapServerDataSourceConfigInterface)dataSourceConfig;
-
-			if (arcGISDataSource.isForcePNG24() != null) {
-				dataSource.put("forcePNG24", arcGISDataSource.isForcePNG24());
-			}
-		}
-
-		if (dataSourceConfig instanceof XYZDataSourceConfig) {
-			XYZDataSourceConfig xyzDataSource = (XYZDataSourceConfig)dataSourceConfig;
-
-			if (xyzDataSource.getServiceUrlsSet() != null) {
-				dataSource.put("serviceUrls", xyzDataSource.getServiceUrlsSet());
-			}
-
-			if (xyzDataSource.isOsm() != null) {
-				dataSource.put("osm", xyzDataSource.isOsm());
-			}
-
-			if (Utils.isNotBlank(xyzDataSource.getCrossOriginKeyword())) {
-				dataSource.put("crossOriginKeyword", xyzDataSource.getCrossOriginKeyword().trim());
-			}
-
-		}
-
-		if (dataSourceConfig instanceof BingDataSourceConfig) {
-			BingDataSourceConfig bingDataSource = (BingDataSourceConfig)dataSourceConfig;
-
-			if (bingDataSource.getBingAPIKey() != null) {
-				dataSource.put("bingAPIKey", bingDataSource.getBingAPIKey());
-			}
-		}
-
-		return dataSource;
-	}
-
-	private JSONObject generateDataSourceInterface(AbstractDataSourceConfigInterface dataSourceInterface, ClientConfig clientConfig) throws JSONException {
-
-		JSONObject dataSource = new JSONObject();
-
-		if (Utils.isNotBlank(dataSourceInterface.getFeatureRequestsUrl())) {
-			dataSource.put("featureRequestsUrl", dataSourceInterface.getFeatureRequestsUrl().trim());
-		}
-
-		if (Utils.isNotBlank(dataSourceInterface.getServiceUrl())) {
-			// TODO remove wms from the property name
-			dataSource.put("wmsServiceUrl", dataSourceInterface.getServiceUrl().trim());
-		}
-
-		if (Utils.isNotBlank(dataSourceInterface.getLegendUrl())) {
-			dataSource.put("legendUrl", dataSourceInterface.getLegendUrl().trim());
-		}
-
-		if (Utils.isNotBlank(dataSourceInterface.getDataSourceName())) {
-			dataSource.put("dataSourceName", dataSourceInterface.getDataSourceName().trim());
-		}
-
-		if (Utils.isNotBlank(dataSourceInterface.getDataSourceType())) {
-			dataSource.put("dataSourceType", dataSourceInterface.getDataSourceType().trim());
-		}
-
-		JSONObject legendParameters = this.getDataSourceLegendParametersJson(dataSourceInterface.getLegendParameters());
-		// merge with client legend parameters, if any
-		if (clientConfig != null) {
-			JSONObject clientLegendParameters = clientConfig.getLegendParametersJson();
-			if (clientLegendParameters != null) {
-				JSONObject mergeParameters = new JSONObject();
-				if (legendParameters != null) {
-					Iterator<String> keys = legendParameters.keys();
-					while(keys.hasNext()) {
-						String key = keys.next();
-						if (!legendParameters.isNull(key)) {
-							Object value = legendParameters.opt(key);
-							if (value != null) {
-								mergeParameters.put(key, value);
-							}
-						}
-					}
-				}
-				Iterator<String> keys = clientLegendParameters.keys();
-				while(keys.hasNext()) {
-					String key = keys.next();
-					if (clientLegendParameters.isNull(key)) {
-						if (mergeParameters.has(key)) {
-							mergeParameters.remove(key);
-						}
-					} else {
-						Object value = clientLegendParameters.opt(key);
-						if (value != null) {
-							mergeParameters.put(key, value);
-						}
-					}
-				}
-				legendParameters = mergeParameters;
-			}
-		}
-		if (legendParameters != null && legendParameters.length() > 0) {
-			dataSource.put("legendParameters", legendParameters);
-		}
-
-		return dataSource;
-	}
-
-	private JSONObject getDataSourceLegendParametersJson(String legendParameters) throws JSONException {
-		if (legendParameters == null) {
-			return null;
-		}
-
-		String trimmedLegendParameters = legendParameters.trim();
-		if (trimmedLegendParameters.isEmpty()) {
-			return null;
-		}
-
-		JSONObject legendParametersJson = new JSONObject();
-		for (String legendParameter : AbstractConfig.toSet(trimmedLegendParameters)) {
-			if (Utils.isNotBlank(legendParameter)) {
-				String[] attribute = legendParameter.split(AbstractConfig.SPLIT_ATTRIBUTES_PATTERN);
-				if (attribute != null && attribute.length >= 2) {
-					legendParametersJson.put(
-							attribute[0].trim(),  // Key
-							attribute[1].trim()); // Value
-				}
-			}
-		}
-
-		return legendParametersJson;
-	}
-
-	private JSONObject generateModules(JSONArray modulesArray, ClientConfig clientConfig, Map<String, AbstractLayerConfig> layers) throws JSONException {
+	private JSONObject generateModules(JSONArray modulesArray, ClientConfig clientConfig, LayerCatalog layerCatalog) throws JSONException {
 		if (modulesArray != null && modulesArray.length() > 0) {
 			JSONObject modules = new JSONObject();
 			for (int i=0; i<modulesArray.length(); i++) {
 				// https://github.com/douglascrockford/JSON-java/issues/24
 				String moduleName = modulesArray.optString(i, null);
 				if (moduleName != null) {
-					JSONObject module = this.generateModule(moduleName, clientConfig, layers);
+					JSONObject module = this.generateModule(moduleName, clientConfig, layerCatalog);
 					if (module != null) {
 						modules.put(moduleName, module);
 					}
@@ -1921,320 +1747,15 @@ public class ConfigManager {
 		return null;
 	}
 
-	private JSONObject generateModule(String moduleConfig, ClientConfig clientConfig, Map<String, AbstractLayerConfig> layers) throws JSONException {
+	private JSONObject generateModule(String moduleConfig, ClientConfig clientConfig, LayerCatalog layerCatalog) throws JSONException {
 		JSONObject moduleJSONConfig =
-				ModuleHelper.generateModuleConfiguration(moduleConfig, clientConfig, layers);
+				ModuleHelper.generateModuleConfiguration(moduleConfig, clientConfig, layerCatalog);
 
 		if (moduleJSONConfig == null) {
 			LOGGER.log(Level.SEVERE, "Can not generate the configuration for {0}", moduleConfig);
 		}
 
 		return moduleJSONConfig;
-	}
-
-	// TODO Move this logic to the layerConfig classes
-	private JSONObject generateLayer(AbstractLayerConfig layerConfig) throws JSONException {
-		// AbstractLayerConfig implements AbstractDataSourceConfigInterface
-		JSONObject jsonLayer = this.generateDataSourceInterface(layerConfig, null);
-
-		if (layerConfig.isCached() != null) {
-			jsonLayer.put("cached", layerConfig.isCached());
-		}
-
-		if (layerConfig.getOlParams() != null) {
-			jsonLayer.put("olParams", layerConfig.getOlParams());
-		}
-		if (layerConfig.getOlOptions() != null) {
-			jsonLayer.put("olOptions", layerConfig.getOlOptions());
-		}
-
-		jsonLayer.put(CONFIG_VERSION_KEY, CURRENT_LAYER_CONFIG_VERSION);
-
-		String layerName = layerConfig.getLayerName();
-		if (Utils.isNotBlank(layerName) && !layerName.equals(layerConfig.getLayerId())) {
-			jsonLayer.put("layerName", layerName.trim());
-		}
-
-		if (Utils.isNotBlank(layerConfig.getTitle())) {
-			jsonLayer.put("title", layerConfig.getTitle().trim());
-		}
-
-		if (Utils.isNotBlank(layerConfig.getDescription())) {
-			jsonLayer.put("description", layerConfig.getDescription().trim());
-		}
-		if (Utils.isNotBlank(layerConfig.getHtmlDescription())) {
-			jsonLayer.put("htmlDescription", layerConfig.getHtmlDescription().trim());
-		}
-
-		if (Utils.isNotBlank(layerConfig.getProjection())) {
-			jsonLayer.put("projection", layerConfig.getProjection().trim());
-		}
-
-		// serverId
-		if (Utils.isNotBlank(layerConfig.getDataSourceId())) {
-			jsonLayer.put("dataSourceId", layerConfig.getDataSourceId().trim());
-		}
-
-		double[] boundingBox = layerConfig.getLayerBoundingBox();
-		if (boundingBox != null && boundingBox.length > 0) {
-			jsonLayer.put("layerBoundingBox", boundingBox);
-		}
-
-		if (layerConfig.isIsBaseLayer() != null) {
-			jsonLayer.put("isBaseLayer", layerConfig.isIsBaseLayer());
-		}
-
-		if (layerConfig.isHasLegend() != null) {
-			jsonLayer.put("hasLegend", layerConfig.isHasLegend());
-		}
-
-		// No need for a legend URL + Filename since there is no more Layer Groups
-		if (Utils.isNotBlank(layerConfig.getLegendUrl())) {
-			jsonLayer.put("legendUrl", layerConfig.getLegendUrl().trim());
-		}
-
-		if(Utils.isNotBlank(layerConfig.getLegendGroup())) {
-			jsonLayer.put("legendGroup", layerConfig.getLegendGroup().trim());
-		}
-
-		if(Utils.isNotBlank(layerConfig.getLegendTitle())) {
-			jsonLayer.put("legendTitle", layerConfig.getLegendTitle().trim());
-		}
-
-		String[] infoHtmlUrls = layerConfig.getInfoHtmlUrls();
-		if(infoHtmlUrls != null && infoHtmlUrls.length > 0) {
-			jsonLayer.put("infoHtmlUrls", infoHtmlUrls);
-		}
-
-		String[] aliasIds = layerConfig.getAliasIds();
-		if (aliasIds != null && aliasIds.length > 0) {
-			jsonLayer.put("aliasIds", aliasIds);
-		}
-
-		List<LayerStyleConfig> styles = layerConfig.getStyles();
-		// Browsers do not have to keep the order in JavaScript objects, but they often do.
-		if (styles != null && !styles.isEmpty()) {
-			JSONObject jsonStyles = new JSONObject();
-			if (!styles.isEmpty()) {
-				boolean firstStyle = true;
-				for (LayerStyleConfig style : styles) {
-					String styleName = style.getName();
-					if (firstStyle) {
-						firstStyle = false;
-						styleName = "";
-					}
-					if (styleName != null) {
-						JSONObject jsonStyle = this.generateLayerStyle(style);
-						if (jsonStyle != null && jsonStyle.length() > 0) {
-							jsonStyles.put(styleName.trim(), jsonStyle);
-						}
-					}
-				}
-			}
-			if (jsonStyles.length() > 0) {
-				jsonLayer.put("styles", jsonStyles);
-			}
-		}
-
-		List<LayerOptionConfig> options = layerConfig.getOptions();
-		if (options != null && !options.isEmpty()) {
-			JSONArray optionsArray = new JSONArray();
-
-			for (LayerOptionConfig option : options) {
-				JSONObject jsonOption = this.generateLayerOption(option);
-				if (jsonOption != null && jsonOption.length() > 0) {
-					optionsArray.put(jsonOption);
-				}
-			}
-
-			if (optionsArray.length() > 0) {
-				jsonLayer.put("layerOptions", optionsArray);
-			}
-		}
-
-		// Initial state is related to the Client saved state
-		// TODO delete after implementing Save State
-		if(layerConfig.isSelected() != null) {
-			jsonLayer.put("selected", layerConfig.isSelected());
-		}
-		/*
-		XmlLayer.XmlLayerInitialState initialState = xmlLayer.getInitialState();
-		if (initialState != null) {
-			Map<String, Object> initialStateAtt = new HashMap<String, Object>();
-			if (initialState.getLoaded() != null) {
-				initialStateAtt.put("<loaded>", initialState.getLoaded());
-			}
-
-			if (initialState.getActivated() != null) {
-				initialStateAtt.put("<activated>", initialState.getActivated());
-			}
-			if (initialState.getLegendActivated() != null) {
-				initialStateAtt.put("<legendActivated>", initialState.getLegendActivated());
-			}
-
-			if (initialState.getOpacity() != null) {
-				initialStateAtt.put("<opacity>", initialState.getOpacity());
-			}
-
-			layerAtt.put("<initialState>", initialStateAtt);
-		}
-		*/
-
-
-		// Specific layer fields
-		if (layerConfig instanceof WMSLayerConfig) {
-			WMSLayerConfig wmsLayerConfig = (WMSLayerConfig)layerConfig;
-			if (Utils.isNotBlank(wmsLayerConfig.getWebCacheUrl())) {
-				jsonLayer.put("webCacheUrl", wmsLayerConfig.getWebCacheUrl().trim());
-			}
-
-			String[] webCacheParametersArray = wmsLayerConfig.getWebCacheParametersArray();
-			if (webCacheParametersArray != null && webCacheParametersArray.length > 0) {
-				JSONArray webCacheParameters = new JSONArray(webCacheParametersArray);
-				jsonLayer.put("webCacheSupportedParameters", webCacheParameters);
-			}
-
-			if (Utils.isNotBlank(wmsLayerConfig.getWmsVersion())) {
-				jsonLayer.put("wmsVersion", wmsLayerConfig.getWmsVersion().trim());
-			}
-
-			if(wmsLayerConfig.isWmsQueryable() != null) {
-				jsonLayer.put("wmsQueryable", wmsLayerConfig.isWmsQueryable());
-			}
-
-			if (Utils.isNotBlank(wmsLayerConfig.getExtraWmsServiceUrls())) {
-				jsonLayer.put("extraWmsServiceUrls", wmsLayerConfig.getExtraWmsServiceUrls().trim());
-			}
-
-			if (Utils.isNotBlank(wmsLayerConfig.getWmsRequestMimeType())) {
-				jsonLayer.put("wmsRequestMimeType", wmsLayerConfig.getWmsRequestMimeType().trim());
-			}
-
-			String[] wmsFeatureRequestLayers = wmsLayerConfig.getWmsFeatureRequestLayers();
-			if (wmsFeatureRequestLayers != null && wmsFeatureRequestLayers.length > 0) {
-				jsonLayer.put("wmsFeatureRequestLayers", wmsFeatureRequestLayers);
-			}
-
-			if(wmsLayerConfig.isWmsTransectable() != null) {
-				jsonLayer.put("wmsTransectable", wmsLayerConfig.isWmsTransectable());
-			}
-
-		} else if (layerConfig instanceof ArcGISMapServerLayerConfig) {
-			ArcGISMapServerLayerConfig arcGISLayerConfig = (ArcGISMapServerLayerConfig)layerConfig;
-			if(Utils.isNotBlank(arcGISLayerConfig.getArcGISPath())) {
-				jsonLayer.put("arcGISPath", arcGISLayerConfig.getArcGISPath().trim());
-			}
-
-			if (layerConfig instanceof ArcGISCacheLayerConfig) {
-				ArcGISCacheLayerConfig arcGISCacheLayerConfig = (ArcGISCacheLayerConfig)arcGISLayerConfig;
-				if (arcGISCacheLayerConfig.getTileCols() != null && arcGISCacheLayerConfig.getTileRows() != null) {
-					jsonLayer.put("arcGISCacheTileCols", arcGISCacheLayerConfig.getTileCols());
-					jsonLayer.put("arcGISCacheTileRows", arcGISCacheLayerConfig.getTileRows());
-				}
-				if (arcGISCacheLayerConfig.getTileOriginX() != null && arcGISCacheLayerConfig.getTileOriginY() != null) {
-					jsonLayer.put("arcGISCacheTileOriginX", arcGISCacheLayerConfig.getTileOriginX());
-					jsonLayer.put("arcGISCacheTileOriginY", arcGISCacheLayerConfig.getTileOriginY());
-				}
-				if (arcGISCacheLayerConfig.getTileResolutions() != null) {
-					jsonLayer.put("arcGISCacheTileResolutions", arcGISCacheLayerConfig.getTileResolutions());
-				}
-			}
-
-		} else if (layerConfig instanceof GroupLayerConfig) {
-			GroupLayerConfig groupLayerConfig = (GroupLayerConfig)layerConfig;
-			if(Utils.isNotBlank(groupLayerConfig.getGroupPath())) {
-				// TODO groupPath instead of arcGISPath
-				jsonLayer.put("arcGISPath", groupLayerConfig.getGroupPath().trim());
-			}
-			String[] groupLayers = groupLayerConfig.getLayers();
-			if (groupLayers != null && groupLayers.length > 0) {
-				jsonLayer.put("layers", groupLayers);
-			}
-
-		} else if (layerConfig instanceof XYZLayerConfig) {
-			XYZLayerConfig xyzLayerConfig = (XYZLayerConfig)layerConfig;
-			if (Utils.isNotBlank(xyzLayerConfig.getFormat())) {
-				jsonLayer.put("format", xyzLayerConfig.getFormat().trim());
-			}
-
-		} else if (layerConfig instanceof KMLLayerConfig) {
-			KMLLayerConfig kmlLayerConfig = (KMLLayerConfig)layerConfig;
-			if (Utils.isNotBlank(kmlLayerConfig.getKmlUrl())) {
-				jsonLayer.put("kmlUrl", kmlLayerConfig.getKmlUrl().trim());
-			}
-		}
-
-		return jsonLayer;
-	}
-
-	private JSONObject generateLayerStyle(LayerStyleConfig style) throws JSONException {
-		if (style == null) {
-			return null;
-		}
-
-		JSONObject jsonStyle = new JSONObject();
-		if (style.isDefault() != null) {
-			jsonStyle.put("default", style.isDefault());
-		}
-
-		if (Utils.isNotBlank(style.getTitle())) {
-			jsonStyle.put("title", style.getTitle().trim());
-		}
-
-		if (Utils.isNotBlank(style.getDescription())) {
-			jsonStyle.put("description", style.getDescription().trim());
-		}
-
-		//if (Utils.isNotBlank(style.getLegendUrl())) {
-		//	jsonStyle.put("legendUrl", style.getLegendUrl().trim());
-		//}
-
-		//if (Utils.isNotBlank(style.getLegendFilename())) {
-		//	jsonStyle.put("legendFilename", style.getLegendFilename().trim());
-		//}
-
-		return jsonStyle;
-	}
-
-	/**
-	 * "layerOptions": [
-	 *     {
-	 *         "name": "String, mandatory: name of the url parameter",
-	 *         "title": "String, optional (default: name): title displayed in the layer options",
-	 *         "type": "String, optional (default: text): type of the parameter, to specify which UI to use",
-	 *         "mandatory": "Boolean, optional (default: false): set to true is the field is not allow to contains an empty string"
-	 *         "defaultValue": "String, optional (default: empty string): default value"
-	 *     },
-	 *     ...
-	 * ]
-	 */
-	private JSONObject generateLayerOption(LayerOptionConfig option) throws JSONException {
-		if (option == null) {
-			return null;
-		}
-
-		JSONObject jsonOption = new JSONObject();
-		if (Utils.isNotBlank(option.getName())) {
-			jsonOption.put("name", option.getName().trim());
-		}
-
-		if (Utils.isNotBlank(option.getTitle())) {
-			jsonOption.put("title", option.getTitle().trim());
-		}
-
-		if (Utils.isNotBlank(option.getType())) {
-			jsonOption.put("type", option.getType().trim());
-		}
-
-		if (option.isMandatory() != null) {
-			jsonOption.put("mandatory", option.isMandatory());
-		}
-
-		if (Utils.isNotBlank(option.getDefaultValue())) {
-			jsonOption.put("defaultValue", option.getDefaultValue().trim());
-		}
-
-		return jsonOption;
 	}
 
 	private void saveGeneratedConfigs(
