@@ -1574,6 +1574,10 @@ public class ConfigManager {
 			json.put("clientName", clientConfig.getClientName().trim());
 		}
 
+		if (Utils.isNotBlank(clientConfig.getAttributions())) {
+			json.put("attributions", clientConfig.getAttributions().trim());
+		}
+
 		// TODO Remove when the default saved state will be implemented
 		json.put("defaultLayers", this.getClientDefaultLayers(layerCatalog, clientConfig.getClientId()));
 

@@ -482,6 +482,10 @@ Ext.define('Writer.ClientConfigForm', {
 								qtipHtml: 'HTML snippet displayed on the bottom of the layer panel, to the left of the map. The height is defined by the height of the HTML elements. This can be used to define the client branding and add some extra links.',
 								name: 'layersPanelFooter',
 								xtype: 'textareafield'
+							}, {
+								fieldLabel: 'Attributions',
+								name: 'attributions',
+								qtipHtml: 'String displayed at the bottom of the "Print Frame", before the layer attributions. This should be something like:<br/>©2012 My project'
 							}
 						]
 					}, {
@@ -1512,9 +1516,11 @@ Ext.define('Writer.ClientConfig', {
 	fields: [
 		{name: 'id', type: 'int', useNull: true},
 		{name: 'default', type: 'boolean', defaultValue: false},
+		// asUCString: As UpperCase String -> Ignore case sorting
 		{name: 'clientId', sortType: 'asUCString'},
 		{name: 'clientName', sortType: 'asUCString'},
 
+		'attributions',
 		'welcomeMsg',
 
 		'dataSources', // String or Array<String>

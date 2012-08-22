@@ -38,7 +38,7 @@ Atlas.Layer.PrintFrame = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 		this.setLayer(new OpenLayers.Layer.ux.PrintFrame(this.getTitle(), {
 			dpi: (jsonLayer.dpi? jsonLayer.dpi : mapPanel.dpi),
 			attributions: function() {
-				var attributions = '';
+				var attributions = Atlas.conf['attributions'] ? Atlas.conf['attributions'] : '';
 				var layers = that.mapPanel.map.layers;
 				for (var i=0; i<layers.length; i++) {
 					if (layers[i] &&
@@ -54,12 +54,15 @@ Atlas.Layer.PrintFrame = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 							var layerBounds = layers[i].atlasLayer.getExtent();
 							if (printFrameBounds == null || layerBounds == null ||
 									printFrameBounds.intersectsBounds(layerBounds)) {
-								attributions += ', ' + layerAttributions;
+								if (attributions) {
+									attributions += ', ';
+								}
+								attributions += layerAttributions;
 							}
 						}
 					}
 				}
-				return '©2012 e-Atlas' + attributions;
+				return attributions;
 			}
 		}));
 

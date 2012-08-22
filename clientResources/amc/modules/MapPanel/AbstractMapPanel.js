@@ -54,7 +54,7 @@ Atlas.AbstractMapPanel = {
 	zoom: 0,
 	// http://docs.geoserver.org/latest/en/user/services/wms/vendor.html#format-options
 	DEFAULT_DPI: 90,
-	dpi: this.DEFAULT_DPI,
+	dpi: 90,
 
 	renderTo: null,
 	embedded: false,

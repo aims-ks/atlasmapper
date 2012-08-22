@@ -526,7 +526,7 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 
 		// Frame styles
 		// See: http://dev.openlayers.org/docs/files/OpenLayers/Feature/Vector-js.html#OpenLayers.Feature.Vector.OpenLayers.Feature.Vector.style
-		var controlsRadius = (this.options.controlsRadius || 12) * this._dpiRatio; 
+		var controlsRadius = this.options.controlsRadius || 20;
 
 		var frameStyle = {
 			graphicZIndex: zIndex,
@@ -543,22 +543,18 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 
 		var moveStyle = {
 			graphicZIndex: zIndex+2,
-			externalGraphic: "http://www.centos.org/docs/2/rhl-gsg-en-7.2/figs/gimp/move.gif",
+			externalGraphic: "resources/images/move-frame.png",
 
 			fillColor: '#FFFFFF',
 			fillOpacity: 1,
-			strokeColor: "#000000",
-			strokeWidth: this._strokeWidth,
 			pointRadius: controlsRadius
 		};
 		var resizeStyle = {
 			graphicZIndex: zIndex+3,
-			externalGraphic: "http://www.sylights.com/images/diagrams/resize-handle.png",
+			externalGraphic: "resources/images/resize-frame.png",
 
 			fillColor: '#FFFFFF',
 			fillOpacity: 1,
-			strokeColor: "#000000",
-			strokeWidth: this._strokeWidth,
 			pointRadius: controlsRadius,
 			cursor: 'se-resize'
 		};

@@ -68,6 +68,9 @@ public class ClientConfig extends AbstractConfig {
 	private String welcomeMsg;
 
 	@ConfigField
+	private String attributions;
+
+	@ConfigField
 	private JSONArray dataSources;
 
 	@ConfigField
@@ -391,6 +394,14 @@ public class ClientConfig extends AbstractConfig {
 
 	public void setWelcomeMsg(String welcomeMsg) {
 		this.welcomeMsg = welcomeMsg;
+	}
+
+	public String getAttributions() {
+		return this.attributions;
+	}
+
+	public void setAttributions(String attributions) {
+		this.attributions = attributions;
 	}
 
 	public JSONArray getDataSources() {
