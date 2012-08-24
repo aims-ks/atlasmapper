@@ -205,6 +205,9 @@ ol.bullet-list > li {
 	list-style-type: decimal;
 	margin: 0.2em 0;
 }
+.description p {
+	margin: 1em 0;
+}
 
 /* NOTE: "font-size: 0" remove the extra padding added for the text */
 .layers-btn {

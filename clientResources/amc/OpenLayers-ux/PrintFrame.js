@@ -409,25 +409,48 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 			scope: this
 		});
 
-		this.map.events.on({
-			addlayer: function(e) {
-				// e.layer
-				this._updateAttributions();
-			},
-			removelayer: function(e) {
-				// e.layer
-				this._updateAttributions();
-			},
-			changelayer: function(e) {
-				// e.layer, e.property
-				this._updateAttributions();
-			},
-			attributionsChange: function(e) {
-				// e.layer, e.attributions
-				this._updateAttributions();
-			},
-			scope: this
-		});
+		this._registerListeners();
+	},
+
+	_registerListeners: function() {
+		if (this.map) {
+			this.map.events.on({
+				'addlayer': this.onMapLayersChange,
+				'changelayer': this.onMapLayersChange,
+				'attributionsChange': this.onMapLayersChange,
+				'removelayer': this.onRemoveLayer,
+				scope: this
+			});
+		}
+	},
+
+	_unregisterListeners: function(map) {
+		if (map) {
+			map.events.un({
+				'addlayer': this.onMapLayersChange,
+				'changelayer': this.onMapLayersChange,
+				'attributionsChange': this.onMapLayersChange,
+				'removelayer': this.onRemoveLayer,
+				scope: this
+			});
+		}
+	},
+
+	onRemoveLayer: function(evt) {
+		if (evt.layer !== this) {
+			this._updateAttributions();
+		} else {
+			// The map has to be passed in parameter because this event
+			// is fired after the layer has been removed, so its
+			// attribute "map" has been set to null.
+			this._unregisterListeners(evt.object);
+		}
+	},
+
+	onMapLayersChange: function(evt) {
+		if (evt.layer !== this) {
+			this._updateAttributions();
+		}
 	},
 
 	// The method dans "redraw" is already defined in OpenLayers...

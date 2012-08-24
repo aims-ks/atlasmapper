@@ -343,17 +343,32 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 	addPrintFrame: function() {
 		var printFrameLayer = new Atlas.Layer.PrintFrame(this.mapPanel, {
 			title: 'Print frame',
-			htmlDescription: 'This layer is used to facilitate screenshot. For a complete tutorial about how to make high definition screenshot, see: <a href="http://TODO-ADD-A-LINK/" target="_black">http://TODO-ADD-A-LINK/</a><br/>\n' +
-				'Quick reminder, for the easy low resolution screenshot:<br/>\n' +
-				'<ol>\n' +
-				'    <li>Draw a rectangle in the screen, after clicking the "Print frame" button, to select the region you which to print.</li>\n' +
-				'    <li>Adjust the "Print frame" to accurately frame desired location.</li>\n' +
-				'    <li>Expend your browser window as necessary (larger is better).</li>\n' +
-				'    <li>Use the button "locate" to zoom as much as possible, without hiding the frame.</li>\n' +
-				'    <li>Adjust the position of the north arrow and the scale line, if necessary.</li>\n' +
-				'    <li>Take a screenshot using the "Print Screen" key from your key board.</li>\n' +
-				'    <li>Crop the image using an image editor software, to remove any part of the image exceeding the print frame.</li>\n' +
-				'</ol>'
+			htmlDescription: '<p>\n' +
+				'	This layer is a tool to allow high quality maps to be created directly\n' +
+				'	from a screenshot. It adds a moveable frame with labelled latitude and\n' +
+				'	longitudes. It also includes a moveable north arrow and scale bar. A\n' +
+				'	quality looking map can made by using a screenshot then cropping the\n' +
+				'	image around the "Print frame".\n' +
+				'</p>\n' +
+				'<p>\n' +
+				'	In the options you can also increase the Dots Per Inch (DPI) of the map\n' +
+				'	to increase the size of the text and line rendering.\n' +
+				'</p>\n' +
+				'<div>\n' +
+				'	To use the tool:\n' +
+				'	<ol>\n' +
+				'		<li>After clicking the "Print frame" button draw a rectangle on the map to select the region of interest.</li>\n' +
+				'		<li>Adjust the "Print frame" to accurately frame desired location.</li>\n' +
+				'		<li>Expand your browser window as necessary (larger is better).</li>\n' +
+				'		<li>Use the "Locate" button in the "Print frame" Options to zoom as much as possible, without hiding the frame.</li>\n' +
+				'		<li>Adjust the position of the north arrow and the scale line, if necessary.</li>\n' +
+				'		<li>Adjust the styles of the layers to get the best map possible. Look in the Options tab of each layer to see available restyling options.</li>\n' +
+				'		<li>Take a screenshot using the "Print Screen" key from your keyboard. On windows you can also use the Accessories/Snipping Tool application.</li>\n' +
+				'		<li>Crop the image using an image editor software, to remove any part of the image exceeding the print frame. You can also directly paste the screenshot into Word or PowerPoint and use their crop tool.</li>\n' +
+				'		<li>In Word or PowerPoint you can add additional text, arrows and titles.</li>\n' +
+				'	</ol>\n' +
+				'</div>\n' +
+				'<br/>'
 		});
 		this.mapPanel.map.addLayer(printFrameLayer.layer);
 	},

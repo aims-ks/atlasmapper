@@ -66,17 +66,49 @@ Atlas.Layer.PrintFrame = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 			}
 		}));
 
-		if (mapPanel) {
-			var that = this;
-			mapPanel.ol_on("dpiChange", function(evt) {
-				that.dpiChange(evt.dpi);
+		this._registerListeners();
+	},
+
+	_registerListeners: function() {
+		if (this.mapPanel) {
+			this.mapPanel.ol_on('dpiChange', this.onDpiChange, this);
+			if (this.mapPanel.map) {
+				this.mapPanel.map.events.on({
+					'removelayer': this.onRemoveLayer,
+					scope: this
+				});
+			}
+		}
+		if (this.layer) {
+			this.layer.events.on({
+				moveend: function(e) {
+				},
+				scope: this
 			});
 		}
 	},
 
+	_unregisterListeners: function() {
+		if (this.mapPanel) {
+			this.mapPanel.ol_un('dpiChange', this.onDpiChange, this);
+			if (this.mapPanel.map) {
+				this.mapPanel.map.events.un({
+					'removelayer': this.onRemoveLayer,
+					scope: this
+				});
+			}
+		}
+	},
+
+	onRemoveLayer: function(evt) {
+		if (evt.layer === this.layer) {
+			this._unregisterListeners();
+		}
+	},
+
 	// Called when the DPI change on the mapPanel
-	dpiChange: function(dpi) {
-		this.layer.setDPI(dpi);
+	onDpiChange: function(evt) {
+		this.layer.setDPI(evt.dpi);
 	},
 
 	// Override
@@ -123,8 +155,8 @@ Atlas.Layer.PrintFrame = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 				displayField: 'title',
 				allowBlank: false,
 				listeners: {
-					select: this.onDPIChange,
-					change: this.onDPIChange, // Fired when manually edited
+					select: this.changeDPI,
+					change: this.changeDPI, // Fired when manually edited
 					scope: this
 				}
 			};
@@ -138,7 +170,7 @@ Atlas.Layer.PrintFrame = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 		}
 	},
 
-	onDPIChange: function(field) {
+	changeDPI: function(field) {
 		if (field) {
 			this.mapPanel.changeDpi(parseInt(field.getValue()));
 		}
