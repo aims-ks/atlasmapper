@@ -501,6 +501,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 			// NOTE If there is not info about the spatial reference of the extent, the extent is ignored.
 			JSONObject jsonSourceCRS = jsonExtent.optJSONObject("spatialReference");
 
+			// Extent in [Lat, Lon] for GeoTools
 			double[] extent = new double[] {
 				jsonExtent.optDouble("xmin"),
 				jsonExtent.optDouble("ymin"),
@@ -529,11 +530,16 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 			}
 		}
 
+		// Invert the extent coordinate -> [Lon, Lat] for OpenLayers
 		if (reprojectedExtent != null) {
 			// Ensure that the conversion is usable
 			boolean valid = true;
-			for (int i=0; i<reprojectedExtent.length; i++) {
-				if (Double.isNaN(reprojectedExtent[i])) {
+			for (int i=0; i<reprojectedExtent.length; i+=2) {
+				//
+				Double tmp = reprojectedExtent[i];
+				reprojectedExtent[i] = reprojectedExtent[i+1];
+				reprojectedExtent[i+1] = tmp;
+				if (Double.isNaN(reprojectedExtent[i]) || Double.isNaN(reprojectedExtent[i+1])) {
 					valid = false;
 				}
 			}

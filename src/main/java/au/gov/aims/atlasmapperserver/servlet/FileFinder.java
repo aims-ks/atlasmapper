@@ -214,6 +214,9 @@ public class FileFinder {
 	public static String getDefaultLayerInfoServiceURL(ServletContext context) {
 		return context.getContextPath() + "/public/layersInfo.jsp";
 	}
+	public static String getDefaultSearchServiceURL(ServletContext context) {
+		return context.getContextPath() + "/public/search.jsp";
+	}
 
 	public static File getAtlasMapperClientFolder(File applicationFolder, ClientConfig clientConfig) {
 		return getAtlasMapperClientFolder(applicationFolder, clientConfig, true);

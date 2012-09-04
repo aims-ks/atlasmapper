@@ -29,7 +29,6 @@ Atlas.Core = OpenLayers.Class({
 	EVENT_TYPES: [
 		'createNewMap', 'mapAdded', 'removeMap', 'mapRemoved'
 	],
-	MAX_URL_LENGTH: 40,
 
 	// Used to parse client config
 	// NOTE: The version must match the version in the server /src/main/java/au/gov/aims/atlasmapperserver/ConfigManager.java
@@ -721,122 +720,6 @@ Atlas.Core = OpenLayers.Class({
 		return layerJSon;
 	},
 
-	safeHtml: function(input) {
-		if (input == null) { return null; }
-		return input.replace(/&/gi, "&amp;").replace(/</gi, "&lt;").replace(/>/gi, "&gt;");
-	},
-
-	/**
-	 * Change all URLs in the input to a HTML link, and truncate long URL to
-	 * maxUrlLength characters.
-	 *
-	 * See RFC 1738 for valid URL schema:
-	 *     http://www.apps.ietf.org/rfc/rfc1738.html#sec-5
-	 */
-	urlsToHTML: function(input, popup, maxUrlLength) {
-		var newInput = '';
-		var lastIndex = 0;
-
-		if (typeof(popup) == 'undefined') {
-			popup = true;
-		}
-		if (typeof(maxUrlLength) == 'undefined') {
-			maxUrlLength = this.MAX_URL_LENGTH;
-		}
-
-		// Enumeration of chars that are not allow in the URLs. RFC 1738
-		// The word boundary can not be used here (it includes brackets), so it's easier to simply do this enumeration (better control)
-		// RFC 1738 - Allowed: alphanumerics, the special characters "$-_.+!*'()," and reserved characters ";", "/", "?", ":", "@", "=", "&", "#" and "%".
-		// http://www.apps.ietf.org/rfc/rfc1738.html#sec-5
-		//     5. BNF for specific URL schemes
-		var urlChar = "a-zA-Z0-9\\$\\-_\\.\\+\\!\\*'\\(\\),;\\/\\?:@=&#%";
-
-		// Enumeration of chars that are allow as the last char of a URLs (and not allow before the www, for partial URLs).
-		// For example, this is useful when a sentence end with a URL: Click here www.url.com. ==> Click here <a href="...">www.url.com</a>.
-		// There is no RFC for this, it's just common sense logic.
-		var urlEndingChar = "a-zA-Z0-9/";
-
-		// pattern:
-		//     Well formed URL
-		//      protocol   "://"   URL chars (multiple times)   URL ending char
-		//     ( ---------------------------- 1 ------------------------------ )
-		//     ( - 2 - )
-		//         Example: http://google.com?search=abc
-		//             1: http://google.com?search=abc
-		//             2: http
-		//     OR
-		//     URL without explicit protocol (partial URL)
-		//      start-of-string  OR  URL ending char   "www"   URL chars (multiple times)   URL ending char
-		//     ( ---------------- 3 --------------- ) ( ------------------------ 4 ----------------------- )
-		//         Example: www.google.com?search=abc
-		//             3: [Space]
-		//             4: www.google.com?search=abc
-		var pattern = new RegExp("((sftp|ftp|http|https|file)://["+urlChar+"]+["+urlEndingChar+"])|([^"+urlEndingChar+"]|^)(www\\.["+urlChar+"]+["+urlEndingChar+"])", "gim");
-
-		var matches = null;
-		while (matches = pattern.exec(input)) {
-			var url = null;
-			var displayUrl = null;
-			var prefix = "";
-
-			var noProtocolUrl = matches[4];
-			var protocolUrl = matches[1];
-
-			if (noProtocolUrl != null && noProtocolUrl != "") {
-				displayUrl = noProtocolUrl;
-				url = "http://" + noProtocolUrl;
-				prefix = matches[3];
-			} else {
-				displayUrl = protocolUrl;
-				url = protocolUrl;
-			}
-
-			// Building the HTML link
-			if (displayUrl != null && url != null) {
-				var link = prefix + "<a href=\"" + url + "\"";
-				if (popup) {
-					link += " target=\"_blank\"";
-				}
-				link += ">";
-
-				// Truncate the displayed URL, when needed
-				if (maxUrlLength == 1) {
-					link += ".";
-				} else if (maxUrlLength == 2) {
-					link += "..";
-				} else if (maxUrlLength > 0 && maxUrlLength < displayUrl.length) {
-					var beginningLength = Math.round((maxUrlLength-3)/4.0*3);
-					var endingLength = maxUrlLength - beginningLength - 3; // 3 is for the "..."
-					if (beginningLength > 1 && endingLength == 0) {
-						beginningLength--;
-						endingLength = 1;
-					}
-					link += displayUrl.substring(0, beginningLength) + "..." + displayUrl.substring(displayUrl.length - endingLength);
-				} else {
-					link += displayUrl;
-				}
-
-				link += "</a>";
-
-				// Add the text from the last link to the beginning of this one
-				newInput += input.substring(lastIndex, matches.index);
-
-				// Add the link
-				newInput += link;
-			}
-
-			lastIndex = matches.index + matches[0].length;
-		}
-		newInput = newInput + input.substring(lastIndex);
-
-		return newInput;
-	},
-
-	lineBreaksToHTML: function(input) {
-		// Replace all 3 types of line breaks with a HTML line break.
-		return input.replace(/(\r\n|\n|\r)/gim, '<br/>\n');
-	},
-
 	/**
 	 * Return a tooltip for the layer/node.
 	 */
@@ -845,51 +728,5 @@ Atlas.Core = OpenLayers.Class({
 	},
 	getLayerQTip: function(jsonLayer) {
 		return null;
-	},
-
-	/**
-	 * Return a description for the layer. It can be used as a tooltip,
-	 * or as a HTML page for the layer information.
-	 * <b>Title (or ID if no title)</b>
-	 * <b>Key:</b> value (for additional info such as year, author, etc.)
-	 * <b>Key:</b> value
-	 * ...
-	 * Description (the abstract found in the GetCapabilities document)
-	 */
-	getLayerDescription: function(jsonLayer) {
-		if (!jsonLayer) {
-			return null;
-		}
-
-		var desc = '';
-		if (jsonLayer['title']) {
-			desc = '<b>' + jsonLayer['title'] + '</b>'
-		} else if (jsonLayer['layerId']) {
-			desc = '<b>' + jsonLayer['layerId'] + '</b>';
-		}
-		var additionalInfo = jsonLayer['additionalInfo'];
-		if (additionalInfo) {
-			for(var key in additionalInfo){
-				if(additionalInfo.hasOwnProperty(key)){
-					desc += '<br/><b>'+key+':</b> '+additionalInfo[key];
-				}
-			}
-		}
-
-		if (jsonLayer['description'] || jsonLayer['htmlDescription']) {
-			desc += '<div class="description">';
-			if (jsonLayer['description']) {
-				desc += this.urlsToHTML(this.lineBreaksToHTML(this.safeHtml(jsonLayer['description'])));
-			}
-			if (jsonLayer['htmlDescription']) {
-				desc += jsonLayer['htmlDescription'];
-			}
-			desc += '</div>';
-		}
-
-		if (jsonLayer['layerId']) {
-			desc += '<div class="descriptionLayerId">Layer id: <em>' + jsonLayer['layerId'] + '</em></div>';
-		}
-		return desc;
 	}
 });

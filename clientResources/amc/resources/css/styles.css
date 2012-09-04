@@ -235,7 +235,7 @@ ol.bullet-list > li {
 	font-style: italic;
 }
 
-.descriptionLayerGroupContent,
+.systemDescription,
 .descriptionLayerId {
 	color: #AAAAAA;
 	font-size: 0.8em;
@@ -245,4 +245,73 @@ ol.bullet-list > li {
 /* Print Frame */
 .layers-btn .printFrame {
 	background-image: url('../images/frame.png');
+}
+
+.searchButton {
+	background-image: url('../images/search-24px.png');
+}
+
+.searchResultsDescription .query {
+	font-size: 1.1em;
+	margin-bottom: 1em;
+/*	margin-left: 2em;
+	text-indent: -2em;*/
+	font-weight: bold;
+}
+.searchResultsDescription .query .label {
+	display: none;
+}
+
+.searchResultsDescription .pager {
+	margin-bottom: 1em;
+	float: right;
+}
+
+.searchResultsDescription .pager span {
+	margin: 1.2em 1em;
+	display: block;
+	float: left;
+}
+.searchResultsDescription .pager a {
+	margin: 0 0.1em;
+	cursor: pointer;
+	display: block;
+	width: 48px;
+	height: 48px;
+}
+.searchResultsDescription .pager a span {
+	display: none;
+}
+.searchResultsDescription .pager a.prevPage {
+	background-image: url('../images/previousbutton.png');
+	float: left;
+}
+.searchResultsDescription .pager a.prevPage:hover {
+	background-image: url('../images/previousbutton_over.png');
+}
+.searchResultsDescription .pager a.nextPage {
+	background-image: url('../images/nextbutton.png');
+	float: left;
+}
+.searchResultsDescription .pager a.nextPage:hover {
+	background-image: url('../images/nextbutton_over.png');
+}
+
+.searchResultsDescription div.results span {
+	display: none;
+}
+
+.searchResultsDescription div.results ol li.highlight {
+	background-color: #DDDDDD;
+}
+
+.searchResultsDescription div.results ol {
+	list-style-type: none;
+}
+.searchResultsDescription div.results ol li {
+	list-style-type: none;
+	padding: 0 0 1em 2em;
+	background-size: 1.5em;
+	background-repeat: no-repeat;
+	min-height: 2em;
 }

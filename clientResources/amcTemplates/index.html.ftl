@@ -78,6 +78,7 @@
 
 	<script type="text/javascript" src="OpenLayers/OpenLayers-2.12/OpenLayers.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="OpenLayers-ux/PrintFrame.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="OpenLayers-ux/SearchResults.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="OpenLayers-ux/NCWMS.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="OpenLayers-ux/NCTimeSeriesClickControl.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="OpenLayers-ux/NCTransectDrawControl.js?atlasmapperVer=${version}"></script>
@@ -131,6 +132,7 @@
 		<script type="text/javascript" src="modules/MapPanel/Layer/Bing.js?atlasmapperVer=${version}"></script>
 		<script type="text/javascript" src="modules/MapPanel/Layer/KML.js?atlasmapperVer=${version}"></script>
 		<script type="text/javascript" src="modules/MapPanel/Layer/PrintFrame.js?atlasmapperVer=${version}"></script>
+		<script type="text/javascript" src="modules/MapPanel/Layer/SearchResults.js?atlasmapperVer=${version}"></script>
 		<script type="text/javascript" src="modules/MapPanel/Layer/WMS.js?atlasmapperVer=${version}"></script>
 			<script type="text/javascript" src="modules/MapPanel/Layer/NCWMS.js?atlasmapperVer=${version}"></script>
 			<script type="text/javascript" src="modules/MapPanel/Layer/WMTS.js?atlasmapperVer=${version}"></script>
@@ -213,9 +215,27 @@
 			Atlas.core.afterLoad = function() {
 				document.getElementById('loading').style.display = 'none';
 
+// TODO
+// 1. Put this somewhere else
+// 2. Try to find a way to implement this in a modular way
+// 3. Allow arrows, home, end keys to move the cursor in the search field
+// 4. Config to specify which layer are used for search (ArcGIS only, for now)
+// 5. Do a real search (ArcGIS API)
+var _mapPanel = null;
+search = function(form) {
+	var query = form.query.value;
+
+	var searchResultsLayer = new Atlas.Layer.SearchResults(_mapPanel, {query: query});
+
+	if (searchResultsLayer.layer) {
+		_mapPanel.map.addLayer(searchResultsLayer.layer);
+	}
+};
+
 				mapLayoutItems = [];
 				for (var i=0; i<nbMaps; i++) {
 					var mapPanel = Atlas.core.createNewMapPanel();
+if (_mapPanel == null) { _mapPanel = mapPanel; }
 					new Atlas.Legend({mapPanel: mapPanel});
 
 					mapLayoutItems.push(
@@ -224,7 +244,63 @@
 							layout: "border",
 							deferredRender: false,
 							items: [
-								mapPanel,
+								{
+									layout: 'border',
+									border: false,
+									region: 'center',
+									items: [
+										{
+											xtype: 'form',
+											layout: 'hbox',
+											defaultType: 'textfield',
+											defaults: {
+												margins: {
+													top: 2,
+													right: 0,
+													bottom: 2,
+													left: 4
+												}
+											},
+											// Add a shadow
+											floating: true, shadowOffset: 6,
+											items: [
+												{
+													ref: 'searchField',
+													name: 'search',
+													hideLabel: true,
+													margins: {
+														top: 6,
+														right: 0,
+														bottom: 6,
+														left: 6
+													},
+													// Needed to be able to catch 'keydown' event
+													enableKeyEvents: true,
+													listeners: {
+														'specialkey': function(field, evt) {
+															if (evt.getKey() == evt.ENTER) {
+																search(field.getValue());
+															}
+														},
+														// Prevent the Map from grabbing the keys (-/+ to zoom, arrows to pan, etc.)
+														'keydown': function(field, evt) {
+															evt.stopPropagation();
+														}
+													}
+												}, {
+													xtype: 'button',
+													iconCls: 'searchButton',
+													scale: 'medium',
+													handler: function(btn, evt) {
+														search(btn.ownerCt.searchField.getValue());
+													}
+												}
+											],
+											region: 'north'
+										},
+										mapPanel
+									]
+								},
 								new Atlas.LayersPanel({
 									minWidth: 180,
 									mapPanel: mapPanel,

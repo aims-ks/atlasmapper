@@ -118,6 +118,7 @@ Ext.define('Writer.ClientConfigForm', {
 			'mainClientModules': ['Info', 'Tree'], // TODO Delete this once this field is implemented
 			'baseLayersInTab': true,
 			'useLayerService': true,
+			'useSearchService': true,
 			'theme': '',
 			'enable': true
 		});
@@ -413,6 +414,18 @@ Ext.define('Writer.ClientConfigForm', {
 								xtype: 'checkboxfield',
 								name: 'useLayerService'
 							}, {
+								fieldLabel: 'Search service URL',
+								qtipHtml: 'URL used by the client to perform searches. The default URL is: atlasmapper/public/search.jsp'+
+									notAvailableInDemoMode,
+								name: 'searchServiceUrl',
+								disabled: demoMode
+							}, {
+								boxLabel: 'Use search service.',
+								qtipHtml: 'Uncheck this box disable search capability on the client.',
+								margin: '0 0 15 0',
+								xtype: 'checkboxfield',
+								name: 'useSearchService'
+							}, {
 								margin: '0 0 15 0',
 								boxLabel: 'Show <i>Base layers</i> in a separate tab, in <i>add layers</i> window.',
 								qtipHtml: 'Check this box to show all <em>Base layers</em> in a separate tab, in the <em>add layers</em> window of this AtlasMapper client. Uncheck it to let the base layers appear in the tab of their appropriate server.',
@@ -531,6 +544,29 @@ Ext.define('Writer.ClientConfigForm', {
 								// Remove spinner buttons, and arrow key and mouse wheel listeners
 								hideTrigger: true,
 								keyNavEnabled: false
+							}
+						]
+					}, {
+						// Config options to modify the appearance of the client
+						title: 'Search',
+						items: [
+							{
+								xtype: 'displayfield',
+								value: 'Search customisation. This feature is under development and any configuration found here may eventually change in the future.'
+							}, {
+								fieldLabel: 'ArcGIS search URL',
+								qtipHtml: 'URL used by the server to perform searches against ArcGIS layers.<br/>' +
+									'Example:<br/>' +
+									'http://www.a.com/.../MapServer/find' +
+									'<div style="margin-left:1em;">' +
+									'?f=json<br/>' +
+									'&contains=true<br/>' +
+									'&returnGeometry=true<br/>' +
+									'&layers=6%2C0<br/>' +
+									'&searchFields=LOC_NAME_L%2CNAME<br/>' +
+									'&searchText={QUERY}' +
+									'</div>',
+								name: 'arcGISSearchUrl'
 							}
 						]
 					}
@@ -1538,6 +1574,7 @@ Ext.define('Writer.ClientConfig', {
 		'baseUrl',
 		'proxyUrl',
 		'layerInfoServiceUrl',
+		'searchServiceUrl',
 		{name: 'projection', type: 'string'},
 		{name: 'longitude', type: 'float'},
 		{name: 'latitude', type: 'float'},
@@ -1546,6 +1583,7 @@ Ext.define('Writer.ClientConfig', {
 		'defaultLayers',
 		'version',
 		{name: 'useLayerService', type: 'boolean', defaultValue: false},
+		{name: 'useSearchService', type: 'boolean', defaultValue: false},
 		{name: 'enable', type: 'boolean', defaultValue: false},
 		'theme',
 		'pageHeader',
@@ -1559,6 +1597,8 @@ Ext.define('Writer.ClientConfig', {
 		'listBaseLayerId',
 		'listLayerImageWidth',
 		'listLayerImageHeight',
+
+		'arcGISSearchUrl',
 
 		'comment'
 	]/*,

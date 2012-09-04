@@ -34,6 +34,7 @@ import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -151,7 +152,7 @@ public class Utils {
 		return json.toString(INDENT);
 	}
 
-	public static String getUrlParameter(String urlStr, String parameterName) throws UnsupportedEncodingException {
+	public static String getUrlParameter(String urlStr, String parameterName, boolean ignoreCase) throws UnsupportedEncodingException {
 		int queryStrStart = urlStr.indexOf('?');
 
 		if (queryStrStart > 0) {
@@ -164,8 +165,9 @@ public class Utils {
 				for (int i=0; i<params.length; i++) {
 					String param = params[i];
 
-					if (param.startsWith(searchStr)) {
-						return param.substring(searchStr.length());
+					if ((ignoreCase && param.toUpperCase().startsWith(searchStr.toUpperCase())) ||
+							(!ignoreCase && param.startsWith(searchStr))) {
+						return URLDecoder.decode(param.substring(searchStr.length()), "UTF-8");
 					}
 				}
 			}
@@ -559,15 +561,18 @@ public class Utils {
 		// Verify out of range coordinates
 		boolean valid = true;
 		for (int i=0; i+1 < coordinates.length; i += 2) {
-			double x = coordinates[i];
-			double y = coordinates[i+1];
+
+			// GeoTools coordinates are in [Lat, Lon], OpenLayers are in [Lon, Lat]
+			double x = coordinates[i+1]; // Longitude
+			double y = coordinates[i];   // Latitude
+
 			final boolean xOut, yOut;
 			xOut = (Double.isNaN(x) || x < (Longitude.MIN_VALUE - ANGLE_TOLERANCE) || x > (Longitude.MAX_VALUE + ANGLE_TOLERANCE));
-			yOut = (Double.isNaN(y) || y < (Latitude.MIN_VALUE - ANGLE_TOLERANCE) || y > (Latitude .MAX_VALUE + ANGLE_TOLERANCE));
+			yOut = (Double.isNaN(y) || y < (Latitude.MIN_VALUE - ANGLE_TOLERANCE) || y > (Latitude.MAX_VALUE + ANGLE_TOLERANCE));
 
 			if (xOut || yOut) {
 				// Out of bound coordinates are usually due to invalid input. No data is better than wrong data.
-				LOGGER.log(Level.WARNING, "Coordinates out of bounds: ["+x+", "+y+"] minimum values: ["+Longitude.MIN_VALUE+", "+Latitude.MIN_VALUE+"] maximum values: ["+Longitude.MAX_VALUE+", "+Latitude .MAX_VALUE+"]");
+				LOGGER.log(Level.WARNING, "Coordinates out of bounds: ["+x+", "+y+"] minimum values: ["+Longitude.MIN_VALUE+", "+Latitude.MIN_VALUE+"] maximum values: ["+Longitude.MAX_VALUE+", "+Latitude.MAX_VALUE+"]");
 				valid = false;
 			}
 		}
@@ -596,7 +601,7 @@ public class Utils {
 
 		double[] reprojectedCoordinates = new double[coordinates.length];
 
-		MathTransform transform = CRS.findMathTransform(sourceCRS, targetCRS);
+		MathTransform transform = CRS.findMathTransform(sourceCRS, targetCRS) ;
 
 		for (int i=0; i+1 < coordinates.length; i += 2) {
 			Coordinate source = new Coordinate(coordinates[i], coordinates[i+1]);

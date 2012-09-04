@@ -28,13 +28,20 @@ import au.gov.aims.atlasmapperserver.layerConfig.GroupLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
 import au.gov.aims.atlasmapperserver.servlet.FileFinder;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.ServletContext;
@@ -43,6 +50,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONSortedObject;
+import org.opengis.referencing.FactoryException;
+import org.opengis.referencing.operation.TransformException;
 
 /**
  *
@@ -120,6 +129,9 @@ public class ClientConfig extends AbstractConfig {
 	private boolean useLayerService;
 
 	@ConfigField
+	private boolean useSearchService;
+
+	@ConfigField
 	private boolean enable;
 
 	@ConfigField
@@ -180,6 +192,14 @@ public class ClientConfig extends AbstractConfig {
 
 	@ConfigField(demoReadOnly = true)
 	private String layerInfoServiceUrl;
+
+	@ConfigField(demoReadOnly = true)
+	private String searchServiceUrl;
+
+
+	@ConfigField
+	private String arcGISSearchUrl;
+
 
 	public ClientConfig(ConfigManager configManager) {
 		super(configManager);
@@ -298,12 +318,10 @@ public class ClientConfig extends AbstractConfig {
 				String layerGroupHTMLList = this.getHTMLListAndHideChildrenLayers(layersMap, layers);
 				if (Utils.isNotBlank(layerGroupHTMLList)) {
 					StringBuilder groupHtmlDescription = new StringBuilder();
-					groupHtmlDescription.append("<div class=\"descriptionLayerGroupContent\">");
 					groupHtmlDescription.append("This layer regroup the following list of layers:");
 					groupHtmlDescription.append(layerGroupHTMLList);
-					groupHtmlDescription.append("</div>");
 
-					layer.setHtmlDescription(groupHtmlDescription.toString());
+					layer.setSystemDescription(groupHtmlDescription.toString());
 				}
 			}
 		}
@@ -537,6 +555,14 @@ public class ClientConfig extends AbstractConfig {
 		this.useLayerService = useLayerService;
 	}
 
+	public boolean isUseSearchService() {
+		return this.useSearchService;
+	}
+
+	public void setUseSearchService(boolean useSearchService) {
+		this.useSearchService = useSearchService;
+	}
+
 	public String getVersion() {
 		return this.version;
 	}
@@ -692,6 +718,23 @@ public class ClientConfig extends AbstractConfig {
 
 	public void setLayerInfoServiceUrl(String layerInfoServiceUrl) {
 		this.layerInfoServiceUrl = layerInfoServiceUrl;
+	}
+
+	public String getSearchServiceUrl() {
+		return this.searchServiceUrl;
+	}
+
+	public void setSearchServiceUrl(String searchServiceUrl) {
+		this.searchServiceUrl = searchServiceUrl;
+	}
+
+
+	public String getArcGISSearchUrl() {
+		return this.arcGISSearchUrl;
+	}
+
+	public void setArcGISSearchUrl(String arcGISSearchUrl) {
+		this.arcGISSearchUrl = arcGISSearchUrl;
 	}
 
 
@@ -871,5 +914,122 @@ public class ClientConfig extends AbstractConfig {
 		}
 		htmlList.append("</ul>");
 		return htmlList.toString();
+	}
+
+
+	public JSONObject locationSearch(String query, String bounds, int offset, int qty, boolean live) throws JSONException, IOException, TransformException, FactoryException {
+		String arcGISSearchUrl = this.getArcGISSearchUrl();
+		//String arcGISSearchUrl = "http://www.gbrmpa.gov.au/spatial_services/gbrmpaBounds/MapServer/find?f=json&contains=true&returnGeometry=true&layers=6%2C0&searchFields=LOC_NAME_L%2CNAME&searchText={QUERY}";
+		if (Utils.isBlank(arcGISSearchUrl) || Utils.isBlank(query) || qty <= 0) {
+			return null;
+		}
+
+		arcGISSearchUrl = arcGISSearchUrl.trim();
+
+		String encodedQuery = URLEncoder.encode(query.trim(), "UTF-8");
+		String queryURLStr = arcGISSearchUrl.replace("{QUERY}", encodedQuery);
+
+		String searchFieldsStr = Utils.getUrlParameter(queryURLStr, "searchFields", true);
+		String[] searchFields = searchFieldsStr.split(",");
+
+		JSONObject json = URLCache.getSearchJSONResponse(queryURLStr);
+		if (json == null) {
+			return null;
+		}
+
+		JSONArray jsonResults = json.optJSONArray("results");
+		if (jsonResults == null) {
+			return null;
+		}
+
+		// The results are sorted alphabetically (order by id for same title)
+		TreeSet<JSONObject> resultsSet = new TreeSet<JSONObject>(new Comparator<JSONObject>() {
+			@Override
+			public int compare(JSONObject o1, JSONObject o2) {
+				String title1 = o1.optString("title", "");
+				String title2 = o2.optString("title", "");
+
+				int cmp = title1.compareToIgnoreCase(title2);
+
+				if (cmp == 0) {
+					String id1 = o1.optString("id", "");
+					String id2 = o2.optString("id", "");
+
+					cmp = id1.compareTo(id2);
+				}
+
+				return cmp;
+			}
+		});
+		for (int i=0, ilen=jsonResults.length(); i<ilen; i++) {
+			JSONObject jsonResult = jsonResults.optJSONObject(i);
+			if (jsonResult != null) {
+				JSONObject attributes = jsonResult.optJSONObject("attributes");
+				JSONObject geometry = jsonResult.optJSONObject("geometry");
+
+				double[] center = {
+					geometry.optDouble("x"),
+					geometry.optDouble("y")
+				};
+
+				JSONObject spatialReference = geometry.optJSONObject("spatialReference");
+				Integer wkid = spatialReference.optInt("wkid");
+				double[] reprojectedCenter = Utils.reprojectWKIDCoordinatesToDegrees(center, "EPSG:" + wkid);
+
+				String title = null;
+				for (int f=0, flen=searchFields.length; f<flen && title == null; f++) {
+					if (attributes.has(searchFields[f])) {
+						title = attributes.optString(searchFields[f], null);
+					}
+				}
+				if (title == null) {
+					LOGGER.log(Level.FINEST, "Search results:\n" + json.toString(4));
+					LOGGER.log(Level.WARNING, "UNSUPPORTED SEARCH RESPONSE");
+					title = "Unknown";
+				}
+
+				resultsSet.add(this._createSearchResult(
+					title,
+					""+i,
+					new double[]{reprojectedCenter[1], reprojectedCenter[0]}
+				));
+			}
+		}
+
+		JSONObject[] results = resultsSet.toArray(new JSONObject[resultsSet.size()]);
+
+		int to = offset + qty;
+		if (to > results.length) {
+			to = results.length;
+		}
+
+		// TODO Use bounds (and maybe other parameters) to order the results by pertinence.
+
+		// TODO Use something else than Arrays.copyOfRange (it's java 6 only...)
+		JSONObject[] subResults = Arrays.copyOfRange(results, offset, to);
+
+		return new JSONObject()
+				.put("length", results.length)
+				.put("results", subResults);
+	}
+	private JSONObject _createSearchResult(String title, String id, double[] center) throws JSONException {
+		return _createSearchResult(title, id, center, null);
+	}
+	private JSONObject _createSearchResult(String title, String id, double[] center, double[] polygon) throws JSONException {
+		JSONArray polygonObj = null;
+		if (polygon != null) {
+			polygonObj = new JSONArray();
+			for (int i=0; i<polygon.length; i+=2) {
+				polygonObj.put(new JSONArray().put(polygon[i]).put(polygon[i+1]));
+			}
+		}
+
+		JSONObject result = new JSONObject();
+		result.put("title", title);
+		result.put("id", id);
+		result.put("polygon", polygonObj);
+		result.put("center", new JSONArray().put(center[0]).put(center[1]));
+
+		return result;
 	}
 }

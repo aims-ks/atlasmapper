@@ -56,9 +56,12 @@ public class URLCache {
 	// The response will be re-requested if the application request
 	// information from it and its cached timestamp is older than this setting.
 	protected static final long CACHE_TIMEOUT = 60*60000; // X*60000 = X minutes
+	protected static final long SEARCH_CACHE_TIMEOUT = 60*60000; // X*60000 = X minutes
+	protected static final long SEARCH_CACHE_MAXSIZE = 10; // Maximum search responses
 
 	// HashMap<String urlString, ResponseWrapper response>
 	private static HashMap<String, ResponseWrapper> responseCache = new HashMap<String, ResponseWrapper>();
+	private static HashMap<String, ResponseWrapper> searchResponseCache = new HashMap<String, ResponseWrapper>();
 
 	public static JSONObject getJSONResponse(AbstractDataSourceConfig dataSource, String urlStr) throws IOException, JSONException {
 		ResponseWrapper response = getCachedResponse(urlStr);
@@ -76,42 +79,67 @@ public class URLCache {
 		response.dataSourceIds.add(dataSource.getDataSourceId());
 
 		if (response.jsonResponse == null) {
+			LOGGER.log(Level.INFO, "\n### DOWNLOADING ### {0} JSON Document {1}\nFor dataSource {2}\n",
+					new String[]{ dataSource.getDataSourceType(), urlStr, dataSource.getDataSourceId() });
 
-			LOGGER.log(Level.INFO, "\n### DOWNLOADING ### ArcGIS JSON Document {0}\nFor dataSource {1}\n",
-					new String[]{ urlStr, dataSource.getDataSourceId() });
+			response.jsonResponse = getUncachedSearchResponse(urlStr);
+		}
 
-			URL url = new URL(urlStr);
+		return response.jsonResponse;
+	}
 
-			URLConnection connection = url.openConnection();
-			InputStream in = null;
-			BufferedReader reader = null;
-			try {
-				in = connection.getInputStream();
-				if (in != null) {
-					reader = new BufferedReader(new InputStreamReader(in));
+	public static JSONObject getSearchJSONResponse(String urlStr) throws IOException, JSONException {
+		ResponseWrapper response = getSearchCachedResponse(urlStr);
 
-					StringBuilder sb = new StringBuilder();
-					int cp;
-					while ((cp = reader.read()) != -1) {
-						sb.append((char) cp);
-					}
-					response.jsonResponse = new JSONObject(sb.toString());
+		if (response == null) {
+			response = new ResponseWrapper();
+			// Set the wrapper in the cache now, it will be filled before the end of the method
+			setSearchCachedResponse(urlStr, response);
+		}
+
+		if (response.jsonResponse == null) {
+			LOGGER.log(Level.INFO, "\n### DOWNLOADING ### JSON Document {0}\n",
+					new String[]{ urlStr });
+
+			response.jsonResponse = getUncachedSearchResponse(urlStr);
+		}
+
+		return response.jsonResponse;
+	}
+
+	public static JSONObject getUncachedSearchResponse(String urlStr) throws IOException, JSONException {
+		JSONObject jsonResponse = null;
+		URL url = new URL(urlStr);
+
+		URLConnection connection = url.openConnection();
+		InputStream in = null;
+		BufferedReader reader = null;
+		try {
+			in = connection.getInputStream();
+			if (in != null) {
+				reader = new BufferedReader(new InputStreamReader(in));
+
+				StringBuilder sb = new StringBuilder();
+				int cp;
+				while ((cp = reader.read()) != -1) {
+					sb.append((char) cp);
 				}
-			} finally {
-				if (in != null) {
-					try { in.close(); } catch(Exception e) {
-						LOGGER.log(Level.WARNING, "Can not close the URL input stream.", e);
-					}
+				jsonResponse = new JSONObject(sb.toString());
+			}
+		} finally {
+			if (in != null) {
+				try { in.close(); } catch(Exception e) {
+					LOGGER.log(Level.WARNING, "Can not close the URL input stream.", e);
 				}
-				if (reader != null) {
-					try { reader.close(); } catch(Exception e) {
-						LOGGER.log(Level.WARNING, "Can not close the URL reader.", e);
-					}
+			}
+			if (reader != null) {
+				try { reader.close(); } catch(Exception e) {
+					LOGGER.log(Level.WARNING, "Can not close the URL reader.", e);
 				}
 			}
 		}
 
-		return response.jsonResponse;
+		return jsonResponse;
 	}
 
 	public static WMSCapabilities getWMSCapabilitiesResponse(AbstractDataSourceConfig dataSource, String urlStr) throws IOException, ServiceException {
@@ -178,10 +206,12 @@ public class URLCache {
 
 	public static void clearCache() {
 		responseCache.clear();
+		searchResponseCache.clear();
 	}
 
 	public static void clearCache(String urlStr) {
 		responseCache.remove(urlStr);
+		searchResponseCache.remove(urlStr);
 	}
 
 	public static void clearCache(AbstractDataSourceConfig dataSource) {
@@ -259,9 +289,45 @@ public class URLCache {
 		return response;
 	}
 
+	private static ResponseWrapper getSearchCachedResponse(String urlStr) {
+		if (!searchResponseCache.containsKey(urlStr)) {
+			return null;
+		}
+
+		ResponseWrapper response = searchResponseCache.get(urlStr);
+		if (response == null) {
+			return null;
+		}
+
+		long timeoutTimestamp = Utils.getCurrentTimestamp() - SEARCH_CACHE_TIMEOUT;
+		if (response.timestamp <= timeoutTimestamp) {
+			clearCache(urlStr);
+			return null;
+		}
+
+		return response;
+	}
+
 	private static void setCachedResponse(String urlStr, ResponseWrapper response) {
 		if (urlStr != null && response != null) {
 			responseCache.put(urlStr, response);
+		}
+	}
+
+	private static void setSearchCachedResponse(String urlStr, ResponseWrapper response) {
+		if (urlStr != null && response != null) {
+			// Max cache size reach...
+			if (searchResponseCache.size() >= SEARCH_CACHE_MAXSIZE) {
+				// Delete the oldest entry
+				Map.Entry<String, ResponseWrapper> oldestResponseEntry = null;
+				for (Map.Entry<String, ResponseWrapper> responseEntry : searchResponseCache.entrySet()) {
+					if (oldestResponseEntry == null || responseEntry.getValue().timestamp < oldestResponseEntry.getValue().timestamp) {
+						oldestResponseEntry = responseEntry;
+					}
+				}
+				searchResponseCache.remove(oldestResponseEntry.getKey());
+			}
+			searchResponseCache.put(urlStr, response);
 		}
 	}
 

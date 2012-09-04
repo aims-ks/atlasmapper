@@ -1,7 +1,7 @@
 /*
  *  This file is part of AtlasMapper server and clients.
  *
- *  Copyright (C) 2011 Australian Institute of Marine Science
+ *  Copyright (C) 2012 Australian Institute of Marine Science
  *
  *  Contact: Gael Lafond <g.lafond@aims.org.au>
  *
@@ -103,6 +103,7 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 
 	initialize: function(name, options) {
 		// enable the indexer by setting zIndexing to true
+		options = options || {};
 		options.rendererOptions = options.rendererOptions || {};
 		options.rendererOptions.zIndexing = true;
 		

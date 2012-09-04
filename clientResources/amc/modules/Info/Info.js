@@ -28,6 +28,7 @@ Atlas.Info = Ext.extend(Ext.Component, {
 	optionsTab: -1,
 	descriptionTab: -1,
 	loadingLayerId: null,
+	selectedLayer: null,
 
 	// NOTE: The version must match the version in the server /src/main/java/au/gov/aims/atlasmapperserver/module/Info.java
 	CURRENT_CONFIG_VERSION: 1.0,
@@ -110,11 +111,9 @@ Atlas.Info = Ext.extend(Ext.Component, {
 		} else {
 			// Leaf or node
 
-			var json = (node && node.layer && node.layer.atlasLayer && node.layer.atlasLayer.json) ?
-					node.layer.atlasLayer.json : {};
+			var atlasLayer = (node && node.layer && node.layer.atlasLayer) ? node.layer.atlasLayer : null;
 
-			//this.setTabsSrc(json['infoHtmlUrls']);
-			this.setTabsContent(json);
+			this.setTabsContent(atlasLayer);
 			// Show layer options (nodes are not layers)
 			if (typeof(node.layer) != 'undefined' && node.layer != null) {
 				this.setOptions(node);
@@ -124,8 +123,27 @@ Atlas.Info = Ext.extend(Ext.Component, {
 		}
 	},
 
+	setTabsContent: function(atlasLayer) {
+		if (atlasLayer && atlasLayer.layer && atlasLayer.layer.events) {
+			atlasLayer.layer.events.on({
+				'layerupdate': function(evt) {
+					if (this.selectedLayer === atlasLayer) {
+						this._setTabsContent(atlasLayer);
+					}
+				},
+				scope: this
+			});
+		}
+		this._setTabsContent(atlasLayer);
+	},
+
 	// Set tab SRC, ignoring options tab
-	setTabsContent: function(layerJSon) {
+	_setTabsContent: function(atlasLayer) {
+		this.selectedLayer = atlasLayer;
+		var layerJSon = {};
+		if (atlasLayer && atlasLayer.json) {
+			layerJSon = atlasLayer.json;
+		}
 		var srcs;
 		if (layerJSon && layerJSon['infoHtmlUrls']) {
 			srcs = layerJSon['infoHtmlUrls'];
@@ -139,7 +157,7 @@ Atlas.Info = Ext.extend(Ext.Component, {
 					this.tabs[i].setSrc(srcs[srcInd]);
 				} else {
 					if (i == this.descriptionTab) {
-						var description = Atlas.core.getLayerDescription(layerJSon);
+						var description = atlasLayer ? atlasLayer.getDescription() : null;
 						if (description) {
 							this.tabs[i].setContent(description);
 						} else {

@@ -67,7 +67,10 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 	private String description;
 
 	@ConfigField
-	private String htmlDescription;
+	private String descriptionFormat;
+
+	@ConfigField
+	private String systemDescription;
 
 	// TODO Rename to Path
 	@ConfigField
@@ -294,12 +297,20 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 		this.description = description;
 	}
 
-	public String getHtmlDescription() {
-		return this.htmlDescription;
+	public String getDescriptionFormat() {
+		return this.descriptionFormat;
 	}
 
-	public void setHtmlDescription(String htmlDescription) {
-		this.htmlDescription = htmlDescription;
+	public void setDescriptionFormat(String descriptionFormat) {
+		this.descriptionFormat = descriptionFormat;
+	}
+
+	public String getSystemDescription() {
+		return this.systemDescription;
+	}
+
+	public void setSystemDescription(String systemDescription) {
+		this.systemDescription = systemDescription;
 	}
 
 	public String getWmsPath() {
@@ -508,8 +519,11 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 		if (Utils.isNotBlank(this.getDescription())) {
 			jsonLayer.put("description", this.getDescription().trim());
 		}
-		if (Utils.isNotBlank(this.getHtmlDescription())) {
-			jsonLayer.put("htmlDescription", this.getHtmlDescription().trim());
+		if (Utils.isNotBlank(this.getDescriptionFormat())) {
+			jsonLayer.put("descriptionFormat", this.getDescriptionFormat().trim());
+		}
+		if (Utils.isNotBlank(this.getSystemDescription())) {
+			jsonLayer.put("systemDescription", this.getSystemDescription().trim());
 		}
 
 		if (Utils.isNotBlank(this.getProjection())) {

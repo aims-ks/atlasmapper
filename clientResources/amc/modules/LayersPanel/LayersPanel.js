@@ -343,7 +343,7 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 	addPrintFrame: function() {
 		var printFrameLayer = new Atlas.Layer.PrintFrame(this.mapPanel, {
 			title: 'Print frame',
-			htmlDescription: '<p>\n' +
+			description: '<p>\n' +
 				'	This layer is a tool to allow high quality maps to be created directly\n' +
 				'	from a screenshot. It adds a moveable frame with labelled latitude and\n' +
 				'	longitudes. It also includes a moveable north arrow and scale bar. A\n' +
@@ -368,7 +368,8 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 				'		<li>In Word or PowerPoint you can add additional text, arrows and titles.</li>\n' +
 				'	</ol>\n' +
 				'</div>\n' +
-				'<br/>'
+				'<br/>',
+			descriptionFormat: 'html'
 		});
 		this.mapPanel.map.addLayer(printFrameLayer.layer);
 	},
@@ -500,10 +501,10 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 					var node = (that._layersListPanel && that._layersListPanel.getSelectionModel() ? that._layersListPanel.getSelectionModel().getSelectedNode() : null);
 					if (node) {
 						var layer = node.layer;
-						var atlasLayer = layer.atlasLayer;
 						if (layer) {
+							var atlasLayer = layer.atlasLayer;
 							// Special message for Group Layers
-							if (atlasLayer.isGroup()) {
+							if (atlasLayer && atlasLayer.isGroup()) {
 								var nbLayers = that._countRealLayers(node);
 								var msg = 'Are you sure you want to remove the ';
 								if (nbLayers > 1) {

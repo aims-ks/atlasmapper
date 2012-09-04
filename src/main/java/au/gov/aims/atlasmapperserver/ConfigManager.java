@@ -109,6 +109,7 @@ public class ConfigManager {
 
 	private String defaultProxyUrl = null;
 	private String defaultLayerInfoServiceUrl = null;
+	private String defaultSearchServiceUrl = null;
 
 	private int lastDataSourceId;
 	private int lastClientId;
@@ -128,6 +129,7 @@ public class ConfigManager {
 		if (context != null) {
 			this.defaultProxyUrl = FileFinder.getDefaultProxyURL(context);
 			this.defaultLayerInfoServiceUrl = FileFinder.getDefaultLayerInfoServiceURL(context);
+			this.defaultSearchServiceUrl = FileFinder.getDefaultSearchServiceURL(context);
 		}
 	}
 
@@ -1384,6 +1386,8 @@ public class ConfigManager {
 					layerMap.put("id", layerConfig.getLayerId());
 					layerMap.put("title", layerConfig.getTitle());
 					layerMap.put("description", layerConfig.getDescription());
+					layerMap.put("descriptionFormat", layerConfig.getDescriptionFormat());
+					layerMap.put("systemDescription", layerConfig.getSystemDescription());
 					layerMap.put("mapUrl", "index.html?intro=f&dl=t&loc=" + URLEncoder.encode(layerConfig.getLayerId(), "UTF-8") + "&l0=" + URLEncoder.encode(layerConfig.getLayerId(), "UTF-8"));
 
 					dataSourceLayerList.add(layerMap);
@@ -1591,6 +1595,14 @@ public class ConfigManager {
 				json.put("layerInfoServiceUrl", clientConfig.getLayerInfoServiceUrl().trim());
 			} else if (Utils.isNotBlank(this.defaultLayerInfoServiceUrl)) {
 				json.put("layerInfoServiceUrl", this.defaultLayerInfoServiceUrl.trim());
+			}
+		}
+
+		if (clientConfig.isUseSearchService()) {
+			if (Utils.isNotBlank(clientConfig.getSearchServiceUrl())) {
+				json.put("searchServiceUrl", clientConfig.getSearchServiceUrl().trim());
+			} else if (Utils.isNotBlank(this.defaultSearchServiceUrl)) {
+				json.put("searchServiceUrl", this.defaultSearchServiceUrl.trim());
 			}
 		}
 

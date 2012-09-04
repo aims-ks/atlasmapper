@@ -95,7 +95,54 @@ Ext.ux.IFramePanel = function(config) {
 			Ext.ux.IFramePanel.superclass.update.call(that, htmlOrData, loadScripts, cb);
 		} else {
 			if (loadedContent != content) {
-				Ext.ux.IFramePanel.superclass.update.call(that, content);
+				// Free some memory (manually remove DOM elements and event listeners)
+				// and FIX Internet Explorer bug re-using pre-rendered ExtJS elements
+				try {
+					// The DOM method "hasChildNodes" may not be available on all browsers
+					while (this.body.dom.hasChildNodes()) {
+						try {
+							// The ExtJS method "removeAllListeners" crash sometime on IE
+							// This DOM attribute "lastChild" may not be available on all browsers
+							Ext.fly(this.body.dom.lastChild).removeAllListeners();
+						} catch(e) {}
+						try {
+							// This DOM method "removeChild" or attribute "lastChild" may not be available on all browsers
+							this.body.dom.removeChild(this.body.dom.lastChild);
+						} catch(e) {}
+					}
+				} catch(e) {}
+
+				if (content &&
+						typeof(content) === 'object' &&
+						content instanceof Ext.Element &&
+						typeof(content.appendTo) === 'function') {
+					// Content is a Ext.Element
+					// IMPORTANT: The Ext.Element must be create properly.
+					//     Example:
+					//         content = new Ext.Element(Ext.DomHelper.createDom({
+					//             tag: 'div',
+					//             children: [{
+					//                 tag: 'div',
+					//                 html: 'Content'
+					//             }, {
+					//                 tag: 'div',
+					//                 html: 'More content'
+					//             }],
+					//             cls: 'new-div-cls',
+					//             id: 'new-div-id'
+					//         }));
+					//
+					//         Available attributes: [tag, children OR cn, html, function, style, cls, htmlFor]
+					//             Anything else will be apply strait to the element.
+
+					// Clear content
+					Ext.ux.IFramePanel.superclass.update.call(that, null);
+					// Add the Ext.Element to the panel body 
+					content.appendTo(this.body);
+				} else {
+					// Content is a HTML String
+					Ext.ux.IFramePanel.superclass.update.call(that, content);
+				}
 				loadedContent = content;
 			}
 		}

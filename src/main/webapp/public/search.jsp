@@ -1,4 +1,4 @@
-<%-- 
+<%--
  *  This file is part of AtlasMapper server and clients.
  *
  *  Copyright (C) 2011 Australian Institute of Marine Science
@@ -22,9 +22,22 @@
 	Created on : 11/07/2011, 10:20:45 AM
 	Author     : glafond
 	Description: Return complete information in JSON format, about one of more layers.
+
+	return: JSONObject {
+		length: (Number) Total amount of results returned by the search.
+		results: (JSONArray of Result) Part fo the results, according to the parameters offset and qte.
+	}
+
+	Result: JSONObject {
+		title: (String) Display result
+		id: (String) Unique identifier for the result
+		polygon: (JSONArray of Coordinates) Array of coordinates. Example: "polygon: [[0,0], [0,10], [10,10], [10,0]]"
+		center: (Coordinate) Coordinate of the center of the polygon, used to locate the marker on the map.
+	}
+
+	Coordinate: JSONArray containing 2 doubles; [longitude, latitude].
 --%>
 
-<%@page import="au.gov.aims.atlasmapperserver.ConfigType"%>
 <%@page import="au.gov.aims.atlasmapperserver.ClientConfig"%>
 <%@page import="au.gov.aims.atlasmapperserver.ConfigHelper"%>
 <%@page import="au.gov.aims.atlasmapperserver.ConfigManager"%>
@@ -33,9 +46,20 @@
 <%@page import="org.json.JSONObject"%>
 <%@page contentType="application/json" pageEncoding="UTF-8"%>
 <%
-	String actionStr = request.getParameter("action");
-	String layerIdsStr = request.getParameter("layerIds");
 	String clientId = request.getParameter("client");
+
+	// Search type: Currently only support location search (default: LOCATION).
+	String searchTypeStr = request.getParameter("type");
+
+	// The query string, as entered by the user in the search field.
+	String query = request.getParameter("query");
+	// Map bounds, to help the server to order the results.
+	String bounds = request.getParameter("bounds");
+
+	// Start from result (default: 0 => Start from the first result).
+	int offset = (request.getParameter("offset") != null ? Integer.parseInt(request.getParameter("offset")) : 0);
+	// Maximum number of results that has to be returned (default: 10).
+	int qty = (request.getParameter("qty") != null ? Integer.parseInt(request.getParameter("qty")) : 10);
 
 	ConfigManager configManager = ConfigHelper.getConfigManager(this.getServletConfig().getServletContext());
 
@@ -43,8 +67,8 @@
 	JSONObject jsonObj = new JSONObject();
 
 	// live:
-	//     true: Get the config from the live server (slow)
-	//     false (default): Get the config from generated config files (fast)
+	//     true: Perform a search using the current client config.
+	//     false (default): Perform a search using the generated client config.
 	// "live" is true only when it's value is the String "true", ignoring case.
 	boolean live = (request.getParameter("live") != null && Boolean.parseBoolean(request.getParameter("live")));
 
@@ -59,50 +83,26 @@
 			jsonObj.put("success", false);
 			jsonObj.put("errors", new JSONArray().put("The client "+clientId+" do not exists."));
 		} else {
-			if (Utils.isNotBlank(actionStr)) {
-				if ("GET_LIVE_CONFIG".equalsIgnoreCase(actionStr)) {
-					JSONObject fullConfig = null;
-					try {
-						fullConfig = configManager.getClientConfigFileJSon(clientConfig, ConfigType.FULL, true, true);
-					} catch (Exception ex) {
-						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-						jsonObj.put("success", false);
-						jsonObj.put("errors", new JSONArray().put("Exception while generating the new Live Full config. Check the server logs."));
-						ex.printStackTrace();
-					}
-					if (fullConfig == null || fullConfig.length() <= 0) {
-						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-						jsonObj.put("success", false);
-						jsonObj.put("errors", new JSONArray().put("The new Live Full config is empty."));
-					} else {
-						response.setStatus(HttpServletResponse.SC_OK);
-						jsonObj.put("success", true);
-						jsonObj.put("message", "Live Full config");
-						jsonObj.put("data", fullConfig);
-					}
-				} else {
-					response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-					jsonObj.put("success", false);
-					jsonObj.put("errors", new JSONArray().put("Unknown action ["+actionStr+"]."));
-				}
-			} else if (Utils.isNotBlank(layerIdsStr)) {
-				String[] layerIds = layerIdsStr.split("\\s*,\\s*");
-				JSONObject foundLayers = configManager.getClientLayers(clientConfig, layerIds);
+			if (Utils.isBlank(searchTypeStr) || "LOCATION".equalsIgnoreCase(searchTypeStr)) {
+				JSONObject results = null;
 
-				if (foundLayers == null || foundLayers.length() <= 0) {
-					response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+				try {
+					results = clientConfig.locationSearch(query, bounds, offset, qty, live);
+				} catch (Exception ex) {
+					response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 					jsonObj.put("success", false);
-					jsonObj.put("errors", new JSONArray().put("Layers not found."));
-				} else {
-					response.setStatus(HttpServletResponse.SC_OK);
-					jsonObj.put("success", true);
-					jsonObj.put("message", "Layers found");
-					jsonObj.put("data", foundLayers);
+					jsonObj.put("errors", new JSONArray().put("Exception while performing the location search."));
+					ex.printStackTrace();
 				}
+
+				response.setStatus(HttpServletResponse.SC_OK);
+				jsonObj.put("success", true);
+				jsonObj.put("message", "Search results");
+				jsonObj.put("data", results);
 			} else {
 				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 				jsonObj.put("success", false);
-				jsonObj.put("errors", new JSONArray().put("Missing parameter [action] OR [layerIds]."));
+				jsonObj.put("errors", new JSONArray().put("Invalid search type "+searchTypeStr+"."));
 			}
 		}
 	}
