@@ -55,7 +55,7 @@ Atlas.Layer.SearchResults = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 	 * mapPanel - {Object} Instance of the MapPanel in which the layer is used
 	 */
 	initialize: function(mapPanel, jsonLayer, parent) {
-		if (Atlas.conf && Atlas.conf['searchServiceUrl']) {
+		if (Atlas.conf && Atlas.conf['searchServiceUrl'] && jsonLayer && jsonLayer.query) {
 			this.searchServiceUrl = Atlas.conf['searchServiceUrl'];
 		} else {
 			// No search service - this class can not be initialised...

@@ -215,12 +215,6 @@ ol.bullet-list > li {
 	float: left;
 	margin-left: 4px;
 }
-.link-btn {
-	margin-right: 20px;
-}
-.layers-btn .link {
-	background-image: url('../images/link.png');
-}
 .layers-btn .add {
 	background-image: url('../images/add.png');
 }
@@ -242,11 +236,15 @@ ol.bullet-list > li {
 	margin-top: 1em;
 }
 
-/* Print Frame */
-.layers-btn .printFrame {
-	background-image: url('../images/frame.png');
-}
 
+/* Map Tools */
+
+.printFrameButton {
+	background-image: url('../images/frame-24px.png');
+}
+.linkButton {
+	background-image: url('../images/link-24px.png');
+}
 .searchButton {
 	background-image: url('../images/search-24px.png');
 }
