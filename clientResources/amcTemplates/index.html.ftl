@@ -77,6 +77,7 @@
 	<![endif]-->
 
 	<script type="text/javascript" src="OpenLayers/OpenLayers-2.12/OpenLayers.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="OpenLayers-ux/MultiSelectDragFeature.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="OpenLayers-ux/PrintFrame.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="OpenLayers-ux/SearchResults.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="OpenLayers-ux/NCWMS.js?atlasmapperVer=${version}"></script>

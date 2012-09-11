@@ -110,6 +110,18 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 
 		this.opacitySlider = new GeoExt.ux.GroupLayerOpacitySlider(opacitySliderConfig);
 
+		// The opacity slider (thumb) goes to 0 when its value is
+		// changed and it's not visible. This event prevent that bug.
+		// NOTE: This event listener is automatically destroy when the
+		//     panel is destroyed. The opacity slider should not be
+		//     destroyed before that.
+		this.on({
+			'show': function() {
+				this.opacitySlider.syncThumb();
+			},
+			scope: this
+		});
+
 		this.optionsFieldSet = new Ext.form.FieldSet({
 			hidden: true,
 			defaultType: 'textfield',

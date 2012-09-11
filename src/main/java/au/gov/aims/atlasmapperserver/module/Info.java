@@ -57,7 +57,7 @@ public class Info extends AbstractModule {
 		optionsTabConfig.put("defaultContent", "The selected layer do not have any <b>options</b>.");
 
 		JSONObject tabsConfig = new JSONObject();
-		tabsConfig.put("Layer", layerTabConfig);
+		tabsConfig.put("Description", layerTabConfig);
 		tabsConfig.put("Options", optionsTabConfig);
 
 		return tabsConfig;

@@ -60,12 +60,9 @@ OpenLayers.Layer.ux.SearchResults = OpenLayers.Class(OpenLayers.Layer.Vector, {
 		// This method is also called every time the layer order is changed.
 		// The following has to be called only once, after the layer
 		// is added to the map.
-		if (!this._initiated) {
-			var selectControl = new OpenLayers.Control.SelectFeature(this, {
-				hover: true
-			});
-			this.map.addControl(selectControl);
-			selectControl.activate();
+		if (!this._initiated && this.map) {
+			var multiSelectDragFeature = OpenLayers.Control.ux.MultiSelectDragFeature.getInstance(this.map);
+			multiSelectDragFeature.addLayer(this);
 
 			this._initiated = true;
 		}
@@ -84,6 +81,8 @@ OpenLayers.Layer.ux.SearchResults = OpenLayers.Class(OpenLayers.Layer.Vector, {
 						results[i].center[0],
 						results[i].center[1]));
 				var id = results[i].id;
+
+				// NOTE: If polygons or other geometry than Points are added, also modify the locate method.
 
 				// Clone the style object
 				var style = OpenLayers.Util.extend({}, this.markerStyle);
@@ -129,6 +128,22 @@ OpenLayers.Layer.ux.SearchResults = OpenLayers.Class(OpenLayers.Layer.Vector, {
 			feature.style.graphicYOffset = this.MARKER_SIZE * -2;
 			// Redraw
 			this.drawFeature(feature);
+		}
+	},
+
+	locate: function(feature) {
+		if (typeof(feature) === 'string') {
+			feature = this._features[feature];
+		}
+		if (feature && this.map) {
+			// The layer only contains Points, but that will probably change in the future...
+			if (feature.geometry instanceof OpenLayers.Geometry.Point) {
+				// Since it's a Point, "zoomTo" has the tandancy to zoom to
+				// the maximum zoom level, which is usually way too close.
+				// "panTo" move the map without changing the zoom level,
+				// which is more appropriate for this purpose. 
+				this.map.panTo(new OpenLayers.LonLat(feature.geometry.x, feature.geometry.y));
+			}
 		}
 	},
 

@@ -107,25 +107,33 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 			if (node.layer.atlasLayer.isLoading()) {
 				this.onLayerLoadStart(node);
 			}
-			node.layer.events.on({
-				'removed': function(event) {
-					// event.map, event.layer
-					this.onLayerDelete(event.map, node);
-				},
-				'loadstart': function(event) {
-					this.onLayerLoadStart(node);
-				},
-				'loadend': function(event) {
-					this.onLayerLoadEnd(node);
-				},
-				// This event is not triggered anywhere, but maybe someday it will be...
-				'loadcancel': function(event) {
-					this.onLayerLoadCancel(node);
-				},
-				scope: this
-			});
 
-			if (node.layer != null && node.layer.atlasLayer != null && node.layer.atlasLayer.isGroup()) {
+			var isGroup = node.layer != null && node.layer.atlasLayer != null && node.layer.atlasLayer.isGroup();
+
+			// Layer group listeners has to be registered at the end,
+			// so the load event of child layers are trigger before
+			// the group starts checking if its children are loading.
+			var priority = !isGroup;
+
+			node.layer.events.register('removed', this, function(event) {
+				// event.map, event.layer
+				this.onLayerDelete(event.map, node);
+			}, priority);
+
+			node.layer.events.register('loadstart', this, function(event) {
+				this.onLayerLoadStart(node);
+			}, priority);
+
+			node.layer.events.register('loadend', this, function(event) {
+				this.onLayerLoadEnd(node);
+			}, priority);
+
+			// This event is not triggered anywhere, but maybe someday it will be...
+			node.layer.events.register('loadcancel', this, function(event) {
+				this.onLayerLoadCancel(node);
+			}, priority);
+
+			if (isGroup) {
 				node.on("checkchange", this.onFolderCheckChange, this);
 			}
 		}

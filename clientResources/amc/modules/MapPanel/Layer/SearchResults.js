@@ -47,6 +47,8 @@ Atlas.Layer.SearchResults = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 	// True when the layer is searching...
 	searching: true,
 
+	nbResults: null,
+
 	/**
 	 * Constructor: Atlas.Layer.SearchResults
 	 *
@@ -111,17 +113,8 @@ Atlas.Layer.SearchResults = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 					}
 				}
 			},
-			'removed': function(evt) {
-				this.destroy();
-			},
 			scope: this
 		});
-	},
-
-	destroy: function() {
-		// There is nothing else to do here
-		// This object do not have any event listeners
-		this.results = null;
 	},
 
 	// Override
@@ -187,12 +180,15 @@ Atlas.Layer.SearchResults = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 
 		// Decode the response
 		var jsonResponse = eval("(" + response.responseText + ")");
+
+		var _nbResults = 0;
 		if (jsonResponse) {
 			if (jsonResponse.success) {
 				var value = jsonResponse.data;
 
 				if (value) {
-					this.nbPages = Math.ceil((value.length || 0) / this.NB_RESULTS_PER_PAGE);
+					_nbResults = value.length || 0;
+					this.nbPages = Math.ceil(_nbResults / this.NB_RESULTS_PER_PAGE);
 
 					if (value && value.results) {
 						this.results = value.results;
@@ -221,6 +217,21 @@ Atlas.Layer.SearchResults = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 			// TODO Error on the page
 			alert('The application has failed to perform a search:\nThe search service didn\'t returne anything.');
 		}
+
+		this.nbResults = _nbResults;
+		this.layer.setName(this.getTitle());
+	},
+
+	// override
+	getTitle: function() {
+		var title = Atlas.Layer.AbstractLayer.prototype.getTitle.apply(this, arguments);
+
+		// Add the number of result to the layer title
+		if (this.nbResults != null) {
+			title += ' ('+this.nbResults+')';
+		}
+
+		return title;
 	},
 
 	// override
@@ -292,6 +303,7 @@ Atlas.Layer.SearchResults = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 				// Those event listeners are removed by Ext.ux.IFramePanel.update()
 				li.addListener('mouseover', function() { that._mouseOver(this); });
 				li.addListener('mouseout', function() { that._mouseOut(this); });
+				li.addListener('click', function() { that._click(this); });
 
 				list.appendChild(li);
 			}
@@ -310,6 +322,10 @@ Atlas.Layer.SearchResults = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 	_mouseOut: function(li) {
 		var featureId = li.id;
 		this.layer.events.triggerEvent('featureunselected', {feature: featureId});
+	},
+	_click: function(li) {
+		var featureId = li.id;
+		this.layer.locate(featureId);
 	}
 });
 

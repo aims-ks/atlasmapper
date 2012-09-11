@@ -266,10 +266,14 @@ Atlas.AbstractMapPanel = {
 		if (this.pullState) {
 			this.map.events.on({
 				"moveend": function(evt) {
-					top.Atlas.core.mapPanels[0].ol_fireEvent('saveStateChange', {urlSaveState: that._createUrlSaveState()});
+					if (top && top.Atlas && top.Atlas.core && top.Atlas.core.mapPanels[0]) {
+						top.Atlas.core.mapPanels[0].ol_fireEvent('saveStateChange', {urlSaveState: that._createUrlSaveState()});
+					}
 				},
 				"addlayer": function(evt) {
-					top.Atlas.core.mapPanels[0].ol_fireEvent('saveStateChange', {urlSaveState: that._createUrlSaveState()});
+					if (top && top.Atlas && top.Atlas.core && top.Atlas.core.mapPanels[0]) {
+						top.Atlas.core.mapPanels[0].ol_fireEvent('saveStateChange', {urlSaveState: that._createUrlSaveState()});
+					}
 				}
 			});
 		}

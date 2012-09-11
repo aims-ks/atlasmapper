@@ -44,8 +44,8 @@ Atlas.MapToolsPanel = Ext.extend(Ext.form.FormPanel, {
 				}
 			},
 
-			// Add a shadow
-			floating: true, shadowOffset: 6,
+			// Add a shadow - cause problem with modal window (this panel stay on top...)
+			//floating: true, shadowOffset: 6,
 
 			items: [
 				{

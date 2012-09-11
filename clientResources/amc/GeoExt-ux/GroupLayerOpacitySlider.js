@@ -24,13 +24,13 @@ Ext.namespace("GeoExt.ux");
 GeoExt.ux.GroupLayerOpacitySlider = Ext.extend(GeoExt.LayerOpacitySlider, {
 	node: null,
 
-    constructor: function(config) {
+	constructor: function(config) {
 		if (config.node && config.node.layer) {
 			config.layer = config.node.layer
 		}
 
 		GeoExt.ux.GroupLayerOpacitySlider.superclass.constructor.call(this, config);
-    },
+	},
 
 	/**
 	 * GroupLayerOpacitySlider need a reference to the node to propagate

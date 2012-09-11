@@ -49,7 +49,6 @@ OpenLayers.Layer.ux = OpenLayers.Layer.ux || {};
 OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 	CLASS_NAME: "OpenLayers.Layer.ux.PrintFrame",
 
-
 	// Default values
 	DEFAULT_DPI: 90,
 	strokeWidth: 2, // in pixel
@@ -95,6 +94,7 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 	printedFrame: null,
 
 	// private
+	_coordLinesLiveUpdate: true,
 	_initiated: false,
 	_frameFeatures: null,
 	_coordLinesFeatures: null,
@@ -106,7 +106,7 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 		options = options || {};
 		options.rendererOptions = options.rendererOptions || {};
 		options.rendererOptions.zIndexing = true;
-		
+
 		OpenLayers.Layer.Vector.prototype.initialize.apply(this, arguments);
 
 		this.options = this.options || {};
@@ -233,146 +233,34 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 
 		var isIE = OpenLayers.Util.getBrowserName() === 'msie';
 
+		// Dragable
+		// NOTE: To make all PrintFrame dragable, instead of only the
+		//     one on top, this layer must be added to the
+		//     multiSelectDragFeature, after activate a unique
+		//     DragFeature for the whole layer.
+		var dragControl = new OpenLayers.Control.DragFeature(this, {
+			onStart: this.startDrag,
+			onDrag: this.doDrag,
+			onComplete: this.endDrag
+		});
+
+		// Little hack to enable the drag handler only on specified features
+		dragControl.handlers.feature.geometryTypeMatches = function(feature) {
+			return feature.isDragable === true;
+		};
+
+		this.map.addControl(dragControl);
+		dragControl.activate();
+
+		var multiSelectDragFeature = OpenLayers.Control.ux.MultiSelectDragFeature.getInstance(this.map);
+		multiSelectDragFeature.addLayer(this);
+
+
 		// true: Coordinate lines are updated while the frame moves around.
 		// false: Coordinate lines are hidden while the frame moves around, and redrawn when it stops moving.
 		// NOTE: This is always false for IE (all version of IE are way too slow to handle that feature)
-		var coordLinesLiveUpdate = true;
-
 		if (isIE) {
-			coordLinesLiveUpdate = false;
-		}
-
-		// Resizable
-		var resize = new OpenLayers.Control.DragFeature(this, {
-			onStart: startResize,
-			onDrag: doResize,
-			onComplete: endResize
-		});
-
-		// Little hack to enable the drag handler only on specified features
-		resize.handlers.feature.geometryTypeMatches = function(feature) {
-			return feature.isResizeHandle === true;
-		};
-
-		this.map.addControl(resize);
-		resize.activate();
-
-		// Resize handle starting to move
-		function startResize(feature, pixel) {
-			if (!coordLinesLiveUpdate) {
-				that.removeFeatures(that._coordLinesFeatures);
-			}
-			lastPixel = pixel;
-		}
-
-		// Resize handle moving
-		function doResize(feature, pixel) {
-			that.removeFeatures(that._frameFeatures);
-			// The feature that is dragged get redrawn by open layers, and by this method. The ghost has to be deleted manually.
-			that.removeFeatures([feature]);
-
-			that._frameFeatures = that._resizeFrame(pixel);
-			that.addFeatures(that._frameFeatures);
-
-			if (coordLinesLiveUpdate) {
-				that.removeFeatures(that._coordLinesFeatures);
-				that._coordLinesFeatures = that._drawCoordLines();
-				that.addFeatures(that._coordLinesFeatures);
-			}
-			lastPixel = pixel;
-		}
-
-		// Resize handle stopped moving
-		function endResize(feature, pixel) {
-			// "outFeature" is not automatically called when the resize handle is moved over the limit (frame resized to a size smaller than 0).
-			this.outFeature(feature); // NOTE: outFeature is a method of the DragFeature
-			// deResize delete the ghosts, but maybe some browsers will have issue with the last one...
-			that.removeFeatures([feature]);
-
-			if (!coordLinesLiveUpdate) {
-				that._coordLinesFeatures = that._drawCoordLines();
-				that.addFeatures(that._coordLinesFeatures);
-			}
-			that._updateAttributions();
-			for (var i = 0; i < that._frameFeatures.length; i++) {
-				that._frameFeatures[i].state = OpenLayers.State.UPDATE;
-			}
-		}
-
-		// Dragable
-		var drag = new OpenLayers.Control.DragFeature(this, {
-			onStart: startDrag,
-			onDrag: doDrag,
-			onComplete: endDrag
-		});
-
-		// Little hack to enable the drag handler only on specified features
-		drag.handlers.feature.geometryTypeMatches = function(feature) {
-			return feature.isDragHandle === true;
-		};
-
-		this.map.addControl(drag);
-		drag.activate();
-
-
-
-		// Drag handle starting to move
-		function startDrag(feature, pixel) {
-			if (!coordLinesLiveUpdate) {
-				that.removeFeatures(that._coordLinesFeatures);
-			}
-			lastPixel = pixel;
-		}
-
-		// Drag handle moving
-		function doDrag(feature, pixel) {
-			var res = that.map.getResolution();
-			// Move the frame
-			for (var i = 0; i < that._frameFeatures.length; i++) {
-				if (feature != that._frameFeatures[i]) {
-					that._frameFeatures[i].geometry.move(res * (pixel.x - lastPixel.x), res * (lastPixel.y - pixel.y));
-					that.drawFeature(that._frameFeatures[i]);
-				}
-			}
-			// Move the arrow
-			for (var i = 0; i < that._scaleLineFeatures.length; i++) {
-				that._scaleLineFeatures[i].geometry.move(res * (pixel.x - lastPixel.x), res * (lastPixel.y - pixel.y));
-				that.drawFeature(that._scaleLineFeatures[i]);
-			}
-			// Move the scale line (this feature is refreshed after move)
-			for (var i = 0; i < that._northArrowFeatures.length; i++) {
-				that._northArrowFeatures[i].geometry.move(res * (pixel.x - lastPixel.x), res * (lastPixel.y - pixel.y));
-				that.drawFeature(that._northArrowFeatures[i]);
-			}
-
-			if (coordLinesLiveUpdate) {
-				// Redraw the coordinate lines
-				that.removeFeatures(that._coordLinesFeatures);
-				that._coordLinesFeatures = that._drawCoordLines();
-				that.addFeatures(that._coordLinesFeatures);
-			}
-			lastPixel = pixel;
-		}
-
-		// Drag handle stopped moving
-		function endDrag(feature, pixel) {
-			if (!coordLinesLiveUpdate) {
-				// Redraw the lines, if they are not live
-				that._coordLinesFeatures = that._drawCoordLines();
-				that.addFeatures(that._coordLinesFeatures);
-			}
-			// Set the features state to UPDATE (probably not needed)
-			for (var i = 0; i < that._frameFeatures.length; i++) {
-				that._frameFeatures[i].state = OpenLayers.State.UPDATE;
-			}
-			for (var i = 0; i < that._northArrowFeatures.length; i++) {
-				that._northArrowFeatures[i].state = OpenLayers.State.UPDATE;
-			}
-			that._updateAttributions();
-			// Redraw the scale line
-			that.removeFeatures(that._scaleLineFeatures);
-			that._scaleLineFeatures = that._drawScaleLine();
-			that.addFeatures(that._scaleLineFeatures);
+			this._coordLinesLiveUpdate = false;
 		}
 
 		// Register events
@@ -412,6 +300,162 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 
 		this._registerListeners();
 	},
+
+
+
+
+
+
+
+	startDrag: function(feature, pixel) {
+		var that = this.layer;
+
+		if (feature.isDragHandle) {
+			// Drag handle starting to move
+			if (!that._coordLinesLiveUpdate) {
+				that.removeFeatures(that._coordLinesFeatures);
+			}
+			lastPixel = pixel;
+
+		} else if (feature.isResizeHandle) {
+			// Resize handle starting to move
+			if (!that._coordLinesLiveUpdate) {
+				that.removeFeatures(that._coordLinesFeatures);
+			}
+			lastPixel = pixel;
+
+		} else if (feature.isScaleHandle) {
+			lastPixel = pixel;
+
+		} else if (feature.isNorthArrowHandle) {
+			lastPixel = pixel;
+		}
+	},
+
+	doDrag: function(feature, pixel) {
+		var that = this.layer;
+
+		if (feature.isDragHandle) {
+			// Drag handle moving
+			var res = that.map.getResolution();
+			// Move the frame
+			for (var i = 0; i < that._frameFeatures.length; i++) {
+				if (feature != that._frameFeatures[i]) {
+					that._frameFeatures[i].geometry.move(res * (pixel.x - lastPixel.x), res * (lastPixel.y - pixel.y));
+					that.drawFeature(that._frameFeatures[i]);
+				}
+			}
+			// Move the arrow
+			for (var i = 0; i < that._scaleLineFeatures.length; i++) {
+				that._scaleLineFeatures[i].geometry.move(res * (pixel.x - lastPixel.x), res * (lastPixel.y - pixel.y));
+				that.drawFeature(that._scaleLineFeatures[i]);
+			}
+			// Move the scale line (this feature is refreshed after move)
+			for (var i = 0; i < that._northArrowFeatures.length; i++) {
+				that._northArrowFeatures[i].geometry.move(res * (pixel.x - lastPixel.x), res * (lastPixel.y - pixel.y));
+				that.drawFeature(that._northArrowFeatures[i]);
+			}
+
+			if (that._coordLinesLiveUpdate) {
+				// Redraw the coordinate lines
+				that.removeFeatures(that._coordLinesFeatures);
+				that._coordLinesFeatures = that._drawCoordLines();
+				that.addFeatures(that._coordLinesFeatures);
+			}
+			lastPixel = pixel;
+
+		} else if (feature.isResizeHandle) {
+			// Resize handle moving
+			that.removeFeatures(that._frameFeatures);
+			// The feature that is dragged get redrawn by open layers, and by this method. The ghost has to be deleted manually.
+			that.removeFeatures([feature]);
+
+			that._frameFeatures = that._resizeFrame(pixel);
+			that.addFeatures(that._frameFeatures);
+
+			if (that._coordLinesLiveUpdate) {
+				that.removeFeatures(that._coordLinesFeatures);
+				that._coordLinesFeatures = that._drawCoordLines();
+				that.addFeatures(that._coordLinesFeatures);
+			}
+			lastPixel = pixel;
+
+		} else if (feature.isScaleHandle) {
+			for (var i = 0; i < that._scaleLineFeatures.length; i++) {
+				if (feature != that._scaleLineFeatures[i]) {
+					var res = that.map.getResolution();
+					that._scaleLineFeatures[i].geometry.move(res * (pixel.x - lastPixel.x), res * (lastPixel.y - pixel.y));
+					that.drawFeature(that._scaleLineFeatures[i]);
+				}
+			}
+
+			lastPixel = pixel;
+
+		} else if (feature.isNorthArrowHandle) {
+			for (var i = 0; i < that._northArrowFeatures.length; i++) {
+				if (feature != that._northArrowFeatures[i]) {
+					var res = that.map.getResolution();
+					that._northArrowFeatures[i].geometry.move(res * (pixel.x - lastPixel.x), res * (lastPixel.y - pixel.y));
+					that.drawFeature(that._northArrowFeatures[i]);
+				}
+			}
+
+			lastPixel = pixel;
+		}
+	},
+
+	endDrag: function(feature, pixel) {
+		var that = this.layer;
+
+		if (feature.isDragHandle) {
+			// Drag handle stopped moving
+			if (!that._coordLinesLiveUpdate) {
+				// Redraw the lines, if they are not live
+				that._coordLinesFeatures = that._drawCoordLines();
+				that.addFeatures(that._coordLinesFeatures);
+			}
+			// Set the features state to UPDATE (probably not needed)
+			for (var i = 0; i < that._frameFeatures.length; i++) {
+				that._frameFeatures[i].state = OpenLayers.State.UPDATE;
+			}
+			for (var i = 0; i < that._northArrowFeatures.length; i++) {
+				that._northArrowFeatures[i].state = OpenLayers.State.UPDATE;
+			}
+			that._updateAttributions();
+			// Redraw the scale line
+			that.removeFeatures(that._scaleLineFeatures);
+			that._scaleLineFeatures = that._drawScaleLine();
+			that.addFeatures(that._scaleLineFeatures);
+
+		} else if (feature.isResizeHandle) {
+			// Resize handle stopped moving
+			// "outFeature" is not automatically called when the resize handle is moved over the limit (frame resized to a size smaller than 0).
+			this.outFeature(feature); // NOTE: outFeature is a method of the DragFeature
+			// deResize delete the ghosts, but maybe some browsers will have issue with the last one...
+			that.removeFeatures([feature]);
+
+			if (!that._coordLinesLiveUpdate) {
+				that._coordLinesFeatures = that._drawCoordLines();
+				that.addFeatures(that._coordLinesFeatures);
+			}
+			that._updateAttributions();
+			for (var i = 0; i < that._frameFeatures.length; i++) {
+				that._frameFeatures[i].state = OpenLayers.State.UPDATE;
+			}
+
+		} else if (feature.isScaleHandle) {
+			for (var i = 0; i < that._scaleLineFeatures.length; i++) {
+				that._scaleLineFeatures[i].state = OpenLayers.State.UPDATE;
+			}
+
+		} else if (feature.isNorthArrowHandle) {
+			for (var i = 0; i < that._northArrowFeatures.length; i++) {
+				that._northArrowFeatures[i].state = OpenLayers.State.UPDATE;
+			}
+		}
+	},
+
+
 
 	_registerListeners: function() {
 		if (this.map) {
@@ -660,7 +704,6 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 			null, // attributes
 			frameStyle
 		);
-		//frame.isDragHandle = true;
 		frameFeatures.push(frame);
 
 		// Frame border
@@ -678,11 +721,13 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 		// Move icon (added before resize - displayed bellow, so it's always possible to resize even when the frame is very small)
 		var movePoint = frameTopLeft.clone();
 		var moveFeature = new OpenLayers.Feature.Vector(movePoint, null, moveStyle);
+		moveFeature.isDragable = true;
 		moveFeature.isDragHandle = true;
 		frameFeatures.push(moveFeature);
 
 		var resizePoint = frameBottomRight.clone();
 		var resizeFeature = new OpenLayers.Feature.Vector(resizePoint, null, resizeStyle);
+		resizeFeature.isDragable = true;
 		resizeFeature.isResizeHandle = true;
 		frameFeatures.push(resizeFeature);
 
@@ -1071,47 +1116,10 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 			null, // attributes
 			bboxScaleStyle
 		);
+		bboxScale.isDragable = true;
 		bboxScale.isScaleHandle = true;
 
 		var scaleFeatures = [middleLine, startLine, topUnitLine, bottomUnitLine, topUnitLabel, bottomUnitLabel, bboxScale];
-
-		// Draggable
-		var drag = new OpenLayers.Control.DragFeature(this, {
-			onStart: startDrag,
-			onDrag: doDrag,
-			onComplete: endDrag
-		});
-		// Little hack to enable the drag handler only on specified features
-		drag.handlers.feature.geometryTypeMatches = function(feature) {
-			return feature.isScaleHandle === true;
-		};
-		this.map.addControl(drag);
-		drag.activate();
-
-		// Drag handle starting to move
-		function startDrag(feature, pixel) {
-			lastPixel = pixel;
-		}
-
-		// Drag handle moving
-		function doDrag(feature, pixel) {
-			for (var i = 0; i < scaleFeatures.length; i++) {
-				if (feature != scaleFeatures[i]) {
-					var res = that.map.getResolution();
-					scaleFeatures[i].geometry.move(res * (pixel.x - lastPixel.x), res * (lastPixel.y - pixel.y));
-					that.drawFeature(scaleFeatures[i]);
-				}
-			}
-
-			lastPixel = pixel;
-		}
-
-		// Drag handle stopped moving
-		function endDrag(feature, pixel) {
-			for (var i = 0; i < scaleFeatures.length; i++) {
-				scaleFeatures[i].state = OpenLayers.State.UPDATE;
-			}
-		}
 
 		// Disable the drag control when the element is deleted
 		function beforeFeatureRemoved(e) {
@@ -1127,8 +1135,6 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 				];
 
 				// Remove controls and event listeners
-				drag.deactivate();
-				drag.destroy();
 				that.events.un({
 					beforefeatureremoved: beforeFeatureRemoved
 				})
@@ -1322,47 +1328,10 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 			null, // attributes
 			bboxArrowStyle
 		);
+		bboxArrow.isDragable = true;
 		bboxArrow.isNorthArrowHandle = true;
 
 		var arrowFeatures = [arrow, whiteArrow, label, bboxArrow];
-
-		// Draggable
-		var drag = new OpenLayers.Control.DragFeature(this, {
-			onStart: startDrag,
-			onDrag: doDrag,
-			onComplete: endDrag
-		});
-		// Little hack to enable the drag handler only on specified features
-		drag.handlers.feature.geometryTypeMatches = function(feature) {
-			return feature.isNorthArrowHandle === true;
-		};
-		this.map.addControl(drag);
-		drag.activate();
-
-		// Drag handle starting to move
-		function startDrag(feature, pixel) {
-			lastPixel = pixel;
-		}
-
-		// Drag handle moving
-		function doDrag(feature, pixel) {
-			for (var i = 0; i < arrowFeatures.length; i++) {
-				if (feature != arrowFeatures[i]) {
-					var res = that.map.getResolution();
-					arrowFeatures[i].geometry.move(res * (pixel.x - lastPixel.x), res * (lastPixel.y - pixel.y));
-					that.drawFeature(arrowFeatures[i]);
-				}
-			}
-
-			lastPixel = pixel;
-		}
-
-		// Drag handle stopped moving
-		function endDrag(feature, pixel) {
-			for (var i = 0; i < arrowFeatures.length; i++) {
-				arrowFeatures[i].state = OpenLayers.State.UPDATE;
-			}
-		}
 
 		// Disable the drag control when the element is deleted
 		function beforeFeatureRemoved(e) {
@@ -1378,8 +1347,6 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 				];
 
 				// Remove controls and event listeners
-				drag.deactivate();
-				drag.destroy();
 				that.events.un({
 					beforefeatureremoved: beforeFeatureRemoved
 				})

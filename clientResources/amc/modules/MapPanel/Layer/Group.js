@@ -25,6 +25,7 @@ window["Atlas"]["Layer"] = window["Atlas"]["Layer"] || {};
 
 Atlas.Layer.Group = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 	children: null,
+	supportLoadEvents: true,
 
 	/**
 	 * Constructor: Atlas.Layer.Group
