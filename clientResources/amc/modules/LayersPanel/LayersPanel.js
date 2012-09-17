@@ -108,22 +108,6 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 			allowDrag: false
 		});
 
-		var deleteLayerFct = function(event, layer) {
-			Ext.MessageBox.show({
-				title: String.format('Removing "{0}"', layer.name),
-				msg: String.format('Are you sure you want to remove the layer {0} '+
-					'from your list of layers?', '<i><b>' + layer.name + '</b></i>'),
-				buttons: Ext.Msg.YESNO,
-				fn: function(btn){
-					if(btn == 'yes'){
-						that.mapPanel.ol_fireEvent('removeLayer', {layer: layer});
-					}
-				},
-				icon: Ext.MessageBox.QUESTION,
-				maxWidth: 300
-			});
-		};
-
 		var onCheckChange = function(node, checked) {
 			if (checked) {
 				node.select();
@@ -138,7 +122,6 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 				filterBaseLayers: true,
 				store: this.mapPanel.layers
 			}),
-			deleteLayerFunction: deleteLayerFct,
 			leaf: false,
 			parentNode: layerTree,
 			expandable: true,
@@ -169,7 +152,6 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 				filterOverlays: true,
 				store: this.mapPanel.layers
 			}),
-			deleteLayerFunction: deleteLayerFct,
 			leaf: false,
 			parentNode: layerTree,
 			expandable: true,
@@ -292,75 +274,81 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 		Ext.defer(function() {
 			var el = Ext.get('layers-ctl_'+that.mapPanel.mapId);
 
-			new Ext.Button({
-				renderTo: el,
-				iconCls: 'add',
-				tooltip: 'Add layer',
-				cls: 'layers-btn',
-				handler: function() {that.showAddLayersWindow();}
-			});
-			that.removeButton = new Ext.Button({
-				renderTo: el,
-				iconCls: 'remove',
-				tooltip: 'Remove the selected layer',
-				cls: 'layers-btn',
-				disabled: true,
-				handler: function() {
-					var node = (that._layersListPanel && that._layersListPanel.getSelectionModel() ? that._layersListPanel.getSelectionModel().getSelectedNode() : null);
-					if (node) {
-						var layer = node.layer;
-						if (layer) {
-							var atlasLayer = layer.atlasLayer;
-							// Special message for Group Layers
-							if (atlasLayer && atlasLayer.isGroup()) {
-								var nbLayers = that._countRealLayers(node);
-								var msg = 'Are you sure you want to remove the ';
-								if (nbLayers > 1) {
-									msg += 'folder {0}, and its '+nbLayers+' layers, from your list of layers?';
-								} else if (nbLayers > 0) {
-									msg += 'folder {0}, and its '+nbLayers+' layer, from your list of layers?';
-								} else {
-									msg += 'empty folder {0} from your list of layers?';
-								}
+			var showAddRemoveLayerButtons = true;
+			if (typeof(Atlas.conf['showAddRemoveLayerButtons']) !== 'undefined') {
+				showAddRemoveLayerButtons = Atlas.conf['showAddRemoveLayerButtons'];
+			}
 
-								Ext.MessageBox.show({
-									title: String.format('Removing folder "{0}"', layer.name),
-									msg: String.format(msg, '<i><b>' + layer.name + '</b></i>'),
-									buttons: Ext.Msg.YESNO,
-									fn: function(btn){
-										if(btn == 'yes'){
-//											that._deleteLayerNode(node);
-											that.mapPanel.ol_fireEvent('removeLayer', {layer: layer});
-										}
-									},
-									icon: Ext.MessageBox.QUESTION,
-									maxWidth: 300
-								});
+			if (showAddRemoveLayerButtons) {
+				new Ext.Button({
+					renderTo: el,
+					iconCls: 'add',
+					tooltip: 'Add layer',
+					cls: 'layers-btn',
+					handler: function() {that.showAddLayersWindow();}
+				});
+				that.removeButton = new Ext.Button({
+					renderTo: el,
+					iconCls: 'remove',
+					tooltip: 'Remove the selected layer',
+					cls: 'layers-btn',
+					disabled: true,
+					handler: function() {
+						var node = (that._layersListPanel && that._layersListPanel.getSelectionModel() ? that._layersListPanel.getSelectionModel().getSelectedNode() : null);
+						if (node) {
+							var layer = node.layer;
+							if (layer) {
+								var atlasLayer = layer.atlasLayer;
+								// Special message for Group Layers
+								if (atlasLayer && atlasLayer.isGroup()) {
+									var nbLayers = that._countRealLayers(node);
+									var msg = 'Are you sure you want to remove the ';
+									if (nbLayers > 1) {
+										msg += 'folder {0}, and its '+nbLayers+' layers, from your list of layers?';
+									} else if (nbLayers > 0) {
+										msg += 'folder {0}, and its layer, from your list of layers?';
+									} else {
+										msg += 'empty folder {0} from your list of layers?';
+									}
+
+									Ext.MessageBox.show({
+										title: String.format('Removing folder "{0}"', layer.name),
+										msg: String.format(msg, '<i><b>' + layer.name + '</b></i>'),
+										buttons: Ext.Msg.YESNO,
+										fn: function(btn){
+											if(btn == 'yes'){
+												that.mapPanel.ol_fireEvent('removeLayer', {layer: layer});
+											}
+										},
+										icon: Ext.MessageBox.QUESTION,
+										width: 300
+									});
+								} else {
+									Ext.MessageBox.show({
+										title: String.format('Removing layer "{0}"', layer.name),
+										msg: String.format('Are you sure you want to remove the layer {0} '+
+											'from your list of layers?', '<i><b>' + layer.name + '</b></i>'),
+										buttons: Ext.Msg.YESNO,
+										fn: function(btn){
+											if(btn == 'yes'){
+												that.mapPanel.ol_fireEvent('removeLayer', {layer: layer});
+											}
+										},
+										icon: Ext.MessageBox.QUESTION,
+										width: 300
+									});
+								}
+								// Center the window in the map (including the LayerPanel); useful for multimaps.
+								// NOTE: MessageBox in ExtJS 4 extend Window, so it can be align directly using alignTo.
+								Ext.MessageBox.getDialog().alignTo(that.ownerCt.getEl(), 'c-c');
 							} else {
-								Ext.MessageBox.show({
-									title: String.format('Removing layer "{0}"', layer.name),
-									msg: String.format('Are you sure you want to remove the layer {0} '+
-										'from your list of layers?', '<i><b>' + layer.name + '</b></i>'),
-									buttons: Ext.Msg.YESNO,
-									fn: function(btn){
-										if(btn == 'yes'){
-//											that._deleteLayerNode(node);
-											that.mapPanel.ol_fireEvent('removeLayer', {layer: layer});
-										}
-									},
-									icon: Ext.MessageBox.QUESTION,
-									maxWidth: 300
-								});
+								// TODO Show an error - No layer selected
 							}
-							// Center the window in the map (including the LayerPanel); useful for multimaps.
-							// NOTE: MessageBox in ExtJS 4 extend Window, so it can be align directly using alignTo.
-							Ext.MessageBox.getDialog().alignTo(that.ownerCt.getEl(), 'c-c');
-						} else {
-							// TODO Show an error - No layer selected
 						}
 					}
-				}
-			});
+				});
+			}
+
 			new Ext.Button({
 				renderTo: el,
 				iconCls: 'hide',

@@ -24,7 +24,7 @@ window["Atlas"] = window["Atlas"] || {};
 window["Atlas"]["Layer"] = window["Atlas"]["Layer"] || {};
 
 // Dummy layers are used to create a tree node that can contains a layer object that is not load on the map.
-// Used in: Ext.ux.tree.LayerNode
+// Used in: Atlas.Trees.LayerNode
 Atlas.Layer.Dummy = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 	/**
 	 * Constructor: Atlas.Layer.Dummy

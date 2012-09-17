@@ -110,20 +110,21 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 	},
 */
 
-	getServiceUrl: function(layerParams) {
+	getServiceUrl: function(layerParams, newParams) {
 		if (this.json == null) {
 			return null;
 		}
 
 		var serviceUrl = this.json['wmsServiceUrl'];
 		if (this.json['webCacheUrl'] &&
-			this._canUseWebCache(layerParams)) {
+				this._canUseWebCache(layerParams, newParams)) {
+
 			serviceUrl = this.json['webCacheUrl'];
 		}
 		return serviceUrl;
 	},
 
-	_canUseWebCache: function(layerParams) {
+	_canUseWebCache: function(layerParams, newParams) {
 		if (this.json == null || (typeof(this.json['cached']) !== 'undefined' && !this.json['cached'])) {
 			return false;
 		}
@@ -134,15 +135,36 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 		var userAgent = navigator.userAgent.toLowerCase();
 		if (!/opera/.test(userAgent) && /msie 6/.test(userAgent)) { return false; }
 
-		for(var paramName in layerParams){
-			if(layerParams.hasOwnProperty(paramName)){
-				if (layerParams[paramName] && !this._webCacheSupportParam(paramName, supportedParams)) {
-					// console.log('Can NOT use Web Cache ['+paramName+']');
+		// Check the current parameter for a unsupported one,
+		// considering the value of the new parameter, case insensitive...
+		for(var paramName in layerParams) {
+			if(layerParams.hasOwnProperty(paramName)) {
+				var newValue = layerParams[paramName];
+				if (newParams) {
+					for(var newParamName in newParams) {
+						if(newParams.hasOwnProperty(newParamName) && newParamName && newParamName.toUpperCase() === paramName.toUpperCase()) {
+							newValue = newParams[newParamName];
+						}
+					}
+				}
+				if (newValue && !this._webCacheSupportParam(paramName, supportedParams)) {
 					return false;
 				}
 			}
 		}
-		// console.log('Can use Web Cache');
+
+		// Check the new parameters for a unsupported one.
+		if (newParams) {
+			for(var newParamName in newParams) {
+				if(newParams.hasOwnProperty(newParamName)) {
+					newValue = newParams[newParamName];
+					if (newValue && !this._webCacheSupportParam(newParamName, supportedParams)) {
+						return false;
+					}
+				}
+			}
+		}
+
 		return true;
 	},
 
@@ -521,8 +543,7 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 		// NOTE: setUrl must be called before mergeNewParams (mergeNewParams reload the tiles, setUrl don't; when called in wrong order, tiles are requested against the wrong server)
 		var needReload = false;
 
-		// Merge the actual parameters with the new one (clone obj before to not modify the original)
-		var newUrl = this.getServiceUrl(OpenLayers.Util.extend(OpenLayers.Util.extend({}, this.layer.params), newParams));
+		var newUrl = this.getServiceUrl(this.layer.params, newParams);
 		if (newUrl != this.layer.url) {
 			this.layer.setUrl(newUrl);
 			needReload = true;

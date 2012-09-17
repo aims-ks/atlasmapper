@@ -96,8 +96,6 @@
 	<!-- Personal addition to GeoExt -->
 	<script type="text/javascript" src="Ext-ux/CompositeFieldAnchor.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="Ext-ux/IFramePanel.js?atlasmapperVer=${version}"></script>
-	<script type="text/javascript" src="Ext-ux/LayerTreeLoader.js?atlasmapperVer=${version}"></script>
-	<script type="text/javascript" src="Ext-ux/LayerNode.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="Ext-ux/MinMaxField.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="Ext-ux/DateField.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="Ext-ux/NCDatetimeField.js?atlasmapperVer=${version}"></script>
@@ -137,6 +135,8 @@
 	<script type="text/javascript" src="modules/LayersPanel/LayersPanel.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="modules/LayersPanel/AddLayersWindow.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="modules/Trees/Trees.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="modules/Trees/LayerTreeLoader.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="modules/Trees/LayerNode.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="modules/Info/Info.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="modules/Info/OptionsPanel.js?atlasmapperVer=${version}"></script>
 

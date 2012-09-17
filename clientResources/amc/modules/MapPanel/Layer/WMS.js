@@ -85,12 +85,17 @@ Atlas.Layer.WMS = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 
 	// Called when the DPI change on the mapPanel
 	_dpiChange: function(dpi) {
+		var defaultDPI = this.mapPanel ? this.mapPanel.DEFAULT_DPI : 90;
 		this._setTileSizeForDPI(dpi);
-		this.setParameters({'format_options': 'dpi:' + dpi});
+		if (dpi == defaultDPI) {
+			this.setParameters({'format_options': null});
+		} else {
+			this.setParameters({'format_options': 'dpi:' + dpi});
+		}
 	},
 
 	_getTileSizeForDPI: function(dpi) {
-		var defaultDPI = this.mapPanel.DEFAULT_DPI;
+		var defaultDPI = this.mapPanel ? this.mapPanel.DEFAULT_DPI : 90;
 		var tileSizeRatio = Math.ceil(dpi / defaultDPI);
 
 		// Adjustment: The ratio must be in log 2, to fit with the date time line.
@@ -110,10 +115,11 @@ Atlas.Layer.WMS = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 	},
 
 	_setTileSizeForDPI: function(dpi) {
+		var defaultDPI = this.mapPanel ? this.mapPanel.DEFAULT_DPI : 90;
 		if (this.layer) {
+			var currentTileSizeObj = this.layer.tileSize;
 			var newTileSize = this._getTileSizeForDPI(dpi);
 			var newTileSizeObj = new OpenLayers.Size(newTileSize, newTileSize);
-			var currentTileSizeObj = this.layer.tileSize;
 
 			if (newTileSizeObj != currentTileSizeObj) {
 				// OpenLayers.Layer.Grid.setTileSize(OpenLayers.Size);

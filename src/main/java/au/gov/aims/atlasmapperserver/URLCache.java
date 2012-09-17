@@ -29,6 +29,7 @@ import org.geotools.data.ows.WMSCapabilities;
 import org.geotools.data.wms.WMS1_3_0;
 import org.geotools.data.wms.WebMapServer;
 import org.geotools.ows.ServiceException;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -82,7 +83,7 @@ public class URLCache {
 			LOGGER.log(Level.INFO, "\n### DOWNLOADING ### {0} JSON Document {1}\nFor dataSource {2}\n",
 					new String[]{ dataSource.getDataSourceType(), urlStr, dataSource.getDataSourceId() });
 
-			response.jsonResponse = getUncachedSearchResponse(urlStr);
+			response.jsonResponse = new JSONObject(getUncachedSearchResponse(urlStr));
 		}
 
 		return response.jsonResponse;
@@ -101,30 +102,47 @@ public class URLCache {
 			LOGGER.log(Level.INFO, "\n### DOWNLOADING ### JSON Document {0}\n",
 					new String[]{ urlStr });
 
-			response.jsonResponse = getUncachedSearchResponse(urlStr);
+			response.jsonResponse = new JSONObject(getUncachedSearchResponse(urlStr));
 		}
 
 		return response.jsonResponse;
 	}
 
-	public static JSONObject getUncachedSearchResponse(String urlStr) throws IOException, JSONException {
-		JSONObject jsonResponse = null;
+	public static JSONArray getSearchJSONArrayResponse(String urlStr) throws IOException, JSONException {
+		ResponseWrapper response = getSearchCachedResponse(urlStr);
+
+		if (response == null) {
+			response = new ResponseWrapper();
+			// Set the wrapper in the cache now, it will be filled before the end of the method
+			setSearchCachedResponse(urlStr, response);
+		}
+
+		if (response.jsonArrayResponse == null) {
+			LOGGER.log(Level.INFO, "\n### DOWNLOADING ### JSON Document {0}\n",
+					new String[]{ urlStr });
+
+			response.jsonArrayResponse = new JSONArray(getUncachedSearchResponse(urlStr));
+		}
+
+		return response.jsonArrayResponse;
+	}
+
+	public static String getUncachedSearchResponse(String urlStr) throws IOException, JSONException {
 		URL url = new URL(urlStr);
 
 		URLConnection connection = url.openConnection();
 		InputStream in = null;
 		BufferedReader reader = null;
+		StringBuilder sb = new StringBuilder();
 		try {
 			in = connection.getInputStream();
 			if (in != null) {
 				reader = new BufferedReader(new InputStreamReader(in));
 
-				StringBuilder sb = new StringBuilder();
 				int cp;
 				while ((cp = reader.read()) != -1) {
 					sb.append((char) cp);
 				}
-				jsonResponse = new JSONObject(sb.toString());
 			}
 		} finally {
 			if (in != null) {
@@ -139,7 +157,7 @@ public class URLCache {
 			}
 		}
 
-		return jsonResponse;
+		return sb.toString();
 	}
 
 	public static WMSCapabilities getWMSCapabilitiesResponse(AbstractDataSourceConfig dataSource, String urlStr) throws IOException, ServiceException {
@@ -337,6 +355,7 @@ public class URLCache {
 
 		// Response; either json or wms (or both?)
 		public JSONObject jsonResponse;
+		public JSONArray jsonArrayResponse;
 		public WMSCapabilities wmsResponse;
 
 		// Log the creation time, to knows when it times out
@@ -345,6 +364,7 @@ public class URLCache {
 		public ResponseWrapper() {
 			this.dataSourceIds = new HashSet<String>();
 			this.jsonResponse = null;
+			this.jsonArrayResponse = null;
 			this.wmsResponse = null;
 			this.timestamp = Utils.getCurrentTimestamp();
 		}

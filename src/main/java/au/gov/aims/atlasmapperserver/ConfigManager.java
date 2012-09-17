@@ -1598,7 +1598,14 @@ public class ConfigManager {
 			}
 		}
 
-		if (clientConfig.isUseSearchService()) {
+		json.put("showAddRemoveLayerButtons", clientConfig.isShowAddRemoveLayerButtons());
+
+		json.put("searchEnabled", clientConfig.isSearchEnabled());
+		json.put("printEnabled", clientConfig.isPrintEnabled());
+		json.put("saveMapEnabled", clientConfig.isSaveMapEnabled());
+		json.put("mapConfigEnabled", clientConfig.isMapConfigEnabled());
+
+		if (clientConfig.isSearchEnabled()) {
 			if (Utils.isNotBlank(clientConfig.getSearchServiceUrl())) {
 				json.put("searchServiceUrl", clientConfig.getSearchServiceUrl().trim());
 			} else if (Utils.isNotBlank(this.defaultSearchServiceUrl)) {

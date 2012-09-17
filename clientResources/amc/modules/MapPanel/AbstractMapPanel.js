@@ -52,6 +52,12 @@ Atlas.AbstractMapPanel = {
 	mapId: 0,
 	center: null,
 	zoom: 0,
+
+	// The API doc specifically say that the default DPI is 90,
+	// but in fact, it's somewhere between 91 and 95.
+	// Since this setting do not make a big difference, I prefer
+	// to use the value specified in the API (that might be a bug
+	// that will be fix later on).
 	// http://docs.geoserver.org/latest/en/user/services/wms/vendor.html#format-options
 	DEFAULT_DPI: 90,
 	dpi: 90,

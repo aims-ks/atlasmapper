@@ -30,76 +30,100 @@ Atlas.MapToolsPanel = Ext.extend(Ext.form.FormPanel, {
 	constructor: function(attributes) {
 		var that = this;
 
-		var newAttributes = Ext.apply({
-			xtype: 'form',
-			layout: 'hbox',
-			defaultType: 'button',
-			defaults: {
-				scale: 'medium',
+		var tools = [];
+		if (Atlas.conf['searchEnabled']) {
+			tools.push({
+				xtype: 'textfield',
+				ref: 'searchField',
+				name: 'search',
+				hideLabel: true,
+				margins: {
+					top: 6,
+					right: 0,
+					bottom: 6,
+					left: 6
+				},
+				// Needed to be able to catch 'keydown' event
+				enableKeyEvents: true,
+				listeners: {
+					'specialkey': function(field, evt) {
+						if (evt.getKey() == evt.ENTER) {
+							that.search(field.getValue());
+						}
+					},
+					// Prevent the Map from grabbing the keys (-/+ to zoom, arrows to pan, etc.)
+					'keydown': function(field, evt) {
+						evt.stopPropagation();
+					}
+				}
+			});
+			tools.push({
+				iconCls: 'searchButton',
+				tooltip: 'Search a location; city, reef name, etc.',
 				margins: {
 					top: 2,
-					right: 4,
+					right: 20,
 					bottom: 2,
 					left: 4
+				},
+				handler: function(btn, evt) {
+					that.search(btn.ownerCt.searchField.getValue());
 				}
-			},
+			});
+		}
 
-			// Add a shadow - cause problem with modal window (this panel stay on top...)
-			//floating: true, shadowOffset: 6,
+		if (Atlas.conf['printEnabled']) {
+			tools.push({
+				iconCls: 'printFrameButton',
+				tooltip: 'Prepare map for printing',
+				handler: function() {
+					that.addPrintFrame();
+				}
+			});
+		}
 
-			items: [
-				{
-					xtype: 'textfield',
-					ref: 'searchField',
-					name: 'search',
-					hideLabel: true,
-					margins: {
-						top: 6,
-						right: 0,
-						bottom: 6,
-						left: 6
-					},
-					// Needed to be able to catch 'keydown' event
-					enableKeyEvents: true,
-					listeners: {
-						'specialkey': function(field, evt) {
-							if (evt.getKey() == evt.ENTER) {
-								that.search(field.getValue());
-							}
-						},
-						// Prevent the Map from grabbing the keys (-/+ to zoom, arrows to pan, etc.)
-						'keydown': function(field, evt) {
-							evt.stopPropagation();
-						}
-					}
-				}, {
-					iconCls: 'searchButton',
-					tooltip: 'Search a location; city, reef name, etc.',
+		if (Atlas.conf['saveMapEnabled']) {
+			tools.push({
+				iconCls: 'linkButton',
+				tooltip: 'Link to the embedded map',
+				handler: function() {
+					that.showEmbeddedLinkWindow();
+				}
+			});
+		}
+
+		if (Atlas.conf['mapConfigEnabled']) {
+			tools.push({
+				iconCls: 'configButton',
+				tooltip: 'Map options',
+				handler: function() {
+					that.showMapConfigWindow();
+				}
+			});
+		}
+
+		if (tools.length) {
+			var newAttributes = Ext.apply({
+				xtype: 'form',
+				layout: 'hbox',
+				defaultType: 'button',
+				defaults: {
+					scale: 'medium',
 					margins: {
 						top: 2,
-						right: 20,
+						right: 4,
 						bottom: 2,
 						left: 4
-					},
-					handler: function(btn, evt) {
-						that.search(btn.ownerCt.searchField.getValue());
 					}
-				}, {
-					iconCls: 'printFrameButton',
-					tooltip: 'Prepare map for printing',
-					handler: function() {
-						that.addPrintFrame();
-					}
-				}, {
-					iconCls: 'linkButton',
-					tooltip: 'Link to the embedded map',
-					handler: function() {
-						that.showEmbeddedLinkWindow();
-					}
-				}
-			],
-			region: 'north'
-		}, attributes);
+				},
+
+				// Add a shadow - cause problem with modal window (this panel stay on top...)
+				//floating: true, shadowOffset: 6,
+
+				items: tools,
+				region: 'north'
+			}, attributes);
+		}
 
 		Atlas.MapToolsPanel.superclass.constructor.call(this, newAttributes);
 	},
@@ -148,6 +172,73 @@ Atlas.MapToolsPanel = Ext.extend(Ext.form.FormPanel, {
 			descriptionFormat: 'html'
 		});
 		this.mapPanel.map.addLayer(printFrameLayer.layer);
+	},
+
+	showMapConfigWindow: function() {
+		var items = [];
+		var dpiOptions = [[90], [180], [360]];
+		var currentValue = 90;
+		if (this.mapPanel) {
+			currentValue = this.mapPanel.dpi || this.mapPanel.DEFAULT_DPI;
+		}
+
+		if (dpiOptions.length > 1) {
+			var dpiSelectConfig = {
+				xtype: 'combo',
+				fieldLabel: 'DPI',
+				value: currentValue,
+				typeAhead: false,
+				editable: true,
+				triggerAction: 'all',
+				lazyRender: true,
+				mode: 'local',
+				store: new Ext.data.ArrayStore({
+					fields: ['name'],
+					data: dpiOptions
+				}),
+				valueField: 'name',
+				displayField: 'name',
+				allowBlank: false,
+				listeners: {
+					select: this.changeDPI,
+					change: this.changeDPI, // Fired when manually edited
+					scope: this
+				}
+			};
+
+			// IE is awful with width calculation. Better give it a safe value.
+			if (Ext.isIE && (!Ext.ieVersion || Ext.ieVersion < 8)) {
+				dpiSelectConfig.width = 115;
+			}
+
+			items.push(dpiSelectConfig);
+		};
+
+		var configWindow = new Ext.Window({
+			title: 'Map options',
+			layout:'form',
+			modal: true,
+			width: 500,
+			padding: 5,
+			constrainHeader: true,
+			closeAction: 'destroy',
+
+			items: items,
+
+			buttons: [{
+				text: 'Close',
+				handler: function(){
+					var window = this.ownerCt.ownerCt;
+					window.close();
+				}
+			}]
+		}).show();
+	},
+
+	changeDPI: function(field) {
+		if (field && this.mapPanel) {
+			this.mapPanel.changeDpi(parseInt(field.getValue()));
+		}
 	},
 
 	showEmbeddedLinkWindow: function() {

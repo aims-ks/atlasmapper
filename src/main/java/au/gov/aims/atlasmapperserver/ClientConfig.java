@@ -29,8 +29,6 @@ import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
 import au.gov.aims.atlasmapperserver.servlet.FileFinder;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.URI;
-import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -115,6 +113,9 @@ public class ClientConfig extends AbstractConfig {
 	private String zoom;
 
 	@ConfigField
+	private boolean showAddRemoveLayerButtons;
+
+	@ConfigField
 	private boolean baseLayersInTab;
 
 	@ConfigField
@@ -128,8 +129,34 @@ public class ClientConfig extends AbstractConfig {
 	@ConfigField
 	private boolean useLayerService;
 
+
 	@ConfigField
-	private boolean useSearchService;
+	private boolean searchEnabled;
+
+	@ConfigField
+	private boolean showGoogleResults;
+
+	@ConfigField
+	private boolean showArcGISResults;
+
+	@ConfigField
+	private String arcGISSearchUrl;
+
+	@ConfigField
+	private boolean showOSMResults;
+
+	@ConfigField
+	private String searchServiceUrl;
+
+
+	@ConfigField
+	private boolean printEnabled;
+
+	@ConfigField
+	private boolean saveMapEnabled;
+
+	@ConfigField
+	private boolean mapConfigEnabled;
 
 	@ConfigField
 	private boolean enable;
@@ -192,13 +219,6 @@ public class ClientConfig extends AbstractConfig {
 
 	@ConfigField(demoReadOnly = true)
 	private String layerInfoServiceUrl;
-
-	@ConfigField(demoReadOnly = true)
-	private String searchServiceUrl;
-
-
-	@ConfigField
-	private String arcGISSearchUrl;
 
 
 	public ClientConfig(ConfigManager configManager) {
@@ -371,6 +391,14 @@ public class ClientConfig extends AbstractConfig {
 
 	public void setDefault(Boolean _default) {
 		this._default = _default;
+	}
+
+	public boolean isShowAddRemoveLayerButtons() {
+		return this.showAddRemoveLayerButtons;
+	}
+
+	public void setShowAddRemoveLayerButtons(boolean showAddRemoveLayerButtons) {
+		this.showAddRemoveLayerButtons = showAddRemoveLayerButtons;
 	}
 
 	public boolean isBaseLayersInTab() {
@@ -555,12 +583,60 @@ public class ClientConfig extends AbstractConfig {
 		this.useLayerService = useLayerService;
 	}
 
-	public boolean isUseSearchService() {
-		return this.useSearchService;
+	public boolean isSearchEnabled() {
+		return this.searchEnabled;
 	}
 
-	public void setUseSearchService(boolean useSearchService) {
-		this.useSearchService = useSearchService;
+	public void setSearchEnabled(boolean searchEnabled) {
+		this.searchEnabled = searchEnabled;
+	}
+
+	public boolean isShowGoogleResults() {
+		return this.showGoogleResults;
+	}
+
+	public void setShowGoogleResults(boolean showGoogleResults) {
+		this.showGoogleResults = showGoogleResults;
+	}
+
+	public boolean isShowArcGISResults() {
+		return this.showArcGISResults;
+	}
+
+	public void setShowArcGISResults(boolean showArcGISResults) {
+		this.showArcGISResults = showArcGISResults;
+	}
+
+	public boolean isShowOSMResults() {
+		return this.showOSMResults;
+	}
+
+	public void setShowOSMResults(boolean showOSMResults) {
+		this.showOSMResults = showOSMResults;
+	}
+
+	public boolean isPrintEnabled() {
+		return this.printEnabled;
+	}
+
+	public void setPrintEnabled(boolean printEnabled) {
+		this.printEnabled = printEnabled;
+	}
+
+	public boolean isSaveMapEnabled() {
+		return this.saveMapEnabled;
+	}
+
+	public void setSaveMapEnabled(boolean saveMapEnabled) {
+		this.saveMapEnabled = saveMapEnabled;
+	}
+
+	public boolean isMapConfigEnabled() {
+		return this.mapConfigEnabled;
+	}
+
+	public void setMapConfigEnabled(boolean mapConfigEnabled) {
+		this.mapConfigEnabled = mapConfigEnabled;
 	}
 
 	public String getVersion() {
@@ -917,37 +993,21 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 
-	public JSONObject locationSearch(String query, String bounds, int offset, int qty, boolean live) throws JSONException, IOException, TransformException, FactoryException {
-		String arcGISSearchUrl = this.getArcGISSearchUrl();
-		//String arcGISSearchUrl = "http://www.gbrmpa.gov.au/spatial_services/gbrmpaBounds/MapServer/find?f=json&contains=true&returnGeometry=true&layers=6%2C0&searchFields=LOC_NAME_L%2CNAME&searchText={QUERY}";
-		if (Utils.isBlank(arcGISSearchUrl) || Utils.isBlank(query) || qty <= 0) {
+	public JSONObject locationSearch(String query, String mapBounds, int offset, int qty, boolean live) throws JSONException, IOException, TransformException, FactoryException {
+		if (Utils.isBlank(query) || qty <= 0) {
 			return null;
 		}
 
-		arcGISSearchUrl = arcGISSearchUrl.trim();
-
+		// If the query is not in UTF-8, it's probably a server config problem:
+		// add the following property to all your connectors, in server.xml: URIEncoding="UTF-8"
 		String encodedQuery = URLEncoder.encode(query.trim(), "UTF-8");
-		String queryURLStr = arcGISSearchUrl.replace("{QUERY}", encodedQuery);
-
-		String searchFieldsStr = Utils.getUrlParameter(queryURLStr, "searchFields", true);
-		String[] searchFields = searchFieldsStr.split(",");
-
-		JSONObject json = URLCache.getSearchJSONResponse(queryURLStr);
-		if (json == null) {
-			return null;
-		}
-
-		JSONArray jsonResults = json.optJSONArray("results");
-		if (jsonResults == null) {
-			return null;
-		}
 
 		// The results are sorted alphabetically (order by id for same title)
 		TreeSet<JSONObject> resultsSet = new TreeSet<JSONObject>(new Comparator<JSONObject>() {
 			@Override
 			public int compare(JSONObject o1, JSONObject o2) {
-				String title1 = o1.optString("title", "");
-				String title2 = o2.optString("title", "");
+				String title1 = ClientConfig.this.getComparableTitle(o1.optString("title", ""));
+				String title2 = ClientConfig.this.getComparableTitle(o2.optString("title", ""));
 
 				int cmp = title1.compareToIgnoreCase(title2);
 
@@ -961,42 +1021,38 @@ public class ClientConfig extends AbstractConfig {
 				return cmp;
 			}
 		});
-		for (int i=0, ilen=jsonResults.length(); i<ilen; i++) {
-			JSONObject jsonResult = jsonResults.optJSONObject(i);
-			if (jsonResult != null) {
-				JSONObject attributes = jsonResult.optJSONObject("attributes");
-				JSONObject geometry = jsonResult.optJSONObject("geometry");
 
-				double[] center = {
-					geometry.optDouble("x"),
-					geometry.optDouble("y")
-				};
+		if (this.isShowGoogleResults()) {
+			List<JSONObject> googleResults = LocationSearch.googleSearch(encodedQuery, mapBounds);
+			if (googleResults != null && !googleResults.isEmpty()) {
+				resultsSet.addAll(googleResults);
+			}
+		}
 
-				JSONObject spatialReference = geometry.optJSONObject("spatialReference");
-				Integer wkid = spatialReference.optInt("wkid");
-				double[] reprojectedCenter = Utils.reprojectWKIDCoordinatesToDegrees(center, "EPSG:" + wkid);
+		if (this.isShowOSMResults()) {
+			List<JSONObject> osmNominatimResults = LocationSearch.osmNominatimSearch(encodedQuery, mapBounds);
+			if (osmNominatimResults != null && !osmNominatimResults.isEmpty()) {
+				resultsSet.addAll(osmNominatimResults);
+			}
+		}
 
-				String title = null;
-				for (int f=0, flen=searchFields.length; f<flen && title == null; f++) {
-					if (attributes.has(searchFields[f])) {
-						title = attributes.optString(searchFields[f], null);
-					}
-				}
-				if (title == null) {
-					LOGGER.log(Level.FINEST, "Search results:\n" + json.toString(4));
-					LOGGER.log(Level.WARNING, "UNSUPPORTED SEARCH RESPONSE");
-					title = "Unknown";
-				}
-
-				resultsSet.add(this._createSearchResult(
-					title,
-					""+i,
-					new double[]{reprojectedCenter[1], reprojectedCenter[0]}
-				));
+		String arcGISSearchUrl = this.getArcGISSearchUrl();
+		if (this.isShowArcGISResults() && Utils.isNotBlank(arcGISSearchUrl)) {
+			List<JSONObject> arcGISResults = LocationSearch.arcGISSearch(arcGISSearchUrl, encodedQuery, mapBounds);
+			if (arcGISResults != null && !arcGISResults.isEmpty()) {
+				resultsSet.addAll(arcGISResults);
 			}
 		}
 
 		JSONObject[] results = resultsSet.toArray(new JSONObject[resultsSet.size()]);
+
+		// The server can not always return what the user ask...
+		// If the user ask for the Xth page of a search that now
+		// returns less than X pages, the server will jump to the
+		// first page (very rare case).
+		if (offset >= results.length) {
+			offset = 0;
+		}
 
 		int to = offset + qty;
 		if (to > results.length) {
@@ -1005,31 +1061,21 @@ public class ClientConfig extends AbstractConfig {
 
 		// TODO Use bounds (and maybe other parameters) to order the results by pertinence.
 
+		JSONObject[] subResults = null;
 		// TODO Use something else than Arrays.copyOfRange (it's java 6 only...)
-		JSONObject[] subResults = Arrays.copyOfRange(results, offset, to);
+		subResults = Arrays.copyOfRange(results, offset, to);
 
 		return new JSONObject()
 				.put("length", results.length)
+				.put("offset", offset)
 				.put("results", subResults);
 	}
-	private JSONObject _createSearchResult(String title, String id, double[] center) throws JSONException {
-		return _createSearchResult(title, id, center, null);
-	}
-	private JSONObject _createSearchResult(String title, String id, double[] center, double[] polygon) throws JSONException {
-		JSONArray polygonObj = null;
-		if (polygon != null) {
-			polygonObj = new JSONArray();
-			for (int i=0; i<polygon.length; i+=2) {
-				polygonObj.put(new JSONArray().put(polygon[i]).put(polygon[i+1]));
-			}
-		}
 
-		JSONObject result = new JSONObject();
-		result.put("title", title);
-		result.put("id", id);
-		result.put("polygon", polygonObj);
-		result.put("center", new JSONArray().put(center[0]).put(center[1]));
-
-		return result;
+	// Remove common punctuations to make the results looks more in natural alphabetic order.
+	// Removes: White spaces, hyphens, underscores, comas, periods, quotes, brackets, etc.
+	// NOTE: It's easier to remove unwanted characters than keep the good one. (We can't only keep [a-zA-Z0-9],
+	//     we also have to keep all characters from chinese, japanese, arabic, korean, etc.)
+	private String getComparableTitle(String title) {
+		return title.replaceAll("[\\s\\-_,.'\":;!\\?\\(\\)\\[\\]\\{\\}/]", "");
 	}
 }

@@ -21,7 +21,8 @@
 
 package au.gov.aims.atlasmapperserver.module;
 
-import au.gov.aims.atlasmapperserver.*;
+import au.gov.aims.atlasmapperserver.ClientConfig;
+import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.Module;
 
 import java.util.HashMap;
@@ -31,7 +32,6 @@ import java.util.Map;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
-import au.gov.aims.atlasmapperserver.layerConfig.WMSLayerConfig;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -43,7 +43,8 @@ import org.json.JSONObject;
 	description="Display layers in a Tree structure; required by the 'Add layer' feature"
 )
 public class Tree extends AbstractModule {
-	private static final String BASE_LAYER_TAB_LABEL = "Base layers";
+	private static final String BASE_LAYERS_TAB_LABEL = "Base layers";
+	private static final String OVERLAY_LAYERS_TAB_LABEL = "Overlay layers";
 
 	@Override
 	// NOTE: The version must match the version in the client /clientResources/amc/modules/Trees/Trees.js
@@ -78,6 +79,7 @@ public class Tree extends AbstractModule {
 		}
 	}
 
+	// Add a layer to the tree
 	private void addLayer(
 			JSONObject treeRoot,
 			ClientConfig clientConfig,
@@ -88,8 +90,9 @@ public class Tree extends AbstractModule {
 
 		// Find the data source tab OR Base Layer tab
 		if (clientConfig.isBaseLayersInTab() && layerConfig.isIsBaseLayer() != null && layerConfig.isIsBaseLayer()) {
-			currentBranch = this.getTreeBranch(currentBranch, BASE_LAYER_TAB_LABEL);
+			currentBranch = this.getTreeBranch(currentBranch, BASE_LAYERS_TAB_LABEL);
 		} else {
+			currentBranch = this.getTreeBranch(currentBranch, OVERLAY_LAYERS_TAB_LABEL);
 			if (dataSourceConfig != null) {
 				currentBranch = this.getTreeBranch(currentBranch, dataSourceConfig.getDataSourceName());
 			}

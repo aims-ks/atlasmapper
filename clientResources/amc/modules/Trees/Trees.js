@@ -57,7 +57,7 @@ Atlas.Trees = Ext.extend(Ext.Component, {
 			Ext.each(orderedTrees, function(treeObj) {
 				var treeName = treeObj.name;
 				var tree = treeObj.tree;
-				var root = new Ext.ux.tree.LayerNode(
+				var root = new Atlas.Trees.LayerNode(
 					this.createTreeNode(tree, treeName, [treeName]));
 
 				var treePanel = new Ext.tree.TreePanel({
@@ -92,9 +92,7 @@ Atlas.Trees = Ext.extend(Ext.Component, {
 			}
 		});
 		this.mapPanel.ol_on("layerRemoved", function(evt) {
-			if (evt.layerJSon) {
-				that.unHighlightLayer(evt.layerJSon['layerId']);
-			}
+			that.unHighlightLayer();
 		});
 	},
 
@@ -197,12 +195,9 @@ Atlas.Trees = Ext.extend(Ext.Component, {
 
 		return {
 			// Configuration of a tree node (folder)
-//			text: node['<config>']['<title>'],
 			text: nodeName,
-//			qtip: Atlas.core.getNodeQTip(node['<config>']),
 			children: children,
-//			json: node['<config>'],
-			loader: new Ext.ux.tree.LayerTreeLoader({treePaths: this.treePaths, layerStore: this.mapPanel.layers})
+			loader: new Atlas.Trees.LayerTreeLoader({treePaths: this.treePaths, layerStore: this.mapPanel.layers})
 		}
 	},
 
@@ -244,48 +239,27 @@ Atlas.Trees = Ext.extend(Ext.Component, {
 		Ext.each(this.trees, function(tree) {
 			if (tree.root) {
 				// Walk across the tree following the paths and call highlightNode
-				this.highlight(tree.root, paths, true);
+				this.highlight(tree.root, paths);
+			}
+		}, this);
+	},
+
+	unHighlightLayer: function() {
+		if (this.trees == null) {
+			return;
+		}
+
+		Ext.each(this.trees, function(tree) {
+			if (tree.root) {
+				this.resetHighlight(tree.root);
 			}
 		}, this);
 	},
 
 	/**
-	 * Un highlight the layer if it's not present on the map.
-	 * Use force = true to un highlight the layer event if it's
-	 * still on the map.
+	 * Walkthrough a tree to highlight nodes and layers
 	 */
-	unHighlightLayer: function(layerId, force) {
-		if (this.trees == null || typeof(layerId) == 'undefined') {
-			return;
-		}
-
-		var layerFoundOnMap = false;
-		if (!force && this.mapPanel && this.mapPanel.map && this.mapPanel.map.layers && this.mapPanel.map.layers.length > 0) {
-			for (var i=0; !layerFoundOnMap && i<this.mapPanel.map.layers.length; i++) {
-				var foundLayer = this.mapPanel.map.layers[i];
-				if (foundLayer && foundLayer.json && foundLayer.json['layerId'] === layerId) {
-					layerFoundOnMap = true;
-				}
-			}
-		}
-
-		if (!layerFoundOnMap) {
-			var paths = this.searchLayer(layerId);
-			Ext.each(this.trees, function(tree) {
-				if (tree.root) {
-					// Walk across the tree following the paths and call highlightNode
-					this.highlight(tree.root, paths, false);
-				}
-			}, this);
-		}
-	},
-
-	/**
-	 * Walkthrough a tree to highlight/unhighlight nodes and layers
-	 *
-	 * TODO Do not unhighlight the branch if there is still highlighted nodes/layers in the branch
-	 */
-	highlight: function(tree, paths, highlight) {
+	highlight: function(tree, paths) {
 		Ext.each(paths, function(path) {
 			if (tree.text == path[0]) {
 				// Highlight/Unhighlight nodes
@@ -306,11 +280,52 @@ Atlas.Trees = Ext.extend(Ext.Component, {
 						if (!node) {
 							break;
 						}
-						node.setHighlight(highlight);
+						node.setHighlight(true);
 						branch = node;
 					}
 				}
 			}
 		}, this);
+	},
+
+	resetHighlight: function(tree) {
+		this._unHighlightAll(tree);
+		this._highlightAll(tree);
+	},
+
+	/**
+	 * Walkthrough all nodes of the tree and unhighlight everything.
+	 * @param node
+	 * @private
+	 */
+	// private
+	_unHighlightAll: function(node) {
+		node.setHighlight(false);
+
+		if (!node.isLeaf() && node.childNodes && node.childNodes.length > 0) {
+			for (var i=0, len=node.childNodes.length; i<len; i++) {
+				this._unHighlightAll(node.childNodes[i]);
+			}
+		}
+	},
+
+	/**
+	 * Walkthrough all nodes of the tree and highlight nodes / leafs that should be highlighted.
+	 * @param node
+	 * @private
+	 */
+	// private
+	_highlightAll: function(node) {
+		if (!node.isLeaf()) {
+			if (node.attributes && node.attributes.loader && typeof(node.attributes.loader.highlightLoadedLayerNodes) === 'function') {
+				node.attributes.loader.highlightLoadedLayerNodes(node);
+			}
+
+			if (node.childNodes && node.childNodes.length > 0) {
+				for (var i=0, len=node.childNodes.length; i<len; i++) {
+					this._highlightAll(node.childNodes[i]);
+				}
+			}
+		}
 	}
 });

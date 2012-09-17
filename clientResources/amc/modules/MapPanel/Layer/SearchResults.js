@@ -168,6 +168,10 @@ Atlas.Layer.SearchResults = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 				scope: this,
 				success: this.showResults,
 				failure: function (result, request) {
+					this.searching = false;
+					if (this.layer && this.layer.events) {
+						this.layer.events.triggerEvent('layerupdate');
+					}
 					// TODO Error on the page
 					alert('The application has failed to perform a search');
 				}
@@ -186,6 +190,14 @@ Atlas.Layer.SearchResults = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 			if (jsonResponse.success) {
 				var value = jsonResponse.data;
 
+				// The server can not always return what the user ask...
+				// If the user ask for the Xth page of a search that now
+				// returns less than X pages, the server will jump to the
+				// first page (very rare case).
+				if (typeof(value.offset) === 'number') {
+					this.page = value.offset / this.NB_RESULTS_PER_PAGE;
+				}
+
 				if (value) {
 					_nbResults = value.length || 0;
 					this.nbPages = Math.ceil(_nbResults / this.NB_RESULTS_PER_PAGE);
@@ -195,7 +207,7 @@ Atlas.Layer.SearchResults = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 						// Set the marker & bullet icon URLs in the search results and fix the ID
 						for (var i=0, len=this.results.length; i<len; i++) {
 							var letter = this.MARKER_LETTERS[i % this.MARKER_LETTERS.length];
-							this.results[i].id = this.searchCount + '_' + this.results[i].id;
+							this.results[i].id = this.results[i].id;
 							this.results[i].markerUrl = 'resources/markers/'+this.color+letter+'.png';
 							this.results[i].bulletUrl = 'resources/markers/'+this.color+letter+'.png';
 						}
@@ -220,6 +232,10 @@ Atlas.Layer.SearchResults = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 
 		this.nbResults = _nbResults;
 		this.layer.setName(this.getTitle());
+
+		if (this.layer && this.layer.events) {
+			this.layer.events.triggerEvent('layerupdate');
+		}
 	},
 
 	// override

@@ -248,6 +248,9 @@ ol.bullet-list > li {
 .searchButton {
 	background-image: url('../images/search-24px.png');
 }
+.configButton {
+	background-image: url('../images/config-24px.png');
+}
 
 .searchResultsDescription .query {
 	font-size: 1.1em;

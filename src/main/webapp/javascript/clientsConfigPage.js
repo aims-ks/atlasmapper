@@ -116,9 +116,19 @@ Ext.define('Writer.ClientConfigForm', {
 			'default': false,
 			'mainClientEnable': true,
 			'mainClientModules': ['Info', 'Tree'], // TODO Delete this once this field is implemented
+			'showAddRemoveLayerButtons': true,
 			'baseLayersInTab': true,
 			'useLayerService': true,
-			'useSearchService': true,
+
+			'searchEnabled': true,
+			'showGoogleResults': true,
+			'showArcGISResults': false,
+			'showOSMResults': true,
+
+			'printEnabled': true,
+			'saveMapEnabled': true,
+			'mapConfigEnabled': true,
+
 			'theme': '',
 			'enable': true
 		});
@@ -191,8 +201,8 @@ Ext.define('Writer.ClientConfigForm', {
 				qtipMaxWidth: 200,
 				anchor: '100%',
 				labelAlign: 'right',
-				labelWidth: 150,
-				hideEmptyLabel: false // Align fields with no label
+				labelWidth: 150//,
+//				hideEmptyLabel: false // Align fields with no label
 			},
 			items: [{
 				xtype: 'tabpanel',
@@ -209,6 +219,9 @@ Ext.define('Writer.ClientConfigForm', {
 					{
 						// Normal config options
 						title: 'General',
+						defaults: {
+							hideEmptyLabel: false
+						},
 						items: [
 							{
 								// Grids records must have an unmutable ID
@@ -353,6 +366,9 @@ Ext.define('Writer.ClientConfigForm', {
 					}, {
 						// Advanced config options
 						title: 'Advanced',
+						defaults: {
+							hideEmptyLabel: false
+						},
 						items: [
 							Ext.apply({
 									fieldLabel: 'Layers\' manual override (<a href="manualOverrideDoc.html" target="_blank">doc</a>)',
@@ -401,12 +417,6 @@ Ext.define('Writer.ClientConfigForm', {
 								validator: validateDependencies,
 								dependencies: [generatedFileLocationId]
 							}, {
-								fieldLabel: 'Layer info service URL',
-								qtipHtml: 'URL used by the client to get information about layers. The default URL is: atlasmapper/public/layersInfo.jsp'+
-									notAvailableInDemoMode,
-								name: 'layerInfoServiceUrl',
-								disabled: demoMode
-							}, {
 								boxLabel: 'Use layer service.',
 								qtipHtml: 'Uncheck this box to save the configuration of all layers in the configuration file. This allow the client to run without any AtlasMapper server support. It\'s useful for server that do not have tomcat installed.<br/>'+
 									'<b>Note:</b> Disabling the <i>layer service</i> also disable the <i>client preview</i> in the server and the <i>WMS Feature Requests</i> on the client, for layers that are from a different domain name to the client.',
@@ -414,21 +424,21 @@ Ext.define('Writer.ClientConfigForm', {
 								xtype: 'checkboxfield',
 								name: 'useLayerService'
 							}, {
-								fieldLabel: 'Search service URL',
-								qtipHtml: 'URL used by the client to perform searches. The default URL is: atlasmapper/public/search.jsp'+
+								fieldLabel: 'Layer info service URL',
+								qtipHtml: 'URL used by the client to get information about layers. The default URL is: atlasmapper/public/layersInfo.jsp'+
 									notAvailableInDemoMode,
-								name: 'searchServiceUrl',
+								name: 'layerInfoServiceUrl',
 								disabled: demoMode
 							}, {
-								boxLabel: 'Use search service.',
-								qtipHtml: 'Uncheck this box disable search capability on the client.',
 								margin: '0 0 15 0',
+								boxLabel: 'Show <i>Add</i> <span style="color:green">[+]</span> and <i>Remove</i> <span style="color:red">[-]</span> layer buttons',
+								qtipHtml: 'Uncheck this box to remove the <i>Add</i> and <i>Remove</i> layer buttons.',
 								xtype: 'checkboxfield',
-								name: 'useSearchService'
+								name: 'showAddRemoveLayerButtons'
 							}, {
 								margin: '0 0 15 0',
-								boxLabel: 'Show <i>Base layers</i> in a separate tab, in <i>add layers</i> window.',
-								qtipHtml: 'Check this box to show all <em>Base layers</em> in a separate tab, in the <em>add layers</em> window of this AtlasMapper client. Uncheck it to let the base layers appear in the tab of their appropriate server.',
+								boxLabel: 'Show all <i>Base layers</i> together, in a tab, in <i>add layers</i> window.',
+								qtipHtml: 'Check this box to show all <em>Base layers</em> in the same tab, in the <em>add layers</em> window of this AtlasMapper client. Uncheck it to let the base layers appear in the tab of their appropriate data source.',
 								xtype: 'checkboxfield',
 								name: 'baseLayersInTab'
 							}, {
@@ -444,6 +454,9 @@ Ext.define('Writer.ClientConfigForm', {
 					}, {
 						// Config options to modify the appearance of the client
 						title: 'Map Appearance',
+						defaults: {
+							hideEmptyLabel: false
+						},
 						items: [
 							{
 								xtype: 'displayfield',
@@ -502,8 +515,114 @@ Ext.define('Writer.ClientConfigForm', {
 							}
 						]
 					}, {
-						// Config options to modify the appearance of the client
+						// Config options to choose which button appear in the map toolbar
+						title: 'Map toolbar',
+						items: [
+							{
+								xtype: 'fieldset',
+								title: 'Search',
+								defaults: {
+									hideEmptyLabel: false
+								},
+								checkboxToggle: true,
+								checkboxName: 'searchEnabled',
+								qtipHtml: 'Uncheck this box disable search capability on the client.',
+								defaultType: 'textfield',
+								items: [
+									{
+										xtype: 'displayfield',
+										value: 'This feature is under development and any configuration found here may eventually change in the future.'
+									}, {
+										boxLabel: 'Show Google search results.',
+										qtipHtml: 'Check this box to add the results from Google to the search results.',
+										xtype: 'checkboxfield',
+										name: 'showGoogleResults'
+									}, {
+										boxLabel: 'Show OSM search results.',
+										qtipHtml: 'Check this box to add the results from Open Street Map (OSM) to the search results.',
+										xtype: 'checkboxfield',
+										name: 'showOSMResults'
+									}, {
+										boxLabel: 'Show ArcGIS search results.',
+										qtipHtml: 'Check this box to add the results from an ArcGIS server to the search results. Note that the server URL as to be defined in the ArcGIS search URL field.',
+										xtype: 'checkboxfield',
+										name: 'showArcGISResults'
+									}, {
+										fieldLabel: 'ArcGIS search URL',
+										qtipHtml: 'URL used by the server to perform searches against ArcGIS layers.<br/>' +
+											'Example:<br/>' +
+											'http://www.a.com/.../MapServer/find' +
+											'<div style="margin-left:1em;">' +
+											'?f=json<br/>' +
+											'&contains=true<br/>' +
+											'&returnGeometry=true<br/>' +
+											'&layers=6%2C0<br/>' +
+											'&searchFields=LOC_NAME_L%2CNAME<br/>' +
+											'&searchText={QUERY}' +
+											'</div>',
+										name: 'arcGISSearchUrl'
+									}, {
+										fieldLabel: 'AtlasMapper Search service URL',
+										qtipHtml: '<b>Expert only</b><br/>URL used by the client to perform searches. Only set this field if you want to use an other search server than the AtlasMapper. The default URL is: atlasmapper/public/search.jsp',
+										name: 'searchServiceUrl'
+									}
+								]
+							}, {
+								xtype: 'fieldset',
+								title: 'Print',
+								defaults: {
+									hideEmptyLabel: false
+								},
+								checkboxToggle: true,
+								checkboxName: 'printEnabled',
+								qtipHtml: 'Uncheck this box remove the print button from the toolbar.',
+								defaultType: 'textfield',
+								items: [
+									{
+										xtype: 'displayfield',
+										value: 'This feature is under development and any configuration found here may eventually change in the future.'
+									}
+								]
+							}, {
+								xtype: 'fieldset',
+								title: 'Save map',
+								defaults: {
+									hideEmptyLabel: false
+								},
+								checkboxToggle: true,
+								checkboxName: 'saveMapEnabled',
+								qtipHtml: 'Uncheck this box remove the save map button from the toolbar.',
+								defaultType: 'textfield',
+								items: [
+									{
+										xtype: 'displayfield',
+										value: 'This feature is under development and any configuration found here may eventually change in the future.'
+									}
+								]
+							}, {
+								xtype: 'fieldset',
+								title: 'Map options',
+								defaults: {
+									hideEmptyLabel: false
+								},
+								checkboxToggle: true,
+								checkboxName: 'mapConfigEnabled',
+								qtipHtml: 'Uncheck this box remove the map options button from the toolbar.',
+								defaultType: 'textfield',
+								items: [
+									{
+										xtype: 'displayfield',
+										value: 'This feature is under development and any configuration found here may eventually change in the future.'
+									}
+								]
+							}
+						]
+					}, {
+						// Config options to modify the appearance of the list of layer
 						title: 'List Appearance',
+						defaults: {
+							hideEmptyLabel: false
+						},
 						items: [
 							{
 								xtype: 'displayfield',
@@ -544,29 +663,6 @@ Ext.define('Writer.ClientConfigForm', {
 								// Remove spinner buttons, and arrow key and mouse wheel listeners
 								hideTrigger: true,
 								keyNavEnabled: false
-							}
-						]
-					}, {
-						// Config options to modify the appearance of the client
-						title: 'Search',
-						items: [
-							{
-								xtype: 'displayfield',
-								value: 'Search customisation. This feature is under development and any configuration found here may eventually change in the future.'
-							}, {
-								fieldLabel: 'ArcGIS search URL',
-								qtipHtml: 'URL used by the server to perform searches against ArcGIS layers.<br/>' +
-									'Example:<br/>' +
-									'http://www.a.com/.../MapServer/find' +
-									'<div style="margin-left:1em;">' +
-									'?f=json<br/>' +
-									'&contains=true<br/>' +
-									'&returnGeometry=true<br/>' +
-									'&layers=6%2C0<br/>' +
-									'&searchFields=LOC_NAME_L%2CNAME<br/>' +
-									'&searchText={QUERY}' +
-									'</div>',
-								name: 'arcGISSearchUrl'
 							}
 						]
 					}
@@ -1574,17 +1670,28 @@ Ext.define('Writer.ClientConfig', {
 		'baseUrl',
 		'proxyUrl',
 		'layerInfoServiceUrl',
-		'searchServiceUrl',
 		{name: 'projection', type: 'string'},
 		{name: 'longitude', type: 'float'},
 		{name: 'latitude', type: 'float'},
 		{name: 'zoom', type: 'int'},
+		{name: 'showAddRemoveLayerButtons', type: 'boolean', defaultValue: false},
 		{name: 'baseLayersInTab', type: 'boolean', defaultValue: false},
 		'defaultLayers',
 		'version',
 		{name: 'useLayerService', type: 'boolean', defaultValue: false},
-		{name: 'useSearchService', type: 'boolean', defaultValue: false},
 		{name: 'enable', type: 'boolean', defaultValue: false},
+
+		{name: 'searchEnabled', type: 'boolean', defaultValue: false},
+		{name: 'showGoogleResults', type: 'boolean', defaultValue: false},
+		{name: 'showArcGISResults', type: 'boolean', defaultValue: false},
+		'arcGISSearchUrl',
+		{name: 'showOSMResults', type: 'boolean', defaultValue: false},
+		'searchServiceUrl',
+
+		{name: 'printEnabled', type: 'boolean', defaultValue: false},
+		{name: 'saveMapEnabled', type: 'boolean', defaultValue: false},
+		{name: 'mapConfigEnabled', type: 'boolean', defaultValue: false},
+
 		'theme',
 		'pageHeader',
 		'pageFooter',
@@ -1597,8 +1704,6 @@ Ext.define('Writer.ClientConfig', {
 		'listBaseLayerId',
 		'listLayerImageWidth',
 		'listLayerImageHeight',
-
-		'arcGISSearchUrl',
 
 		'comment'
 	]/*,

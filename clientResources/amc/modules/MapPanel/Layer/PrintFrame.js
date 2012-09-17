@@ -121,58 +121,5 @@ Atlas.Layer.PrintFrame = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 	canBeLocated: function() {
 		// The extent is null during the drawing process, but the locate button should not be disabled.
 		return true;
-	},
-
-	// Override
-	setOptions: function(optionsPanel) {
-		var dpiOptions = [
-			[90, '90'],
-			[180, '180'],
-			[360, '360']
-		];
-
-		var currentValue = this.mapPanel.dpi;
-
-		if (dpiOptions.length > 1) {
-			var dpiSelectConfig = {
-				xtype: "combo",
-				fieldLabel: "Map DPI",
-				value: currentValue,
-				typeAhead: false,
-				editable: true,
-				triggerAction: 'all',
-				lazyRender: true,
-				mode: 'local',
-				store: new Ext.data.ArrayStore({
-					id: 0,
-					fields: [
-						'name',
-						'title'
-					],
-					data: dpiOptions
-				}),
-				valueField: 'name',
-				displayField: 'title',
-				allowBlank: false,
-				listeners: {
-					select: this.changeDPI,
-					change: this.changeDPI, // Fired when manually edited
-					scope: this
-				}
-			};
-
-			// IE is awful with width calculation. Better give it a safe value.
-			if (Ext.isIE && (!Ext.ieVersion || Ext.ieVersion < 8)) {
-				dpiSelectConfig.width = 115;
-			}
-
-			optionsPanel.addOption(this, dpiSelectConfig);
-		}
-	},
-
-	changeDPI: function(field) {
-		if (field) {
-			this.mapPanel.changeDpi(parseInt(field.getValue()));
-		}
 	}
 });

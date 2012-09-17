@@ -89,8 +89,9 @@ OpenLayers.Layer.ux.SearchResults = OpenLayers.Class(OpenLayers.Layer.Vector, {
 				style.externalGraphic = results[i].markerUrl;
 
 				var feature = new OpenLayers.Feature.Vector(center, null, style);
-				// Store the ID in the object, to be able to find it's associate element in the layer description.
+				// Store the ID and the result in the object, to be able to locate it and find it's associate element in the layer description.
 				feature._id = id;
+				feature._result = results[i];
 
 				this._features[id] = feature;
 				foundFeatures.push(feature);
@@ -137,12 +138,17 @@ OpenLayers.Layer.ux.SearchResults = OpenLayers.Class(OpenLayers.Layer.Vector, {
 		}
 		if (feature && this.map) {
 			// The layer only contains Points, but that will probably change in the future...
-			if (feature.geometry instanceof OpenLayers.Geometry.Point) {
-				// Since it's a Point, "zoomTo" has the tandancy to zoom to
-				// the maximum zoom level, which is usually way too close.
-				// "panTo" move the map without changing the zoom level,
-				// which is more appropriate for this purpose. 
-				this.map.panTo(new OpenLayers.LonLat(feature.geometry.x, feature.geometry.y));
+			if (feature._result && feature._result.bbox) {
+				var bbox = feature._result.bbox;
+				this.map.zoomToExtent(this._reproject(new OpenLayers.Bounds(bbox[0], bbox[1], bbox[2], bbox[3])));
+			} else {
+				if (feature.geometry instanceof OpenLayers.Geometry.Point) {
+					// Since it's a Point, "zoomTo" has the tandancy to zoom to
+					// the maximum zoom level, which is usually way too close.
+					// "panTo" move the map without changing the zoom level,
+					// which is more appropriate for this purpose. 
+					this.map.panTo(new OpenLayers.LonLat(feature.geometry.x, feature.geometry.y));
+				}
 			}
 		}
 	},

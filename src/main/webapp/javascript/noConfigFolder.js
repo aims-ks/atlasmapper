@@ -58,6 +58,7 @@ Ext.onReady(function() {
 				{
 					region: 'north',
 					split: true,
+					autoScroll: true,
 					bodyPadding: 10,
 					html:'<div class="messageWindow">\n\
 							<h1>Welcome to the AtlasMapper</h1>\n\
@@ -80,6 +81,12 @@ Ext.onReady(function() {
 								<b>Note:</b> The path used in the documentation bellow is <i>'+unixDemoDataDir+'</i> for Linux \
 								and <i>'+windowsDemoDataDir+'</i> for windows. It is recommanded to change this path to the \
 								folder you want.\n\
+							</p>\n\
+							<p>\n\
+								It\'s also recommended to configure your Web server to read its GET parameters as UTF-8 encoding. \
+								With tomcat, you can set this by adding the following property to all your connectors, in <i>server.xml</i>: <b>URIEncoding="UTF-8"</b>.<br/>\
+								Example:<br/>\
+								<pre class="code">&lt;Connector port="8080" protocol="HTTP/1.1"\n	connectionTimeout="20000"\n	redirectPort="8443"\n	URIEncoding="UTF-8" /&gt;\n&lt;Connector port="8009" protocol="AJP/1.3" redirectPort="8443" URIEncoding="UTF-8" /&gt;</pre>\n\
 							</p>\n\
 						</div>'
 				}, {
