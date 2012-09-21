@@ -120,6 +120,8 @@
 	<script type="text/javascript" src="GeoExt-ux/GroupLayerOpacitySlider.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="GeoExt-ux/GroupLayerLoader.js?atlasmapperVer=${version}"></script>
 
+	<script type="text/javascript" src="modules/Utils/WikiFormater.js?atlasmapperVer=${version}"></script>
+
 	<script type="text/javascript" src="modules/Core/Core.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="modules/MapPanel/Layer/LayerState.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="modules/MapPanel/Layer/AbstractLayer.js?atlasmapperVer=${version}"></script>

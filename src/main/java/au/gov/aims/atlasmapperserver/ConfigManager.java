@@ -1213,7 +1213,7 @@ public class ConfigManager {
 	}
 
 	/**
-	 * Return a list of info used to generate a list of layers:
+	 * Return a Map of info used to generate a list of layers (for the list.html page):
 	 * Map of
 	 *     Key: DataSource name
 	 *     Value: List of Map of

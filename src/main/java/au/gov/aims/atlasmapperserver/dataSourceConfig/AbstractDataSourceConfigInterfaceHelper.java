@@ -53,6 +53,10 @@ public class AbstractDataSourceConfigInterfaceHelper {
 			dataSource.put("legendUrl", dataSourceInterface.getLegendUrl().trim());
 		}
 
+		if (Utils.isNotBlank(dataSourceInterface.getStylesUrl())) {
+			dataSource.put("stylesUrl", dataSourceInterface.getStylesUrl().trim());
+		}
+
 		if (Utils.isNotBlank(dataSourceInterface.getDataSourceName())) {
 			dataSource.put("dataSourceName", dataSourceInterface.getDataSourceName().trim());
 		}

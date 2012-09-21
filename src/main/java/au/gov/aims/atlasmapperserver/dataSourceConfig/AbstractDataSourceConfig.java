@@ -75,6 +75,9 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 	@ConfigField
 	private String legendParameters;
 
+	@ConfigField
+	private String stylesUrl;
+
 	@Deprecated
 	@ConfigField
 	private String blacklistedLayers;
@@ -340,6 +343,14 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 
 	public void setLegendParameters(String legendParameters) {
 		this.legendParameters = legendParameters;
+	}
+
+	public String getStylesUrl() {
+		return stylesUrl;
+	}
+
+	public void setStylesUrl(String stylesUrl) {
+		this.stylesUrl = stylesUrl;
 	}
 
 	public String getDataSourceId() {

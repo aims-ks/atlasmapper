@@ -247,6 +247,13 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 		}
 
 		var desc = '<b>' + this.getTitle() + '</b>';
+
+		var previewUrl = this.getPreviewUrl();
+		if (previewUrl) {
+			desc += '<div class="descriptionLayerPreview"><img src="' + previewUrl + '" alt="Layer preview" \></div>';
+		}
+
+		// TODO Deprecate additionalInfo
 		var additionalInfo = this.json['additionalInfo'];
 		if (additionalInfo) {
 			for(var key in additionalInfo){
@@ -258,9 +265,11 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 
 		if (this.json['description']) {
 			desc += '<div class="description">';
-			var format = (this.json['descriptionFormat'] || 'text').toLowerCase();
+			var format = (this.json['descriptionFormat'] || 'wiki').toLowerCase();
 			if (format === 'text') {
 				desc += this._urlsToHTML(this._lineBreaksToHTML(this._safeHtml(this.json['description'])));
+			} else if (format === 'wiki') {
+				desc += this._wikiFormat(this._safeHtml(this.json['description']));
 			} else if (format === 'html') {
 				desc += this.json['description'];
 			}
@@ -275,7 +284,18 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 		if (this.json['layerId']) {
 			desc += '<div class="descriptionLayerId">Layer id: <em>' + this.json['layerId'] + '</em></div>';
 		}
+
 		return desc;
+	},
+
+	// to override
+	getPreviewUrl: function() {
+		return null;
+	},
+
+	_safeHtml: function(input) {
+		if (input == null) { return null; }
+		return input.replace(/&/gi, "&amp;").replace(/</gi, "&lt;").replace(/>/gi, "&gt;");
 	},
 
 	/**
@@ -285,15 +305,12 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 	 * See RFC 1738 for valid URL schema:
 	 *     http://www.apps.ietf.org/rfc/rfc1738.html#sec-5
 	 */
-	_urlsToHTML: function(input, popup, maxUrlLength) {
+	_urlsToHTML: function(input, popup) {
 		var newInput = '';
 		var lastIndex = 0;
 
 		if (typeof(popup) == 'undefined') {
 			popup = true;
-		}
-		if (typeof(maxUrlLength) == 'undefined') {
-			maxUrlLength = this.MAX_URL_LENGTH;
 		}
 
 		// Enumeration of chars that are not allow in the URLs. RFC 1738
@@ -349,26 +366,7 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 				if (popup) {
 					link += " target=\"_blank\"";
 				}
-				link += ">";
-
-				// Truncate the displayed URL, when needed
-				if (maxUrlLength == 1) {
-					link += ".";
-				} else if (maxUrlLength == 2) {
-					link += "..";
-				} else if (maxUrlLength > 0 && maxUrlLength < displayUrl.length) {
-					var beginningLength = Math.round((maxUrlLength-3)/4.0*3);
-					var endingLength = maxUrlLength - beginningLength - 3; // 3 is for the "..."
-					if (beginningLength > 1 && endingLength == 0) {
-						beginningLength--;
-						endingLength = 1;
-					}
-					link += displayUrl.substring(0, beginningLength) + "..." + displayUrl.substring(displayUrl.length - endingLength);
-				} else {
-					link += displayUrl;
-				}
-
-				link += "</a>";
+				link += ">" + this._truncateURLForDisplay(displayUrl) + "</a>";
 
 				// Add the text from the last link to the beginning of this one
 				newInput += input.substring(lastIndex, matches.index);
@@ -384,9 +382,60 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 		return newInput;
 	},
 
-	_safeHtml: function(input) {
+	_truncateURLForDisplay: function(url) {
+		var maxUrlLength = this.MAX_URL_LENGTH || 40;
+
+		if (maxUrlLength == 1) {
+			return ".";
+		}
+
+		if (maxUrlLength == 2) {
+			return "..";
+		}
+
+		if (maxUrlLength > 0 && maxUrlLength < url.length) {
+			var beginningLength = Math.round((maxUrlLength-3) * 3.0/4);
+			var endingLength = maxUrlLength - beginningLength - 3; // 3 is for the "..."
+			if (beginningLength > 1 && endingLength == 0) {
+				beginningLength--;
+				endingLength = 1;
+			}
+			return url.substring(0, beginningLength) + "..." + url.substring(url.length - endingLength);
+		}
+
+		return url;
+	},
+
+	/**
+	 * Strip HTML and apply some basic wiki format:
+	 * Bold: *expression*
+	 * Italic: /expression/
+	 * Underline: _expression_
+	 * Strikeout: -expression-
+	 * Header (1st level): ==Heading 1==
+	 * Header (2nd level): ===Heading 2===
+	 * Header (3rd level): ====Heading 3====
+	 * Bullet list:
+	 *     * First element
+	 *     ** Sub element
+	 *     * 2nd element
+	 * Numbered list:
+	 *     # First element (appear as "1. First element")
+	 *     ## Sub element  (appear as "    1. Sub element")
+	 *     # 2nd element   (appear as "2. 2nd element")
+	 * URL: [[http://google.com/|Google]]
+	 *
+	 * See: https://github.com/lahdekorpi/Wiky.php/blob/master/wiky.inc.php
+	 *
+	 * @param String, using some Wiki format syntax.
+	 * @return HTML String.
+	 * @private
+	 */
+	_wikiFormat: function(input) {
 		if (input == null) { return null; }
-		return input.replace(/&/gi, "&amp;").replace(/</gi, "&lt;").replace(/>/gi, "&gt;");
+
+		var wikiFormater = new Atlas.Utils.WikiFormater();
+		return wikiFormater.format(input);
 	},
 
 	_lineBreaksToHTML: function(input) {

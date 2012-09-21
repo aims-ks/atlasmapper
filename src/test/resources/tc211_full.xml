@@ -1,0 +1,621 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Source: http://mest.aodn.org.au/geonetwork/srv/en/iso19139.xml?uuid=87263960-92f0-4836-b8c5-8486660ddfe0 -->
+<mcp:MD_Metadata xmlns:mcp="http://bluenet3.antcrc.utas.edu.au/mcp"
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xmlns:gml="http://www.opengis.net/gml"
+                 xmlns:gts="http://www.isotc211.org/2005/gts"
+                 xmlns:gco="http://www.isotc211.org/2005/gco"
+                 xmlns:gmd="http://www.isotc211.org/2005/gmd"
+                 xmlns:geonet="http://www.fao.org/geonetwork"
+                 gco:isoType="gmd:MD_Metadata"
+                 xsi:schemaLocation="http://www.isotc211.org/2005/gmd/ http://www.isotc211.org/2005/gmd/gmd.xsd http://www.isotc211.org/2005/srv/ http://schemas.opengis.net/iso/19139/20060504/srv/srv.xsd http://bluenet3.antcrc.utas.edu.au/mcp/ http://bluenet3.antcrc.utas.edu.au/mcp/schema.xsd">
+  <gmd:fileIdentifier>
+      <gco:CharacterString xmlns:srv="http://www.isotc211.org/2005/srv"
+                           xmlns:gmx="http://www.isotc211.org/2005/gmx"
+                           xmlns:xlink="http://www.w3.org/1999/xlink">87263960-92f0-4836-b8c5-8486660ddfe0</gco:CharacterString>
+  </gmd:fileIdentifier>
+  <gmd:language>
+      <gco:CharacterString>eng</gco:CharacterString>
+  </gmd:language>
+  <gmd:characterSet>
+      <gmd:MD_CharacterSetCode codeListValue="utf8"
+                               codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_CharacterSetCode">utf8</gmd:MD_CharacterSetCode>
+  </gmd:characterSet>
+  <gmd:hierarchyLevel>
+      <gmd:MD_ScopeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_ScopeCode"
+                        codeListValue="dataset">dataset</gmd:MD_ScopeCode>
+  </gmd:hierarchyLevel>
+  <gmd:contact>
+      <gmd:CI_ResponsibleParty>
+         <gmd:organisationName>
+            <gco:CharacterString>Department of Sustainability, Environment, Water, Population and Communities (DSEWPaC)</gco:CharacterString>
+         </gmd:organisationName>
+         <gmd:positionName>
+            <gco:CharacterString>Marine Data Manager</gco:CharacterString>
+         </gmd:positionName>
+         <gmd:contactInfo>
+            <gmd:CI_Contact>
+               <gmd:address>
+                  <gmd:CI_Address>
+                     <gmd:electronicMailAddress>
+                        <gco:CharacterString>marine.metadata@environment.gov.au</gco:CharacterString>
+                     </gmd:electronicMailAddress>
+                  </gmd:CI_Address>
+               </gmd:address>
+            </gmd:CI_Contact>
+         </gmd:contactInfo>
+         <gmd:role>
+            <gmd:CI_RoleCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_RoleCode"
+                             codeListValue="pointOfContact">pointOfContact</gmd:CI_RoleCode>
+         </gmd:role>
+      </gmd:CI_ResponsibleParty>
+  </gmd:contact>
+  <gmd:dateStamp xmlns:srv="http://www.isotc211.org/2005/srv"
+                  xmlns:gmx="http://www.isotc211.org/2005/gmx"
+                  xmlns:xlink="http://www.w3.org/1999/xlink">
+      <gco:DateTime>2012-07-02T14:23:23</gco:DateTime>
+  </gmd:dateStamp>
+  <gmd:metadataStandardName>
+      <gco:CharacterString xmlns:srv="http://www.isotc211.org/2005/srv"
+                           xmlns:gmx="http://www.isotc211.org/2005/gmx"
+                           xmlns:xlink="http://www.w3.org/1999/xlink">Australian Marine Community Profile of ISO 19115:2005/19139</gco:CharacterString>
+  </gmd:metadataStandardName>
+  <gmd:metadataStandardVersion>
+      <gco:CharacterString xmlns:srv="http://www.isotc211.org/2005/srv"
+                           xmlns:gmx="http://www.isotc211.org/2005/gmx"
+                           xmlns:xlink="http://www.w3.org/1999/xlink">MCP:BlueNet V1.4</gco:CharacterString>
+  </gmd:metadataStandardVersion>
+  <gmd:identificationInfo>
+      <mcp:MD_DataIdentification gco:isoType="gmd:MD_DataIdentification">
+         <gmd:citation>
+            <gmd:CI_Citation>
+               <gmd:title>
+                  <gco:CharacterString>Key Ecological Features within the Coral Sea</gco:CharacterString>
+               </gmd:title>
+               <gmd:date>
+                  <gmd:CI_Date>
+                     <gmd:date>
+                        <gco:DateTime>2011-10-31T13:48:00</gco:DateTime>
+                     </gmd:date>
+                     <gmd:dateType>
+                        <gmd:CI_DateTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_DateTypeCode"
+                                             codeListValue="creation">creation</gmd:CI_DateTypeCode>
+                     </gmd:dateType>
+                  </gmd:CI_Date>
+               </gmd:date>
+               <gmd:citedResponsibleParty>
+                  <gmd:CI_ResponsibleParty>
+                     <gmd:organisationName>
+                        <gco:CharacterString>Department of Sustainability, Environment, Water, Population and Communities (DSEWPaC)</gco:CharacterString>
+                     </gmd:organisationName>
+                     <gmd:contactInfo>
+                        <gmd:CI_Contact>
+                           <gmd:phone>
+                              <gmd:CI_Telephone>
+                                 <gmd:voice>
+                                    <gco:CharacterString>61 2 6274 1111</gco:CharacterString>
+                                 </gmd:voice>
+                                 <gmd:facsimile>
+                                    <gco:CharacterString>61 2 6274 1666</gco:CharacterString>
+                                 </gmd:facsimile>
+                              </gmd:CI_Telephone>
+                           </gmd:phone>
+                           <gmd:address>
+                              <gmd:CI_Address>
+                                 <gmd:deliveryPoint>
+                                    <gco:CharacterString>GPO Box 787</gco:CharacterString>
+                                 </gmd:deliveryPoint>
+                                 <gmd:city>
+                                    <gco:CharacterString>Canberra</gco:CharacterString>
+                                 </gmd:city>
+                                 <gmd:administrativeArea>
+                                    <gco:CharacterString>Australian Capital Territory</gco:CharacterString>
+                                 </gmd:administrativeArea>
+                                 <gmd:postalCode>
+                                    <gco:CharacterString>2601</gco:CharacterString>
+                                 </gmd:postalCode>
+                                 <gmd:country>
+                                    <gco:CharacterString>Australia</gco:CharacterString>
+                                 </gmd:country>
+                              </gmd:CI_Address>
+                           </gmd:address>
+                           <gmd:onlineResource>
+                              <gmd:CI_OnlineResource>
+                                 <gmd:linkage>
+                                    <gmd:URL>http://www.environment.gov.au</gmd:URL>
+                                 </gmd:linkage>
+                                 <gmd:protocol>
+                                    <gco:CharacterString>WWW:LINK-1.0-http--link</gco:CharacterString>
+                                 </gmd:protocol>
+                                 <gmd:name gco:nilReason="missing">
+                                    <gco:CharacterString/>
+                                 </gmd:name>
+                              </gmd:CI_OnlineResource>
+                           </gmd:onlineResource>
+                        </gmd:CI_Contact>
+                     </gmd:contactInfo>
+                     <gmd:role>
+                        <gmd:CI_RoleCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_RoleCode"
+                                         codeListValue="owner">owner</gmd:CI_RoleCode>
+                     </gmd:role>
+                  </gmd:CI_ResponsibleParty>
+               </gmd:citedResponsibleParty>
+            </gmd:CI_Citation>
+         </gmd:citation>
+         <gmd:abstract>
+            <gco:CharacterString>A number of ecological features that are of conservation value because of the role they play in the environment of the Coral Sea have been identified and mapped. Key ecological features (KEFs) meet one or more of the following criteria:
+1. a species, group of species or a community with a regionally important ecological role (e.g. a predator, prey that affects a large biomass or a number of marine species);
+2. a species, group of species or a community that is nationally or regionally important for biodiversity;
+3. an area or habitat that is nationally or regionally important for:
+a) enhanced or high productivity (such as predictable upwellings - an upwelling occurs when cold nutrient rich waters from the bottom of the ocean rise to the surface);
+b) aggregations of marine life (such as feeding, resting, breeding or nursery areas);
+c) biodiversity and endemism (species which only occur in a specific area); or
+4. a unique seafloor feature, with known or presumed ecological properties of regional significance.
+
+
+KEFs have been identified by the Australian Government on the basis of advice from scientists about the ecological processes and characteristics of the area. A workshop held in Perth in September 2006 also contributed to this scientific advice and helped to underpin the identification of key ecological features. Three KEFs have been identified in the Coral Sea:
+
+1. Tasmantid seamount chain
+2. Reefs, cays and hebivorous fish of the Queensland Plateau
+3. Reefs, cays and hebivorous fish of the Marion Plateau
+
+In order to create a spatial representation of KEFs for the Coral Sea, some interpretation of the information was required. DSEWPaC has made every effort to use the best available spatial information and best judgement on how to spatially represent the features based on the scientific advice provided. This does not preclude others from making their own interpretation of available information.</gco:CharacterString>
+         </gmd:abstract>
+         <gmd:status>
+            <gmd:MD_ProgressCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_ProgressCode"
+                                 codeListValue="completed">completed</gmd:MD_ProgressCode>
+         </gmd:status>
+         <gmd:pointOfContact>
+            <gmd:CI_ResponsibleParty>
+               <gmd:organisationName>
+                  <gco:CharacterString>Department of Sustainability, Environment, Water, Population and Communities (DSEWPaC)</gco:CharacterString>
+               </gmd:organisationName>
+               <gmd:positionName>
+                  <gco:CharacterString>Marine Data Manager</gco:CharacterString>
+               </gmd:positionName>
+               <gmd:contactInfo>
+                  <gmd:CI_Contact>
+                     <gmd:phone>
+                        <gmd:CI_Telephone>
+                           <gmd:voice>
+                              <gco:CharacterString>61 2 6274 1111</gco:CharacterString>
+                           </gmd:voice>
+                           <gmd:facsimile>
+                              <gco:CharacterString>61 2 6274 1666</gco:CharacterString>
+                           </gmd:facsimile>
+                        </gmd:CI_Telephone>
+                     </gmd:phone>
+                     <gmd:address>
+                        <gmd:CI_Address>
+                           <gmd:deliveryPoint>
+                              <gco:CharacterString>GPO Box 787</gco:CharacterString>
+                           </gmd:deliveryPoint>
+                           <gmd:city>
+                              <gco:CharacterString>Canberra</gco:CharacterString>
+                           </gmd:city>
+                           <gmd:administrativeArea>
+                              <gco:CharacterString>Australian Capital Territory</gco:CharacterString>
+                           </gmd:administrativeArea>
+                           <gmd:postalCode>
+                              <gco:CharacterString>2601</gco:CharacterString>
+                           </gmd:postalCode>
+                           <gmd:country>
+                              <gco:CharacterString>Australia</gco:CharacterString>
+                           </gmd:country>
+                           <gmd:electronicMailAddress>
+                              <gco:CharacterString>marine.metadata@environment.gov.au</gco:CharacterString>
+                           </gmd:electronicMailAddress>
+                        </gmd:CI_Address>
+                     </gmd:address>
+                  </gmd:CI_Contact>
+               </gmd:contactInfo>
+               <gmd:role>
+                  <gmd:CI_RoleCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_RoleCode"
+                                   codeListValue="pointOfContact">pointOfContact</gmd:CI_RoleCode>
+               </gmd:role>
+            </gmd:CI_ResponsibleParty>
+         </gmd:pointOfContact>
+         <gmd:resourceMaintenance>
+            <gmd:MD_MaintenanceInformation>
+               <gmd:maintenanceAndUpdateFrequency>
+                  <gmd:MD_MaintenanceFrequencyCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_MaintenanceFrequencyCode"
+                                                   codeListValue="asNeeded">asNeeded</gmd:MD_MaintenanceFrequencyCode>
+               </gmd:maintenanceAndUpdateFrequency>
+            </gmd:MD_MaintenanceInformation>
+         </gmd:resourceMaintenance>
+         <gmd:descriptiveKeywords>
+            <gmd:MD_Keywords>
+               <gmd:keyword>
+                  <gco:CharacterString>Regional Seas | Coral Sea</gco:CharacterString>
+               </gmd:keyword>
+               <gmd:type>
+                  <gmd:MD_KeywordTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_KeywordTypeCode"
+                                          codeListValue="place">place</gmd:MD_KeywordTypeCode>
+               </gmd:type>
+               <gmd:thesaurusName>
+                  <gmd:CI_Citation>
+                     <gmd:title>
+                        <gco:CharacterString>Marine Community Profile of ISO19115 v1.4 Geographic Extent Vocabulary (Annex C.1.2)</gco:CharacterString>
+                     </gmd:title>
+                     <gmd:date>
+                        <gmd:CI_Date>
+                           <gmd:date>
+                              <gco:Date>2008-10-30</gco:Date>
+                           </gmd:date>
+                           <gmd:dateType>
+                              <gmd:CI_DateTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_DateTypeCode"
+                                                   codeListValue="revision">revision</gmd:CI_DateTypeCode>
+                           </gmd:dateType>
+                        </gmd:CI_Date>
+                     </gmd:date>
+                     <gmd:citedResponsibleParty>
+                        <gmd:CI_ResponsibleParty>
+                           <gmd:organisationName>
+                              <gco:CharacterString>Australia Ocean Data Centre Joint Facility (AODCJF)</gco:CharacterString>
+                           </gmd:organisationName>
+                           <gmd:contactInfo>
+                              <gmd:CI_Contact>
+                                 <gmd:onlineResource>
+                                    <gmd:CI_OnlineResource>
+                                       <gmd:linkage>
+                                          <gmd:URL>http://www.aodc.gov.au//</gmd:URL>
+                                       </gmd:linkage>
+                                       <gmd:protocol>
+                                          <gco:CharacterString>WWW:LINK-1.0-http--link</gco:CharacterString>
+                                       </gmd:protocol>
+                                       <gmd:name gco:nilReason="missing">
+                                          <gco:CharacterString/>
+                                       </gmd:name>
+                                    </gmd:CI_OnlineResource>
+                                 </gmd:onlineResource>
+                              </gmd:CI_Contact>
+                           </gmd:contactInfo>
+                           <gmd:role>
+                              <gmd:CI_RoleCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_RoleCode"
+                                               codeListValue="owner">owner</gmd:CI_RoleCode>
+                           </gmd:role>
+                        </gmd:CI_ResponsibleParty>
+                     </gmd:citedResponsibleParty>
+                  </gmd:CI_Citation>
+               </gmd:thesaurusName>
+            </gmd:MD_Keywords>
+         </gmd:descriptiveKeywords>
+         <gmd:descriptiveKeywords>
+            <gmd:MD_Keywords>
+               <gmd:keyword>
+                  <gco:CharacterString>Marine Planning</gco:CharacterString>
+               </gmd:keyword>
+               <gmd:keyword>
+                  <gco:CharacterString>Conservation</gco:CharacterString>
+               </gmd:keyword>
+               <gmd:keyword>
+                  <gco:CharacterString>Biodiversity</gco:CharacterString>
+               </gmd:keyword>
+               <gmd:keyword>
+                  <gco:CharacterString>Geology</gco:CharacterString>
+               </gmd:keyword>
+               <gmd:type>
+                  <gmd:MD_KeywordTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_KeywordTypeCode"
+                                          codeListValue="theme">theme</gmd:MD_KeywordTypeCode>
+               </gmd:type>
+               <gmd:thesaurusName>
+                  <gmd:CI_Citation>
+                     <gmd:title>
+                        <gco:CharacterString>AODN Keywords Thesaurus</gco:CharacterString>
+                     </gmd:title>
+                     <gmd:date>
+                        <gmd:CI_Date>
+                           <gmd:date>
+                              <gco:Date>2012-02-23</gco:Date>
+                           </gmd:date>
+                           <gmd:dateType>
+                              <gmd:CI_DateTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_DateTypeCode"
+                                                   codeListValue="creation">creation</gmd:CI_DateTypeCode>
+                           </gmd:dateType>
+                        </gmd:CI_Date>
+                     </gmd:date>
+                     <gmd:citedResponsibleParty>
+                        <gmd:CI_ResponsibleParty>
+                           <gmd:organisationName>
+                              <gco:CharacterString>Integrated Marine Observing System (IMOS)</gco:CharacterString>
+                           </gmd:organisationName>
+                           <gmd:role>
+                              <gmd:CI_RoleCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_RoleCode"
+                                               codeListValue="owner">owner</gmd:CI_RoleCode>
+                           </gmd:role>
+                        </gmd:CI_ResponsibleParty>
+                     </gmd:citedResponsibleParty>
+                  </gmd:CI_Citation>
+               </gmd:thesaurusName>
+            </gmd:MD_Keywords>
+         </gmd:descriptiveKeywords>
+         <gmd:descriptiveKeywords>
+            <gmd:MD_Keywords>
+               <gmd:keyword>
+                  <gco:CharacterString>Oceans | Marine Geophysics</gco:CharacterString>
+               </gmd:keyword>
+               <gmd:keyword>
+                  <gco:CharacterString>Land Surface | Geomorphology</gco:CharacterString>
+               </gmd:keyword>
+               <gmd:type>
+                  <gmd:MD_KeywordTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_KeywordTypeCode"
+                                          codeListValue="theme">theme</gmd:MD_KeywordTypeCode>
+               </gmd:type>
+               <gmd:thesaurusName>
+                  <gmd:CI_Citation>
+                     <gmd:title>
+                        <gco:CharacterString>NASA/Global Change Master Directory Earth Science Keywords Version 5.3.8</gco:CharacterString>
+                     </gmd:title>
+                     <gmd:date>
+                        <gmd:CI_Date>
+                           <gmd:date>
+                              <gco:Date>2006-01-01</gco:Date>
+                           </gmd:date>
+                           <gmd:dateType>
+                              <gmd:CI_DateTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_DateTypeCode"
+                                                   codeListValue="revision">revision</gmd:CI_DateTypeCode>
+                           </gmd:dateType>
+                        </gmd:CI_Date>
+                     </gmd:date>
+                     <gmd:citedResponsibleParty>
+                        <gmd:CI_ResponsibleParty>
+                           <gmd:organisationName>
+                              <gco:CharacterString>National Aeronautics and Space Administration (NASA)</gco:CharacterString>
+                           </gmd:organisationName>
+                           <gmd:role>
+                              <gmd:CI_RoleCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_RoleCode"
+                                               codeListValue="owner">owner</gmd:CI_RoleCode>
+                           </gmd:role>
+                        </gmd:CI_ResponsibleParty>
+                     </gmd:citedResponsibleParty>
+                  </gmd:CI_Citation>
+               </gmd:thesaurusName>
+            </gmd:MD_Keywords>
+         </gmd:descriptiveKeywords>
+         <gmd:resourceConstraints>
+            <mcp:MD_CreativeCommons gco:isoType="gmd:MD_Constraints">
+               <mcp:jurisdictionLink>
+                  <gmd:URL>http://creativecommons.org/international/au/</gmd:URL>
+               </mcp:jurisdictionLink>
+               <mcp:licenseLink>
+                  <gmd:URL>http://creativecommons.org/licenses/by/2.5/au/</gmd:URL>
+               </mcp:licenseLink>
+               <mcp:imageLink>
+                  <gmd:URL>http://i.creativecommons.org/l/by/2.5/au/88x31.png</gmd:URL>
+               </mcp:imageLink>
+               <mcp:licenseName>
+                  <gco:CharacterString>Attribution 2.5 Australia</gco:CharacterString>
+               </mcp:licenseName>
+               <mcp:attributionConstraints>
+                  <gco:CharacterString>The citation in a list of references is: citation author name/s (year metadata published), metadata title. Citation author organisation/s. File identifier and Data accessed at (add http link).
+
+Key Ecological Features within the Coral Sea. (c) Commonwealth of Australia, Australian Government Department of Sustainability, Environment, Water, Population and Communities 2011.</gco:CharacterString>
+               </mcp:attributionConstraints>
+            </mcp:MD_CreativeCommons>
+         </gmd:resourceConstraints>
+         <gmd:resourceConstraints>
+            <gmd:MD_SecurityConstraints>
+               <gmd:classification>
+                  <gmd:MD_ClassificationCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_ClassificationCode"
+                                             codeListValue="unclassified">unclassified</gmd:MD_ClassificationCode>
+               </gmd:classification>
+            </gmd:MD_SecurityConstraints>
+         </gmd:resourceConstraints>
+         <gmd:aggregationInfo>
+            <gmd:MD_AggregateInformation>
+               <gmd:aggregateDataSetName>
+                  <gmd:CI_Citation>
+                     <gmd:title>
+                        <gco:CharacterString>Australian Key Ecological Features</gco:CharacterString>
+                     </gmd:title>
+                     <gmd:date>
+                        <gmd:CI_Date>
+                           <gmd:date>
+                              <gco:Date>2012-07-02</gco:Date>
+                           </gmd:date>
+                           <gmd:dateType>
+                              <gmd:CI_DateTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_DateTypeCode"
+                                                   codeListValue="creation">creation</gmd:CI_DateTypeCode>
+                           </gmd:dateType>
+                        </gmd:CI_Date>
+                     </gmd:date>
+                  </gmd:CI_Citation>
+               </gmd:aggregateDataSetName>
+               <gmd:associationType>
+                  <gmd:DS_AssociationTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#DS_AssociationTypeCode"
+                                              codeListValue=""/>
+               </gmd:associationType>
+            </gmd:MD_AggregateInformation>
+         </gmd:aggregationInfo>
+         <gmd:spatialRepresentationType>
+            <gmd:MD_SpatialRepresentationTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_SpatialRepresentationTypeCode"
+                                                  codeListValue="vector">vector</gmd:MD_SpatialRepresentationTypeCode>
+         </gmd:spatialRepresentationType>
+         <gmd:spatialResolution>
+            <gmd:MD_Resolution>
+               <gmd:equivalentScale>
+                  <gmd:MD_RepresentativeFraction>
+                     <gmd:denominator>
+                        <gco:Integer>100000</gco:Integer>
+                     </gmd:denominator>
+                  </gmd:MD_RepresentativeFraction>
+               </gmd:equivalentScale>
+            </gmd:MD_Resolution>
+         </gmd:spatialResolution>
+         <gmd:language>
+            <gco:CharacterString>eng</gco:CharacterString>
+         </gmd:language>
+         <gmd:characterSet>
+            <gmd:MD_CharacterSetCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_CharacterSetCode"
+                                     codeListValue="utf8">utf8</gmd:MD_CharacterSetCode>
+         </gmd:characterSet>
+         <gmd:topicCategory>
+            <gmd:MD_TopicCategoryCode>oceans</gmd:MD_TopicCategoryCode>
+         </gmd:topicCategory>
+         <gmd:extent>
+            <gmd:EX_Extent>
+               <gmd:geographicElement>
+                  <gmd:EX_GeographicBoundingBox>
+                     <gmd:westBoundLongitude>
+                        <gco:Decimal>146.5157</gco:Decimal>
+                     </gmd:westBoundLongitude>
+                     <gmd:eastBoundLongitude>
+                        <gco:Decimal>156.4019</gco:Decimal>
+                     </gmd:eastBoundLongitude>
+                     <gmd:southBoundLatitude>
+                        <gco:Decimal>-24.4984</gco:Decimal>
+                     </gmd:southBoundLatitude>
+                     <gmd:northBoundLatitude>
+                        <gco:Decimal>-13.7908</gco:Decimal>
+                     </gmd:northBoundLatitude>
+                  </gmd:EX_GeographicBoundingBox>
+               </gmd:geographicElement>
+               <gmd:temporalElement>
+                  <mcp:EX_TemporalExtent gco:isoType="gmd:EX_TemporalExtent">
+                     <gmd:extent>
+                        <gml:TimePeriod gml:id="d108e898a1049886">
+                           <gml:beginPosition>2011-10-31T14:06:00</gml:beginPosition>
+                           <gml:endPosition/>
+                        </gml:TimePeriod>
+                     </gmd:extent>
+                  </mcp:EX_TemporalExtent>
+               </gmd:temporalElement>
+            </gmd:EX_Extent>
+         </gmd:extent>
+      </mcp:MD_DataIdentification>
+  </gmd:identificationInfo>
+  <gmd:distributionInfo>
+      <gmd:MD_Distribution>
+         <gmd:distributionFormat>
+            <gmd:MD_Format>
+               <gmd:name>
+                  <gco:CharacterString>Shapefile</gco:CharacterString>
+               </gmd:name>
+               <gmd:version>
+                  <gco:CharacterString>1</gco:CharacterString>
+               </gmd:version>
+            </gmd:MD_Format>
+         </gmd:distributionFormat>
+         <gmd:distributor>
+            <gmd:MD_Distributor>
+               <gmd:distributorContact>
+                  <gmd:CI_ResponsibleParty>
+                     <gmd:organisationName>
+                        <gco:CharacterString>Department of Sustainability, Environment, Water, Population and Communities (DSEWPaC)</gco:CharacterString>
+                     </gmd:organisationName>
+                     <gmd:positionName>
+                        <gco:CharacterString>Marine Data Manager</gco:CharacterString>
+                     </gmd:positionName>
+                     <gmd:contactInfo>
+                        <gmd:CI_Contact>
+                           <gmd:address>
+                              <gmd:CI_Address>
+                                 <gmd:electronicMailAddress>
+                                    <gco:CharacterString>marine.metadata@environment.gov.au</gco:CharacterString>
+                                 </gmd:electronicMailAddress>
+                              </gmd:CI_Address>
+                           </gmd:address>
+                        </gmd:CI_Contact>
+                     </gmd:contactInfo>
+                     <gmd:role>
+                        <gmd:CI_RoleCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_RoleCode"
+                                         codeListValue="pointOfContact">pointOfContact</gmd:CI_RoleCode>
+                     </gmd:role>
+                  </gmd:CI_ResponsibleParty>
+               </gmd:distributorContact>
+            </gmd:MD_Distributor>
+         </gmd:distributor>
+         <gmd:transferOptions>
+            <gmd:MD_DigitalTransferOptions>
+               <gmd:onLine xmlns:srv="http://www.isotc211.org/2005/srv"
+                           xmlns:gmx="http://www.isotc211.org/2005/gmx"
+                           xmlns:xlink="http://www.w3.org/1999/xlink">
+                  <gmd:CI_OnlineResource>
+                     <gmd:linkage>
+                        <gmd:URL>http://mest.aodn.org.au:80/geonetwork/srv/en/metadata.show?uuid=87263960-92f0-4836-b8c5-8486660ddfe0</gmd:URL>
+                     </gmd:linkage>
+                     <gmd:protocol>
+                        <gco:CharacterString>WWW:LINK-1.0-http--metadata-URL</gco:CharacterString>
+                     </gmd:protocol>
+                     <gmd:description>
+                        <gco:CharacterString>Point of truth URL of this metadata record</gco:CharacterString>
+                     </gmd:description>
+                  </gmd:CI_OnlineResource>
+               </gmd:onLine>
+               <gmd:onLine>
+                  <gmd:CI_OnlineResource>
+                     <gmd:linkage>
+                        <gmd:URL/>
+                     </gmd:linkage>
+                     <gmd:protocol>
+                        <gco:CharacterString>OGC:WMS-1.1.1-http-get-map</gco:CharacterString>
+                     </gmd:protocol>
+                     <gmd:name gco:nilReason="missing">
+                        <gco:CharacterString/>
+                     </gmd:name>
+                     <gmd:description gco:nilReason="missing">
+                        <gco:CharacterString/>
+                     </gmd:description>
+                  </gmd:CI_OnlineResource>
+               </gmd:onLine>
+               <gmd:onLine>
+                  <gmd:CI_OnlineResource>
+                     <gmd:linkage>
+                        <gmd:URL>http://www.environment.gov.au/metadataexplorer/download_test_form.jsp?dataTitle=Key Ecological Features within the Coral Sea&amp;dataPoCemail=marine.metadata@environment.gov.au&amp;dataFormat=Shapefile</gmd:URL>
+                     </gmd:linkage>
+                     <gmd:protocol>
+                        <gco:CharacterString>WWW:LINK-1.0-http--downloaddata</gco:CharacterString>
+                     </gmd:protocol>
+                     <gmd:name xmlns:srv="http://www.isotc211.org/2005/srv"
+                               xmlns:gmx="http://www.isotc211.org/2005/gmx"
+                               xmlns:xlink="http://www.w3.org/1999/xlink">
+                        <gmx:MimeFileType type="text/html"/>
+                     </gmd:name>
+                     <gmd:description>
+                        <gco:CharacterString>Downloadable Data</gco:CharacterString>
+                     </gmd:description>
+                  </gmd:CI_OnlineResource>
+               </gmd:onLine>
+            </gmd:MD_DigitalTransferOptions>
+         </gmd:transferOptions>
+      </gmd:MD_Distribution>
+  </gmd:distributionInfo>
+  <gmd:dataQualityInfo>
+      <gmd:DQ_DataQuality>
+         <gmd:scope>
+            <gmd:DQ_Scope>
+               <gmd:level>
+                  <gmd:MD_ScopeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_ScopeCode"
+                                    codeListValue="dataset">dataset</gmd:MD_ScopeCode>
+               </gmd:level>
+            </gmd:DQ_Scope>
+         </gmd:scope>
+         <gmd:lineage>
+            <gmd:LI_Lineage>
+               <gmd:statement>
+                  <gco:CharacterString>The Key Ecological Features layer in this dataset represent a modified set of features to those identified in the East Bioregional Profile.
+
+The Key Ecological Features (KEFs) polygon layer was created from information provided to DSEWPaC in science based workshops, discussions held with relevant scientific experts as part of the development of the East Bioregional Profile, and information contained in published research reports.
+
+In order to create a spatial representation of KEFs for the Coral Sea, some interpretation of the information was required. DSEWPaC has made every effort to use the best available spatial information and best judgement on how to spatially represent the features based on the scientific advice provided. This does not preclude others from making their own interpretation of available information.
+
+Following is more detailed information on the source of the spatial representation for individual KEFs for the Coral Sea:
+
+1.Tasmantid seamount chain is a prominent chain of submarine volcanoes extending into the Tasman Basin. This dataset represents areas identified in the Geoscience Australia geomorphic features data set as pinnacles, seamounts and guyots.
+
+2.Reefs, cays and hebivorous fish of the Queensland Plateau dataset represents areas identified in the Geoscience Australia geomorphic features data set as reefs, or cays.
+
+3.Reefs, cays and hebivorous fish of the Marion Plateau dataset represents areas identified in the Geoscience Australia geomorphic features data set as reefs, or cays.
+
+The polygons are indicative of the area of each Key Ecological Feature.</gco:CharacterString>
+               </gmd:statement>
+            </gmd:LI_Lineage>
+         </gmd:lineage>
+      </gmd:DQ_DataQuality>
+  </gmd:dataQualityInfo>
+  <mcp:revisionDate>
+      <gco:DateTime xmlns:srv="http://www.isotc211.org/2005/srv"
+                    xmlns:gmx="http://www.isotc211.org/2005/gmx"
+                    xmlns:xlink="http://www.w3.org/1999/xlink">2012-07-02T14:41:02</gco:DateTime>
+  </mcp:revisionDate>
+</mcp:MD_Metadata>

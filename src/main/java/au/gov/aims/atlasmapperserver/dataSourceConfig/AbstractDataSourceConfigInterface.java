@@ -27,6 +27,9 @@ public interface AbstractDataSourceConfigInterface {
 	public String getLegendParameters();
 	public void setLegendParameters(String legendParameters);
 
+	public String getStylesUrl();
+	public void setStylesUrl(String stylesUrl);
+
 	public String getDataSourceId();
 	public void setDataSourceId(String dataSourceId);
 

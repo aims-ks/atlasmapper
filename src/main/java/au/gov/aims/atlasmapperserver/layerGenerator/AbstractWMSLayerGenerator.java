@@ -24,10 +24,11 @@ package au.gov.aims.atlasmapperserver.layerGenerator;
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.URLCache;
 import au.gov.aims.atlasmapperserver.Utils;
-import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.WMSDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerStyleConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.WMSLayerConfig;
+import au.gov.aims.atlasmapperserver.xml.TC211.Document;
+import au.gov.aims.atlasmapperserver.xml.TC211.Parser;
 import org.geotools.data.ows.CRSEnvelope;
 import org.geotools.data.ows.Layer;
 import org.geotools.data.ows.OperationType;
@@ -35,6 +36,8 @@ import org.geotools.data.ows.Service;
 import org.geotools.data.ows.StyleImpl;
 import org.geotools.data.ows.WMSCapabilities;
 import org.geotools.data.ows.WMSRequest;
+import org.geotools.data.wms.xml.MetadataURL;
+import org.geotools.data.wms.xml.WMSComplexTypes;
 import org.geotools.ows.ServiceException;
 import org.opengis.util.InternationalString;
 
@@ -50,19 +53,15 @@ import java.util.logging.Logger;
 public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D extends WMSDataSourceConfig> extends AbstractLayerGenerator<L, D> {
 	private static final Logger LOGGER = Logger.getLogger(AbstractWMSLayerGenerator.class.getName());
 
-	// Layer config, for each datasource
-	// Map<String datasourceId, Map<String layerId, AbstractLayerConfig layer>>
-//	private Map<String, Map<String, L>> layerConfigsCache = null;
-
 	private WMSCapabilities wmsCapabilities = null;
 	private String wmsVersion = null;
 	private URL featureRequestsUrl = null;
 	private URL wmsServiceUrl = null;
 	private URL legendUrl = null;
+	private URL stylesUrl = null;
 
 	public AbstractWMSLayerGenerator(D dataSource) throws IOException, ServiceException {
 		super(dataSource);
-//		this.layerConfigsCache = new HashMap<String, Map<String, L>>();
 
 		this.wmsCapabilities = URLCache.getWMSCapabilitiesResponse(dataSource, dataSource.getServiceUrl());
 		if (this.wmsCapabilities != null) {
@@ -72,9 +71,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 				this.wmsServiceUrl = this.getOperationUrl(wmsRequestCapabilities.getGetMap());
 				this.legendUrl = this.getOperationUrl(wmsRequestCapabilities.getGetLegendGraphic());
 				this.wmsVersion = this.wmsCapabilities.getVersion();
-
-				// Implemented in the API - Not implemented in GeoTools
-				//this.stylesUrl = this.getOperationUrl(request.getGetStyles());
+				this.stylesUrl = this.getOperationUrl(wmsRequestCapabilities.getGetStyles());
 			}
 		}
 	}
@@ -142,6 +139,10 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 			clone.setLegendUrl(this.legendUrl.toString());
 		}
 
+		if (this.stylesUrl != null && Utils.isBlank(clone.getStylesUrl())) {
+			clone.setStylesUrl(this.stylesUrl.toString());
+		}
+
 		if (Utils.isBlank(this.wmsVersion) && Utils.isBlank(clone.getWmsVersion())) {
 			clone.setWmsVersion(this.wmsVersion);
 		}
@@ -170,8 +171,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 			return;
 		}
 
-		// GeoTools API documentation is hopeless and the code is build on compile time.
-		// There is the most helpfull reference I found so far:
+		// GeoTools API documentation is hopeless. The easiest way to know what the API do is to look at the sources:
 		// http://svn.osgeo.org/geotools/trunk/modules/extension/wms/src/main/java/org/geotools/data/ows/Layer.java
 		List<Layer> children = layer.getLayerChildren();
 
@@ -214,6 +214,13 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 		}
 	}
 
+	/**
+	 * Convert a GeoTool Layer into a AtlasMapper Layer
+	 * @param layer
+	 * @param wmsPath
+	 * @param dataSourceConfig
+	 * @return
+	 */
 	private L layerToLayerConfig(
 			Layer layer,
 			String wmsPath,
@@ -233,6 +240,22 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 			return null;
 		}
 
+		Document tc211Document = null;
+		List<MetadataURL> metadataUrls = layer.getMetadataURL();
+		for (MetadataURL metadataUrl : metadataUrls) {
+			if ("TC211".equalsIgnoreCase(metadataUrl.getType())) {
+				URL url = metadataUrl.getUrl();
+				if (url != null) {
+					String urlString = url.toString();
+					try {
+						tc211Document = Parser.parseURI(urlString);
+					} catch (Exception e) {
+						LOGGER.log(Level.SEVERE, "Unexpected exception while parsing the document URL ["+urlString+"]", e);
+					}
+				}
+			}
+		}
+
 		layerConfig.setLayerId(layerId);
 		this.ensureUniqueLayerId(layerConfig, dataSourceConfig);
 		layerId = layerConfig.getLayerId();
@@ -242,10 +265,55 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 			layerConfig.setTitle(title);
 		}
 
-		String description = layer.get_abstract();
+
+		String description = null;
+		// Get the description from the metadata document, if available
+		if (tc211Document != null) {
+			description = tc211Document.getAbstract();
+
+			List<Document.Link> links = tc211Document.getLinks();
+			if (links != null && !links.isEmpty()) {
+				// Set the Online Resources, using wiki format
+				StringBuilder onlineResources = new StringBuilder("\n\n*Online Resources*\n");
+				for (Document.Link link : links) {
+					// Only display links with none null URL and that are not a WMS GetMap url.
+					if (Utils.isNotBlank(link.getUrl()) && !link.isWMSGetMapLink()) {
+						String linkTitle = link.getDescription();
+						if (Utils.isBlank(linkTitle)) {
+							linkTitle = link.getName();
+						}
+						if (Utils.isBlank(linkTitle)) {
+							linkTitle = link.getUrl();
+						}
+
+						// Bullet list of URLs, in Wiki format:
+						// * [[url|title]]
+						// * [[url|title]]
+						// * [[url|title]]
+						// ...
+						onlineResources.append("* [[");
+						onlineResources.append(link.getUrl());
+						onlineResources.append("|");
+						onlineResources.append(linkTitle);
+						onlineResources.append("]]\n");
+					}
+				}
+
+				description += onlineResources.toString();
+			}
+		}
+
+		// If no description were present in the metadata document, get the description from the capabilities document
+		if (Utils.isBlank(description)) {
+			description = layer.get_abstract();
+		}
+
+		// If a description has been found, either in the metadata or capabilities document, set it in the layerConfig.
 		if (Utils.isNotBlank(description)) {
 			layerConfig.setDescription(description);
 		}
+
+
 		layerConfig.setWmsQueryable(layer.isQueryable());
 
 		if (Utils.isNotBlank(wmsPath)) {
@@ -287,9 +355,22 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 		InternationalString intTitle = style.getTitle();
 		InternationalString intDescription = style.getAbstract();
 
-		// styleImpl.getLegendURLs() is not implemented yet (gt-wms ver. 2.7.2)
-		// See modules/extension/wms/src/main/java/org/geotools/data/wms/xml/WMSComplexTypes.java line 4155
-		//List u = styleImpl.getLegendURLs();
+		// style.getLegendURLs() is now implemented!! (gt-wms ver. 8.1) But there is an error in the code...
+		// See modules/extension/wms/src/main/java/org/geotools/data/wms/xml/WMSComplexTypes.java line 4172
+		// They use the hardcoded index "2" instead of "i":
+		//     [...]
+		//     if (sameName(elems[3], value[i])) {
+		//         legendURLS.add((String)value[2].getValue());
+		//     }
+		//     [...]
+		// Should be
+		//     [...]
+		//     if (sameName(elems[3], value[i])) {
+		//         legendURLS.add((String)value[i].getValue());
+		//     }
+		//     [...]
+		// http://osgeo-org.1560.n6.nabble.com/svn-r38810-in-branches-2-7-x-modules-extension-wms-src-main-java-org-geotools-data-wms-xml-test-javaa-tt4981882.html
+		List<String> legendURLs = style.getLegendURLs();
 
 		LayerStyleConfig styleConfig = new LayerStyleConfig(configManager);
 		styleConfig.setName(name);
@@ -299,6 +380,14 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 		if (intDescription != null) {
 			styleConfig.setDescription(intDescription.toString());
 		}
+
+		/*
+		if (legendURLs != null && !legendURLs.isEmpty()) {
+			for (String legendURL : legendURLs) {
+				System.out.println("############## legendURL: ["+legendURL+"]");
+			}
+		}
+		*/
 
 		return styleConfig;
 	}

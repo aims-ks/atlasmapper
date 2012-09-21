@@ -24,7 +24,10 @@ package au.gov.aims.atlasmapperserver;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import org.geotools.data.ows.GetCapabilitiesRequest;
 import org.geotools.data.ows.GetCapabilitiesResponse;
+import org.geotools.data.ows.HTTPClient;
+import org.geotools.data.ows.HTTPResponse;
 import org.geotools.data.ows.Request;
+import org.geotools.data.ows.SimpleHttpClient;
 import org.geotools.data.ows.WMSCapabilities;
 import org.geotools.data.wms.WMS1_3_0;
 import org.geotools.data.wms.WebMapServer;
@@ -37,6 +40,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Collection;
@@ -63,6 +67,8 @@ public class URLCache {
 	// HashMap<String urlString, ResponseWrapper response>
 	private static HashMap<String, ResponseWrapper> responseCache = new HashMap<String, ResponseWrapper>();
 	private static HashMap<String, ResponseWrapper> searchResponseCache = new HashMap<String, ResponseWrapper>();
+
+	private static HTTPClient httpClient = new SimpleHttpClient(); // Also available: MultithreadedHttpClient
 
 	public static JSONObject getJSONResponse(AbstractDataSourceConfig dataSource, String urlStr) throws IOException, JSONException {
 		ResponseWrapper response = getCachedResponse(urlStr);
@@ -214,12 +220,9 @@ public class URLCache {
 	}
 	private static GetCapabilitiesResponse issueFileRequest(Request request) throws IOException, ServiceException {
 		URL finalURL = request.getFinalURL();
-		URLConnection connection = finalURL.openConnection();
-		InputStream inputStream = connection.getInputStream();
+		HTTPResponse response = URLCache.httpClient.get(finalURL);
 
-		String contentType = connection.getContentType();
-
-		return (GetCapabilitiesResponse)request.createResponse(contentType, inputStream);
+		return (GetCapabilitiesResponse)request.createResponse(response);
 	}
 
 	public static void clearCache() {

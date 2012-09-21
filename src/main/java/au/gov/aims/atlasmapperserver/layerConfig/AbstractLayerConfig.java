@@ -146,6 +146,9 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 	private String legendParameters;
 
 	@ConfigField
+	private String stylesUrl;
+
+	@ConfigField
 	private String baseLayers;
 
 	@ConfigField
@@ -233,6 +236,16 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 
 	@Override
 	public void setLegendUrl(String legendUrl) {
+		this.legendUrl = legendUrl;
+	}
+
+	@Override
+	public String getStylesUrl() {
+		return this.legendUrl;
+	}
+
+	@Override
+	public void setStylesUrl(String legendUrl) {
 		this.legendUrl = legendUrl;
 	}
 
@@ -553,6 +566,10 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 			jsonLayer.put("legendUrl", this.getLegendUrl().trim());
 		}
 
+		if (Utils.isNotBlank(this.getStylesUrl())) {
+			jsonLayer.put("stylesUrl", this.getStylesUrl().trim());
+		}
+
 		if(Utils.isNotBlank(this.getLegendGroup())) {
 			jsonLayer.put("legendGroup", this.getLegendGroup().trim());
 		}
@@ -579,11 +596,12 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 				boolean firstStyle = true;
 				for (LayerStyleConfig style : styles) {
 					String styleName = style.getName();
-					if (firstStyle) {
-						firstStyle = false;
-						styleName = "";
-					}
 					if (styleName != null) {
+						if (firstStyle) {
+							firstStyle = false;
+							styleName = "";
+						}
+
 						JSONObject jsonStyle = this.generateLayerStyle(style);
 						if (jsonStyle != null && jsonStyle.length() > 0) {
 							jsonStyles.put(styleName.trim(), jsonStyle);
@@ -627,12 +645,19 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 		}
 
 		JSONObject jsonStyle = new JSONObject();
+
+		// The title fallback to the style name, which should never be null, so no
+		// style should have the title "Untitled" (this is just an extra security).
+		String title = "Untitled";
+		if (Utils.isNotBlank(style.getTitle())) {
+			title = style.getTitle().trim();
+		} else if (Utils.isNotBlank(style.getName())) {
+			title = style.getName().trim();
+		}
+		jsonStyle.put("title", title);
+
 		if (style.isDefault() != null) {
 			jsonStyle.put("default", style.isDefault());
-		}
-
-		if (Utils.isNotBlank(style.getTitle())) {
-			jsonStyle.put("title", style.getTitle().trim());
 		}
 
 		if (Utils.isNotBlank(style.getDescription())) {

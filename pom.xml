@@ -72,7 +72,7 @@ It contains:\n\
 		<dependency>
 			<groupId>org.geotools</groupId>
 			<artifactId>gt-wms</artifactId>
-			<version>2.7.2</version>
+			<version>8.1</version>
 		</dependency>
 
 		<!-- Database containing the information about the EPSG CRS projections - dependencies (1.3M) -->
@@ -86,13 +86,13 @@ It contains:\n\
 		<dependency>
 			<groupId>org.geotools</groupId>
 			<artifactId>gt-epsg-hsql</artifactId>
-			<version>8.0-M1</version>
+			<version>8.1</version>
 		</dependency>
 		<!-- More EPSG CRS projections (Google, ESRI, etc.) - gt2-epsg-extension (29.5k) -->
 		<dependency>
 			<groupId>org.geotools</groupId>
 			<artifactId>gt-epsg-extension</artifactId>
-			<version>8.0-M1</version>
+			<version>8.1</version>
 		</dependency>
 
 		<!-- Templating to generate HTML files - freemarker (902.6k) (This is the templating used by GeoServer) -->
@@ -172,6 +172,9 @@ It contains:\n\
 		<testResources>
 			<testResource>
 				<directory>${project.basedir}/clientResources</directory>
+			</testResource>
+			<testResource>
+				<directory>src/test/resources</directory>
 			</testResource>
 		</testResources>
 

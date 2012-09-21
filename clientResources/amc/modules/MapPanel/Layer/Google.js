@@ -67,6 +67,23 @@ Atlas.Layer.Google = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 		}
 	},
 
+	// override
+	getPreviewUrl: function() {
+		if (this._endsWith(this.json['layerId'], 'HYBRID')) {
+			return 'resources/preview/hybrid.png';
+		} else if (this._endsWith(this.json['layerId'], 'SATELLITE')) {
+			return 'resources/preview/satellite.png';
+		} else if (this._endsWith(this.json['layerId'], 'ROADMAP')) {
+			return 'resources/preview/roadmap.png';
+		} else if (this._endsWith(this.json['layerId'], 'TERRAIN')) {
+			return 'resources/preview/terrain.png';
+		}
+	},
+
+	_endsWith: function(str, suffix) {
+		return str.indexOf(suffix, str.length - suffix.length) !== -1;
+	},
+
 	/**
 	 * Try to initialise the attribution DOM element.
 	 * This will probably fail a few times since Google take its time to create the DOM elements.

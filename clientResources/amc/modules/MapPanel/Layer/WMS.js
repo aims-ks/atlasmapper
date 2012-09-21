@@ -83,6 +83,13 @@ Atlas.Layer.WMS = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 		}
 	},
 
+	// override
+	/*
+	getPreviewUrl: function() {
+		return 'http://images.all-free-download.com/images/graphiclarge/google_maps_97811.jpg';
+	},
+	*/
+
 	// Called when the DPI change on the mapPanel
 	_dpiChange: function(dpi) {
 		var defaultDPI = this.mapPanel ? this.mapPanel.DEFAULT_DPI : 90;

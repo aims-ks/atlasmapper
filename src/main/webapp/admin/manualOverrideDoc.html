@@ -229,7 +229,139 @@
 			<tr>
 				<td class="attr">descriptionFormat</td>
 				<td class="type">String</td>
-				<td class="desc">The format of the description field. Possible value: <i>text</i>, <i>html</i>. Default: <i>text</i></td>
+				<td class="desc">The format of the description field. Possible value: <i>wiki</i>, <i>text</i>, <i>html</i>. Default: <i>wiki</i>
+					<ul>
+						<li><strong>text</strong>: URL and new lines are automatically converted into HTML.</li>
+						<li><strong>html</strong>: No processing is done on the description. It's used directly in the <i>description</i> panel.</li>
+						<!-- Description of the Wiki format -->
+						<li><strong>wiki</strong>: The text is converted into HTML following these rules:
+							<ul>
+								<li>
+									<strong>Styles:</strong>
+									<ul>
+										<li>Bold: *expression*</li>
+										<li>Italic: /expression/</li>
+										<li>Underline: _expression_</li>
+										<li>Strike: -expression-</li>
+									</ul>
+									Rules:
+									<ul>
+										<li>Styles starts at the beginning of a word and end at the end of a word. It can not be used inside one.</li>
+										<li>Styles started in a wiki block, like a list item, must end in the same block.</li>
+										<li>Styles can be nested, but can not overlap with any other styles of other wiki blocks.</li>
+									</ul>
+									<strong>Example:</strong>
+<pre>
+Bold: *expression*
+Italic: /expression/
+Underline: _expression_
+Strike: -expression-
+All 4, nested: */_-expression-_/*
+All 4, mixed: /*Mix* _of -different-_ *styles*/
+_*Nested bold and underlined*_ (Valid)
+*_Overlapping bold and underlined*_ (Invalid, only the first style, bold, is applied)
+*not bo*ld (The end of the bold style is inside a word)
+</pre>
+									<strong>Produce:</strong><br/>
+									Bold: <b>expression</b><br/>
+									Italic: <i>expression</i><br/>
+									Underline: <u>expression</u><br/>
+									Strike: <s>expression</s><br/>
+									All 4, nested: <b><i><u><s>expression</s></u></i></b><br/>
+									All 4, mixed: <i><b>Mix</b> <u>of <s>different</s></u> <b>styles</b></i><br/>
+									<u><b>Nested bold and underlined</b></u> (Valid)<br/>
+									<b>Overlapping bold and underlined</b>_ (Invalid, only the first style, bold, is applied)<br/>
+									*not bo*ld (The end of the bold style is inside a word)<br/>
+								</li>
+								<li>
+									<strong>Headers:</strong><br/>
+									Headers must be alone on their line. They are delimited by equals (=) characters. The number of equals (=) characters define the level of the header.<br/>
+									<strong>Example:</strong>
+<pre>
+==Heading 1==
+===Heading 2===
+====Heading 3====
+=====Heading 4=====
+======Heading 5======
+=======Heading 6=======
+========Too many "equals"========
+=======Unbalanced (use the minimum between the start and the end)====
+</pre>
+									<strong>Produce:</strong>
+									<h1>Heading 1</h1>
+									<h2>Heading 2</h2>
+									<h3>Heading 3</h3>
+									<h4>Heading 4</h4>
+									<h5>Heading 5</h5>
+									<h6>Heading 6</h6>
+									========Too many "equals"========
+									<h3>===Unbalanced (use the minimum between the start and the end)</h3>
+								</li>
+								<li>
+									<strong>Bullet list:</strong><br/>
+									Bullet list are alone on their line. Each line of the list starts with stars (*) following by a space. The number of stars (*) determine the level of the list.<br/>
+									<strong>Example:</strong><br/>
+<pre>
+* First element
+** /Sub/ element
+* *2nd* element
+</pre>
+									<strong>Produce:</strong>
+									<ul>
+										<li>
+											First element
+											<ul>
+												<li><i>Sub</i> element</li>
+											</ul>
+										</li>
+										<li><b>2nd</b> element</li>
+									</ul>
+								</li>
+								<li>
+									<strong>Numbered list:</strong><br/>
+									Numbered list are alone on their line. Each line of the list starts with hashes (#) following by a space. The number of hashes (#) determine the level of the list.<br/>
+									<strong>Example:</strong><br/>
+<pre>
+# First element
+## /Sub/ element
+# *2nd* element
+</pre>
+									<strong>Produce:</strong>
+									<ol>
+										<li>
+											First element
+											<ol>
+												<li><i>Sub</i> element</li>
+											</ol>
+										</li>
+										<li><b>2nd</b> element</li>
+									</ol>
+								</li>
+								<li>
+									<strong>URLs:</strong><br/>
+									URLs can be simply part of the text, or surround by double square brackets ([[]]), for better control.<br/>
+									Format: [[url]]<br/>
+									Label can be defined by adding a pipe (|) after the URL, following by the text label.<br/>
+									Format: [[url|label]]<br/>
+									NOTE: The label may contains wiki format.<br/>
+									<strong>Examples:</strong>
+<pre>
+http://www.google.com/
+[[http://google.com/]]
+[[http://www.google.com/|Google]]
+[[page2.html|*Page /2/*]]
+</pre>
+									<strong>Produce:</strong><br/>
+									<a href="http://www.google.com/" target="_blank">http://www.google.com/</a><br/>
+									<a href="http://google.com/" target="_blank">http://google.com/</a><br/>
+									<a href="http://www.google.com/" target="_blank">Google</a><br/>
+									<a href="page2.html" target="_blank"><b>Page <i>2</i></b></a>
+								</li>
+							</ul>
+						</li>
+						<!-- END OF Description of the Wiki format -->
+					</ul>
+				</td>
 			</tr>
 			<tr>
 				<td class="attr">dataSourceId</td>
