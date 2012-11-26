@@ -86,6 +86,7 @@ public class Document {
 		private String protocol;
 		private String name;
 		private String description;
+		private String applicationProfile;
 
 		public String getUrl() {
 			return this.url;
@@ -115,6 +116,13 @@ public class Document {
 			this.description = description;
 		}
 
+		public String getApplicationProfile() {
+			return this.applicationProfile;
+		}
+		public void setApplicationProfile(String applicationProfile) {
+			this.applicationProfile = applicationProfile;
+		}
+
 		public boolean isWMSGetMapLink() {
 			return WMS_GET_MAP_PROTOCOL.equalsIgnoreCase(this.protocol);
 		}
@@ -122,10 +130,11 @@ public class Document {
 		@Override
 		public String toString() {
 			return "		Document.Link {\n" +
-					(Utils.isBlank(this.getUrl()) ? "" :           "			url=" + this.getUrl() + "\n") +
-					(Utils.isBlank(this.getProtocol()) ? "" :      "			protocol=" + this.getProtocol() + "\n") +
-					(Utils.isBlank(this.getName()) ? "" :          "			name=" + this.getName() + "\n") +
-					(Utils.isBlank(this.getDescription()) ? "" :   "			description=" + this.getDescription() + "\n") +
+					(Utils.isBlank(this.getUrl()) ? "" :               "			url=" + this.getUrl() + "\n") +
+					(Utils.isBlank(this.getProtocol()) ? "" :          "			protocol=" + this.getProtocol() + "\n") +
+					(Utils.isBlank(this.getName()) ? "" :              "			name=" + this.getName() + "\n") +
+					(Utils.isBlank(this.getDescription()) ? "" :       "			description=" + this.getDescription() + "\n") +
+					(Utils.isBlank(this.getApplicationProfile()) ? "" :"			applicationProfile=" + this.getApplicationProfile() + "\n") +
 					"		}";
 		}
 	}

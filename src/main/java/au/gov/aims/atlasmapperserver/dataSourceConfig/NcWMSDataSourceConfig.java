@@ -34,13 +34,7 @@ public class NcWMSDataSourceConfig extends WMSDataSourceConfig {
 	}
 
 	@Override
-	public AbstractLayerGenerator getLayerGenerator() throws IOException {
-		NcWMSLayerGenerator layerGenerator;
-		try {
-			layerGenerator = new NcWMSLayerGenerator(this);
-		} catch (ServiceException e) {
-			throw new IOException("Service Exception occurred while retrieving the WMS layer generator for a ncWMS server.", e);
-		}
-		return layerGenerator;
+	public AbstractLayerGenerator getLayerGenerator() throws Exception {
+		return new NcWMSLayerGenerator(this);
 	}
 }

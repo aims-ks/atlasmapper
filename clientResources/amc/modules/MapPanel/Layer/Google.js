@@ -67,6 +67,7 @@ Atlas.Layer.Google = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 		}
 	},
 
+	/*
 	// override
 	getPreviewUrl: function() {
 		if (this._endsWith(this.json['layerId'], 'HYBRID')) {
@@ -79,6 +80,7 @@ Atlas.Layer.Google = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 			return 'resources/preview/terrain.png';
 		}
 	},
+	*/
 
 	_endsWith: function(str, suffix) {
 		return str.indexOf(suffix, str.length - suffix.length) !== -1;

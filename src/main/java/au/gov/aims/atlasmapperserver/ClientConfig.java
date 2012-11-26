@@ -27,7 +27,7 @@ import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.GroupLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
 import au.gov.aims.atlasmapperserver.servlet.FileFinder;
-import java.io.FileNotFoundException;
+
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -73,6 +73,9 @@ public class ClientConfig extends AbstractConfig {
 
 	@ConfigField
 	private String welcomeMsg;
+
+	@ConfigField
+	private String headExtra;
 
 	@ConfigField
 	private String attributions;
@@ -226,7 +229,7 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	// LayerCatalog - Before data source overrides
-	private LayerCatalog getRawLayerCatalog() throws GetCapabilitiesExceptions, FileNotFoundException, JSONException {
+	private LayerCatalog getRawLayerCatalog() throws GetCapabilitiesExceptions, IOException, JSONException {
 		LayerCatalog rawLayerCatalog = new LayerCatalog();
 
 		// Retrieved all layers for all data sources of this client
@@ -240,6 +243,7 @@ public class ClientConfig extends AbstractConfig {
 			} catch(Exception ex) {
 				// Collect all errors
 				errors.add(dataSource, ex);
+				LOGGER.log(Level.INFO, "Exception occur while retrieving layers: ", ex);
 			}
 		}
 
@@ -251,7 +255,7 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	// LayerCatalog - After data source overrides
-	public LayerCatalog getLayerCatalog() throws GetCapabilitiesExceptions, FileNotFoundException, JSONException {
+	public LayerCatalog getLayerCatalog() throws GetCapabilitiesExceptions, IOException, JSONException {
 		LayerCatalog rawLayerCatalog = this.getRawLayerCatalog();
 
 		// Map of layers, after overrides, used to create the final layer catalog
@@ -264,7 +268,7 @@ public class ClientConfig extends AbstractConfig {
 			for (AbstractLayerConfig layerConfig : rawLayerCatalog.getLayers()) {
 				if (layerConfig != null) {
 					AbstractLayerConfig overriddenLayerConfig =
-							layerConfig.applyOverrides(clientOverrides);
+							layerConfig.applyGlobalOverrides(clientOverrides);
 					layersMap.put(
 							overriddenLayerConfig.getLayerId(),
 							overriddenLayerConfig);
@@ -440,6 +444,14 @@ public class ClientConfig extends AbstractConfig {
 
 	public void setWelcomeMsg(String welcomeMsg) {
 		this.welcomeMsg = welcomeMsg;
+	}
+
+	public String getHeadExtra() {
+		return this.headExtra;
+	}
+
+	public void setHeadExtra(String headExtra) {
+		this.headExtra = headExtra;
 	}
 
 	public String getAttributions() {
@@ -889,7 +901,7 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	// Helper
-	public boolean useGoogle(ConfigManager configManager) throws JSONException, FileNotFoundException {
+	public boolean useGoogle(ConfigManager configManager) throws JSONException, IOException {
 		JSONArray dataSourcesArray = this.getDataSources();
 		if (dataSourcesArray != null) {
 			for (int i=0; i < dataSourcesArray.length(); i++) {
@@ -907,7 +919,7 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	// Helper
-	public List<AbstractDataSourceConfig> getDataSourceConfigs() throws JSONException, FileNotFoundException {
+	public List<AbstractDataSourceConfig> getDataSourceConfigs() throws JSONException, IOException {
 		List<AbstractDataSourceConfig> dataSourceConfigs = new ArrayList<AbstractDataSourceConfig>();
 		JSONArray dataSourcesArray = this.getDataSources();
 		if (dataSourcesArray != null) {
@@ -925,7 +937,7 @@ public class ClientConfig extends AbstractConfig {
 		return dataSourceConfigs;
 	}
 
-	public AbstractDataSourceConfig getDataSourceConfig(String dataSourceId) throws JSONException, FileNotFoundException {
+	public AbstractDataSourceConfig getDataSourceConfig(String dataSourceId) throws JSONException, IOException {
 		if (Utils.isBlank(dataSourceId)) {
 			return null;
 		}

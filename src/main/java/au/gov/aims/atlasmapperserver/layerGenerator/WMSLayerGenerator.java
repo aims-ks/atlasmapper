@@ -21,13 +21,11 @@
 
 package au.gov.aims.atlasmapperserver.layerGenerator;
 
-import java.io.IOException;
 import java.util.logging.Logger;
 
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.WMSDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.WMSLayerConfig;
-import org.geotools.ows.ServiceException;
 
 /**
  *
@@ -36,7 +34,7 @@ import org.geotools.ows.ServiceException;
 public class WMSLayerGenerator extends AbstractWMSLayerGenerator<WMSLayerConfig, WMSDataSourceConfig> {
 	private static final Logger LOGGER = Logger.getLogger(WMSLayerGenerator.class.getName());
 
-	public WMSLayerGenerator(WMSDataSourceConfig dataSource) throws IOException, ServiceException {
+	public WMSLayerGenerator(WMSDataSourceConfig dataSource) throws Exception {
 		super(dataSource);
 	}
 

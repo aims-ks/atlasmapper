@@ -30,99 +30,112 @@ Atlas.MapToolsPanel = Ext.extend(Ext.form.FormPanel, {
 	constructor: function(attributes) {
 		var that = this;
 
+		// TODO Remove this after implementing tools for all maps (instead of tools per maps)
+		var parameters = OpenLayers.Util.getParameters();
+		var nbMaps = 1;
+		if (parameters.maps) {
+			nbMaps = parseInt(parameters.maps);
+		}
+		if (nbMaps < 1) { nbMaps = 1; }
+		if (nbMaps > 4) { nbMaps = 4; }
+
+		var toolsEnabled = nbMaps == 1;
+
 		var tools = [];
-		if (Atlas.conf['searchEnabled']) {
-			tools.push({
-				xtype: 'textfield',
-				ref: 'searchField',
-				name: 'search',
-				hideLabel: true,
-				margins: {
-					top: 6,
-					right: 0,
-					bottom: 6,
-					left: 6
-				},
-				// Needed to be able to catch 'keydown' event
-				enableKeyEvents: true,
-				listeners: {
-					'specialkey': function(field, evt) {
-						if (evt.getKey() == evt.ENTER) {
-							that.search(field.getValue());
-						}
+		if (toolsEnabled) {
+			if (Atlas.conf['searchEnabled']) {
+				tools.push({
+					xtype: 'textfield',
+					ref: 'searchField',
+					name: 'search',
+					hideLabel: true,
+					margins: {
+						top: 6,
+						right: 0,
+						bottom: 6,
+						left: 6
 					},
-					// Prevent the Map from grabbing the keys (-/+ to zoom, arrows to pan, etc.)
-					'keydown': function(field, evt) {
-						evt.stopPropagation();
+					// Needed to be able to catch 'keydown' event
+					enableKeyEvents: true,
+					listeners: {
+						'specialkey': function(field, evt) {
+							if (evt.getKey() == evt.ENTER) {
+								that.search(field.getValue());
+							}
+						},
+						// Prevent the Map from grabbing the keys (-/+ to zoom, arrows to pan, etc.)
+						'keydown': function(field, evt) {
+							evt.stopPropagation();
+						}
 					}
-				}
-			});
-			tools.push({
-				iconCls: 'searchButton',
-				tooltip: 'Search a location; city, reef name, etc.',
-				margins: {
-					top: 2,
-					right: 20,
-					bottom: 2,
-					left: 4
-				},
-				handler: function(btn, evt) {
-					that.search(btn.ownerCt.searchField.getValue());
-				}
-			});
-		}
-
-		if (Atlas.conf['printEnabled']) {
-			tools.push({
-				iconCls: 'printFrameButton',
-				tooltip: 'Prepare map for printing',
-				handler: function() {
-					that.addPrintFrame();
-				}
-			});
-		}
-
-		if (Atlas.conf['saveMapEnabled']) {
-			tools.push({
-				iconCls: 'linkButton',
-				tooltip: 'Link to the embedded map',
-				handler: function() {
-					that.showEmbeddedLinkWindow();
-				}
-			});
-		}
-
-		if (Atlas.conf['mapConfigEnabled']) {
-			tools.push({
-				iconCls: 'configButton',
-				tooltip: 'Map options',
-				handler: function() {
-					that.showMapConfigWindow();
-				}
-			});
-		}
-
-		if (tools.length) {
-			var newAttributes = Ext.apply({
-				xtype: 'form',
-				layout: 'hbox',
-				defaultType: 'button',
-				defaults: {
-					scale: 'medium',
+				});
+				tools.push({
+					iconCls: 'searchButton',
+					tooltip: 'Search a location; city, reef name, etc.',
 					margins: {
 						top: 2,
-						right: 4,
+						right: 20,
 						bottom: 2,
 						left: 4
+					},
+					handler: function(btn, evt) {
+						that.search(btn.ownerCt.searchField.getValue());
 					}
-				},
+				});
+			}
 
-				// Add a shadow - cause problem with modal window (this panel stay on top...)
-				//floating: true, shadowOffset: 6,
+			if (Atlas.conf['printEnabled']) {
+				tools.push({
+					iconCls: 'printFrameButton',
+					tooltip: 'Prepare map for printing',
+					handler: function() {
+						that.addPrintFrame();
+					}
+				});
+			}
 
-				items: tools,
-				region: 'north'
-			}, attributes);
+			if (Atlas.conf['saveMapEnabled']) {
+				tools.push({
+					iconCls: 'linkButton',
+					tooltip: 'Link to the embedded map',
+					handler: function() {
+						that.showEmbeddedLinkWindow();
+					}
+				});
+			}
+
+			if (Atlas.conf['mapConfigEnabled']) {
+				tools.push({
+					iconCls: 'configButton',
+					tooltip: 'Map options',
+					handler: function() {
+						that.showMapConfigWindow();
+					}
+				});
+			}
+
+			if (tools.length) {
+				var newAttributes = Ext.apply({
+					xtype: 'form',
+					layout: 'hbox',
+					defaultType: 'button',
+					defaults: {
+						scale: 'medium',
+						margins: {
+							top: 2,
+							right: 4,
+							bottom: 2,
+							left: 4
+						}
+					},
+
+					// Add a shadow - cause problem with modal window (this panel stay on top...)
+					//floating: true, shadowOffset: 6,
+
+					items: tools,
+					region: 'north'
+				}, attributes);
+			}
 		}
 
 		Atlas.MapToolsPanel.superclass.constructor.call(this, newAttributes);

@@ -24,13 +24,10 @@ package au.gov.aims.atlasmapperserver.layerGenerator;
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.WMTSDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.WMTSLayerConfig;
-import org.geotools.ows.ServiceException;
-
-import java.io.IOException;
 
 public class WMTSLayerGenerator extends AbstractWMSLayerGenerator<WMTSLayerConfig, WMTSDataSourceConfig> {
 
-	public WMTSLayerGenerator(WMTSDataSourceConfig dataSource) throws IOException, ServiceException {
+	public WMTSLayerGenerator(WMTSDataSourceConfig dataSource) throws Exception {
 		super(dataSource);
 	}
 

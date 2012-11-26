@@ -28,7 +28,6 @@ import au.gov.aims.atlasmapperserver.collection.BlackAndWhiteListFilter;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Set;
@@ -155,7 +154,7 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 			for (AbstractLayerConfig layerConfig : rawLayerCatalog.getLayers()) {
 				if (layerConfig != null) {
 					AbstractLayerConfig overriddenLayerConfig =
-							layerConfig.applyOverrides(globalOverrides);
+							layerConfig.applyGlobalOverrides(globalOverrides);
 					layersMap.put(
 							overriddenLayerConfig.getLayerId(),
 							overriddenLayerConfig);
@@ -440,7 +439,7 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 		}
 	}
 
-	public abstract AbstractLayerGenerator getLayerGenerator() throws IOException;
+	public abstract AbstractLayerGenerator getLayerGenerator() throws Exception;
 
 	@Override
 	// Order data sources by data source name

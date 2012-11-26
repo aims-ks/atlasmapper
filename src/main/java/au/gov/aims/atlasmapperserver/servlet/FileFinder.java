@@ -28,7 +28,7 @@ import au.gov.aims.atlasmapperserver.Utils;
 import org.json.JSONException;
 
 import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Arrays;
@@ -64,12 +64,30 @@ public class FileFinder {
 	private static final String CLIENT_PREVIEW_PAGE = "preview.html";
 	private static final String CLIENT_LAYERLIST_PAGE = "list.html";
 
+	private static final String DISK_CACHE_FOLDER = "cache";
+	private static final String DISK_CACHE_FILE = "cacheMap.json";
+
 	public static void init(ServletContext context) {
 		printDataDirProperty(context);
 
 		boolean create = true;
 		File appFolder = getApplicationFolder(context, create);
 		getCommonFilesFolder(appFolder, create);
+	}
+
+	public static File getDiskCacheFolder(File applicationFolder) {
+		File folder = new File(applicationFolder, DISK_CACHE_FOLDER);
+		folder.mkdirs();
+
+		return folder;
+	}
+
+	public static File getDiskCacheFile(File applicationFolder) throws IOException {
+		File diskCacheFile = new File(getDiskCacheFolder(applicationFolder), DISK_CACHE_FILE);
+		// Create the file is it doesn't exists (check + creation is atomic)
+		diskCacheFile.createNewFile();
+
+		return diskCacheFile;
 	}
 
 	public static File getPublicFile(ServletContext context, String fileRelativePath) {
@@ -105,7 +123,7 @@ public class FileFinder {
 		return fileRelativePathWithClientPath.substring(clientIdStart, clientIdEnd);
 	}
 
-	public static ClientConfig getClientConfig(ServletContext context, String clientId) throws FileNotFoundException, JSONException {
+	public static ClientConfig getClientConfig(ServletContext context, String clientId) throws IOException, JSONException {
 		if (Utils.isBlank(clientId)) {
 			return null;
 		}
@@ -198,7 +216,7 @@ public class FileFinder {
 			return clientBaseUrlOverride;
 		}
 
-		String filename = safeClientFoldername(clientConfig.getClientId());
+		String filename = safeClientFolderName(clientConfig.getClientId());
 		if (filename == null) {
 			return null;
 		}
@@ -292,7 +310,7 @@ public class FileFinder {
 		if (Utils.isNotBlank(clientFolderOverrideStr)) {
 			clientFolder = new File(clientFolderOverrideStr);
 		} else {
-			String filename = safeClientFoldername(clientConfig.getClientId());
+			String filename = safeClientFolderName(clientConfig.getClientId());
 			if (filename != null) {
 				clientFolder = new File(applicationFolder, filename);
 			}
@@ -306,7 +324,7 @@ public class FileFinder {
 		return clientFolder;
 	}
 
-	private static String safeClientFoldername(String clientId) {
+	private static String safeClientFolderName(String clientId) {
 		if (Utils.isBlank(clientId)) {
 			return null;
 		}

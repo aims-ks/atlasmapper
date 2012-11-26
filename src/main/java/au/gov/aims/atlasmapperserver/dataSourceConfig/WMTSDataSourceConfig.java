@@ -34,13 +34,7 @@ public class WMTSDataSourceConfig extends WMSDataSourceConfig {
 	}
 
 	@Override
-	public AbstractLayerGenerator getLayerGenerator() throws IOException {
-		AbstractLayerGenerator layerGenerator;
-		try {
-			layerGenerator = new WMTSLayerGenerator(this);
-		} catch (ServiceException e) {
-			throw new IOException("Service Exception occurred while retrieving the WMS layer generator.", e);
-		}
-		return layerGenerator;
+	public AbstractLayerGenerator getLayerGenerator() throws Exception {
+		return new WMTSLayerGenerator(this);
 	}
 }

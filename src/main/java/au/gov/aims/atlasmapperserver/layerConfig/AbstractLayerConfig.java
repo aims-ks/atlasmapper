@@ -447,7 +447,7 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 	}
 
 	public List<LayerOptionConfig> getOptions() {
-		return options;
+		return this.options;
 	}
 
 	public void setOptions(List<LayerOptionConfig> options) {
@@ -478,26 +478,41 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 		this.selected = selected;
 	}
 
-	public AbstractLayerConfig applyOverrides(
+	public AbstractLayerConfig applyGlobalOverrides(
 			JSONObject globalOverrides) throws JSONException {
 
 		// Create an AbstractLayerConfig from the layer override
 		AbstractLayerConfig layerGlobalOverride = null;
 		if (globalOverrides != null && globalOverrides.length() > 0) {
 			JSONObject globalOverride = globalOverrides.optJSONObject(this.layerId);
-			if (globalOverride != null && globalOverride.length() > 0) {
-				try {
-					layerGlobalOverride = LayerCatalog.createLayer(
-							globalOverride.optString("dataSourceType", this.getDataSourceType()), globalOverride, this.getConfigManager());
-				} catch(Exception ex) {
-					LOGGER.log(Level.SEVERE, "Unexpected error occurred while parsing the following layer override for the data source ["+this.getDataSourceName()+"]:\n" + globalOverride.toString(4), ex);
+
+			return this.applyOverrides(globalOverride);
+		}
+
+		return this;
+	}
+
+	public AbstractLayerConfig applyOverrides(
+			JSONObject layerOverrides) throws JSONException {
+
+		// Create an AbstractLayerConfig from the layer override
+		AbstractLayerConfig layerOverride = null;
+		if (layerOverrides != null && layerOverrides.length() > 0) {
+			try {
+				String dataSourceType = layerOverrides.optString("dataSourceType", this.getDataSourceType());
+				if (dataSourceType == null) {
+					dataSourceType = this.getDataSourceType();
 				}
+
+				layerOverride = LayerCatalog.createLayer(dataSourceType, layerOverrides, this.getConfigManager());
+			} catch(Exception ex) {
+				LOGGER.log(Level.SEVERE, "Unexpected error occurred while parsing the following layer override for the data source ["+this.getDataSourceName()+"]:\n" + layerOverrides.toString(4), ex);
 			}
 		}
 
 		// Apply the layer override on a clone of the current layer (do not modify the original layer)
 		AbstractLayerConfig clone = (AbstractLayerConfig)this.clone();
-		clone.applyOverrides(layerGlobalOverride);
+		clone.applyOverrides(layerOverride);
 
 		return clone;
 	}

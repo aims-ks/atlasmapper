@@ -25,11 +25,12 @@ window["Atlas"]["Layer"] = window["Atlas"]["Layer"] || {};
 
 Atlas.Layer.PrintFrame = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 	/**
-	 * Constructor: Atlas.Layer.XYZ
+	 * Constructor: Atlas.Layer.PrintFrame
 	 *
 	 * Parameters:
-	 * jsonLayer - {Object} Hashtable of layer attributes
 	 * mapPanel - {Object} Instance of the MapPanel in which the layer is used
+	 * jsonLayer - {Object} Hashtable of layer attributes
+	 * parent - {Object} Parent layer, used with folder (not applicable to print frames)
 	 */
 	initialize: function(mapPanel, jsonLayer, parent) {
 		Atlas.Layer.AbstractLayer.prototype.initialize.apply(this, arguments);

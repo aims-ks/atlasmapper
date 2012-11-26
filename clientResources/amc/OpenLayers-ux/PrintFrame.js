@@ -66,6 +66,15 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 	_frameWidth: null,
 	_coordLinesWidth: null,
 
+	// The offset (in pixels) between the clicked location and the
+	// bottom right corner of the frame, calculated before resize start
+	// and used during resize.
+	_resizeOffset: null,
+	// Location of the resize point, used to calculate the offset.
+	_resizePoint: null,
+	// Used to know if the mouse is still over the resizing handle.
+	_resizeCornerFeature: null,
+
 	// Offset of the north arrow / scale line, from the top left corner of the printed frame, in unit of the map (degree, meter, etc.).
 	// (array of floats [X, Y])
 	northArrowLocation: null,
@@ -318,6 +327,10 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 			lastPixel = pixel;
 
 		} else if (feature.isResizeHandle) {
+			// Calculate the offset (in pixels) between the clicked location and the bottom right corner
+			var resizePointPixel = that.map.getPixelFromLonLat(new OpenLayers.LonLat(that._resizePoint.x, that._resizePoint.y));
+			that._resizeOffset = new OpenLayers.Pixel(resizePointPixel.x - pixel.x, resizePointPixel.y - pixel.y);
+
 			// Resize handle starting to move
 			if (!that._coordLinesLiveUpdate) {
 				that.removeFeatures(that._coordLinesFeatures);
@@ -369,8 +382,7 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 			that.removeFeatures(that._frameFeatures);
 			// The feature that is dragged get redrawn by open layers, and by this method. The ghost has to be deleted manually.
 			that.removeFeatures([feature]);
-
-			that._frameFeatures = that._resizeFrame(pixel);
+			that._frameFeatures = that._resizeFrame(new OpenLayers.Pixel(pixel.x + that._resizeOffset.x, pixel.y + that._resizeOffset.y));
 			that.addFeatures(that._frameFeatures);
 
 			if (that._coordLinesLiveUpdate) {
@@ -429,8 +441,14 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 
 		} else if (feature.isResizeHandle) {
 			// Resize handle stopped moving
-			// "outFeature" is not automatically called when the resize handle is moved over the limit (frame resized to a size smaller than 0).
-			this.outFeature(feature); // NOTE: outFeature is a method of the DragFeature
+			// "outFeature" is not automatically called when the resize handle is moved over the limit
+			// (frame resized to a size smaller than 0) because the mouse is not over the handle anymore.
+			var pixelLonLat = that.map.getLonLatFromPixel(pixel);
+			var pixelPoint = new OpenLayers.Geometry.Point(pixelLonLat.lon, pixelLonLat.lat);
+			if (!pixelPoint.intersects(that._resizeCornerFeature.geometry)) {
+				this.outFeature(feature); // NOTE: outFeature is a method of the DragFeature
+			}
+
 			// deResize delete the ghosts, but maybe some browsers will have issue with the last one...
 			that.removeFeatures([feature]);
 
@@ -562,20 +580,19 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 		return this._drawFrame([printedFrameBounds.left, printedFrameBounds.top], [newBottomRight.lon, newBottomRight.lat]);
 	},
 
-
 	/**
 	 *    Move Handle
-	 *   /
-	 * (+)-------------------------
-	 *  |         (Frame)         |
-	 *  |   -------------------   |
+	 *   /  Move corner
+	 * (+)-/-----------------------
+	 *  |///      (Frame)         |
+	 *  |///-------------------   |
 	 *  |   |                 |   |
 	 *  |   |                 |<--|--- Frame border
 	 *  |   | (Printed Frame) |   |
 	 *  |   |                 |   |
 	 *  |   |                 |   |
-	 *  |   -------------------   |
-	 *  |          Attributions   |
+	 *  |   -------------------///<--- Resize corner
+	 *  |         Attributions ///|
 	 *  -------------------------(>)
 	 *                             \
 	 *                              Resize Handle
@@ -610,12 +627,17 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 		};
 
 		var moveStyle = {
-			graphicZIndex: zIndex+2,
+			graphicZIndex: zIndex+3,
 			externalGraphic: "resources/images/move-frame.png",
 
 			fillColor: '#FFFFFF',
 			fillOpacity: 1,
 			pointRadius: controlsRadius
+		};
+		var moveCornerStyle = {
+			graphicZIndex: zIndex+2,
+			stroke: false,
+			fillOpacity: 0 // "fill: false" tells the browser to not render the shape. I need the shape to enable the dragging.
 		};
 		var resizeStyle = {
 			graphicZIndex: zIndex+3,
@@ -624,6 +646,12 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 			fillColor: '#FFFFFF',
 			fillOpacity: 1,
 			pointRadius: controlsRadius,
+			cursor: 'se-resize'
+		};
+		var resizeCornerStyle = {
+			graphicZIndex: zIndex+2,
+			stroke: false,
+			fillOpacity: 0, // "fill: false" tells the browser to not render the shape. I need the shape to enable the dragging.
 			cursor: 'se-resize'
 		};
 
@@ -725,11 +753,51 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 		moveFeature.isDragHandle = true;
 		frameFeatures.push(moveFeature);
 
-		var resizePoint = frameBottomRight.clone();
-		var resizeFeature = new OpenLayers.Feature.Vector(resizePoint, null, resizeStyle);
+		// 1 -- 2
+		// |    |
+		// 4 -- 3
+		var moveCornerPointList = [];
+		moveCornerPointList.push(frameTopLeft.clone());
+		moveCornerPointList.push(new OpenLayers.Geometry.Point(frameTopLeft.x + frameWidthDegree, frameTopLeft.y));
+		moveCornerPointList.push(new OpenLayers.Geometry.Point(frameTopLeft.x + frameWidthDegree, frameTopLeft.y - frameWidthDegree));
+		moveCornerPointList.push(new OpenLayers.Geometry.Point(frameTopLeft.x, frameTopLeft.y - frameWidthDegree));
+		// Close the polygon
+		moveCornerPointList.push(moveCornerPointList[0]);
+		var moveCorner = new OpenLayers.Geometry.LinearRing(moveCornerPointList);
+		var moveCornerFeature = new OpenLayers.Feature.Vector(
+			new OpenLayers.Geometry.Polygon(moveCorner),
+			null, // attributes
+			moveCornerStyle
+		);
+		moveCornerFeature.isDragable = true;
+		moveCornerFeature.isDragHandle = true;
+		frameFeatures.push(moveCornerFeature);
+
+		this._resizePoint = frameBottomRight.clone();
+		var resizeFeature = new OpenLayers.Feature.Vector(this._resizePoint, null, resizeStyle);
 		resizeFeature.isDragable = true;
 		resizeFeature.isResizeHandle = true;
 		frameFeatures.push(resizeFeature);
+
+		// 3 -- 4
+		// |    |
+		// 2 -- 1
+		var resizeCornerPointList = [];
+		resizeCornerPointList.push(frameBottomRight.clone());
+		resizeCornerPointList.push(new OpenLayers.Geometry.Point(frameBottomRight.x - frameWidthDegree, frameBottomRight.y));
+		resizeCornerPointList.push(new OpenLayers.Geometry.Point(frameBottomRight.x - frameWidthDegree, frameBottomRight.y + frameWidthDegree));
+		resizeCornerPointList.push(new OpenLayers.Geometry.Point(frameBottomRight.x, frameBottomRight.y + frameWidthDegree));
+		// Close the polygon
+		resizeCornerPointList.push(resizeCornerPointList[0]);
+		var resizeCorner = new OpenLayers.Geometry.LinearRing(resizeCornerPointList);
+		this._resizeCornerFeature = new OpenLayers.Feature.Vector(
+			new OpenLayers.Geometry.Polygon(resizeCorner),
+			null, // attributes
+			resizeCornerStyle
+		);
+		this._resizeCornerFeature.isDragable = true;
+		this._resizeCornerFeature.isResizeHandle = true;
+		frameFeatures.push(this._resizeCornerFeature);
 
 		return frameFeatures;
 	},
@@ -1011,8 +1079,6 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 		// Transparent
 		var bboxScaleStyle = {
 			graphicZIndex: zIndex+1,
-			//fillColor: '#000000',
-			//fillOpacity: 0.2,
 			fillOpacity: 0, // "fill: false" tells the browser to not render the shape. I need the shape to enable the dragging.
 			stroke: false
 		};

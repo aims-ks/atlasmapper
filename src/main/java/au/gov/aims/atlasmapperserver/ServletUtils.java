@@ -92,14 +92,10 @@ public class ServletUtils {
 
 		try {
 			out = response.getOutputStream();
-			byte[] buf = new byte[32 * 1024];  // 32K buffer
-			int bytesRead;
-			while ((bytesRead = responseStream.read(buf)) != -1) {
-				out.write(buf, 0, bytesRead);
-			}
+
+			Utils.binaryCopy(responseStream, out);
 		} finally {
 			if (out != null) {
-				try { out.flush(); } catch(Exception e) { LOGGER.log(Level.SEVERE, "Cant flush the output.", e); }
 				try { out.close(); } catch(Exception e) { LOGGER.log(Level.SEVERE, "Cant close the output.", e); }
 			}
 		}

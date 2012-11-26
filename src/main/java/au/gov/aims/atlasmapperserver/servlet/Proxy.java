@@ -156,7 +156,7 @@ public class Proxy extends HttpServlet {
 	// Return all allowed hosts, at a data source level, before overrides...
 	// This is only used with script that can be used with any clients / data source (even when no clients are defined)
 	// Example: In the www folder
-	private static Set<String> getAllProxyAllowedHosts(ConfigManager configManager) throws FileNotFoundException, JSONException {
+	private static Set<String> getAllProxyAllowedHosts(ConfigManager configManager) throws IOException, JSONException {
 		Set<String> allowedHosts = new HashSet<String>();
 
 		for (AbstractDataSourceConfig dataSource : configManager.getDataSourceConfigs().values()) {

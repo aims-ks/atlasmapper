@@ -133,6 +133,10 @@ public class ConfigManager {
 		}
 	}
 
+	public File getApplicationFolder() {
+		return this.applicationFolder;
+	}
+
 	public File getServerConfigFile() {
 		return this.serverConfigFile;
 	}
@@ -208,7 +212,7 @@ public class ConfigManager {
 		this.clientLayersConfigFilename = clientLayersConfigFilename;
 	}
 
-	public void reloadServerConfigIfNeeded() throws JSONException, FileNotFoundException {
+	public void reloadServerConfigIfNeeded() throws JSONException, IOException {
 		// Check file last modified date
 		long lastModified = (this.serverConfigFile == null ? -1 : this.serverConfigFile.lastModified());
 		if (lastModified < 0 || lastModified != this.serverConfigFileLastModified) {
@@ -217,7 +221,7 @@ public class ConfigManager {
 		}
 	}
 
-	private synchronized void reloadServerConfig() throws JSONException, FileNotFoundException {
+	private synchronized void reloadServerConfig() throws JSONException, IOException {
 		this.dataSourceConfigs = null;
 		this.clientConfigs = null;
 
@@ -250,7 +254,7 @@ public class ConfigManager {
 		}
 	}
 
-	protected synchronized void reloadServerConfig(Reader serverConfigReader) throws JSONException {
+	protected synchronized void reloadServerConfig(Reader serverConfigReader) throws JSONException, IOException {
 		if (serverConfigReader == null) {
 			return;
 		}
@@ -323,10 +327,10 @@ public class ConfigManager {
 		}
 
 		// Prevent memory leak
-		URLCache.purgeCache(this.dataSourceConfigs.values());
+		URLCache.purgeCache(this.applicationFolder);
 	}
 
-	protected synchronized void reloadDefaultServerConfig() throws JSONException {
+	protected synchronized void reloadDefaultServerConfig() throws JSONException, IOException {
 		InputStream in = null;
 		Reader reader = null;
 
@@ -494,7 +498,7 @@ public class ConfigManager {
 		this.saveJSONConfig(config, serverConfigWriter);
 
 		// Prevent memory leak
-		URLCache.purgeCache(this.dataSourceConfigs.values());
+		URLCache.purgeCache(this.applicationFolder);
 	}
 
 	public synchronized void saveUsersConfig() throws JSONException, IOException {
@@ -561,7 +565,7 @@ public class ConfigManager {
 		return this.demoMode;
 	}
 
-	public synchronized List<AbstractDataSourceConfig> createDataSourceConfig(ServletRequest request) throws JSONException, FileNotFoundException {
+	public synchronized List<AbstractDataSourceConfig> createDataSourceConfig(ServletRequest request) throws JSONException, IOException {
 		if (request == null) {
 			return null;
 		}
@@ -590,7 +594,7 @@ public class ConfigManager {
 		}
 		return newDataSourceConfigs;
 	}
-	public synchronized void updateDataSourceConfig(ServletRequest request) throws JSONException, FileNotFoundException {
+	public synchronized void updateDataSourceConfig(ServletRequest request) throws JSONException, IOException {
 		if (request == null) {
 			return;
 		}
@@ -605,7 +609,7 @@ public class ConfigManager {
 					AbstractDataSourceConfig dataSourceConfig = configs.get1(dataSourceId);
 					if (dataSourceConfig != null) {
 						// Clear dataSource cache before modifying it
-						URLCache.clearCache(dataSourceConfig);
+						URLCache.clearCache(this.applicationFolder, dataSourceConfig);
 
 						// Update the object using the value from the form
 						dataSourceConfig.update(dataJSonObj, true);
@@ -615,7 +619,7 @@ public class ConfigManager {
 			}
 		}
 	}
-	public synchronized void destroyDataSourceConfig(ServletRequest request) throws JSONException, FileNotFoundException {
+	public synchronized void destroyDataSourceConfig(ServletRequest request) throws JSONException, IOException {
 		if (request == null) {
 			return;
 		}
@@ -631,13 +635,13 @@ public class ConfigManager {
 					AbstractDataSourceConfig dataSourceConfig = configs.remove1(dataSourceId);
 
 					// Clear dataSource cache since it doesn't exist anymore
-					URLCache.clearCache(dataSourceConfig);
+					URLCache.clearCache(this.applicationFolder, dataSourceConfig);
 				}
 			}
 		}
 	}
 
-	private void ensureUniqueness(AbstractDataSourceConfig dataSource) throws FileNotFoundException, JSONException {
+	private void ensureUniqueness(AbstractDataSourceConfig dataSource) throws IOException, JSONException {
 		MultiKeyHashMap<Integer, String, AbstractDataSourceConfig> _dataSourceConfigs = getDataSourceConfigs();
 
 		// Ensure the data source has a unique Integer ID (used in grid)
@@ -672,7 +676,7 @@ public class ConfigManager {
 	 * @throws FileNotFoundException
 	 * @throws JSONException
 	 */
-	public boolean dataSourceExists(String dataSourceId, Integer id) throws FileNotFoundException, JSONException {
+	public boolean dataSourceExists(String dataSourceId, Integer id) throws IOException, JSONException {
 		MultiKeyHashMap<Integer, String, AbstractDataSourceConfig> _dataSourceConfigs = getDataSourceConfigs();
 		AbstractDataSourceConfig found = _dataSourceConfigs.get2(dataSourceId);
 
@@ -689,7 +693,7 @@ public class ConfigManager {
 		return true;
 	}
 
-	public synchronized List<ClientConfig> createClientConfig(ServletRequest request) throws JSONException, FileNotFoundException {
+	public synchronized List<ClientConfig> createClientConfig(ServletRequest request) throws JSONException, IOException {
 		if (request == null) {
 			return null;
 		}
@@ -794,7 +798,7 @@ public class ConfigManager {
 		return success;
 	}
 
-	private void ensureUniqueness(ClientConfig client) throws FileNotFoundException, JSONException {
+	private void ensureUniqueness(ClientConfig client) throws IOException, JSONException {
 		MultiKeyHashMap<Integer, String, ClientConfig> _clientConfigs = getClientConfigs();
 
 		// Ensure the client has a unique Integer ID (used in grid)
@@ -829,7 +833,7 @@ public class ConfigManager {
 	 * @throws FileNotFoundException
 	 * @throws JSONException
 	 */
-	public boolean clientExists(String clientId, Integer id) throws FileNotFoundException, JSONException {
+	public boolean clientExists(String clientId, Integer id) throws IOException, JSONException {
 		// Reserved keywords
 		if (FileFinder.PUBLIC_FOLDER.equals(clientId) ||
 				ConfigHelper.SERVER_MAIN_CONFIG.equals(clientId) ||
@@ -889,12 +893,12 @@ public class ConfigManager {
 		return foundLayersArr;
 	}
 
-	public MultiKeyHashMap<Integer, String, AbstractDataSourceConfig> getDataSourceConfigs() throws JSONException, FileNotFoundException {
+	public MultiKeyHashMap<Integer, String, AbstractDataSourceConfig> getDataSourceConfigs() throws JSONException, IOException {
 		this.reloadServerConfigIfNeeded();
 		return this.dataSourceConfigs;
 	}
 
-	public AbstractDataSourceConfig getDataSourceConfig(Integer dataSourceId) throws JSONException, FileNotFoundException {
+	public AbstractDataSourceConfig getDataSourceConfig(Integer dataSourceId) throws JSONException, IOException {
 		if (dataSourceId == null) {
 			return null;
 		}
@@ -907,7 +911,7 @@ public class ConfigManager {
 		return configs.get1(dataSourceId);
 	}
 
-	public AbstractDataSourceConfig getDataSourceConfig(String dataSourceId) throws JSONException, FileNotFoundException {
+	public AbstractDataSourceConfig getDataSourceConfig(String dataSourceId) throws JSONException, IOException {
 		if (Utils.isBlank(dataSourceId)) {
 			return null;
 		}
@@ -920,10 +924,10 @@ public class ConfigManager {
 		return configs.get2(dataSourceId);
 	}
 
-	public JSONArray getDataSourceConfigsJSon() throws JSONException, FileNotFoundException {
+	public JSONArray getDataSourceConfigsJSon() throws JSONException, IOException {
 		return this._getDataSourceConfigsJSon(true);
 	}
-	private JSONArray _getDataSourceConfigsJSon(boolean reload) throws JSONException, FileNotFoundException {
+	private JSONArray _getDataSourceConfigsJSon(boolean reload) throws JSONException, IOException {
 		JSONArray dataSourceConfigArray = new JSONArray();
 
 		MultiKeyHashMap<Integer, String, AbstractDataSourceConfig> configs = reload ? this.getDataSourceConfigs() : this.dataSourceConfigs;
@@ -933,12 +937,12 @@ public class ConfigManager {
 		return dataSourceConfigArray;
 	}
 
-	public MultiKeyHashMap<Integer, String, ClientConfig> getClientConfigs() throws JSONException, FileNotFoundException {
+	public MultiKeyHashMap<Integer, String, ClientConfig> getClientConfigs() throws JSONException, IOException {
 		this.reloadServerConfigIfNeeded();
 		return this.clientConfigs;
 	}
 
-	public ClientConfig getClientConfig(String clientId) throws JSONException, FileNotFoundException {
+	public ClientConfig getClientConfig(String clientId) throws JSONException, IOException {
 		if (Utils.isBlank(clientId)) {
 			return null;
 		}
@@ -951,7 +955,7 @@ public class ConfigManager {
 		return configs.get2(clientId);
 	}
 
-	public ClientConfig getClientConfig(Integer clientId) throws JSONException, FileNotFoundException {
+	public ClientConfig getClientConfig(Integer clientId) throws JSONException, IOException {
 		if (clientId == null) {
 			return null;
 		}
@@ -981,10 +985,10 @@ public class ConfigManager {
 		return clientConfigArray;
 	}
 
-	public JSONArray getClientConfigsJSon() throws JSONException, FileNotFoundException {
+	public JSONArray getClientConfigsJSon() throws JSONException, IOException {
 		return this._getClientConfigsJSon(true);
 	}
-	private JSONArray _getClientConfigsJSon(boolean reload) throws JSONException, FileNotFoundException {
+	private JSONArray _getClientConfigsJSon(boolean reload) throws JSONException, IOException {
 		JSONArray clientConfigArray = new JSONArray();
 
 		MultiKeyHashMap<Integer, String, ClientConfig> configs = reload ? this.getClientConfigs() : this.clientConfigs;
@@ -994,7 +998,7 @@ public class ConfigManager {
 		return clientConfigArray;
 	}
 
-	public ClientConfig getDefaultClientConfig() throws JSONException, FileNotFoundException {
+	public ClientConfig getDefaultClientConfig() throws JSONException, IOException {
 		Integer oldestKey = null;
 		ClientConfig oldestClientConfig = null;
 
@@ -1139,6 +1143,7 @@ public class ConfigManager {
 			indexValues.put("timestamp", ""+Utils.getCurrentTimestamp());
 			indexValues.put("useGoogle", useGoogle);
 			indexValues.put("welcomeMsg", clientConfig.getWelcomeMsg());
+			indexValues.put("headExtra", clientConfig.getHeadExtra());
 			Utils.processTemplate(templatesConfig, "index.html", indexValues, atlasMapperClientFolder);
 
 			Map<String, Object> embeddedValues = new HashMap<String, Object>();
@@ -1205,6 +1210,7 @@ public class ConfigManager {
 				previewValues.put("pageFooter", Utils.safeJsStr(clientConfig.getPageFooter()));
 				previewValues.put("useGoogle", useGoogle);
 				previewValues.put("welcomeMsg", clientConfig.getWelcomeMsg());
+				previewValues.put("headExtra", clientConfig.getHeadExtra());
 				Utils.processTemplate(templatesConfig, "preview.html", previewValues, atlasMapperClientFolder);
 			} catch (URISyntaxException ex) {
 				throw new IOException("Can not get a File reference to the AtlasMapperClient", ex);

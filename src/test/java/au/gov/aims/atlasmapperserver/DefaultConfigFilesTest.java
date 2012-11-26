@@ -23,6 +23,7 @@ package au.gov.aims.atlasmapperserver;
 
 import au.gov.aims.atlasmapperserver.collection.MultiKeyHashMap;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.Map;
 
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
@@ -35,7 +36,7 @@ import org.json.JSONException;
  */
 public class DefaultConfigFilesTest extends TestCase  {
 
-	public void testDefaultServerConfig() throws JSONException, FileNotFoundException {
+	public void testDefaultServerConfig() throws JSONException, IOException {
 		ConfigManager cm = new ConfigManager(null, null);
 		cm.reloadDefaultServerConfig();
 

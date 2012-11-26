@@ -179,7 +179,7 @@
 								jsonObj.put("errors", new JSONArray().put("Invalid id."));
 							} else {
 								AbstractDataSourceConfig foundDataSourceConfig = configManager.getDataSourceConfig(id);
-								URLCache.clearCache(foundDataSourceConfig);
+								URLCache.clearCache(configManager.getApplicationFolder(), foundDataSourceConfig);
 								response.setStatus(HttpServletResponse.SC_OK);
 								jsonObj.put("success", true);
 								jsonObj.put("message", "Cache cleared");
@@ -195,7 +195,7 @@
 
 				case CLEARALLCACHE:
 					try {
-						URLCache.clearCache();
+						URLCache.clearCache(configManager.getApplicationFolder());
 						response.setStatus(HttpServletResponse.SC_OK);
 						jsonObj.put("success", true);
 						jsonObj.put("message", "Cache cleared");

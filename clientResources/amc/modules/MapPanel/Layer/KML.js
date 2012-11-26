@@ -44,6 +44,7 @@ Atlas.Layer.KML = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 				strategies: [new OpenLayers.Strategy.Fixed()],
 				//visibility: layerJSon['<initialState>']['<activated>'],
 				//opacity: layerJSon['<initialState>']['<opacity>'],
+				projection: new OpenLayers.Projection("EPSG:4326"), // OpenLayers need this to reproject the KML, if needed.
 				protocol: new OpenLayers.Protocol.HTTP({
 					url: kmlUrl,
 					format: new OpenLayers.Format.KML({
@@ -62,21 +63,23 @@ Atlas.Layer.KML = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 				layerOptions
 			);
 
-			var select = new OpenLayers.Control.SelectFeature(kml);
+			if (this.mapPanel && this.mapPanel.map) {
+				var select = new OpenLayers.Control.SelectFeature(kml);
 
-			// OpenLayer events for KML layers
-			var that = this;
-			kml.events.on({
-				"featureselected": function(event) {
-					that.onFeatureSelect(event, select);
-				},
-				"featureunselected": function(event) {
-					that.onFeatureUnselect(event);
-				}
-			});
+				// OpenLayer events for KML layers
+				var that = this;
+				kml.events.on({
+					"featureselected": function(event) {
+						that.onFeatureSelect(event, select);
+					},
+					"featureunselected": function(event) {
+						that.onFeatureUnselect(event);
+					}
+				});
 
-			this.mapPanel.map.addControl(select);
-			select.activate();
+				this.mapPanel.map.addControl(select);
+				select.activate();
+			}
 
 			this.setLayer(kml);
 		}
@@ -109,7 +112,7 @@ Atlas.Layer.KML = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 		var popup = new OpenLayers.Popup.FramedCloud(
 			popupId,
 			feature.geometry.getBounds().getCenterLonLat(),
-			new OpenLayers.Size(100,100), // Initial content size
+			new OpenLayers.Size(100, 100), // Initial content size
 			content,
 			null, true,
 			function(event) {that.onPopupClose(event, select);}

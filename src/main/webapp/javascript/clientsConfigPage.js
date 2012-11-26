@@ -55,7 +55,7 @@ NOTE: Add a button to a grid field (better use a header toolbar...
 */
 
 var frameset = null;
-var timeoutPerClient = 300000; // 5 minutes
+var timeoutPerClient = 900000; // 15 minutes
 
 // Define the model for a projection
 Ext.regModel('projection', {
@@ -398,7 +398,8 @@ Ext.define('Writer.ClientConfigForm', {
 								name: 'proxyUrl'
 							}, {
 								fieldLabel: 'Generated file location',
-								qtipHtml: 'Absolute file path, on the server\'s, to the folder where the client has to be generated. The application will try to create the folder if it doesn\'t exists.<br/>'+
+								qtipHtml: 'Absolute file path, on the server\'s, to the folder where the client has to be generated. The application will try to create the folder if it doesn\'t exists.<br/>' +
+									'<strong>Note:</strong> Tomcat <em>webapps</em> folder may be specified here if you need a shorter URL and there is no apache available on the server. Also note that this solution may be dangerous since the AtlasMapper will copy its files even if the folder already exists and is used for an other Web app.<br/>' +
 									'<strong>Warning:</strong> Only set this field if you are setting a client outside the application. If you set this field, you will also have to set the <i>Client base URL</i> with the URL that allow users to access the folder.'+
 									notAvailableInDemoMode,
 								name: 'generatedFileLocation',
@@ -488,6 +489,18 @@ Ext.define('Writer.ClientConfigForm', {
 								xtype: 'textareafield',
 								resizable: {transparent: true}, resizeHandles: 's',
 								height: 200
+							}, {
+								fieldLabel: 'Extra HEAD attributes',
+								qtipHtml: 'HTML snippet added to the html HEAD of the page, above the BODY. This is the place to add link to external CSS / JavaScript, or define inline CSS / JavaScript.<br/>' +
+									'Example:<br/>' +
+									'<pre>&lt;link rel="stylesheet" type="text/css"<br/>' +
+									'  href="http://www.site.com/style.css" /&gt;<br/>' +
+									'&lt;style type="text/css"&gt;<br/>' +
+									'  h1 { border: none; }<br/>' +
+									'&lt;/style&gt;</pre>',
+								qtipMaxWidth: 300,
+								name: 'headExtra',
+								xtype: 'textareafield'
 							}, {
 								fieldLabel: 'Page header',
 								qtipHtml: 'HTML snippet displayed on top of the page, 100% browser width. The height is defined by the height of the HTML elements. This can be used to define the client branding and add links to the layer listing page, the company web site, etc.',
@@ -1462,16 +1475,20 @@ Ext.define('Writer.ClientConfigGrid', {
 				}
 			},
 			failure: function(response) {
-				var responseObj = null;
-				var statusCode = response ? response.status : null;
-				if (response && response.responseText) {
-					try {
-						responseObj = Ext.decode(response.responseText);
-					} catch (err) {
-						responseObj = {errors: [err.toString()]};
+				if (response.timedout) {
+					frameset.setError('Request timed out.', 408);
+				} else {
+					var statusCode = response ? response.status : null;
+					var responseObj = null;
+					if (response && response.responseText) {
+						try {
+							responseObj = Ext.decode(response.responseText);
+						} catch (err) {
+							responseObj = {errors: [err.toString()]};
+						}
 					}
+					frameset.setErrors('An error occurred while generating the client configuration.', responseObj, statusCode);
 				}
-				frameset.setErrors('An error occurred while generating the client configuration.', responseObj, statusCode);
 			}
 		});
 	},
@@ -1568,9 +1585,13 @@ Ext.define('Writer.ClientConfigGrid', {
 				}
 			},
 			failure: function(response) {
-				var responseObj = Ext.decode(response.responseText);
-				var statusCode = response ? response.status : null;
-				frameset.setErrors('An error occurred while generating the configuration files.', responseObj, statusCode);
+				if (response.timedout) {
+					frameset.setError('Request timed out.', 408);
+				} else {
+					var responseObj = Ext.decode(response.responseText);
+					var statusCode = response ? response.status : null;
+					frameset.setErrors('An error occurred while generating the configuration files.', responseObj, statusCode);
+				}
 			}
 		});
 	},
@@ -1654,6 +1675,7 @@ Ext.define('Writer.ClientConfig', {
 
 		'attributions',
 		'welcomeMsg',
+		'headExtra',
 
 		'dataSources', // String or Array<String>
 		{name: 'mainClientEnable', type: 'boolean', defaultValue: false},

@@ -42,6 +42,10 @@
 	<!--[if lte IE 6 ]>
 		<link rel="stylesheet" type="text/css" href="resources/css/styles-ie6.css?atlasmapperVer=${version}" />
 	<![endif]-->
+
+	<#if (headExtra?? && headExtra != "")>
+		${headExtra}
+	</#if>
 </head>
 
 <body id="fullClient">
@@ -157,9 +161,15 @@
 
 		var parameters = OpenLayers.Util.getParameters();
 
-		var printMode = 0;
-		if (parameters.printMode) {
-			printMode = parseInt(parameters.printMode);
+		var viewport = null;
+		if (parameters.viewport) {
+			viewport = parameters.viewport.split('x');
+			if (viewport.length == 2) {
+				viewport[0] = parseInt(viewport[0]);
+				viewport[1] = parseInt(viewport[1]);
+			} else {
+				viewport = null;
+			}
 		}
 
 		// Multi-maps
@@ -287,15 +297,15 @@
 				};
 
 
-				if (printMode > 1) {
+				if (viewport) {
 					var body = document.getElementsByTagName('body')[0];
 					body.style.overflow = 'auto';
 
 					var highRes = document.getElementById('highRes');
-					highRes.style.width = '5000px';
-					highRes.style.height = '3300px';
+					highRes.style.width = viewport[0] + 'px';
+					highRes.style.height = viewport[1] + 'px';
 
-					viewportConfig.height = 3300;
+					viewportConfig.height = viewport[1];
 					viewportConfig.renderTo = 'highRes';
 					new Ext.Panel(viewportConfig);
 				} else {

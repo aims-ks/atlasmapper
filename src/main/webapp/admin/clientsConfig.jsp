@@ -232,7 +232,6 @@
 								}
 							} catch(GetCapabilitiesExceptions e) {
 								LOGGER.log(Level.SEVERE, "Can not retrieved all Capabilities Documents. Generation aborted.", e);
-								e.printStackTrace();
 								response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 								jsonObj.put("success", false);
 								jsonObj.put("errors", new JSONArray().put("Can not retrieved all Capabilities Documents. Generation aborted.<br/>\n" + e.getMessage().replace("\n", "<br/>\n")));

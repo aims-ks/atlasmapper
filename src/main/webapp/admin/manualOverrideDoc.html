@@ -56,6 +56,57 @@
 
 	<body>
 		<h1>Manual Override documentation</h1>
+
+		<h2>Workflow</h2>
+		<p>
+			The information used to generate the layer configuration come from different sources, following the described workflow:
+		</p>
+
+		<h3>WMS</h3>
+		<img src="../resources/images/AtlasMapper-overrides-workflow.png" alt="AtlasMapper workflow diagram" style="float: right; width: 400px;" />
+		<ol>
+			<li>The AtlasMapper download the GetCapabilities associate with the data source.</li>
+			<li>For each layers described in the GetCapabilities document, it download its associated <em>TC211</em>
+				metadata document, if specified in the field <em>MetadataURL</em>.<br/>
+				If TC211 document has a <em>gmd:CI_OnlineResource</em> link, defined for the protocol
+				<em>OGC:WMS-1.1.1-http-get-map</em>, with a name
+				that match the layer name, than its description is use create the layer description,
+				with the metadata description, and the links.<br/>
+
+				<!--
+				that match the layer name, than its description is used to define some layer attributes.
+				If the description is written in the following format:
+<pre>
+Title: The title of the layer.
+Description: A description, using Wiki format.
+Path: The path defining the location of the layer in the tree of the add layer window.
+</pre>
+				It is used as described here:
+				<ol>
+					<li>The application get the title for the layer from the link description.</li>
+					<li>It generates a description using the description found in the link description, the metadata description and the links that are not set with the protocol <em>OGC:WMS-1.1.1-http-get-map</em>.</li>
+					<li>It override the layer <em>WMS path</em> using the path found in the link description.</li>
+				</ol>
+				<br/>
+				Otherwise, if the description do not follow the expected format, the layer description is simply created my concatenating the link description with the metadata description, and the links.<br/>
+				-->
+				<br/>
+				If the TC211 document do not have a <em>gmd:CI_OnlineResource</em> link with a name that match the layer name, than the metadata description and the links are used alone to generate the layer description.
+			</li>
+			<li>The layer overrides described in the AtlasMapper data source's advanced tab are apply on the generated AtlasMapper layer.</li>
+			<li>The layer overrides described in the AtlasMapper client's advanced tab are apply on the generated AtlasMapper layer.</li>
+			<li>The layer info is written in the <em>layers.json</em> catalog file, ready to use with the AtlasMapper client.</li>
+		</ol>
+
+		<h3>Other</h3>
+		<ol>
+			<li>The AtlasMapper download the layer information from the source server.</li>
+			<li>The layer overrides described in the AtlasMapper data source's advanced tab are apply on the generated AtlasMapper layer.</li>
+			<li>The layer overrides described in the AtlasMapper client's advanced tab are apply on the generated AtlasMapper layer.</li>
+			<li>The layer info is written in the <em>layers.json</em> catalog file, ready to use with the AtlasMapper client.</li>
+		</ol>
+
+		<h2>Settings in AtlasMapper</h2>
 		<p>
 			This field must respect the JSON syntax, a subset of JavaScript. If
 			it contains errors, the form will refuse to submit. It always start
@@ -69,7 +120,7 @@
 			for WMS layers, after applying the manual overrides from the layer
 			data source than the manual overrides from the client.
 		</p>
-		<h2>Examples</h2>
+		<h3>Examples</h3>
 		<p>
 			The following bloc override the attribute
 			<i>wmsRequestMimeType</i> and <i>legendParameters</i> for the
@@ -661,7 +712,7 @@ http://www.google.com/
 			</tr>
 		</table>
 
-		<h3>URL state support</h3>
+		<h4>URL state support</h4>
 		<p>
 			The AtlasMapper support various URL parameters that allow linking capability to a certain map state. Not all state information can be set yet, which mean that the Save State feature is still required.
 		</p>

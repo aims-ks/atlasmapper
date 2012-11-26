@@ -20,6 +20,9 @@
  */
 package au.gov.aims.atlasmapperserver.xml.TC211;
 
+import au.gov.aims.atlasmapperserver.URLCache;
+import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
+import org.json.JSONException;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
@@ -27,7 +30,10 @@ import org.xml.sax.helpers.DefaultHandler;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import java.util.List;
 import java.util.Stack;
 
@@ -35,13 +41,82 @@ import java.util.Stack;
 // http://www.mkyong.com/java/how-to-read-xml-file-in-java-sax-parser/
 public class Parser {
 
-	public static Document parseURI(String uri) throws SAXException, ParserConfigurationException, IOException {
+	/**
+	 * Cached
+	 * @param dataSource
+	 * @param url
+	 * @return
+	 * @throws SAXException
+	 * @throws ParserConfigurationException
+	 * @throws IOException
+	 * @throws JSONException
+	 */
+	public static Document parseURL(AbstractDataSourceConfig dataSource, URL url)
+			throws SAXException, ParserConfigurationException, IOException, JSONException {
+
+		String urlStr = url.toString();
+		File cachedDocumentFile = URLCache.getURLFile(dataSource, urlStr);
+
+		Document tc211Document = null;
+		try {
+			tc211Document = parseFile(cachedDocumentFile, urlStr);
+			URLCache.commitURLFile(dataSource, cachedDocumentFile, urlStr);
+		} catch (Exception ex) {
+			File rollbackFile = URLCache.rollbackURLFile(dataSource, cachedDocumentFile, urlStr);
+			tc211Document = parseFile(rollbackFile, urlStr);
+		}
+
+		return tc211Document;
+	}
+
+	/**
+	 * NOT Cached
+	 * @param file
+	 * @param location
+	 * @return
+	 * @throws SAXException
+	 * @throws ParserConfigurationException
+	 * @throws IOException
+	 * @throws JSONException
+	 */
+	public static Document parseFile(File file, String location)
+			throws SAXException, ParserConfigurationException, IOException, JSONException {
+
+		if (file == null) {
+			return null;
+		}
+
 		SAXParserFactory factory = SAXParserFactory.newInstance();
 		SAXParser saxParser = factory.newSAXParser();
 
-		Document doc = new Document(uri);
+		Document doc = new Document(location);
 		TC211Handler handler = new TC211Handler(doc);
-		saxParser.parse(uri, handler);
+
+		saxParser.parse(file, handler);
+
+		return doc;
+	}
+
+	/**
+	 * NOT Cached (Used for tests)
+	 * @param inputStream
+	 * @param location
+	 * @return
+	 * @throws SAXException
+	 * @throws ParserConfigurationException
+	 * @throws IOException
+	 * @throws JSONException
+	 */
+	public static Document parseInputStream(InputStream inputStream, String location)
+			throws SAXException, ParserConfigurationException, IOException, JSONException {
+
+		SAXParserFactory factory = SAXParserFactory.newInstance();
+		SAXParser saxParser = factory.newSAXParser();
+
+		Document doc = new Document(location);
+		TC211Handler handler = new TC211Handler(doc);
+
+		saxParser.parse(inputStream, handler);
 
 		return doc;
 	}
@@ -62,6 +137,9 @@ public class Parser {
 
 		private static String LINK_DESCRIPTION_CONTAINER = "gmd:description";
 		private static String LINK_DESCRIPTION_STRING = "gco:CharacterString";
+
+		private static String LINK_APPLICATION_PROFILE_CONTAINER = "gmd:applicationProfile";
+		private static String LINK_APPLICATION_PROFILE_STRING = "gco:CharacterString";
 
 		private Document doc;
 		private StringBuilder collectedChars;
@@ -139,6 +217,9 @@ public class Parser {
 					} else if (LINK_DESCRIPTION_CONTAINER.equalsIgnoreCase(previousQName) && LINK_DESCRIPTION_STRING.equalsIgnoreCase(qName)) {
 						this.currentLink.setDescription(this.collectedChars.toString());
 
+					} else if (LINK_APPLICATION_PROFILE_CONTAINER.equalsIgnoreCase(previousQName) && LINK_APPLICATION_PROFILE_STRING.equalsIgnoreCase(qName)) {
+						this.currentLink.setApplicationProfile(this.collectedChars.toString());
+
 					} else if (LINK_CONTAINER.equalsIgnoreCase(qName)) {
 						this.doc.addLink(this.currentLink);
 						this.currentLink = null;
@@ -146,6 +227,7 @@ public class Parser {
 				}
 			}
 
+			// The current QName is not needed (kept for debugging), but the call to the pop method is mandatory...
 			String currentQName = this.xmlPath.pop();
 			this.xmlPathMarker = XMLPathMarker.get(this.xmlPath);
 

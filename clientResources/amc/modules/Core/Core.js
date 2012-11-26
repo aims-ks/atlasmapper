@@ -364,17 +364,19 @@ Atlas.Core = OpenLayers.Class({
 	 * Parameter:
 	 * layerIds: Array of layer ID or Alias ID
 	 * callback: Function to call with the Array of JSon layers
-	 * attemptsLeft: Private parameter (ignored for public call); number of similar requests allow to request
-	 *     the same layers (the method won't run into an infinite loop, il will
-	 *     give up after 5 failing attempts).
+	 * attemptsLeft: Private parameter (ignored for public call); number of
+	 *     attempts to perform to request the layers (i.e. the server may
+	 *     have some problem performing the request due to overload. Multiple
+	 *     attemps may be needed but not an infinite amount of it, otherwise
+	 *     it will run into an infinite loop).
 	 */
 
-	// Private
-	requestLayersJSon: function(layerIds, callback, attemptsLeft) {
+	// Protected
+	requestLayersJSon: function(layerIds, callback, missingLayersCallback, attemptsLeft) {
 		var that = this;
 
 		if (typeof(attemptsLeft) !== 'number') {
-			attemptsLeft = 5;
+			attemptsLeft = 3;
 		}
 
 		if (layerIds == null || layerIds.length <= 0) {
@@ -471,11 +473,11 @@ Atlas.Core = OpenLayers.Class({
 					}
 					if (missingDependencies.length > 0) {
 						// We have new layers to request. Reset the attempts counter.
-						that.requestLayersJSon(layerIds, callback);
+						that.requestLayersJSon(layerIds, callback, missingLayersCallback);
 					} else {
 						// Some layers are not in the cache. Try to load them.
 						// The application will try to load the layers a maximum of 5 times.
-						that.requestLayersJSon(layerIds, callback, attemptsLeft-1);
+						that.requestLayersJSon(layerIds, callback, missingLayersCallback, attemptsLeft-1);
 					}
 				};
 
@@ -498,10 +500,271 @@ Atlas.Core = OpenLayers.Class({
 			}
 
 			if (missingLayerIds.length > 0) {
-				// TODO Error on the page
-				alert('The application has failed to load the layers ['+missingLayerIds.join()+']');
+				if (missingLayersCallback) {
+					missingLayersCallback(missingLayerIds);
+				} else {
+					// TODO Error on the page
+					alert('The application has failed to load the layers ['+missingLayerIds.join()+']');
+				}
 			}
 		}
+	},
+
+	// layersMap: Map of layers, in the following format:
+	//     {
+	//         Server Type: {
+	//             Server URL: [ Layer IDs ]
+	//         }
+	//     }
+	// Explaination of the fields:
+	//     * Server Type: The type of server; WMS, KML, etc.
+	//     * Server URL: The URL used to request the layer, as found in the GetCapabilities document.
+	//     * Layer IDs: All layers associated with that server.
+	// Protected
+	requestArbitraryLayersJSon: function(layersMap, callback, attemptsLeft) {
+		// Get all layers, per layer type
+		for (type in layersMap) {
+			if (layersMap.hasOwnProperty(type)) {
+				// All WMS layers (or KML, etc.)
+				var layersMapForType = layersMap[type];
+				for (serverUrl in layersMapForType) {
+					if (layersMapForType.hasOwnProperty(serverUrl)) {
+						var layersArray = layersMapForType[serverUrl];
+						// Try to find the Server URL in the list of datasources
+						var dataSourceId = this._findDataSource(serverUrl);
+
+						if (dataSourceId != null) {
+							// A data source has been found.
+							// 1. Create a layer ID, as found in the catalogue, for each layers.
+							// 2. Request those layers
+							// 3. Create a fake layer for each missing layers (after a few attempts)
+							var layersIds = [];
+							var dataSourcePrefix = dataSourceId + '_';
+							for (var i=0; i<layersArray.length; i++) {
+								layersIds.push(dataSourcePrefix + layersArray[i]);
+							}
+							this.requestLayersJSon(layersIds, callback, function(layerIds) {
+								var cleanLayersId, cleanLayersIds = [];
+								for (var j=0; j<layerIds; j++) {
+									cleanLayersId = layerIds[i];
+									// JavaScript do not have any startsWith... if (cleanLayersId.startsWith(dataSourcePrefix)) {
+									if (cleanLayersId.slice(0, dataSourcePrefix.length) == dataSourcePrefix) {
+										cleanLayersId = cleanLayersId.substring(dataSourcePrefix.length);
+									}
+									cleanLayersIds.push(cleanLayersId);
+								}
+								this._requestMissingLayersJSon(type, serverUrl, cleanLayersIds, callback);
+							});
+						} else {
+							// No data source found. Creating fake layers for all of them.
+							this._requestMissingLayersJSon(type, serverUrl, layersArray, callback);
+						}
+					}
+				}
+			}
+		}
+	},
+
+	_findDataSource: function(serverURL) {
+		var dataSources = Atlas.conf['dataSources'];
+
+		for (dataSourceId in dataSources) {
+			if (dataSources.hasOwnProperty(dataSourceId)) {
+				var dataSource = dataSources[dataSourceId];
+				var dataSourceURL = dataSource['wmsServiceUrl'];
+
+				if (this._equalsUrl(serverURL, dataSourceURL)) {
+					return dataSourceId;
+				}
+			}
+		}
+		return null;
+	},
+
+	// TODO do a proper URL compare, checking host, port number, file, query string (any order), etc. Also, for WMS, .../ows?REQUESR=WMS&... is equivalent to .../wms?...
+	_equalsUrl: function(urlStr1, urlStr2) {
+		// Get rid of the most strait forward case
+		if (urlStr1 === urlStr2) { return true; }
+
+		url1 = this._toUrlObj(urlStr1);
+		url2 = this._toUrlObj(urlStr2);
+
+		if (url1 === null || url2 === null) { return false; }
+
+		if (url1.protocol !== url2.protocol) { return false; }
+		if (url1.host !== url2.host) { return false; }
+		if (url1.path !== url2.path) { return false; }
+
+		if (url1.file !== url2.file) {
+			if (url1.file === null || url2.file === null) { return false; }
+
+			// Exception: "wms" === "ows?SERVICE=WMS"
+			var wms = (url1.file.toLowerCase() === 'wms' ? url1 : (url2.file.toLowerCase() === 'wms' ? url2 : null));
+			var ows = (url1.file.toLowerCase() === 'ows' ? url1 : (url2.file.toLowerCase() === 'ows' ? url2 : null));
+
+			if (wms == null || ows === null) { return false; }
+			if (ows.parameters === null) { return false; }
+			if (ows.parameters['SERVICE'].toUpperCase() === 'WMS') {
+				// They are the same so far, but we still need to examin the parameters.
+				// We know that the OWS one has a SERVICE parameter, but this parameter
+				// may be missing from the WMS one, since it's implied.
+				if (!wms.parameters || wms.parameters['SERVICE'] === null) {
+					// The WMS URL do not have the SERVICE parameter. We can add it in
+					// to help the validation of the parameters.
+					if (!wms.parameters) {
+						wms.parameters = {};
+					}
+					wms.parameters['SERVICE'] = ows.parameters['SERVICE'];
+				}
+			} else {
+				return false;
+			}
+		}
+
+		// Check URL parameters
+		// NOTE: There is no easy way to check a Map size without looping
+		//     through them all. It's easier to simply do the check both way.
+		if (!this._includedIn(url1.parameters, url2.parameters) || !this._includedIn(url2.parameters, url1.parameters)) {
+			return false;
+		}
+
+		// Anchor: There is no need to check the anchor, they should not affect service behaviour.
+
+		return true;
+	},
+
+	/**
+	 * http://www.domain.com/path/file.html?param1=value1&param2=value2#anchor
+	 * {
+	 *     'protocol': 'http',
+	 *     'host': 'www.domain.com',
+	 *     'port': 80,
+	 *     'path': '/path/'
+	 *     'file': 'file.html'
+	 *     'parameters': {
+	 *         'param1': 'value1',
+	 *         'param2': 'value2'
+	 *     },
+	 *     'anchor': 'anchor'
+	 * }
+	 */
+	_toUrlObj: function(urlStr) {
+		if (!urlStr) { return null; }
+
+		var defaultPorts = {
+			'http': 80,
+			'https': 443,
+			'ftp': 21,
+			'sftp': 22
+		};
+
+		var urlObj = {};
+
+		// Protocol
+		urlObj.protocol = urlStr.substring(0, urlStr.indexOf('://'));
+		urlStr = urlStr.substring(urlObj.protocol.length + 3);
+
+		// Host including port
+		var nextSlash = urlStr.indexOf('/');
+		if (nextSlash < 0) {
+			urlObj.host = urlStr;
+			urlStr = null;
+		} else {
+			urlObj.host = urlStr.substring(0, nextSlash);
+			urlStr = urlStr.substring(urlObj.host.length);
+		}
+
+		// Splitting host and port
+		var portIndex = urlObj.host.indexOf(':');
+		if (portIndex < 0) {
+			urlObj.port = defaultPorts[urlObj.protocol];
+		} else {
+			var hostWithPort = urlObj.host;
+			urlObj.host = hostWithPort.substring(0, portIndex);
+			urlObj.port = parseInt(hostWithPort.substring(portIndex + 1));
+		}
+
+		if (urlStr != null) {
+			// Path including file
+			var queryStrIndex = urlStr.indexOf('?');
+			if (queryStrIndex < 0) {
+				urlObj.file = urlStr;
+				urlStr = null;
+			} else {
+				urlObj.file = urlStr.substring(0, queryStrIndex);
+				urlStr = urlStr.substring(urlObj.file.length + 1);
+			}
+
+			// Splitting path and file
+			var lastSlash = urlObj.file.lastIndexOf('/');
+			if (lastSlash >= 0) {
+				var pathWithFile = urlObj.file;
+				urlObj.path = pathWithFile.substring(0, lastSlash + 1);
+				urlObj.file = pathWithFile.substring(urlObj.path.length);
+			}
+
+			if (urlStr != null) {
+				// Parameters
+				var anchorIndex = urlStr.indexOf('#');
+				var parametersStr = null;
+				if (anchorIndex < 0) {
+					parametersStr = urlStr;
+					urlStr = null;
+				} else {
+					parametersStr = urlStr.substring(0, anchorIndex);
+					urlObj.anchor = urlStr.substring(parametersStr.length + 1);
+					urlStr = null;
+				}
+
+				// Parse parameters into an object
+				var parameters = parametersStr.split('&');
+				urlObj.parameters = {};
+				for (var i=0; i<parameters.length; i++) {
+					var parameter = parameters[i];
+					var key = parameter.substring(0, parameter.indexOf('='));
+					var value = parameter.substring(key.length + 1);
+					if (key) {
+						urlObj.parameters[key] = value;
+					}
+				}
+			}
+		}
+
+		return urlObj;
+	},
+
+	_includedIn: function(param1, param2) {
+		if (param1 === null) { return true; } // Null is included in everything.
+		if (param2 === null) { return false; } // Nothing else than null is included in null.
+
+		for (key in param1) {
+			if (param1.hasOwnProperty(key)) {
+				if (param1[key] !== param2[key]) {
+					return false;
+				}
+			}
+		}
+		return true;
+	},
+
+	// Create a list of arbitrary layerJSON (no fancy titles, descriptions, etc.) with
+	// the missing layers. Call the callback with those layers to add them in the map.
+	_requestMissingLayersJSon: function(dataSourceType, serverUrl, layerIds, callback) {
+		var arbitraryLayersJSon = [];
+
+		for (var i=0; i<layerIds.length; i++) {
+			var layerId = layerIds[i];
+
+			var layerJSON = {
+				'dataSourceType': dataSourceType,
+				'wmsServiceUrl': serverUrl,
+				'layerId': layerId
+			};
+			this.loadLayerCache(layerJSON, layerId);
+			arbitraryLayersJSon.push(layerJSON);
+		}
+
+		callback(arbitraryLayersJSon);
 	},
 
 	getLayerJSon: function(layerId) {

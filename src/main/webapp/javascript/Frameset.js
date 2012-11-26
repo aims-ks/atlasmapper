@@ -24,7 +24,7 @@
 // description are useless.
 
 Ext.define('Frameset', {
-    extend: 'Ext.container.Viewport',
+	extend: 'Ext.container.Viewport',
 
 	layout: 'border',
 	contentPanel: null,
@@ -96,6 +96,7 @@ Ext.define('Frameset', {
 				html: '<ul class="bullet-list">'+
 						'<li><a href="../admin/dataSourcesConfigPage.jsp">Data sources</a></li>'+
 						'<li><a href="../admin/clientsConfigPage.jsp">AtlasMapper clients</a></li>'+
+						'<li><a href="../admin/manualOverrideDoc.html" target="_blank">Documentation</a></li>'+
 						'<li><a href="../admin/aboutPage.jsp">About</a></li>'+
 					'</ul>',
 				title: 'Navigation',

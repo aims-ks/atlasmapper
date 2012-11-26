@@ -65,7 +65,7 @@ public class WMSDataSourceConfig extends AbstractDataSourceConfig implements WMS
 	}
 
 	@Override
-	public AbstractLayerGenerator getLayerGenerator() throws IOException {
+	public AbstractLayerGenerator getLayerGenerator() throws Exception {
 		AbstractLayerGenerator layerGenerator;
 		try {
 			layerGenerator = new WMSLayerGenerator(this);

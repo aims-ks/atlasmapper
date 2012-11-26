@@ -42,6 +42,10 @@
 	<!--[if lte IE 6 ]>
 		<link rel="stylesheet" type="text/css" href="resources/css/styles-ie6.css?atlasmapperVer=${version}" />
 	<![endif]-->
+
+	<#if (headExtra?? && headExtra != "")>
+		${headExtra}
+	</#if>
 </head>
 
 <body id="previewClient">

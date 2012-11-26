@@ -29,11 +29,17 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.security.MessageDigest;
@@ -262,6 +268,56 @@ public class Utils {
 	}
 
 	/**
+	 * Create a valid URL from pretty much anything that can be found on the Web.
+	 * See: http://stackoverflow.com/questions/724043/http-url-address-encoding-in-java
+	 * @param urlStr The possibly invalid URL, as found on the Web.
+	 * @return A valid URL.
+	 * @throws IOException If Java can not create a valid URI from the URL parts.
+	 */
+	public static URL toURL(String urlStr) throws IOException {
+		URI uri = null;
+
+		try {
+			// Try the URL as it is, it might be valid
+			uri = new URI(urlStr);
+		} catch(URISyntaxException ex) {
+			// The URL is invalid
+			URL rawUrl = new URL(urlStr);
+
+			// The Scheme is the URL's protocol
+			String scheme = rawUrl.getProtocol();
+
+			// The Authority iss the URL's host and the port number if needed
+			int port = rawUrl.getPort();
+			String authority = rawUrl.getHost() + (port > 0 ? ":"+port : "");
+
+			// URI and URL agree to call this a path
+			String path = rawUrl.getPath();
+
+			// URI and URL agree to call this a query
+			String query = rawUrl.getQuery();
+
+			// The Fragment is the URL's reference, aka the anchor
+			String fragment = rawUrl.getRef();
+
+			try {
+				uri = new URI(
+						scheme,
+						authority,
+						path,
+						query,
+						fragment);
+			} catch (URISyntaxException e) {
+				throw new IOException("Can not create a valid URI from the input URL: " + urlStr, e);
+			}
+		}
+
+		String cleanUrlStr = uri.toASCIIString();
+
+		return new URL(cleanUrlStr);
+	}
+
+	/**
 	 * Return a Base64 encoding of the MD5 of the parameter.
 	 * @param pass
 	 * @return
@@ -323,11 +379,7 @@ public class Utils {
 			in = new FileInputStream(src);
 			out = new FileOutputStream(dest);
 
-			byte[] buf = new byte[32 * 1024];  // 32K buffer
-			int bytesRead;
-			while ((bytesRead = in.read(buf)) != -1) {
-				out.write(buf, 0, bytesRead);
-			}
+			binaryCopy(in, out);
 		} finally {
 			if (in != null) {
 				try { in.close(); } catch (Exception e) {
@@ -335,15 +387,31 @@ public class Utils {
 				}
 			}
 			if (out != null) {
-				try { out.flush(); } catch (Exception e) {
-					LOGGER.log(Level.SEVERE, "Error occur while flushing the file", e);
-				}
 				try { out.close(); } catch (Exception e) {
 					LOGGER.log(Level.SEVERE, "Error occur while closing the file", e);
 				}
 			}
 		}
 	}
+
+	public static void binaryCopy(InputStream in, OutputStream out) throws IOException {
+		if (in == null || out == null) {
+			return;
+		}
+
+		try {
+			byte[] buf = new byte[32 * 1024];  // 32K buffer
+			int bytesRead;
+			while ((bytesRead = in.read(buf)) != -1) {
+				out.write(buf, 0, bytesRead);
+			}
+		} finally {
+			if (out != null) {
+				try { out.flush(); } catch(Exception e) { LOGGER.log(Level.SEVERE, "Cant flush the output.", e); }
+			}
+		}
+	}
+
 
 	public static boolean recursiveFileDelete(File file) {
 		// If the parameter is null, the file do not exists: it's already absent from the file system, which is considered as a success.
@@ -495,7 +563,7 @@ public class Utils {
 	}
 
 	// Return a String representing the current millisecond
-	// Usefull to force the browser to refresh its cache, when used as a URL parameter
+	// Useful to force the browser to refresh its cache, when used as a URL parameter
 	public static long getCurrentTimestamp() {
 		return new Date().getTime();
 	}

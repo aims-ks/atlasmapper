@@ -22,6 +22,7 @@
 package au.gov.aims.atlasmapperserver;
 
 import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
 import java.util.Date;
 
 import junit.framework.TestCase;
@@ -126,4 +127,31 @@ public class UtilsTest extends TestCase {
 		System.out.println("Time for Regex: " + (after.getTime() - before.getTime()));
 	}
 	*/
+
+	public void testToURL() throws Exception {
+		// Valid URL that should not change
+		String validUrl1 = "http://domain.com/?val1=a%20space";
+		String validUrl2 = "http://domain.com:8080/?val2=a+space#anchor";
+
+		assertEquals(validUrl1, Utils.toURL(validUrl1).toString());
+		assertEquals(validUrl2, Utils.toURL(validUrl2).toString());
+
+		// Invalid URL that the browser support
+		String invalidUrl1 = "http://domain.com/?val3=a space"; // Space
+		String invalidUrl1Corrected = "http://domain.com/?val3=a%20space";
+		assertEquals(invalidUrl1Corrected, Utils.toURL(invalidUrl1).toString());
+
+		String invalidUrl2 = "http://domain.com/?val4=a	tab"; // tab
+		String invalidUrl2Corrected = "http://domain.com/?val4=a%09tab"; // Encoded
+		assertEquals(invalidUrl2Corrected, Utils.toURL(invalidUrl2).toString());
+
+		String invalidUrl3 = "http://domain.com/?val5=Gaël"; // UTF-8 char
+		String invalidUrl3Corrected = "http://domain.com/?val5=Ga%C3%ABl"; // Encoded
+		assertEquals(invalidUrl3Corrected, Utils.toURL(invalidUrl3).toString());
+
+		// Invalid URL found in IMOS capabilities doc
+		String imosUrl = "http://imosmest.aodn.org.au/geonetwork/srv/en/iso19139.xml?uuid= 73089abf-9880-47f7-b6f7-5659522394ad";
+		String imosUrlCorrected = "http://imosmest.aodn.org.au/geonetwork/srv/en/iso19139.xml?uuid=%2073089abf-9880-47f7-b6f7-5659522394ad";
+		assertEquals(imosUrlCorrected, Utils.toURL(imosUrl).toString());
+	}
 }

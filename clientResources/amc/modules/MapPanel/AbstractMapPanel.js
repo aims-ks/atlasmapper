@@ -86,6 +86,7 @@ Atlas.AbstractMapPanel = {
 
 		this.urlState = {
 			layerIds: null,
+			arbitraryLayers: null,
 			styles: null,
 			visibilities: null,
 			opacities: null,
@@ -95,6 +96,7 @@ Atlas.AbstractMapPanel = {
 			loadDefaultLayers: false,
 			pullState: false
 		};
+
 		if (typeof(parameters['l'+this.mapId]) !== 'undefined' && parameters['l'+this.mapId] != null) {
 			this.urlState.layerIds = (parameters['l'+this.mapId].constructor == Array) ? parameters['l'+this.mapId] : [parameters['l'+this.mapId]];
 		}
@@ -123,6 +125,12 @@ Atlas.AbstractMapPanel = {
 
 		if (typeof(parameters['pullState']) !== 'undefined' && parameters['pullState'] != null) {
 			this.pullState = (parameters['pullState'].toLowerCase() === 't' || parameters['pullState'].toLowerCase() === 'true');
+		}
+
+		// layers parameter, used with the MetadataViewer to display arbitrary WMS / KML layers
+		if (typeof(parameters['layers']) !== 'undefined' && parameters['layers'] != null) {
+			var layersArray = (parameters['layers'].constructor == Array) ? parameters['layers'] : [parameters['layers']];
+			this.urlState.arbitraryLayers = this._parseLayersParameter(layersArray);
 		}
 
 		this.events = new OpenLayers.Events(this, null,
@@ -375,7 +383,7 @@ Atlas.AbstractMapPanel = {
 			evt.layer.atlasLayer.locate();
 		});
 
-		// Add layers specified by the "layers" URL parameter
+		// Add layers specified by the "l"<MapID> URL parameter
 		if (this.urlState != null && this.urlState.layerIds != null) {
 			Atlas.core.requestLayersJSon(this.urlState.layerIds, function(layersJSon) {
 				if (that.urlState.styles != null || that.urlState.visibilities != null || that.urlState.opacities != null) {
@@ -424,6 +432,15 @@ Atlas.AbstractMapPanel = {
 			});
 		}
 
+		// Add arbitrary layers specified by the "layers" URL parameter
+		if (this.urlState != null && this.urlState.arbitraryLayers != null) {
+			Atlas.core.requestArbitraryLayersJSon(this.urlState.arbitraryLayers, function(layersJSon) {
+				if (layersJSon) {
+					that.addLayers(layersJSon);
+				}
+			});
+		}
+
 		if (this.urlState == null || this.urlState.layerIds == null || this.urlState.loadDefaultLayers == null || this.urlState.loadDefaultLayers === true) {
 			// Add default layers to the map
 			var defaultLayers = Atlas.conf['defaultLayers'];
@@ -436,6 +453,31 @@ Atlas.AbstractMapPanel = {
 				this.addLayerById(defaultLayers[i].layerId);
 			}
 		}
+	},
+
+	_parseLayersParameter: function(layersArray) {
+		var sortedLayersArray = {};
+
+		for (var i=0; i<layersArray.length; i++) {
+			var layersParts = layersArray[i].split(';');
+			if (layersParts.length >= 3) {
+				var type = layersParts[0]; // WMS or KML
+				var serverUrl = layersParts[1]; // http://server/wms
+
+				if (!sortedLayersArray[type]) {
+					sortedLayersArray[type] = {};
+				}
+				if (!sortedLayersArray[type][serverUrl]) {
+					sortedLayersArray[type][serverUrl] = [];
+				}
+				for (var j=2; j<layersParts.length; j++) {
+					// Bunch of raw layer ID
+					sortedLayersArray[type][serverUrl].push(layersParts[j]);
+				}
+			}
+		}
+
+		return sortedLayersArray;
 	},
 
 	// Events Listener
