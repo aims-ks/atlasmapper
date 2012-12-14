@@ -29,6 +29,8 @@ import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
 import au.gov.aims.atlasmapperserver.servlet.FileFinder;
 import au.gov.aims.atlasmapperserver.servlet.Proxy;
+import au.gov.aims.atlasmapperserver.xml.TC211.Document;
+import au.gov.aims.atlasmapperserver.xml.TC211.Parser;
 import freemarker.template.Configuration;
 import freemarker.template.TemplateException;
 import java.io.BufferedReader;
@@ -44,11 +46,13 @@ import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -608,9 +612,6 @@ public class ConfigManager {
 					Integer dataSourceId = dataJSonObj.optInt("id", -1);
 					AbstractDataSourceConfig dataSourceConfig = configs.get1(dataSourceId);
 					if (dataSourceConfig != null) {
-						// Clear dataSource cache before modifying it
-						URLCache.clearCache(this.applicationFolder, dataSourceConfig);
-
 						// Update the object using the value from the form
 						dataSourceConfig.update(dataJSonObj, true);
 						this.ensureUniqueness(dataSourceConfig);
@@ -858,14 +859,164 @@ public class ConfigManager {
 		return true;
 	}
 
-	public JSONObject getClientLayers(ClientConfig clientConfig, String[] layerIds) throws GetCapabilitiesExceptions, Exception {
+
+	public JSONObject getMapStateForDataset(ClientConfig clientConfig, String iso19115_19139url, boolean live) throws Exception {
+		JSONArray jsonLayers = new JSONArray();
+
+		Document tc211Document = Parser.parseURL(this, null, new URL(iso19115_19139url), false);
+
+		// *** Layers ***
+
+		List<Document.Link> links = tc211Document.getLinks();
+		for (Document.Link link : links) {
+			Document.Protocol linkProtocol = link.getProtocol();
+			if (linkProtocol != null) {
+				JSONObject foundLayer = null;
+				String foundLayerID = null;
+
+				JSONObject fullConfig = this.getClientConfigFileJSon(clientConfig, ConfigType.FULL, live, live);
+				JSONObject dataSources = fullConfig.optJSONObject("dataSources");
+				JSONObject clientLayers = fullConfig.optJSONObject("layers");
+				if (linkProtocol.isOGC()) {
+					// WMS, ncWMS, etc. If not found, a basic WMS layer will be created with the info that we have.
+					String serviceUrl = link.getUrl();
+					String layerName = link.getName();
+
+					if (Utils.isNotBlank(serviceUrl) && Utils.isNotBlank(layerName)) {
+						Iterator<String> foundLayerIDs = clientLayers.keys();
+						while(foundLayerIDs.hasNext() && foundLayer == null) {
+							foundLayerID = foundLayerIDs.next();
+							if (!clientLayers.isNull(foundLayerID)) {
+								JSONObject layer = clientLayers.optJSONObject(foundLayerID);
+								if (layer != null) {
+									String foundLayerName = layer.optString("layerName", null);
+									if (layerName.equals(foundLayerName)) {
+										// We found a layer with the same layer ID. We now have to check its data source
+										String foundDataSourceId = layer.optString("dataSourceId", null);
+										if (foundDataSourceId != null) {
+											JSONObject foundDataSource = dataSources.optJSONObject(foundDataSourceId);
+											if (foundDataSource != null) {
+												String foundServiceUrl = foundDataSource.optString("wmsServiceUrl", null);
+
+												// Check if URLs are similar ("http://www.a.com/?a=b&b=c" == "http://www.a.com:80/?b=c&a=b")
+												if (Utils.equalsWMSUrl(foundServiceUrl, serviceUrl)) {
+													foundLayer = layer;
+													foundLayer.put("layerId", foundLayerID);
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+
+				} else if (linkProtocol.isKML()) {
+					// KML layers. If not found, a basic KML layer will be created with the info that we have.
+					String kmlUrl = link.getUrl();
+
+					if (Utils.isNotBlank(kmlUrl)) {
+						Iterator<String> foundLayerIDs = clientLayers.keys();
+						while(foundLayerIDs.hasNext() && foundLayer == null) {
+							foundLayerID = foundLayerIDs.next();
+							if (!clientLayers.isNull(foundLayerID)) {
+								JSONObject layer = clientLayers.optJSONObject(foundLayerID);
+								if (layer != null) {
+									String foundLayerKMLUrl = layer.optString("kmlUrl", null);
+									if (kmlUrl.equals(foundLayerKMLUrl)) {
+										// We found a layer with the same KML URL. Let assume it's the good one
+										foundLayer = layer;
+										foundLayer.put("layerId", foundLayerID);
+									}
+								}
+							}
+						}
+					}
+				}
+
+				if (foundLayer == null) {
+					AbstractLayerConfig layer = Parser.createLayer(this, tc211Document, link);
+					if (layer != null) {
+						foundLayer = layer.generateLayer();
+					}
+				}
+
+				if (foundLayer != null) {
+					jsonLayers.put(foundLayer);
+				}
+			}
+		}
+
+		// *** Bounds ***
+
+
+		// Calculate bounds
+		// left, bottom, right, top
+		// min lon, min lat, max lon, max lat
+		double[] bounds = null;
+
+		List<Document.Point> points = tc211Document.getPoints();
+		if (points != null) {
+			for (Document.Point point : points) {
+				if (bounds == null) {
+					bounds = new double[]{ point.getLon(), point.getLat(), point.getLon(), point.getLat() };
+				} else {
+					if (point.getLon() < bounds[0]) { bounds[0] = point.getLon(); }
+					if (point.getLat() < bounds[1]) { bounds[1] = point.getLat(); }
+					if (point.getLon() > bounds[2]) { bounds[2] = point.getLon(); }
+					if (point.getLat() > bounds[3]) { bounds[3] = point.getLat(); }
+				}
+
+				// TODO Send the points to the client
+			}
+		}
+
+		List<Document.Polygon> polygons = tc211Document.getPolygons();
+		if (polygons != null) {
+			for (Document.Polygon polygon : polygons) {
+				for (Document.Point point : polygon.getPoints()) {
+					if (bounds == null) {
+						bounds = new double[]{ point.getLon(), point.getLat(), point.getLon(), point.getLat() };
+					} else {
+						if (point.getLon() < bounds[0]) { bounds[0] = point.getLon(); }
+						if (point.getLat() < bounds[1]) { bounds[1] = point.getLat(); }
+						if (point.getLon() > bounds[2]) { bounds[2] = point.getLon(); }
+						if (point.getLat() > bounds[3]) { bounds[3] = point.getLat(); }
+					}
+				}
+
+				// TODO Send the polygons to the client
+			}
+		}
+
+		JSONArray jsonBounds = null;
+		if (bounds != null) {
+			jsonBounds = new JSONArray(bounds);
+		}
+
+		// Validation
+		if (jsonLayers.length() <= 0) {
+			return null;
+		}
+
+		JSONObject state = new JSONObject();
+		state.put("layers", jsonLayers);
+		if (jsonBounds != null) {
+			state.put("bounds", jsonBounds);
+		}
+
+		return state;
+	}
+
+
+	public JSONObject getClientLayers(ClientConfig clientConfig, String[] layerIds, boolean live) throws Exception {
 		if (clientConfig == null) { return null; }
 
-		return (JSONObject)_getClientLayers(null, clientConfig, Arrays.asList(layerIds), false, "JSONObject");
+		return (JSONObject)_getClientLayers(null, clientConfig, Arrays.asList(layerIds), live, "JSONObject");
 	}
 
 	// Sometime, layers are required to be in an Array to keep their order
-	private Object _getClientLayers(LayerCatalog layerCatalog, ClientConfig clientConfig, Collection<String> layerIds, boolean live, String jsonClass) throws GetCapabilitiesExceptions, Exception {
+	private Object _getClientLayers(LayerCatalog layerCatalog, ClientConfig clientConfig, Collection<String> layerIds, boolean live, String jsonClass) throws Exception {
 		if (clientConfig == null) { return null; }
 
 		JSONObject foundLayersObj = new JSONObject();
@@ -1036,35 +1187,42 @@ public class ConfigManager {
 		return this.users.get(loginName);
 	}
 
-	public void generateAllClients(boolean complete)
-			throws GetCapabilitiesExceptions, Exception {
-
+	// Return error messages, if any
+	public Map<String, URLCache.Errors> generateAllClients(boolean complete) throws Exception {
+		Map<String, URLCache.Errors> errorMessages = new HashMap<String, URLCache.Errors>();
 		for (ClientConfig clientConfig : this.getClientConfigs().values()) {
-			this._generateClient(clientConfig, complete);
+			Map<String, URLCache.Errors> newWarnings = this._generateClient(clientConfig, complete);
+			if (newWarnings != null && !newWarnings.isEmpty()) {
+				for (Map.Entry<String, URLCache.Errors> newWarning : newWarnings.entrySet()) {
+					if (!errorMessages.containsKey(newWarning.getKey())) {
+						errorMessages.put(newWarning.getKey(), new URLCache.Errors());
+					}
+					errorMessages.get(newWarning.getKey()).addAll(newWarning.getValue());
+				}
+			}
 		}
+
+		return errorMessages;
 	}
 
-	public void generateClient(Integer clientId, boolean complete)
-			throws GetCapabilitiesExceptions, Exception {
-
+	// Return error messages, if any
+	public Map<String, URLCache.Errors> generateClient(Integer clientId, boolean complete) throws Exception {
 		if (clientId == null) {
-			return;
+			return null;
 		}
 
-		this._generateClient(this.getClientConfigs().get1(clientId), complete);
+		return this._generateClient(this.getClientConfigs().get1(clientId), complete);
 	}
 
-	public void generateClient(ClientConfig clientConfig, boolean complete)
-			throws GetCapabilitiesExceptions, Exception {
-
-		this._generateClient(clientConfig, complete);
+	// Return error messages, if any
+	public Map<String, URLCache.Errors> generateClient(ClientConfig clientConfig, boolean complete) throws Exception {
+		return this._generateClient(clientConfig, complete);
 	}
 
-	private void _generateClient(ClientConfig clientConfig, boolean complete)
-			throws GetCapabilitiesExceptions, Exception {
-
+	// Return error messages, if any
+	private Map<String, URLCache.Errors> _generateClient(ClientConfig clientConfig, boolean complete) throws Exception {
 		if (clientConfig == null) {
-			return;
+			return null;
 		}
 
 		LayerCatalog layerCatalog = clientConfig.getLayerCatalog();
@@ -1075,12 +1233,21 @@ public class ConfigManager {
 		JSONObject generatedMainConfig = this.getClientConfigFileJSon(layerCatalog, clientConfig, ConfigType.MAIN, false, true);
 		JSONObject generatedEmbeddedConfig = this.getClientConfigFileJSon(layerCatalog, clientConfig, ConfigType.EMBEDDED, false, true);
 		JSONObject generatedLayers = this.getClientConfigFileJSon(layerCatalog, clientConfig, ConfigType.LAYERS, false, true);
-		this.parseTemplates(layerCatalog, generatedMainConfig, clientConfig, useGoogle);
-		this.saveGeneratedConfigs(clientConfig, generatedMainConfig, generatedEmbeddedConfig, generatedLayers);
 
-		// Flush the proxy cache for both the preview and the generated clients
-		Proxy.reloadConfig(generatedMainConfig, generatedLayers, clientConfig.getClientId(), true);
-		Proxy.reloadConfig(generatedMainConfig, generatedLayers, clientConfig.getClientId(), false);
+		// Collect error messages
+		Map<String, URLCache.Errors> errorMessages = URLCache.getClientErrors(clientConfig, this.applicationFolder);
+
+		if (errorMessages.isEmpty()) {
+			this.generateTemplateFiles(layerCatalog, generatedMainConfig, clientConfig, useGoogle);
+			this.saveGeneratedConfigs(clientConfig, generatedMainConfig, generatedEmbeddedConfig, generatedLayers);
+
+			// Flush the proxy cache for both the preview and the generated clients
+			Proxy.reloadConfig(generatedMainConfig, generatedLayers, clientConfig, true);
+			Proxy.reloadConfig(generatedMainConfig, generatedLayers, clientConfig, false);
+		}
+
+		// Collect error messages
+		return errorMessages;
 	}
 
 	/**
@@ -1112,7 +1279,7 @@ public class ConfigManager {
 	}
 
 	// Create all files that required a template processing
-	private void parseTemplates(LayerCatalog layerCatalog, JSONObject generatedMainConfig, ClientConfig clientConfig, boolean useGoogle) throws IOException, TemplateException {
+	private void generateTemplateFiles(LayerCatalog layerCatalog, JSONObject generatedMainConfig, ClientConfig clientConfig, boolean useGoogle) throws IOException, TemplateException {
 		if (clientConfig == null) { return; }
 
 		File atlasMapperClientFolder =
@@ -1427,9 +1594,7 @@ public class ConfigManager {
 	 * }
 	 * @throws JSONException
 	 */
-	public JSONObject debugClientConfigJSon(ClientConfig clientConfig)
-			throws GetCapabilitiesExceptions, Exception {
-
+	public JSONObject debugClientConfigJSon(ClientConfig clientConfig) throws Exception {
 		if (clientConfig == null) {
 			return null;
 		}
@@ -1458,7 +1623,7 @@ public class ConfigManager {
 	}
 
 	public JSONObject getClientConfigFileJSon(ClientConfig clientConfig, ConfigType configType, boolean live, boolean generate)
-			throws GetCapabilitiesExceptions, Exception {
+			throws Exception {
 
 		LayerCatalog layerCatalog = null;
 		if (generate) {
@@ -1472,14 +1637,13 @@ public class ConfigManager {
 	 * @param layerCatalog The client LayerCatalog, to avoid overhead with generation.
 	 * @param clientConfig Client to generate
 	 * @param configType Type of generation requested
-	 * @param live True to use the list of allowed for the current config, false to use the list for the list of layer from the saved config file.
+	 * @param live True to use the list of allowed hosts for the current config, false to use the list of allowed hosts from the saved config file.
 	 * @param generate True to generate a new configuration, false to get the configuration saved in the file.
 	 * @return
-	 * @throws GetCapabilitiesExceptions
 	 * @throws Exception
 	 */
 	public JSONObject getClientConfigFileJSon(LayerCatalog layerCatalog, ClientConfig clientConfig, ConfigType configType, boolean live, boolean generate)
-			throws GetCapabilitiesExceptions, Exception {
+			throws Exception {
 
 		if (clientConfig == null || configType == null) { return null; }
 		JSONObject mainConfig = null;
@@ -1558,7 +1722,7 @@ public class ConfigManager {
 					// Every time a preview is loaded, we reload the proxy cache for that preview.
 					// The cache for preview only retain the latest state. If 2 preview instances of the same client
 					// are loaded, one may eventually have a out of sync proxy, which may block some feature requests.
-					Proxy.reloadConfig(mainConfig, layersConfig, clientConfig.getClientId(), live);
+					Proxy.reloadConfig(mainConfig, layersConfig, clientConfig, live);
 				}
 
 				// Making a copy of the mainConfig variable (clone) would be better, but the variable is never used
@@ -1574,7 +1738,7 @@ public class ConfigManager {
 
 	// Use as a base for Main and Embedded config
 	private JSONObject _generateAbstractClientConfig(LayerCatalog layerCatalog, ClientConfig clientConfig)
-			throws GetCapabilitiesExceptions, Exception {
+			throws Exception {
 		if (clientConfig == null) { return null; }
 
 		JSONObject json = new JSONObject();
@@ -1651,7 +1815,6 @@ public class ConfigManager {
 
 		MultiKeyHashMap<Integer, String, AbstractDataSourceConfig> configs = this.getDataSourceConfigs();
 		JSONArray dataSourcesArray = clientConfig.getDataSources();
-		GetCapabilitiesExceptions errors = new GetCapabilitiesExceptions();
 		if (dataSourcesArray != null && dataSourcesArray.length() > 0) {
 			JSONObject dataSources = new JSONObject();
 			for (int i=0; i<dataSourcesArray.length(); i++) {
@@ -1686,15 +1849,10 @@ public class ConfigManager {
 								}
 							}
 						} catch(IOException ex) {
-							// Collect all errors
-							errors.add(dataSourceConfig, ex);
+							LOGGER.log(Level.INFO, "Exception occur generating the client: ", ex);
 						}
 					}
 				}
-			}
-
-			if (!errors.isEmpty()) {
-				throw errors;
 			}
 
 			if (dataSources.length() > 0) {
@@ -1737,7 +1895,7 @@ public class ConfigManager {
 		}
 	}
 
-	private JSONArray getClientDefaultLayers(LayerCatalog layerCatalog, String clientId) throws GetCapabilitiesExceptions, Exception {
+	private JSONArray getClientDefaultLayers(LayerCatalog layerCatalog, String clientId) throws Exception {
 		if (Utils.isBlank(clientId)) { return null; }
 
 		return (JSONArray)this._getClientLayers(

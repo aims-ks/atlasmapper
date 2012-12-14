@@ -44,26 +44,14 @@ import org.opengis.util.InternationalString;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D extends WMSDataSourceConfig> extends AbstractLayerGenerator<L, D> {
 	private static final Logger LOGGER = Logger.getLogger(AbstractWMSLayerGenerator.class.getName());
-
-	private static final String NL = System.getProperty("line.separator");
-	private static final String TITLE_ATTR = "Title:";
-	private static final String TITLE_KEY = "TITLE";
-	private static final String DESCRIPTION_ATTR = "Description:";
-	private static final String DESCRIPTION_KEY = "DESCRIPTION";
-	private static final String PATH_ATTR = "Path:";
-	private static final String PATH_KEY = "PATH";
-
-	private static final String APPLICATION_PROFILE_ATTR = "AtlasMapper:";
 
 	private WMSCapabilities wmsCapabilities = null;
 	private String wmsVersion = null;
@@ -75,7 +63,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 	public AbstractWMSLayerGenerator(D dataSource) throws Exception {
 		super(dataSource);
 
-		this.wmsCapabilities = URLCache.getWMSCapabilitiesResponse(dataSource, dataSource.getServiceUrl());
+		this.wmsCapabilities = URLCache.getWMSCapabilitiesResponse(dataSource.getConfigManager(), dataSource, dataSource.getServiceUrl(), true);
 		if (this.wmsCapabilities != null) {
 			WMSRequest wmsRequestCapabilities = this.wmsCapabilities.getRequest();
 			if (wmsRequestCapabilities != null) {
@@ -116,6 +104,9 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 	private Collection<L> getLayersInfoFromCaps(
 			D dataSourceConfig // Data source of layers (to link the layer to its data source)
 	) {
+		if (this.wmsCapabilities == null) {
+			return null;
+		}
 
 		// http://docs.geotools.org/stable/javadocs/org/geotools/data/wms/WebMapServer.html
 		Layer rootLayer = this.wmsCapabilities.getLayer();
@@ -254,16 +245,64 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 
 		Document tc211Document = null;
 		List<MetadataURL> metadataUrls = layer.getMetadataURL();
-		for (MetadataURL metadataUrl : metadataUrls) {
-			if ("TC211".equalsIgnoreCase(metadataUrl.getType())) {
-				URL url = metadataUrl.getUrl();
-				if (url != null) {
-					try {
-						tc211Document = Parser.parseURL(dataSourceConfig, url);
-					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "Unexpected exception while parsing the document URL: {0}", url.toString());
-						LOGGER.log(Level.INFO, "Stacktrace: ", e);
+		if (!metadataUrls.isEmpty()) {
+			for (MetadataURL metadataUrl : metadataUrls) {
+				if (tc211Document == null && "TC211".equalsIgnoreCase(metadataUrl.getType()) && "text/xml".equalsIgnoreCase(metadataUrl.getFormat())) {
+					URL url = metadataUrl.getUrl();
+					if (url != null) {
+						try {
+							tc211Document = Parser.parseURL(dataSourceConfig.getConfigManager(), dataSourceConfig, url, false);
+							if (tc211Document == null || tc211Document.isEmpty()) { tc211Document = null; }
+						} catch (Exception e) {
+							LOGGER.log(Level.SEVERE, "Unexpected exception while parsing the metadata document URL: {0}\n" +
+									"The information provided by the GetCapabilities document indicate that the file is a " +
+									"TC211 text/xml file, which seems to not be the case.", url.toString());
+							LOGGER.log(Level.INFO, "Stacktrace: ", e);
+						}
 					}
+				}
+			}
+
+			// There is metadata URL, but none of the one set with TC211 text/xml format are suitable.
+			// Sometime, there is valid metadata URL but they have been entered incorrectly.
+			// Brute force through all metadata URL and cross fingers to find one that will provide some usable info.
+			if (tc211Document == null) {
+				LOGGER.log(Level.INFO, "BRUTE FORCE: Could not find a valid TC211 text/xml metadata document for layer {0} of {1}. Try them all whatever their specified mime type.",
+						new String[]{ layerName, dataSourceConfig.getDataSourceName() });
+				MetadataURL validMetadataUrl = null;
+				for (MetadataURL metadataUrl : metadataUrls) {
+					if (tc211Document == null) {
+						URL url = metadataUrl.getUrl();
+						if (url != null) {
+							try {
+								tc211Document = Parser.parseURL(dataSourceConfig.getConfigManager(), dataSourceConfig, url, false);
+								if (tc211Document != null && !tc211Document.isEmpty()) {
+									validMetadataUrl = metadataUrl;
+								} else {
+									LOGGER.log(Level.INFO, "FAILURE: Invalid metadata document: {0}\n      Identified as \"{1} - {2}\"", new String[]{
+											url.toString(),
+											metadataUrl.getType(),
+											metadataUrl.getFormat()
+									});
+									tc211Document = null;
+								}
+							} catch (Exception ex) {
+								LOGGER.log(Level.INFO, "FAILURE: Invalid metadata document: {0}\n      Identified as \"{1} - {2}\"\n      Exception message: {3}", new String[]{
+										url.toString(),
+										metadataUrl.getType(),
+										metadataUrl.getFormat(),
+										ex.getMessage()
+								});
+							}
+						}
+					}
+				}
+				if (tc211Document != null && validMetadataUrl != null) {
+					LOGGER.log(Level.INFO, "SUCCESS: Valid metadata document: {0}\n      Identified as \"{1} - {2}\"", new String[]{
+							validMetadataUrl.getUrl().toString(),
+							validMetadataUrl.getType(),
+							validMetadataUrl.getFormat()
+					});
 				}
 			}
 		}
@@ -287,75 +326,78 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 				for (Document.Link link : links) {
 					// Only display links with none null URL.
 					if (Utils.isNotBlank(link.getUrl())) {
-						if (link.isWMSGetMapLink()) {
-							// If the link is a WMS GetMap url and the url match the layer url, parse it's description.
-							if (layerName.equalsIgnoreCase(link.getName())) {
-								String applicationProfileStr = link.getApplicationProfile();
-								if (applicationProfileStr != null && !applicationProfileStr.isEmpty()) {
-									mestOverrides = parseApplicationProfile(applicationProfileStr);
-								}
-
-								String layerDescription = link.getDescription();
-								// The layer description found in the MEST is added to the description of the AtlasMapper layer.
-								// The description may also specified a title for the layer, and other attributes,
-								// using the following format:
-								//     Title: Coral sea Plateau
-								//     Description: Plateau is a flat or nearly flat area...
-								//     Subcategory: 2. GBRMPA features
-								Map<String, StringBuilder> parsedDescription = parseDescription(layerDescription);
-
-								// The layer title is replace with the title from the MEST link description.
-								if (parsedDescription.containsKey(TITLE_KEY) && parsedDescription.get(TITLE_KEY) != null) {
-									String titleStr = parsedDescription.get(TITLE_KEY).toString().trim();
-									if (!titleStr.isEmpty()) {
-										title = titleStr;
+						Document.Protocol linkProtocol = link.getProtocol();
+						if (linkProtocol != null) {
+							if (linkProtocol.isOGC()) {
+								// If the link is a OGC url (most likely WMS GetMap) and the url match the layer url, parse its description.
+								if (layerName.equalsIgnoreCase(link.getName())) {
+									String applicationProfileStr = link.getApplicationProfile();
+									if (applicationProfileStr != null && !applicationProfileStr.isEmpty()) {
+										mestOverrides = Parser.parseMestApplicationProfile(applicationProfileStr);
 									}
-								}
 
-								// The description found in the MEST link description (i.e. Layer description) is added
-								// at the beginning of the layer description (with a "Dataset description" label to
-								//     divide the layer description from the rest).
-								if (parsedDescription.containsKey(DESCRIPTION_KEY) && parsedDescription.get(DESCRIPTION_KEY) != null) {
-									StringBuilder descriptionSb = parsedDescription.get(DESCRIPTION_KEY);
-									if (descriptionSb.length() > 0) {
-										if (description != null && !description.isEmpty()) {
-											descriptionSb.append(NL); descriptionSb.append(NL);
-											descriptionSb.append("*Dataset description*"); descriptionSb.append(NL);
-											descriptionSb.append(description);
+									String layerDescription = link.getDescription();
+									// The layer description found in the MEST is added to the description of the AtlasMapper layer.
+									// The description may also specified a title for the layer, and other attributes,
+									// using the following format:
+									//     Title: Coral sea Plateau
+									//     Description: Plateau is a flat or nearly flat area...
+									//     Subcategory: 2. GBRMPA features
+									Map<String, StringBuilder> parsedDescription = Parser.parseMestDescription(layerDescription);
+
+									// The layer title is replace with the title from the MEST link description.
+									if (parsedDescription.containsKey(Parser.TITLE_KEY) && parsedDescription.get(Parser.TITLE_KEY) != null) {
+										String titleStr = parsedDescription.get(Parser.TITLE_KEY).toString().trim();
+										if (!titleStr.isEmpty()) {
+											title = titleStr;
 										}
-										description = descriptionSb.toString().trim();
+									}
+
+									// The description found in the MEST link description (i.e. Layer description) is added
+									// at the beginning of the layer description (with a "Dataset description" label to
+									//     divide the layer description from the rest).
+									if (parsedDescription.containsKey(Parser.DESCRIPTION_KEY) && parsedDescription.get(Parser.DESCRIPTION_KEY) != null) {
+										StringBuilder descriptionSb = parsedDescription.get(Parser.DESCRIPTION_KEY);
+										if (descriptionSb.length() > 0) {
+											if (description != null && !description.isEmpty()) {
+												descriptionSb.append(Parser.NL); descriptionSb.append(Parser.NL);
+												descriptionSb.append("*Dataset description*"); descriptionSb.append(Parser.NL);
+												descriptionSb.append(description);
+											}
+											description = descriptionSb.toString().trim();
+										}
+									}
+
+									// The path found in the MEST link description override the WMS path in the layer.
+									if (parsedDescription.containsKey(Parser.PATH_KEY) && parsedDescription.get(Parser.PATH_KEY) != null) {
+										String pathStr = parsedDescription.get(Parser.PATH_KEY).toString().trim();
+										if (pathStr.isEmpty()) {
+											pathStr = null;
+										}
+										wmsPath = pathStr;
 									}
 								}
-
-								// The path found in the MEST link description override the WMS path in the layer.
-								if (parsedDescription.containsKey(PATH_KEY) && parsedDescription.get(PATH_KEY) != null) {
-									String pathStr = parsedDescription.get(PATH_KEY).toString().trim();
-									if (pathStr.isEmpty()) {
-										pathStr = null;
-									}
-									wmsPath = pathStr;
+							} else if (linkProtocol.isWWW()) {
+								// Dataset links such as point of truth, data download, etc.
+								String linkTitle = link.getDescription();
+								if (Utils.isBlank(linkTitle)) {
+									linkTitle = link.getName();
 								}
-							}
-						} else {
-							// Dataset links such as point of truth, data download, etc.
-							String linkTitle = link.getDescription();
-							if (Utils.isBlank(linkTitle)) {
-								linkTitle = link.getName();
-							}
-							if (Utils.isBlank(linkTitle)) {
-								linkTitle = link.getUrl();
-							}
+								if (Utils.isBlank(linkTitle)) {
+									linkTitle = link.getUrl();
+								}
 
-							// Bullet list of URLs, in Wiki format:
-							// * [[url|title]]
-							// * [[url|title]]
-							// * [[url|title]]
-							// ...
-							onlineResources.append("* [[");
-							onlineResources.append(link.getUrl());
-							onlineResources.append("|");
-							onlineResources.append(linkTitle);
-							onlineResources.append("]]\n");
+								// Bullet list of URLs, in Wiki format:
+								// * [[url|title]]
+								// * [[url|title]]
+								// * [[url|title]]
+								// ...
+								onlineResources.append("* [[");
+								onlineResources.append(link.getUrl());
+								onlineResources.append("|");
+								onlineResources.append(linkTitle);
+								onlineResources.append("]]\n");
+							}
 						}
 					}
 				}
@@ -465,116 +507,5 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 		*/
 
 		return styleConfig;
-	}
-
-	// AtlasMapper:{"hasLegend": false,"wmsQueryable": false } Metadataviewer:{"onlyShow":true}
-
-	/**
-	 * This method is used to parse the "gmd:applicationProfile" field of the Metadata document (MEST).
-	 * This field is used by the AtlasMapper and other AtlasHub applications (such as the MetadataViewer)
-	 * to input some application related values; in the case of the AtlasMapper, the field contains
-	 * initial manual overrides.
-	 * Example of expected value for the XML field:
-	 *     AtlasMapper: {"hasLegend": false, "wmsQueryable": false}, Metadataviewer: {"onlyShow":true}
-	 * @param applicationProfileStr The application profile String as found in the XML document.
-	 * @return A map of Application name (as key) associated with it related configuration (JSONObject value)
-	 */
-	protected static JSONObject parseApplicationProfile(String applicationProfileStr) {
-		int applicationConfigIndex = applicationProfileStr.indexOf(APPLICATION_PROFILE_ATTR);
-
-		if (applicationConfigIndex < 0) {
-			// There is no configuration for the AtlasMapper in this application profile string.
-			return null;
-		}
-
-		String rawAtlasMapperProfileStr = applicationProfileStr.substring(applicationConfigIndex + APPLICATION_PROFILE_ATTR.length());
-		if (rawAtlasMapperProfileStr == null || rawAtlasMapperProfileStr.isEmpty()) {
-			// A configuration has been found but it's empty.
-			return null;
-		}
-
-		rawAtlasMapperProfileStr = rawAtlasMapperProfileStr.trim();
-		if (!rawAtlasMapperProfileStr.startsWith("{")) {
-			// A configuration has been found but it's not a valid JSON config.
-			// Try to find a valid one on the rest of the string.
-			return parseApplicationProfile(rawAtlasMapperProfileStr);
-		}
-
-		int end = findEndOfBloc(rawAtlasMapperProfileStr, 0);
-		String atlasMapperProfileStr = rawAtlasMapperProfileStr.substring(0, end+1);
-
-		JSONObject json = null;
-		try {
-			json = new JSONObject(atlasMapperProfileStr);
-		} catch (Exception ex) {
-			// Try with the rest of the line
-			json = parseApplicationProfile(rawAtlasMapperProfileStr);
-
-			if (json == null) {
-				// It is possible, but very unlikely, that this error message get displayed more than once
-				// for the same String (it may happen if the text "AtlasMapper:" occurred more once in the
-				// applicationProfile string).
-				LOGGER.log(Level.WARNING, "Invalid JSON configuration for the AtlasMapper \"{0}\" in the applicationProfile: {1}", new String[]{ atlasMapperProfileStr, applicationProfileStr });
-				LOGGER.log(Level.INFO, "Stacktrace: ", ex);
-			}
-		}
-
-		return json;
-	}
-	private static int findEndOfBloc(String str, int offset) {
-		for (int i=offset+1, len=str.length(); i<len; i++) {
-			if (str.charAt(i) == '{') {
-				i = findEndOfBloc(str, i);
-			} else if (str.charAt(i) == '}') {
-				return i;
-			}
-		}
-		// No end of block found. Return the index of the last char.
-		return str.length()-1;
-	}
-
-	private static Map<String, StringBuilder> parseDescription(String descriptionStr) {
-		Map<String, StringBuilder> descriptionMap = new HashMap<String, StringBuilder>();
-
-		String currentKey = null;
-		// Scanner is used to process each lines one by one. It's more efficient than using
-		// the method split to generate an array of String.
-		Scanner scanner = new Scanner(descriptionStr.trim());
-		while (scanner.hasNextLine()) {
-			String line = scanner.nextLine();
-			// This should not happen...
-			if (line == null) { line = ""; }
-			// Remove trailing white spaces.
-			line = line.trim();
-
-			if (line.startsWith(TITLE_ATTR)) {
-				currentKey = TITLE_KEY;
-				descriptionMap.put(TITLE_KEY, new StringBuilder(
-						line.substring(TITLE_ATTR.length()).trim()));
-
-			} else if (line.startsWith(DESCRIPTION_ATTR)) {
-				currentKey = DESCRIPTION_KEY;
-				descriptionMap.put(DESCRIPTION_KEY, new StringBuilder(
-						line.substring(DESCRIPTION_ATTR.length()).trim()));
-
-			} else if (line.startsWith(PATH_ATTR)) {
-				currentKey = PATH_KEY;
-				descriptionMap.put(PATH_KEY, new StringBuilder(
-						line.substring(PATH_ATTR.length()).trim()));
-
-			} else {
-				if (currentKey == null) {
-					// Text was found before an attribute. No attributes are expected...
-					descriptionMap.put(DESCRIPTION_KEY, new StringBuilder(descriptionStr));
-					break;
-				} else {
-					StringBuilder value = descriptionMap.get(currentKey);
-					value.append(NL);
-					value.append(line);
-				}
-			}
-		}
-
-		return descriptionMap;
 	}
 }

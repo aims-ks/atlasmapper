@@ -46,7 +46,7 @@
 		File applicationFolder = FileFinder.getApplicationFolder(this.getServletConfig().getServletContext(), true);
 		boolean isWritable = Utils.recursiveIsWritable(applicationFolder);
 		if (applicationFolder == null || !isWritable) {
-			String dataDirProperty = FileFinder.DATA_DIR_PROPERTY;
+			String dataDirProperty = FileFinder.getDataDirProperty(this.getServletConfig().getServletContext());
 			String dataDirPropertyValue = FileFinder.getDataDirPropertyValue(this.getServletConfig().getServletContext());
 			boolean isDefined = true;
 			if (dataDirPropertyValue == null) {

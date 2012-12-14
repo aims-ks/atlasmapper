@@ -25,9 +25,9 @@
 	<groupId>au.gov.aims</groupId>
 	<artifactId>atlasmapper</artifactId>
 	<packaging>war</packaging>
-	<version>1.3</version>
+	<version>1.3.1</version>
 	<name>AtlasMapper server and clients</name>
-    <description>This application compiled as a single War, that can be deployed in Tomcat, without any other dependency.\n\
+	<description>This application compiled as a single War, that can be deployed in Tomcat, without any other dependency.\n\
 It contains:\n\
 * a GUI to configure the clients (protected by a login, preferably set up under HTTPS),\n\
 * multi-client capability,\n\
@@ -101,6 +101,22 @@ It contains:\n\
 			<artifactId>freemarker</artifactId>
 			<version>2.3.18</version>
 		</dependency>
+
+		<!-- Apache HTTP Client, used by the URLCache class -->
+		<!-- See: http://hc.apache.org/ -->
+		<!-- Java DOC: http://hc.apache.org/httpcomponents-client-ga/httpclient/apidocs/index.html -->
+		<dependency>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpclient</artifactId>
+			<version>4.2.2</version>
+		</dependency>
+<!--
+		<dependency>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpcomponents-core</artifactId>
+			<version>4.2.2</version>
+		</dependency>
+-->
 
 		<!-- Used for JUnit tests - Not included in the war -->
 		<dependency>

@@ -51,7 +51,7 @@ public class FileFinder {
 	//     -DATLASMAPPER_DATA_DIR=<path to the config file>
 	// 3. Global environment variable ()
 	// NOTE: Don't forget to restart tomcat after setting this variable.
-	public static final String DATA_DIR_PROPERTY = "ATLASMAPPER_DATA_DIR";
+	private static final String DATA_DIR_PROPERTY = "{WEBAPP-NAME}_DATA_DIR";
 
 	private static final String CLIENT_CONFIG_FOLDER = "config";
 	public static final String PUBLIC_FOLDER = "www";
@@ -73,6 +73,11 @@ public class FileFinder {
 		boolean create = true;
 		File appFolder = getApplicationFolder(context, create);
 		getCommonFilesFolder(appFolder, create);
+	}
+
+	public static String getDataDirProperty(ServletContext context) {
+		String webappName = context.getContextPath().replace("/", "");
+		return DATA_DIR_PROPERTY.replace("{WEBAPP-NAME}", webappName.toUpperCase());
 	}
 
 	public static File getDiskCacheFolder(File applicationFolder) {
@@ -351,7 +356,7 @@ public class FileFinder {
 			if (applicationFolder != null) {
 				LOGGER.log(Level.SEVERE, "The application do not have write access to the folder: [{0}] defined by the property {1}.", new Object[]{
 					applicationFolder.getAbsolutePath(),
-					DATA_DIR_PROPERTY
+					getDataDirProperty(context)
 				});
 			}
 		}
@@ -369,16 +374,16 @@ public class FileFinder {
 		if (context == null) { return null; }
 
 		// web.xml
-		String dataDir = context.getInitParameter(DATA_DIR_PROPERTY);
+		String dataDir = context.getInitParameter(getDataDirProperty(context));
 
 		// Can be used to set the variable in java, for a Unit Test.
 		if (Utils.isBlank(dataDir)) {
-			dataDir = System.getProperty(DATA_DIR_PROPERTY);
+			dataDir = System.getProperty(getDataDirProperty(context));
 		}
 
 		// tomcat/bin/setenv.sh  or  .bashrc
 		if (Utils.isBlank(dataDir)) {
-			dataDir = System.getenv(DATA_DIR_PROPERTY);
+			dataDir = System.getenv(getDataDirProperty(context));
 		}
 
 		if (Utils.isNotBlank(dataDir)) {
@@ -399,14 +404,14 @@ public class FileFinder {
 		String dataDirPropertyValue = getDataDirPropertyValue(context);
 		String errorMsg = null;
 		if (dataDirPropertyValue == null || dataDirPropertyValue.isEmpty()) {
-			errorMsg = DATA_DIR_PROPERTY + " HAS NOT BEEN SET";
+			errorMsg = getDataDirProperty(context) + " HAS NOT BEEN SET";
 		} else {
 			File appFolder = new File(dataDirPropertyValue);
 			if (!Utils.recursiveIsWritable(appFolder)) {
 				if (appFolder.exists()) {
-					errorMsg = DATA_DIR_PROPERTY + ": THE FOLDER " + dataDirPropertyValue + " IS NOT WRITABLE";
+					errorMsg = getDataDirProperty(context) + ": THE FOLDER " + dataDirPropertyValue + " IS NOT WRITABLE";
 				} else {
-					errorMsg = DATA_DIR_PROPERTY + ": THE FOLDER " + dataDirPropertyValue + " CAN NOT BE CREATED";
+					errorMsg = getDataDirProperty(context) + ": THE FOLDER " + dataDirPropertyValue + " CAN NOT BE CREATED";
 				}
 			}
 		}
@@ -417,7 +422,7 @@ public class FileFinder {
 			System.out.println("#######################################");
 		} else {
 			System.out.println("---------------------------------------");
-			System.out.println("- " + DATA_DIR_PROPERTY + ": " + dataDirPropertyValue);
+			System.out.println("- " + getDataDirProperty(context) + ": " + dataDirPropertyValue);
 			System.out.println("---------------------------------------");
 		}
 	}

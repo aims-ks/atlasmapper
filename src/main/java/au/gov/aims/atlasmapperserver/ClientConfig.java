@@ -212,6 +212,11 @@ public class ClientConfig extends AbstractConfig {
 	@ConfigField
 	private String listLayerImageHeight;
 
+	@ConfigField
+	private String extraAllowedHosts;
+	// Cache - avoid parsing baseLayers string every times.
+	private Set<String> extraAllowedHostsSet = null;
+
 
 	// Read only values also need to be disabled in the form (clientsConfigPage.js)
 	@ConfigField(demoReadOnly = true)
@@ -229,33 +234,27 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	// LayerCatalog - Before data source overrides
-	private LayerCatalog getRawLayerCatalog() throws GetCapabilitiesExceptions, IOException, JSONException {
+	private LayerCatalog getRawLayerCatalog() throws IOException, JSONException {
 		LayerCatalog rawLayerCatalog = new LayerCatalog();
-
-		// Retrieved all layers for all data sources of this client
-		GetCapabilitiesExceptions errors = new GetCapabilitiesExceptions();
 
 		for (AbstractDataSourceConfig dataSource : this.getDataSourceConfigs()) {
 			try {
 				if (dataSource != null) {
-					rawLayerCatalog.addLayers(dataSource.getLayerCatalog().getLayers());
+					LayerCatalog layerCatalog = dataSource.getLayerCatalog();
+					if (layerCatalog != null && !layerCatalog.isEmpty()) {
+						rawLayerCatalog.addLayers(layerCatalog.getLayers());
+					}
 				}
 			} catch(Exception ex) {
-				// Collect all errors
-				errors.add(dataSource, ex);
 				LOGGER.log(Level.INFO, "Exception occur while retrieving layers: ", ex);
 			}
-		}
-
-		if (!errors.isEmpty()) {
-			throw errors;
 		}
 
 		return rawLayerCatalog;
 	}
 
 	// LayerCatalog - After data source overrides
-	public LayerCatalog getLayerCatalog() throws GetCapabilitiesExceptions, IOException, JSONException {
+	public LayerCatalog getLayerCatalog() throws IOException, JSONException {
 		LayerCatalog rawLayerCatalog = this.getRawLayerCatalog();
 
 		// Map of layers, after overrides, used to create the final layer catalog
@@ -783,6 +782,14 @@ public class ClientConfig extends AbstractConfig {
 		this.listLayerImageHeight = listLayerImageHeight;
 	}
 
+	public String getExtraAllowedHosts() {
+		return this.extraAllowedHosts;
+	}
+	public void setExtraAllowedHosts(String extraAllowedHosts) {
+		this.extraAllowedHosts = extraAllowedHosts;
+		this.extraAllowedHostsSet = null;
+	}
+
 
 	public String getGeneratedFileLocation() {
 		return this.generatedFileLocation;
@@ -877,6 +884,29 @@ public class ClientConfig extends AbstractConfig {
 		}
 
 		return this.baseLayersSet.contains(layerId);
+	}
+
+	// Helper
+	public Set<String> getExtraAllowedHostsSet() {
+		String extraAllowedHostsStr = this.getExtraAllowedHosts();
+		if (Utils.isBlank(extraAllowedHostsStr)) {
+			return null;
+		}
+
+		if (this.extraAllowedHostsSet == null) {
+			this.extraAllowedHostsSet = new HashSet<String>();
+			String[] extraAllowedHosts = extraAllowedHostsStr.split(SPLIT_PATTERN);
+			if (extraAllowedHosts != null) {
+				for (int i=0; i<extraAllowedHosts.length; i++) {
+					String extraAllowedHost = extraAllowedHosts[i];
+					if (Utils.isNotBlank(extraAllowedHost)) {
+						this.extraAllowedHostsSet.add(extraAllowedHost.trim());
+					}
+				}
+			}
+		}
+
+		return this.extraAllowedHostsSet;
 	}
 
 	// Helper

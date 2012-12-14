@@ -45,7 +45,6 @@ import au.gov.aims.atlasmapperserver.ClientConfig;
 import au.gov.aims.atlasmapperserver.ConfigHelper;
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.ConfigType;
-import au.gov.aims.atlasmapperserver.GetCapabilitiesExceptions;
 import au.gov.aims.atlasmapperserver.ServletUtils;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
@@ -111,14 +110,14 @@ public class Proxy extends HttpServlet {
 				// The main config may be incomplete without the list of layers (for the preview), but it will contains enough info to configure the proxy.
 				JSONObject jsonMainConfig = configManager.getClientConfigFileJSon(null, clientConfig, ConfigType.MAIN, preview, preview);
 				JSONObject jsonLayersConfig = configManager.getClientConfigFileJSon(clientConfig, ConfigType.LAYERS, preview, preview);
-				reloadConfig(jsonMainConfig, jsonLayersConfig, clientId, preview);
+				reloadConfig(jsonMainConfig, jsonLayersConfig, clientConfig, preview);
 			}
 		} catch (Throwable ex) {
 			LOGGER.log(Level.SEVERE, "Error occurred while reloading the proxy configuration: ", ex);
 		}
 	}
 
-	public static synchronized void reloadConfig(JSONObject jsonMainConfig, JSONObject jsonLayersConfig, String clientId, boolean preview) {
+	public static synchronized void reloadConfig(JSONObject jsonMainConfig, JSONObject jsonLayersConfig, ClientConfig clientConfig, boolean preview) {
 		if (previewClientsAllowedHostCache == null) {
 			previewClientsAllowedHostCache = new HashMap<String, Set<String>>();
 		}
@@ -128,13 +127,10 @@ public class Proxy extends HttpServlet {
 
 		Set<String> foundAllowedHosts = null;
 		try {
-			foundAllowedHosts = getProxyAllowedHosts(jsonMainConfig, jsonLayersConfig);
+			foundAllowedHosts = getProxyAllowedHosts(jsonMainConfig, jsonLayersConfig, clientConfig);
 			if (foundAllowedHosts == null) {
 				LOGGER.log(Level.WARNING, "No allowed hosts found in AtlasMapperServer configuration.");
 			}
-		} catch (GetCapabilitiesExceptions ex) {
-			LOGGER.log(Level.SEVERE, "Error while retrieving the Capabilities documents to generate the allowed hosts.", ex);
-			ex.printStackTrace();
 		} catch (Exception ex) {
 			LOGGER.log(Level.SEVERE, "Error while retrieving the allowed hosts.", ex);
 		} finally {
@@ -145,11 +141,11 @@ public class Proxy extends HttpServlet {
 		}
 
 		if (preview) {
-			LOGGER.log(Level.INFO, "Reloading the proxy configuration for preview version of ["+clientId+"]");
-			previewClientsAllowedHostCache.put(clientId, foundAllowedHosts);
+			LOGGER.log(Level.INFO, "Reloading the proxy configuration for preview version of ["+clientConfig.getClientId()+"]");
+			previewClientsAllowedHostCache.put(clientConfig.getClientId(), foundAllowedHosts);
 		} else {
-			LOGGER.log(Level.INFO, "Reloading the proxy configuration for generated version of ["+clientId+"]");
-			generatedClientsAllowedHostCache.put(clientId, foundAllowedHosts);
+			LOGGER.log(Level.INFO, "Reloading the proxy configuration for generated version of ["+clientConfig.getClientId()+"]");
+			generatedClientsAllowedHostCache.put(clientConfig.getClientId(), foundAllowedHosts);
 		}
 	}
 
@@ -169,11 +165,18 @@ public class Proxy extends HttpServlet {
 			}
 		}
 
+		for (ClientConfig clientConfig : configManager.getClientConfigs().values()) {
+			Set<String> extraAllowedHostsSet = clientConfig.getExtraAllowedHostsSet();
+			if (extraAllowedHostsSet != null && !extraAllowedHostsSet.isEmpty()) {
+				allowedHosts.addAll(extraAllowedHostsSet);
+			}
+		}
+
 		return allowedHosts;
 	}
 
-	private static Set<String> getProxyAllowedHosts(JSONObject mainConfig, JSONObject layersConfig)
-			throws GetCapabilitiesExceptions, Exception {
+	private static Set<String> getProxyAllowedHosts(JSONObject mainConfig, JSONObject layersConfig, ClientConfig clientConfig)
+			throws Exception {
 
 		Set<String> allowedHosts = new HashSet<String>();
 
@@ -202,6 +205,11 @@ public class Proxy extends HttpServlet {
 					addProxyAllowedHost(allowedHosts, layer.optString("wmsServiceUrl")); // TODO change wmsServiceUrl to serviceUrl
 				}
 			}
+		}
+
+		Set<String> extraAllowedHostsSet = clientConfig.getExtraAllowedHostsSet();
+		if (extraAllowedHostsSet != null && !extraAllowedHostsSet.isEmpty()) {
+			allowedHosts.addAll(extraAllowedHostsSet);
 		}
 
 		return allowedHosts.isEmpty() ? null : allowedHosts;

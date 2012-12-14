@@ -29,49 +29,58 @@ Atlas.Layer.LayerHelper = {
 	createLayer: function(mapPanel, layerJSon, parent) {
 		var atlasLayer = null;
 
-		if (typeof(layerJSon['dataSourceType']) === 'undefined') {
-			alert('Layer '+layerJSon['layerId']+' has no dataSourceType defined.');
-			return;
-		}
+		if (layerJSon instanceof OpenLayers.Layer) {
+			atlasLayer = new Atlas.Layer.AbstractLayer(mapPanel, {}, parent);
+			atlasLayer.getExtent = function() {
+				return this.computeExtent();
+			};
+			atlasLayer.setLayer(layerJSon);
 
-		switch (layerJSon['dataSourceType']) {
-			case 'DUMMY':
-				// Dummy layers are used to create a tree node that can contains a layer object that is not load on the map.
-				atlasLayer = new Atlas.Layer.Dummy(mapPanel, layerJSon, parent);
-				break;
-			case 'NCWMS':
-				atlasLayer = new Atlas.Layer.NCWMS(mapPanel, layerJSon, parent);
-				break;
-			case 'ARCGIS_MAPSERVER':
-				atlasLayer = new Atlas.Layer.ArcGISMapServer(mapPanel, layerJSon, parent);
-				break;
-			case 'ARCGIS_CACHE':
-				atlasLayer = new Atlas.Layer.ArcGISCache(mapPanel, layerJSon, parent);
-				break;
-			case 'WMS':
-				atlasLayer = new Atlas.Layer.WMS(mapPanel, layerJSon, parent);
-				break;
-			case 'WMTS':
-				atlasLayer = new Atlas.Layer.WMTS(mapPanel, layerJSon, parent);
-				break;
-			case 'KML':
-				atlasLayer = new Atlas.Layer.KML(mapPanel, layerJSon, parent);
-				break;
-			case 'GOOGLE':
-				atlasLayer = new Atlas.Layer.Google(mapPanel, layerJSon, parent);
-				break;
-			case 'BING':
-				atlasLayer = new Atlas.Layer.Bing(mapPanel, layerJSon, parent);
-				break;
-			case 'XYZ':
-				atlasLayer = new Atlas.Layer.XYZ(mapPanel, layerJSon, parent);
-				break;
-			case 'SERVICE':
-			case 'GROUP':
-				atlasLayer = new Atlas.Layer.Group(mapPanel, layerJSon, parent);
-				break;
-			default:
-				alert('Layer type '+layerJSon['dataSourceType']+' for layer '+layerJSon['layerId']+', is not implemented.');
+		} else {
+			if (typeof(layerJSon['dataSourceType']) === 'undefined') {
+				alert('Layer '+layerJSon['layerId']+' has no dataSourceType defined.');
+				return;
+			}
+
+			switch (layerJSon['dataSourceType']) {
+				case 'DUMMY':
+					// Dummy layers are used to create a tree node that can contains a layer object that is not load on the map.
+					atlasLayer = new Atlas.Layer.Dummy(mapPanel, layerJSon, parent);
+					break;
+				case 'NCWMS':
+					atlasLayer = new Atlas.Layer.NCWMS(mapPanel, layerJSon, parent);
+					break;
+				case 'ARCGIS_MAPSERVER':
+					atlasLayer = new Atlas.Layer.ArcGISMapServer(mapPanel, layerJSon, parent);
+					break;
+				case 'ARCGIS_CACHE':
+					atlasLayer = new Atlas.Layer.ArcGISCache(mapPanel, layerJSon, parent);
+					break;
+				case 'WMS':
+					atlasLayer = new Atlas.Layer.WMS(mapPanel, layerJSon, parent);
+					break;
+				case 'WMTS':
+					atlasLayer = new Atlas.Layer.WMTS(mapPanel, layerJSon, parent);
+					break;
+				case 'KML':
+					atlasLayer = new Atlas.Layer.KML(mapPanel, layerJSon, parent);
+					break;
+				case 'GOOGLE':
+					atlasLayer = new Atlas.Layer.Google(mapPanel, layerJSon, parent);
+					break;
+				case 'BING':
+					atlasLayer = new Atlas.Layer.Bing(mapPanel, layerJSon, parent);
+					break;
+				case 'XYZ':
+					atlasLayer = new Atlas.Layer.XYZ(mapPanel, layerJSon, parent);
+					break;
+				case 'SERVICE':
+				case 'GROUP':
+					atlasLayer = new Atlas.Layer.Group(mapPanel, layerJSon, parent);
+					break;
+				default:
+					alert('Layer type '+layerJSon['dataSourceType']+' for layer '+layerJSon['layerId']+', is not implemented.');
+			}
 		}
 
 		return atlasLayer;

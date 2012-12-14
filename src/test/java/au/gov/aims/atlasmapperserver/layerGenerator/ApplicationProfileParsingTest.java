@@ -20,6 +20,7 @@
  */
 package au.gov.aims.atlasmapperserver.layerGenerator;
 
+import au.gov.aims.atlasmapperserver.xml.TC211.Parser;
 import junit.framework.TestCase;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -33,7 +34,7 @@ public class ApplicationProfileParsingTest extends TestCase {
 	public void testSingleApplicationParsing() throws JSONException {
 		String applicationProfileStr = "AtlasMapper:{\"hasLegend\": false,\"wmsQueryable\": false }";
 
-		JSONObject parsedApplicationProfile = AbstractWMSLayerGenerator.parseApplicationProfile(applicationProfileStr);
+		JSONObject parsedApplicationProfile = Parser.parseMestApplicationProfile(applicationProfileStr);
 
 		JSONObject expectedValue = new JSONObject("{\"hasLegend\": false,\"wmsQueryable\": false }");
 		assertEquals(expectedValue.toString(), parsedApplicationProfile.toString());
@@ -42,7 +43,7 @@ public class ApplicationProfileParsingTest extends TestCase {
 	public void testMultipleApplicationsParsing() throws JSONException {
 		String applicationProfileStr = "AtlasMapper:{\"hasLegend\": false,\"wmsQueryable\": false } Metadataviewer:{\"onlyShow\":true}";
 
-		JSONObject parsedApplicationProfile = AbstractWMSLayerGenerator.parseApplicationProfile(applicationProfileStr);
+		JSONObject parsedApplicationProfile = Parser.parseMestApplicationProfile(applicationProfileStr);
 
 		JSONObject expectedValue = new JSONObject("{\"hasLegend\": false,\"wmsQueryable\": false }");
 		assertEquals(expectedValue.toString(), parsedApplicationProfile.toString());
@@ -51,7 +52,7 @@ public class ApplicationProfileParsingTest extends TestCase {
 	public void testScrewedUpApplicationsParsing() throws JSONException {
 		String applicationProfileStr = "Okay1: {\"onlyShow\":true}, Broken: {{\"hasLegend\": false,\"wmsQueryable\": false }, AtlasMapper:{\"hasLegend\": false,\"wmsQueryable\": false } Okay2: {\"onlyShow\":true}";
 
-		JSONObject parsedApplicationProfile = AbstractWMSLayerGenerator.parseApplicationProfile(applicationProfileStr);
+		JSONObject parsedApplicationProfile = Parser.parseMestApplicationProfile(applicationProfileStr);
 
 		JSONObject expectedValue = new JSONObject("{\"hasLegend\": false,\"wmsQueryable\": false }");
 		assertEquals(expectedValue.toString(), parsedApplicationProfile.toString());
@@ -62,12 +63,12 @@ public class ApplicationProfileParsingTest extends TestCase {
 
 		String applicationProfileStr = "AtlasMapper:{\"hasLegend\": false,\"wmsQueryable\": false }, DangerousApp:{\"message\":\"AtlasMapper: A mapping application.\"}";
 
-		JSONObject parsedApplicationProfile = AbstractWMSLayerGenerator.parseApplicationProfile(applicationProfileStr);
+		JSONObject parsedApplicationProfile = Parser.parseMestApplicationProfile(applicationProfileStr);
 		assertEquals(expectedValue.toString(), parsedApplicationProfile.toString());
 
 		applicationProfileStr = "DangerousApp:{\"message\":\"AtlasMapper: A mapping application.\"}, AtlasMapper:{\"hasLegend\": false,\"wmsQueryable\": false }";
 
-		parsedApplicationProfile = AbstractWMSLayerGenerator.parseApplicationProfile(applicationProfileStr);
+		parsedApplicationProfile = Parser.parseMestApplicationProfile(applicationProfileStr);
 		assertEquals(expectedValue.toString(), parsedApplicationProfile.toString());
 	}
 
@@ -80,48 +81,48 @@ public class ApplicationProfileParsingTest extends TestCase {
 		JSONObject expectedValue = new JSONObject("{\"hasLegend\": false,\"wmsQueryable\": false }");
 
 		String applicationProfileStr = "Web Browser, AtlasMapper:{\"hasLegend\": false,\"wmsQueryable\": false }";
-		JSONObject parsedApplicationProfile = AbstractWMSLayerGenerator.parseApplicationProfile(applicationProfileStr);
+		JSONObject parsedApplicationProfile = Parser.parseMestApplicationProfile(applicationProfileStr);
 		assertEquals(expectedValue.toString(), parsedApplicationProfile.toString());
 
 		applicationProfileStr = "AtlasMapper:{\"hasLegend\": false,\"wmsQueryable\": false }, Web Browser";
-		parsedApplicationProfile = AbstractWMSLayerGenerator.parseApplicationProfile(applicationProfileStr);
+		parsedApplicationProfile = Parser.parseMestApplicationProfile(applicationProfileStr);
 		assertEquals(expectedValue.toString(), parsedApplicationProfile.toString());
 
 		applicationProfileStr = "OGC:EOP-profile-0.3.3, AtlasMapper:{\"hasLegend\": false,\"wmsQueryable\": false }";
-		parsedApplicationProfile = AbstractWMSLayerGenerator.parseApplicationProfile(applicationProfileStr);
+		parsedApplicationProfile = Parser.parseMestApplicationProfile(applicationProfileStr);
 		assertEquals(expectedValue.toString(), parsedApplicationProfile.toString());
 
 		applicationProfileStr = "OGC:EOP-profile-0.3.3, AtlasMapper:{\"hasLegend\": false,\"wmsQueryable\": false }, OGC:EOP-profile-0.3.4";
-		parsedApplicationProfile = AbstractWMSLayerGenerator.parseApplicationProfile(applicationProfileStr);
+		parsedApplicationProfile = Parser.parseMestApplicationProfile(applicationProfileStr);
 		assertEquals(expectedValue.toString(), parsedApplicationProfile.toString());
 
 		applicationProfileStr = "Webpage, AtlasMapper:{\"hasLegend\": false,\"wmsQueryable\": false }";
-		parsedApplicationProfile = AbstractWMSLayerGenerator.parseApplicationProfile(applicationProfileStr);
+		parsedApplicationProfile = Parser.parseMestApplicationProfile(applicationProfileStr);
 		assertEquals(expectedValue.toString(), parsedApplicationProfile.toString());
 
 		applicationProfileStr = "BoreholeTemperature, AtlasMapper:{\"hasLegend\": false,\"wmsQueryable\": false }";
-		parsedApplicationProfile = AbstractWMSLayerGenerator.parseApplicationProfile(applicationProfileStr);
+		parsedApplicationProfile = Parser.parseMestApplicationProfile(applicationProfileStr);
 		assertEquals(expectedValue.toString(), parsedApplicationProfile.toString());
 
 		applicationProfileStr = "INSPIRE (EC) 976/2009, AtlasMapper:{\"hasLegend\": false,\"wmsQueryable\": false }";
-		parsedApplicationProfile = AbstractWMSLayerGenerator.parseApplicationProfile(applicationProfileStr);
+		parsedApplicationProfile = Parser.parseMestApplicationProfile(applicationProfileStr);
 		assertEquals(expectedValue.toString(), parsedApplicationProfile.toString());
 
 		applicationProfileStr = "DataFed.net, AtlasMapper:{\"hasLegend\": false,\"wmsQueryable\": false }";
-		parsedApplicationProfile = AbstractWMSLayerGenerator.parseApplicationProfile(applicationProfileStr);
+		parsedApplicationProfile = Parser.parseMestApplicationProfile(applicationProfileStr);
 		assertEquals(expectedValue.toString(), parsedApplicationProfile.toString());
 
 		applicationProfileStr = "string, AtlasMapper:{\"hasLegend\": false,\"wmsQueryable\": false }";
-		parsedApplicationProfile = AbstractWMSLayerGenerator.parseApplicationProfile(applicationProfileStr);
+		parsedApplicationProfile = Parser.parseMestApplicationProfile(applicationProfileStr);
 		assertEquals(expectedValue.toString(), parsedApplicationProfile.toString());
 
 		applicationProfileStr = "xml, AtlasMapper:{\"hasLegend\": false,\"wmsQueryable\": false }";
-		parsedApplicationProfile = AbstractWMSLayerGenerator.parseApplicationProfile(applicationProfileStr);
+		parsedApplicationProfile = Parser.parseMestApplicationProfile(applicationProfileStr);
 		assertEquals(expectedValue.toString(), parsedApplicationProfile.toString());
 
 		// Special char
 		applicationProfileStr = "Special chars: /*-+`~!@#$%^&*()_+=\\|[]{};:'\",.<>?, AtlasMapper:{\"hasLegend\": false,\"wmsQueryable\": false }";
-		parsedApplicationProfile = AbstractWMSLayerGenerator.parseApplicationProfile(applicationProfileStr);
+		parsedApplicationProfile = Parser.parseMestApplicationProfile(applicationProfileStr);
 		assertEquals(expectedValue.toString(), parsedApplicationProfile.toString());
 	}
 
@@ -143,7 +144,7 @@ public class ApplicationProfileParsingTest extends TestCase {
 				"Metadataviewer:{\"onlyShow\":false} " +
 				"AnotherXMLApp:<tag>value</tag>";
 
-		JSONObject parsedApplicationProfile = AbstractWMSLayerGenerator.parseApplicationProfile(applicationProfileStr);
+		JSONObject parsedApplicationProfile = Parser.parseMestApplicationProfile(applicationProfileStr);
 
 		JSONObject expectedValue = new JSONObject("{" +
 				"\"hasLegend\": false, " +
@@ -164,7 +165,7 @@ public class ApplicationProfileParsingTest extends TestCase {
 	public void testParsingNoWhiteSpaces() throws JSONException {
 		String applicationProfileStr = "AtlasMapper:{\"hasLegend\":false,\"wmsQueryable\":false},Metadataviewer:{\"onlyShow\":true}";
 
-		JSONObject parsedApplicationProfile = AbstractWMSLayerGenerator.parseApplicationProfile(applicationProfileStr);
+		JSONObject parsedApplicationProfile = Parser.parseMestApplicationProfile(applicationProfileStr);
 
 		JSONObject expectedValue = new JSONObject("{\"hasLegend\": false,\"wmsQueryable\": false }");
 		assertEquals(expectedValue.toString(), parsedApplicationProfile.toString());
@@ -173,7 +174,7 @@ public class ApplicationProfileParsingTest extends TestCase {
 	public void testParsingWithExtraWhiteSpaces() throws JSONException {
 		String applicationProfileStr = " 	 AtlasMapper:	 {   \"hasLegend\"	: false,   	\"wmsQueryable\":    false	 }	,\n		Metadataviewer:  {  \"onlyShow\" :  true  } 	\n	";
 
-		JSONObject parsedApplicationProfile = AbstractWMSLayerGenerator.parseApplicationProfile(applicationProfileStr);
+		JSONObject parsedApplicationProfile = Parser.parseMestApplicationProfile(applicationProfileStr);
 
 		JSONObject expectedValue = new JSONObject("{\"hasLegend\": false,\"wmsQueryable\": false }");
 		assertEquals(expectedValue.toString(), parsedApplicationProfile.toString());

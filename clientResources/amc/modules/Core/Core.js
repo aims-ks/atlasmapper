@@ -510,6 +510,47 @@ Atlas.Core = OpenLayers.Class({
 		}
 	},
 
+	requestIso19115_19139State: function(urlStr, callback) {
+		if (this.layerInfoServiceUrl) {
+			url = this.layerInfoServiceUrl;
+			params = {
+				client: Atlas.conf['clientId'],
+				live: this.live,
+				iso19115_19139url: urlStr,
+				ver: this.version
+			};
+
+			var that = this;
+			var received = function (response) {
+				// Decode the response
+				var jsonResponse = eval("(" + response.responseText + ")");
+				if (jsonResponse) {
+					if (jsonResponse.success) {
+						callback(jsonResponse.data);
+					} else {
+						// TODO Error on the page jsonResponse.errors
+						alert('The application has failed to load the layers associated with the requested XML document.');
+					}
+				}
+			};
+
+			OpenLayers.Request.GET({
+				url: url,
+				params: params,
+				scope: this,
+				success: received,
+				failure: function (result, request) {
+					// TODO Error on the page
+					alert('The application has failed to load the layers associated with the requested XML document.');
+				}
+			});
+
+		} else {
+			// TODO Error on the page
+			alert('This application do not support layer loading from XML document. This feature is only available when the application is linked to an AtlasMapper server.');
+		}
+	},
+
 	// layersMap: Map of layers, in the following format:
 	//     {
 	//         Server Type: {
@@ -523,46 +564,140 @@ Atlas.Core = OpenLayers.Class({
 	// Protected
 	requestArbitraryLayersJSon: function(layersMap, callback, attemptsLeft) {
 		// Get all layers, per layer type
+		var polygonArray = [];
+		var markerArray = [];
+
+		var defaultLonLatProjection = new OpenLayers.Projection('EPSG:4326');
+		var mapProjection = this.defaultLonLatProjection;
+		if (Atlas.conf['projection']) {
+			mapProjection = new OpenLayers.Projection(Atlas.conf['projection']);
+		}
+
 		for (type in layersMap) {
 			if (layersMap.hasOwnProperty(type)) {
 				// All WMS layers (or KML, etc.)
 				var layersMapForType = layersMap[type];
-				for (serverUrl in layersMapForType) {
-					if (layersMapForType.hasOwnProperty(serverUrl)) {
-						var layersArray = layersMapForType[serverUrl];
-						// Try to find the Server URL in the list of datasources
-						var dataSourceId = this._findDataSource(serverUrl);
 
-						if (dataSourceId != null) {
-							// A data source has been found.
-							// 1. Create a layer ID, as found in the catalogue, for each layers.
-							// 2. Request those layers
-							// 3. Create a fake layer for each missing layers (after a few attempts)
-							var layersIds = [];
-							var dataSourcePrefix = dataSourceId + '_';
-							for (var i=0; i<layersArray.length; i++) {
-								layersIds.push(dataSourcePrefix + layersArray[i]);
+				if (type === 'PTS') {
+					for (var pointIndex = 0; pointIndex<layersMapForType.length; pointIndex++) {
+						var ptsArray = layersMapForType[pointIndex];
+
+						var point = new OpenLayers.Geometry.Point(ptsArray[0], ptsArray[1])
+						if (mapProjection != defaultLonLatProjection) {
+							point = point.transform(defaultLonLatProjection, mapProjection)
+						}
+						var markerFeature = new OpenLayers.Feature.Vector(point);
+						markerArray.push(markerFeature);
+					}
+
+				} else if (type === 'POLY') {
+					for (var polyIndex = 0; polyIndex<layersMapForType.length; polyIndex++) {
+						var polygonPtsArray = layersMapForType[polyIndex];
+						var olPointArray = [];
+						var ptsLen = polygonPtsArray.length;
+
+						// Ignore the last point if it has the same coordinates as the first one.
+						if (polygonPtsArray[0][0] === polygonPtsArray[ptsLen-1][0] && polygonPtsArray[0][1] === polygonPtsArray[ptsLen-1][1]) {
+							ptsLen--;
+						}
+
+						for (var i=0; i<ptsLen; i++) {
+							var point = new OpenLayers.Geometry.Point(polygonPtsArray[i][0], polygonPtsArray[i][1])
+							if (mapProjection != defaultLonLatProjection) {
+								point = point.transform(defaultLonLatProjection, mapProjection)
 							}
-							this.requestLayersJSon(layersIds, callback, function(layerIds) {
-								var cleanLayersId, cleanLayersIds = [];
-								for (var j=0; j<layerIds; j++) {
-									cleanLayersId = layerIds[i];
-									// JavaScript do not have any startsWith... if (cleanLayersId.startsWith(dataSourcePrefix)) {
-									if (cleanLayersId.slice(0, dataSourcePrefix.length) == dataSourcePrefix) {
-										cleanLayersId = cleanLayersId.substring(dataSourcePrefix.length);
-									}
-									cleanLayersIds.push(cleanLayersId);
-								}
-								this._requestMissingLayersJSon(type, serverUrl, cleanLayersIds, callback);
-							});
+							olPointArray.push(point);
+						}
+						// Close the polygon
+						olPointArray.push(olPointArray[0]);
+
+						var linearRings = [];
+						linearRings.push(new OpenLayers.Geometry.LinearRing(olPointArray));
+						var polygon = new OpenLayers.Geometry.Polygon(linearRings);
+						polygonArray.push(new OpenLayers.Feature.Vector(polygon));
+					}
+
+				} else if (type === 'KML') {
+					var len = layersMapForType.length;
+					for (var i=0; i<len; i++) {
+						var kmlURL = layersMapForType[i];
+						var layerId = OpenLayers.Util.createUniqueID("KML_");
+
+						// Try to find the Server URL in the list of datasources
+						var kmlLayerJSon = this._findKMLLayerJSon(kmlURL);
+
+						if (kmlLayerJSon != null) {
+							// That will not happen unless I develop the service
+							callback(kmlLayerJSon);
 						} else {
-							// No data source found. Creating fake layers for all of them.
-							this._requestMissingLayersJSon(type, serverUrl, layersArray, callback);
+							// No info found. Creating fake layers for the KML layer.
+							var layerId = OpenLayers.Util.createUniqueID("KML_");
+							var layerJSON = {
+								'dataSourceType': type,
+								'kmlUrl': kmlURL
+							};
+							this.loadLayerCache(layerJSON, layerId);
+							callback([layerJSON]);
+						}
+					}
+
+				} else {
+					for (serverUrl in layersMapForType) {
+						if (layersMapForType.hasOwnProperty(serverUrl)) {
+							var layersArray = layersMapForType[serverUrl];
+							var len = layersArray.length;
+
+							// Try to find the Server URL in the list of datasources
+							var dataSourceId = this._findDataSource(serverUrl);
+
+							if (dataSourceId != null) {
+								// A data source has been found.
+								// 1. Create a layer ID, as found in the catalogue, for each layers.
+								// 2. Request those layers
+								// 3. Create a fake layer for each missing layers (after a few attempts)
+								var layersIds = [];
+								var dataSourcePrefix = dataSourceId + '_';
+								for (var i=0; i<len; i++) {
+									layersIds.push(dataSourcePrefix + layersArray[i]);
+								}
+								this.requestLayersJSon(layersIds, callback, function(layerIds) {
+									var cleanLayersId, cleanLayersIds = [];
+									for (var j=0; j<layerIds; j++) {
+										cleanLayersId = layerIds[i];
+										// JavaScript do not have any startsWith... if (cleanLayersId.startsWith(dataSourcePrefix)) {
+										if (cleanLayersId.slice(0, dataSourcePrefix.length) == dataSourcePrefix) {
+											cleanLayersId = cleanLayersId.substring(dataSourcePrefix.length);
+										}
+										cleanLayersIds.push(cleanLayersId);
+									}
+									this._requestMissingLayersJSon(type, serverUrl, cleanLayersIds, callback);
+								});
+							} else {
+								// No data source found. Creating fake layers for all of them.
+								this._requestMissingLayersJSon(type, serverUrl, layersArray, callback);
+							}
 						}
 					}
 				}
 			}
 		}
+
+		if (polygonArray.length > 0) {
+			var polygonLayer = new OpenLayers.Layer.Vector("Polygons and Bounding Boxes");
+			polygonLayer.addFeatures(polygonArray);
+			callback([polygonLayer]);
+		}
+
+		if (markerArray.length > 0) {
+			var markerLayer = new OpenLayers.Layer.Vector("Markers");
+			markerLayer.addFeatures(markerArray);
+			callback([markerLayer]);
+		}
+	},
+
+	_findKMLLayerJSon: function(kmlURL) {
+		// It's not possible to find the KML info without looking through all layers from the catalog. Server side service is required.
+		return null;
 	},
 
 	_findDataSource: function(serverURL) {
@@ -581,13 +716,13 @@ Atlas.Core = OpenLayers.Class({
 		return null;
 	},
 
-	// TODO do a proper URL compare, checking host, port number, file, query string (any order), etc. Also, for WMS, .../ows?REQUESR=WMS&... is equivalent to .../wms?...
+	// Do a proper URL compare, checking host, port number, file, query string (any order), etc. Also, for WMS, .../ows?REQUESR=WMS&... is equivalent to .../wms?...
 	_equalsUrl: function(urlStr1, urlStr2) {
 		// Get rid of the most strait forward case
 		if (urlStr1 === urlStr2) { return true; }
 
-		url1 = this._toUrlObj(urlStr1);
-		url2 = this._toUrlObj(urlStr2);
+		var url1 = this._toUrlObj(urlStr1);
+		var url2 = this._toUrlObj(urlStr2);
 
 		if (url1 === null || url2 === null) { return false; }
 
@@ -602,10 +737,10 @@ Atlas.Core = OpenLayers.Class({
 			var wms = (url1.file.toLowerCase() === 'wms' ? url1 : (url2.file.toLowerCase() === 'wms' ? url2 : null));
 			var ows = (url1.file.toLowerCase() === 'ows' ? url1 : (url2.file.toLowerCase() === 'ows' ? url2 : null));
 
-			if (wms == null || ows === null) { return false; }
+			if (wms === null || ows === null) { return false; }
 			if (ows.parameters === null) { return false; }
 			if (ows.parameters['SERVICE'].toUpperCase() === 'WMS') {
-				// They are the same so far, but we still need to examin the parameters.
+				// They are the same so far, but we still need to examine the parameters.
 				// We know that the OWS one has a SERVICE parameter, but this parameter
 				// may be missing from the WMS one, since it's implied.
 				if (!wms.parameters || wms.parameters['SERVICE'] === null) {

@@ -443,6 +443,14 @@ Ext.define('Writer.ClientConfigForm', {
 								xtype: 'checkboxfield',
 								name: 'baseLayersInTab'
 							}, {
+								fieldLabel: 'Extra trusted hosts',
+								qtipHtml: 'List of hosts, separated by coma or new line. The application will be able to show KML from those hosts or do feature requests on WMS layers, even if they are not defined in the data sources.<br/>' +
+									'Example: www.aodn.com, data.aims.gov.au',
+								name: 'extraAllowedHosts',
+								xtype: 'textareafield',
+								resizable: {transparent: true}, resizeHandles: 's',
+								height: 100
+							}, {
 								fieldLabel: 'Configuration Standard Version',
 								qtipHtml: 'Version of the configuration used by the client, for backward compatibilities.<br/>'+
 									'<strong>Warning:</strong> Only set this field if this application has to generate a configuration for a old AtlasMapper client.',
@@ -1468,10 +1476,14 @@ Ext.define('Writer.ClientConfigGrid', {
 					}
 				}
 				if(responseObj && responseObj.success){
-					frameset.setSavedMessage('client configuration generated successfully.');
+					if (responseObj.errors || responseObj.warnings) {
+						frameset.setErrorsAndWarnings('Generation passed', 'Warning(s) occurred while generating the client configuration.', responseObj, statusCode);
+					} else {
+						frameset.setSavedMessage('client configuration generated successfully.');
+					}
 					that.onReload();
 				} else {
-					frameset.setErrors('An error occurred while generating the client configuration.', responseObj, statusCode);
+					frameset.setErrorsAndWarnings('Generation failed', 'Error(s) / warning(s) occurred while generating the client configuration.', responseObj, statusCode);
 				}
 			},
 			failure: function(response) {
@@ -1726,6 +1738,8 @@ Ext.define('Writer.ClientConfig', {
 		'listBaseLayerId',
 		'listLayerImageWidth',
 		'listLayerImageHeight',
+
+		'extraAllowedHosts',
 
 		'comment'
 	]/*,

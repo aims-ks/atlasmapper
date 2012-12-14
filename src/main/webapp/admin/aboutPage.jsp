@@ -54,7 +54,7 @@
 			var url = '<%=Utils.safeJsStr(ProjectInfo.getUrl()) %>';
 			var licenseName = '<%=Utils.safeJsStr(ProjectInfo.getLicenseName()) %>';
 			var licenseUrl = '<%=Utils.safeJsStr(ProjectInfo.getLicenseUrl()) %>';
-			var dataDirProperty = '<%=Utils.safeJsStr(FileFinder.DATA_DIR_PROPERTY) %>';
+			var dataDirProperty = '<%=Utils.safeJsStr(FileFinder.getDataDirProperty(this.getServletConfig().getServletContext())) %>';
 			var dataDirPropertyValue = '<%=Utils.safeJsStr(FileFinder.getDataDirPropertyValue(this.getServletConfig().getServletContext())) %>';
 		</script>
 	</head>

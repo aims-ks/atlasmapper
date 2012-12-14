@@ -23,7 +23,6 @@
 	Author     : glafond
 --%>
 
-<%@page import="au.gov.aims.atlasmapperserver.GetCapabilitiesExceptions"%>
 <%@page import="au.gov.aims.atlasmapperserver.Utils"%>
 <%@page import="java.util.List"%>
 <%@page import="org.json.JSONArray"%>
@@ -34,6 +33,8 @@
 <%@page import="au.gov.aims.atlasmapperserver.ConfigHelper"%>
 <%@page import="au.gov.aims.atlasmapperserver.ConfigManager"%>
 <%@page import="au.gov.aims.atlasmapperserver.ActionType"%>
+<%@ page import="java.util.Map" %>
+<%@ page import="au.gov.aims.atlasmapperserver.URLCache" %>
 <%@page contentType="application/json" pageEncoding="UTF-8"%>
 <%
 	Logger LOGGER = Logger.getLogger("clientsConfig.jsp");
@@ -225,16 +226,16 @@
 									jsonObj.put("success", false);
 									jsonObj.put("errors", new JSONArray().put("Client number ["+id+"] not found."));
 								} else {
-									configManager.generateClient(foundClientConfig, complete);
+									Map<String, URLCache.Errors> warnings = configManager.generateClient(foundClientConfig, complete);
+									JSONObject errors = URLCache.Errors.toJSON(warnings);
 									response.setStatus(HttpServletResponse.SC_OK);
-									jsonObj.put("success", true);
 									jsonObj.put("message", "Config Generated");
+									if (errors != null) {
+										jsonObj.put("errors", errors.optJSONObject("errors"));
+										jsonObj.put("warnings", errors.optJSONObject("warnings"));
+									}
+									jsonObj.put("success", !jsonObj.has("errors"));
 								}
-							} catch(GetCapabilitiesExceptions e) {
-								LOGGER.log(Level.SEVERE, "Can not retrieved all Capabilities Documents. Generation aborted.", e);
-								response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-								jsonObj.put("success", false);
-								jsonObj.put("errors", new JSONArray().put("Can not retrieved all Capabilities Documents. Generation aborted.<br/>\n" + e.getMessage().replace("\n", "<br/>\n")));
 							} catch(Exception e) {
 								LOGGER.log(Level.SEVERE, "An error occurred while generating the Client configuration.", e);
 								response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
@@ -249,16 +250,15 @@
 					try {
 						boolean complete = Boolean.parseBoolean(completeStr);
 
-						configManager.generateAllClients(complete);
+						Map<String, URLCache.Errors> warnings = configManager.generateAllClients(complete);
+						JSONObject errors = URLCache.Errors.toJSON(warnings);
 						response.setStatus(HttpServletResponse.SC_OK);
-						jsonObj.put("success", true);
 						jsonObj.put("message", "Config saved for all clients");
-					} catch(GetCapabilitiesExceptions e) {
-						LOGGER.log(Level.SEVERE, "Can not retrieved all Capabilities Documents. Generation aborted.", e);
-						e.printStackTrace();
-						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-						jsonObj.put("success", false);
-						jsonObj.put("errors", new JSONArray().put("Can not retrieved all Capabilities Documents. Generation aborted.<br/>\n" + e.getMessage().replace("\n", "<br/>\n")));
+						if (errors != null) {
+							jsonObj.put("errors", errors.optJSONObject("errors"));
+							jsonObj.put("warnings", errors.optJSONObject("warnings"));
+						}
+						jsonObj.put("success", !jsonObj.has("errors"));
 					} catch (Exception e) {
 						LOGGER.log(Level.SEVERE, "An error occurred while generating the Client configurations.", e);
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
@@ -302,12 +302,6 @@
 										jsonObj.put("data", configs);
 									}
 								}
-							} catch(GetCapabilitiesExceptions e) {
-								LOGGER.log(Level.SEVERE, "Can not retrieved all Capabilities Documents. Generation aborted.", e);
-								e.printStackTrace();
-								response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-								jsonObj.put("success", false);
-								jsonObj.put("errors", new JSONArray().put("Can not retrieved all Capabilities Documents. Generation aborted.<br/>\n" + e.getMessage().replace("\n", "<br/>\n")));
 							} catch(Exception e) {
 								LOGGER.log(Level.SEVERE, "An error occurred while retrieving/generating the Client configurations.", e);
 								response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);

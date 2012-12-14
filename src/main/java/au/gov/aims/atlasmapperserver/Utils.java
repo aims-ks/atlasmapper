@@ -274,7 +274,7 @@ public class Utils {
 	 * @return A valid URL.
 	 * @throws IOException If Java can not create a valid URI from the URL parts.
 	 */
-	public static URL toURL(String urlStr) throws IOException {
+	public static URL toURL(String urlStr) throws URISyntaxException, MalformedURLException {
 		URI uri = null;
 
 		try {
@@ -300,21 +300,102 @@ public class Utils {
 			// The Fragment is the URL's reference, aka the anchor
 			String fragment = rawUrl.getRef();
 
-			try {
-				uri = new URI(
-						scheme,
-						authority,
-						path,
-						query,
-						fragment);
-			} catch (URISyntaxException e) {
-				throw new IOException("Can not create a valid URI from the input URL: " + urlStr, e);
-			}
+			uri = new URI(
+					scheme,
+					authority,
+					path,
+					query,
+					fragment);
 		}
 
 		String cleanUrlStr = uri.toASCIIString();
 
 		return new URL(cleanUrlStr);
+	}
+
+	// Do a proper URL compare, checking host, port number, file, query string (any order), etc. Also, for WMS, .../ows?REQUESR=WMS&... is equivalent to .../wms?...
+	public static boolean equalsWMSUrl(String urlStr1, String urlStr2) throws MalformedURLException, URISyntaxException {
+		// Get rid of the most strait forward case
+		if (urlStr1 == urlStr2) { return true; }
+
+		URL url1 = toURL(urlStr1);
+		URL url2 = toURL(urlStr2);
+
+		if (url1 == null || url2 == null) { return false; }
+
+		if (!url1.getProtocol().equals(url2.getProtocol())) { return false; }
+		if (!url1.getHost().equals(url2.getHost())) { return false; }
+
+		String file1 = url1.getPath();
+		String path1 = "";
+		int lastSlash = file1.lastIndexOf("/");
+		if (lastSlash >= 0) {
+			path1 = file1.substring(0, lastSlash+1);
+			file1 = file1.substring(lastSlash+1);
+		}
+
+		String file2 = url2.getPath();
+		String path2 = "";
+		lastSlash = file2.lastIndexOf("/");
+		if (lastSlash >= 0) {
+			path2 = file2.substring(0, lastSlash+1);
+			file2 = file2.substring(lastSlash+1);
+		}
+
+		if (!path1.equals(path2)) { return false; }
+
+		if ((file1 == null && file2 != null) || (file2 == null && file1 != null)) { return false; }
+
+		Map<String, String> params1 = parseParameters(url1.getQuery());
+		Map<String, String> params2 = parseParameters(url2.getQuery());
+
+		if (file1 != null && !file1.equals(file2)) {
+			// Exception: "wms" === "ows?SERVICE=WMS"
+			Map<String, String> wmsParams = (file1.toLowerCase().equals("wms") ? params1 : (file2.toLowerCase().equals("wms") ? params2 : null));
+			Map<String, String> owsParams = (file1.toLowerCase().equals("ows") ? params1 : (file2.toLowerCase().equals("ows") ? params2 : null));
+
+			if (owsParams == null) { return false; }
+			if ("WMS".equals(owsParams.get("SERVICE").toUpperCase())) {
+				// They are the same so far, but we still need to examine the parameters.
+				// We know that the OWS one has a SERVICE parameter, but this parameter
+				// may be missing from the WMS one, since it's implied.
+				if (!wmsParams.containsKey("SERVICE")) {
+					// The WMS URL do not have the SERVICE parameter. We can add it in
+					// to help the validation of the parameters.
+					wmsParams.put("SERVICE", owsParams.get("SERVICE"));
+				}
+			} else {
+				return false;
+			}
+		}
+
+		// Check URL parameters
+		if (params1.size() != params2.size()) {
+			return false;
+		}
+		for (Map.Entry<String, String> param1 : params1.entrySet()) {
+			if (!param1.getValue().equals(params2.get(param1.getKey()))) {
+				return false;
+			}
+		}
+
+		// Anchor: There is no need to check the anchor, they should not affect service behaviour.
+
+		return true;
+	}
+
+	private static Map<String, String> parseParameters(String queryString) {
+		Map<String, String> map = new HashMap<String, String>();
+		if (Utils.isBlank(queryString)) {
+			return map;
+		}
+
+		String[] params = queryString.split("&");
+		for (String param : params) {
+			String[] paramParts = param.split("=");
+			map.put(paramParts[0], paramParts[1]);
+		}
+		return map;
 	}
 
 	/**
@@ -395,14 +476,26 @@ public class Utils {
 	}
 
 	public static void binaryCopy(InputStream in, OutputStream out) throws IOException {
+		binaryCopy(in, out, -1);
+	}
+
+	public static void binaryCopy(InputStream in, OutputStream out, int maxBytesFileSize) throws IOException {
 		if (in == null || out == null) {
 			return;
 		}
+
+		long totalBytesRead = 0;
 
 		try {
 			byte[] buf = new byte[32 * 1024];  // 32K buffer
 			int bytesRead;
 			while ((bytesRead = in.read(buf)) != -1) {
+				if (maxBytesFileSize >= 0) {
+					totalBytesRead += bytesRead;
+					if (totalBytesRead > maxBytesFileSize) {
+						throw new IOException("File size exceeded. The maximum expected size for this file was " + maxBytesFileSize + " bytes.");
+					}
+				}
 				out.write(buf, 0, bytesRead);
 			}
 		} finally {

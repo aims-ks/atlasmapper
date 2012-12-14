@@ -66,6 +66,7 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 	@ConfigField
 	private String description;
 
+	// text, wiki, html
 	@ConfigField
 	private String descriptionFormat;
 

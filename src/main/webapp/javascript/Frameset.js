@@ -201,6 +201,106 @@ Ext.define('Frameset', {
 			});
 		}
 	},
+	setErrorsAndWarnings: function(title, msg, response) {
+		this.beforeShow();
+		var errorMessages = '';
+		if (response && response.errors) {
+			errorMessages += '<div><b>Errors:</b>';
+			errorMessages += '<ul class="bullet-list">\n';
+			Ext.iterate(response.errors, function(dataSourceId, errors) {
+				errorMessages += '<li>' + dataSourceId;
+				errorMessages += '<ul class="bullet-list">\n';
+				Ext.each(errors, function(error) {
+					Ext.iterate(error, function(url, errorStr) {
+						errorMessages += '<li>' + Ext.String.htmlEncode(errorStr) + '<br/>\n' + this.urlToHtmlLink(url) + '</li>\n';
+					}, this);
+				}, this);
+				errorMessages += '</ul>\n';
+				errorMessages += '</li>\n';
+			}, this);
+			errorMessages += '</ul></div>\n';
+		}
+		if (response && response.warnings) {
+			errorMessages += '<div><b>Warnings:</b>';
+			errorMessages += '<ul class="bullet-list">\n';
+			Ext.iterate(response.warnings, function(dataSourceId, warnings) {
+				errorMessages += '<li>' + dataSourceId;
+				errorMessages += '<ul class="bullet-list">\n';
+				Ext.each(warnings, function(warning) {
+					Ext.iterate(warning, function(url, warningStr) {
+						errorMessages += '<li>' + Ext.String.htmlEncode(warningStr) + '<br/>\n' + this.urlToHtmlLink(url) + '</li>\n';
+					}, this);
+				}, this);
+				errorMessages += '</ul>\n';
+				errorMessages += '</li>\n';
+			}, this);
+			errorMessages += '</ul></div>\n';
+		}
+
+		var alertMsg = '<b>' + msg + '</b><br/>\n';
+		if (errorMessages) {
+			alertMsg += '<br/>\n' + errorMessages;
+		}
+
+		Ext.create('Ext.window.Window', {
+			layout: 'fit',
+			title: title,
+			closable: true,
+			resizable: true,
+			plain: true,
+			border: false,
+			width: 550,
+			height: 400,
+			items: [{
+				xtype: 'panel',
+				autoScroll: true,
+				bodyPadding: 5,
+				html: alertMsg
+			}],
+			dockedItems: [{
+				xtype: 'toolbar',
+				dock: 'bottom',
+				ui: 'footer',
+				layout:{
+					pack: 'center'
+				},
+				defaults: { minWidth: 75 },
+				items: [
+					{
+						xtype: 'button',
+						text: 'Close',
+						padding: '2 10',
+						handler: function() {
+							var window = this.ownerCt.ownerCt;
+							window.close();
+						}
+					}
+				]
+			}]
+		}).show();
+
+		this.statusBar.setStatus({
+			text: msg,
+			iconCls: 'x-status-error',
+			clear: true // auto-clear after a set interval
+		});
+	},
+	urlToHtmlLink: function(url) {
+		var urlDisplay = url;
+
+		var maxUrlLength = 60;
+		if (maxUrlLength > 0 && maxUrlLength < url.length) {
+			var beginningLength = Math.round((maxUrlLength-3) * 3.0/4);
+			var endingLength = maxUrlLength - beginningLength - 3; // 3 is for the "..."
+			if (beginningLength > 1 && endingLength == 0) {
+				beginningLength--;
+				endingLength = 1;
+			}
+			urlDisplay = url.substring(0, beginningLength) + "..." + url.substring(url.length - endingLength);
+		}
+
+		return '<a href="'+url+'">'+Ext.String.htmlEncode(urlDisplay)+'</a>';
+	},
 
 	setError: function(error, statusCode) {
 		this.beforeShow();

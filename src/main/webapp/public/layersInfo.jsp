@@ -35,6 +35,7 @@
 <%
 	String actionStr = request.getParameter("action");
 	String layerIdsStr = request.getParameter("layerIds");
+	String iso19115_19139url = request.getParameter("iso19115_19139url");
 	String clientId = request.getParameter("client");
 
 	ConfigManager configManager = ConfigHelper.getConfigManager(this.getServletConfig().getServletContext());
@@ -46,7 +47,7 @@
 	//     true: Get the config from the live server (slow)
 	//     false (default): Get the config from generated config files (fast)
 	// "live" is true only when it's value is the String "true", ignoring case.
-	boolean live = (request.getParameter("live") != null && Boolean.parseBoolean(request.getParameter("live")));
+	boolean live = (request.getParameter("live") == null ? false : Boolean.parseBoolean(request.getParameter("live")));
 
 	if (Utils.isBlank(clientId)) {
 		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -85,9 +86,22 @@
 					jsonObj.put("success", false);
 					jsonObj.put("errors", new JSONArray().put("Unknown action ["+actionStr+"]."));
 				}
+			} else if (Utils.isNotBlank(iso19115_19139url)) {
+				JSONObject mapState = configManager.getMapStateForDataset(clientConfig, iso19115_19139url, live);
+
+				if (mapState == null || mapState.length() <= 0) {
+					response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+					jsonObj.put("success", false);
+					jsonObj.put("errors", new JSONArray().put("Layers not found."));
+				} else {
+					response.setStatus(HttpServletResponse.SC_OK);
+					jsonObj.put("success", true);
+					jsonObj.put("message", "Layers found");
+					jsonObj.put("data", mapState);
+				}
 			} else if (Utils.isNotBlank(layerIdsStr)) {
 				String[] layerIds = layerIdsStr.split("\\s*,\\s*");
-				JSONObject foundLayers = configManager.getClientLayers(clientConfig, layerIds);
+				JSONObject foundLayers = configManager.getClientLayers(clientConfig, layerIds, live);
 
 				if (foundLayers == null || foundLayers.length() <= 0) {
 					response.setStatus(HttpServletResponse.SC_BAD_REQUEST);

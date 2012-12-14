@@ -50,8 +50,12 @@ Atlas.AbstractMapPanel = {
 	region: 'center',
 
 	mapId: 0,
+
 	center: null,
 	zoom: 0,
+
+	bounds: null,
+	maxZoom: null,
 
 	// The API doc specifically say that the default DPI is 90,
 	// but in fact, it's somewhere between 91 and 95.
@@ -86,12 +90,15 @@ Atlas.AbstractMapPanel = {
 
 		this.urlState = {
 			layerIds: null,
-			arbitraryLayers: null,
+			arbitraryLayers: null, // TODO Delete
+			iso19115_19139url: null,
 			styles: null,
 			visibilities: null,
 			opacities: null,
 			center: null,
 			zoom: null,
+			bbox: null,
+			maxZoom: null,
 			locate: null,
 			loadDefaultLayers: false,
 			pullState: false
@@ -116,6 +123,14 @@ Atlas.AbstractMapPanel = {
 		if (typeof(parameters['z']) !== 'undefined' && parameters['z'] != null) {
 			this.urlState.zoom = parseInt(parameters['z']);
 		}
+
+		if (typeof(parameters['bbox']) !== 'undefined' && parameters['bbox'] != null && parameters['bbox'].constructor == Array) {
+			this.urlState.bbox = parameters['bbox'];
+		}
+		if (typeof(parameters['maxz']) !== 'undefined' && parameters['maxz'] != null) {
+			this.urlState.maxZoom = parseInt(parameters['maxz']);
+		}
+
 		if (typeof(parameters['loc']) !== 'undefined' && parameters['loc'] != null) {
 			this.urlState.locate = parameters['loc'];
 		}
@@ -133,16 +148,18 @@ Atlas.AbstractMapPanel = {
 			this.urlState.arbitraryLayers = this._parseLayersParameter(layersArray);
 		}
 
+		if (typeof(parameters['iso19115_19139url']) !== 'undefined' && parameters['iso19115_19139url'] != null) {
+			this.urlState.iso19115_19139url = parameters['iso19115_19139url'];
+		}
+
 		this.events = new OpenLayers.Events(this, null,
 			this.EVENT_TYPES);
 
 		this.defaultLonLatProjection = new OpenLayers.Projection('EPSG:4326');
 
-		var projection = null;
+		var projection = this.defaultLonLatProjection;
 		if (Atlas.conf['projection']) {
 			projection = new OpenLayers.Projection(Atlas.conf['projection']);
-		} else {
-			projection = this.defaultLonLatProjection;
 		}
 
 		if (Atlas.conf['startingLocation']) {
@@ -163,14 +180,30 @@ Atlas.AbstractMapPanel = {
 
 		// URL overrides
 		if (this.urlState != null) {
-			if (this.urlState.center != null && this.urlState.center.length == 2) {
-				this.center = new OpenLayers.LonLat(this.urlState.center[0], this.urlState.center[1]);
+			if (this.urlState.bbox != null && this.urlState.bbox.length == 4) {
+				// left, bottom, right, top
+				this.bounds = new OpenLayers.Bounds(
+						parseFloat(this.urlState.bbox[0]),
+						parseFloat(this.urlState.bbox[1]),
+						parseFloat(this.urlState.bbox[2]),
+						parseFloat(this.urlState.bbox[3])
+				);
 				if (projection != this.defaultLonLatProjection) {
-					this.center = this.center.transform(this.defaultLonLatProjection, projection);
+					this.bounds = this.bounds.transform(this.defaultLonLatProjection, projection);
 				}
-			}
-			if (this.urlState.zoom != null) {
-				this.zoom = this.urlState.zoom;
+				if (this.urlState.maxZoom != null) {
+					this.maxZoom = this.urlState.maxZoom;
+				}
+			} else {
+				if (this.urlState.center != null && this.urlState.center.length == 2) {
+					this.center = new OpenLayers.LonLat(this.urlState.center[0], this.urlState.center[1]);
+					if (projection != this.defaultLonLatProjection) {
+						this.center = this.center.transform(this.defaultLonLatProjection, projection);
+					}
+				}
+				if (this.urlState.zoom != null) {
+					this.zoom = this.urlState.zoom;
+				}
 			}
 		}
 
@@ -297,6 +330,14 @@ Atlas.AbstractMapPanel = {
 			OpenLayers.Map.prototype.render.apply(that.map, arguments);
 
 			window.setTimeout(function() {
+				if (that.bounds) {
+					that.map.zoomToExtent(that.bounds);
+
+					if (that.maxZoom != null && that.map.getZoom() > that.maxZoom) {
+						that.map.zoomTo(that.maxZoom);
+					}
+				}
+
 				// Fire the render event, after 1 millisecond, just to be sure every process as finish...
 				that.isRendered = true;
 				that.ol_fireEvent("render");
@@ -441,6 +482,33 @@ Atlas.AbstractMapPanel = {
 			});
 		}
 
+		if (this.urlState != null && this.urlState.iso19115_19139url != null) {
+			Atlas.core.requestIso19115_19139State(this.urlState.iso19115_19139url, function(state) {
+				if (state) {
+					var layersJSon = state['layers'];
+					if (layersJSon) {
+						// Cache the layer info, and perform a normalisation on the fields
+						Atlas.core.loadNewLayersCache(layersJSon);
+						// Loop through all layers, load their cached (normalised) version and send it to the map.
+						for (var i=layersJSon.length-1; i>=0; i--) {
+							that.addLayer(Atlas.core.getLayerJSon(layersJSon[i]['layerId']), null);
+						}
+					}
+					var boundsJSon = state['bounds'];
+					if (boundsJSon) {
+						// left, bottom, right, top
+						that.bounds = new OpenLayers.Bounds(
+								boundsJSon[0], boundsJSon[1], boundsJSon[2], boundsJSon[3]
+						);
+						if (projection != that.defaultLonLatProjection) {
+							that.bounds = that.bounds.transform(that.defaultLonLatProjection, projection);
+						}
+						that.map.zoomToExtent(that.bounds);
+					}
+				}
+			});
+		}
+
 		if (this.urlState == null || this.urlState.layerIds == null || this.urlState.loadDefaultLayers == null || this.urlState.loadDefaultLayers === true) {
 			// Add default layers to the map
 			var defaultLayers = Atlas.conf['defaultLayers'];
@@ -460,19 +528,60 @@ Atlas.AbstractMapPanel = {
 
 		for (var i=0; i<layersArray.length; i++) {
 			var layersParts = layersArray[i].split(';');
-			if (layersParts.length >= 3) {
-				var type = layersParts[0]; // WMS or KML
-				var serverUrl = layersParts[1]; // http://server/wms
+			var len = layersParts.length;
+			var type = layersParts[0]; // WMS or KML
+			if (type === 'PTS') {
+				// PTS;X1:Y1;X2:Y2;...
+				// [
+				//     [X1,Y1],
+				//     [X2,Y2]
+				// ]
+				sortedLayersArray[type] = [];
+				for (var j=1; j<len; j++) {
+					sortedLayersArray[type].push(layersParts[j].split(':'));
+				}
+			} else if (type === 'POLY') {
+				// POLY;X11:Y11:X12:Y12:X13:Y13:X14:Y14;X21:Y21:X22:Y22:X23:Y23:X24:Y24;...
+				// [
+				//     [
+				//         [X11,Y11],
+				//         [X12,Y12],
+				//         [X13,Y13],
+				//         [X14,Y14]
+				//     ],[
+				//         [X21,Y21],
+				//         [X22,Y22],
+				//         [X23,Y23],
+				//         [X24,Y24]
+				//     ]
+				// ]
+				sortedLayersArray[type] = [];
+				for (var j=1; j<len; j++) {
+					var polygonCoords = layersParts[j].split(':');
+					sortedLayersArray[type][j-1] = [];
+					for (var k=0; k<polygonCoords.length-1; k+=2) { // length-1 to ensure that we still have at lease 2 coords left.
+						sortedLayersArray[type][j-1].push([polygonCoords[k], polygonCoords[k+1]]);
+					}
+				}
+			} else if (type === 'KML') {
+				sortedLayersArray[type] = [];
+				for (var j=1; j<len; j++) {
+					sortedLayersArray[type].push(layersParts[j]);
+				}
+			} else {
+				if (len >= 3) {
+					var serverUrl = layersParts[1]; // http://server/wms
 
-				if (!sortedLayersArray[type]) {
-					sortedLayersArray[type] = {};
-				}
-				if (!sortedLayersArray[type][serverUrl]) {
-					sortedLayersArray[type][serverUrl] = [];
-				}
-				for (var j=2; j<layersParts.length; j++) {
-					// Bunch of raw layer ID
-					sortedLayersArray[type][serverUrl].push(layersParts[j]);
+					if (!sortedLayersArray[type]) {
+						sortedLayersArray[type] = {};
+					}
+					if (!sortedLayersArray[type][serverUrl]) {
+						sortedLayersArray[type][serverUrl] = [];
+					}
+					for (var j=2; j<len; j++) {
+						// Bunch of raw layer ID
+						sortedLayersArray[type][serverUrl].push(layersParts[j]);
+					}
 				}
 			}
 		}
@@ -703,7 +812,7 @@ Atlas.AbstractMapPanel = {
 			return;
 		}
 
-		if (atlasLayer.hasRealLayer()) {
+		if (atlasLayer.hasRealLayer && atlasLayer.hasRealLayer()) {
 			// Add the layer to the Map
 			// NOTE: This method trigger _beforeLayerAdd and _afterLayerAdd
 			this.map.addLayer(atlasLayer.layer);

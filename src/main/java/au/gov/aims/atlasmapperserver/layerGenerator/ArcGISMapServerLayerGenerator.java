@@ -147,8 +147,10 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 		}
 
 		JSONObject json = URLCache.getJSONResponse(
+				dataSourceConfig.getConfigManager(),
 				dataSourceConfig,
-				getJSONUrl(dataSourceConfig.getServiceUrl(), arcGISPath, type)
+				getJSONUrl(dataSourceConfig.getServiceUrl(), arcGISPath, type),
+				true
 		);
 
 		List<AbstractLayerConfig> children = new ArrayList<AbstractLayerConfig>();
@@ -169,8 +171,10 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 						JSONObject jsonGroupExtra = null;
 						if (Utils.isNotBlank(groupId)) {
 							jsonGroupExtra = URLCache.getJSONResponse(
+									dataSourceConfig.getConfigManager(),
 									dataSourceConfig,
-									getJSONUrl(dataSourceConfig.getServiceUrl(), arcGISPath, type, groupId)
+									getJSONUrl(dataSourceConfig.getServiceUrl(), arcGISPath, type, groupId),
+									true
 							);
 						}
 
@@ -187,8 +191,10 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 						JSONObject jsonLayerExtra = null;
 						if (Utils.isNotBlank(layerId)) {
 							jsonLayerExtra = URLCache.getJSONResponse(
+									dataSourceConfig.getConfigManager(),
 									dataSourceConfig,
-									getJSONUrl(dataSourceConfig.getServiceUrl(), arcGISPath, type, layerId)
+									getJSONUrl(dataSourceConfig.getServiceUrl(), arcGISPath, type, layerId),
+									true
 							);
 						}
 
@@ -266,8 +272,10 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 					JSONObject jsonServiceExtra = null;
 					if (this.isServiceSupported(childType)) {
 						jsonServiceExtra = URLCache.getJSONResponse(
+								dataSourceConfig.getConfigManager(),
 								dataSourceConfig,
-								getJSONUrl(dataSourceConfig.getServiceUrl(), childArcGISPath, childType)
+								getJSONUrl(dataSourceConfig.getServiceUrl(), childArcGISPath, childType),
+								true
 						);
 					}
 
