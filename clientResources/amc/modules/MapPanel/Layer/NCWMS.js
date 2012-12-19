@@ -103,7 +103,6 @@ Atlas.Layer.NCWMS = OpenLayers.Class(Atlas.Layer.WMS, {
 
 	// Override
 	setOptions: function(optionsPanel) {
-		// optionsPanel.addOption(???);
 		var serviceUrl = this.json['wmsServiceUrl'];
 
 		// TODO Remove ExtJS dependency!!
@@ -199,6 +198,7 @@ Atlas.Layer.NCWMS = OpenLayers.Class(Atlas.Layer.WMS, {
 					var zAxisSelect = {
 						xtype: "combo",
 						name: zAxisParam,
+						editable: false,
 						fieldLabel: zAxisLabel,
 						value: defaultValue,
 						typeAhead: false,
@@ -218,7 +218,7 @@ Atlas.Layer.NCWMS = OpenLayers.Class(Atlas.Layer.WMS, {
 						allowBlank: false,
 						listeners: {
 							scope: this,
-							select: this.onOptionChange
+							select: this.onZAxisChange
 						}
 					};
 					optionsPanel.addOption(this, zAxisSelect);
@@ -241,7 +241,7 @@ Atlas.Layer.NCWMS = OpenLayers.Class(Atlas.Layer.WMS, {
 					decimalPrecision: 4,
 					listeners: {
 						scope: this,
-						change: this.onOptionChange
+						change: this.onMinMaxChange
 					}
 				});
 
@@ -267,14 +267,20 @@ Atlas.Layer.NCWMS = OpenLayers.Class(Atlas.Layer.WMS, {
 		}
 	},
 
-	onOptionChange: function(evt) {
-		var field = evt[0], newValue = evt[1], oldValue = evt[2];
-		var newParams = {};
-
+	onZAxisChange: function(evt) {
+		this._onOptionChange(evt, evt.value, evt.startValue);
+	},
+	onMinMaxChange: function(evt) {
+		var field = evt[0];
 		// Workaround - Listeners of minMaxField are sent to their children.
 		if (field.minMaxField) {
 			field = field.minMaxField;
 		}
+		this._onOptionChange(field, evt[1], evt[2]);
+	},
+
+	_onOptionChange: function(field, newValue, oldValue) {
+		var newParams = {};
 
 		var fieldName = field.getName();
 		if (fieldName) {

@@ -91,15 +91,16 @@
 				JSONObject configs = configManager.getClientConfigFileJSon(foundClientConfig, configType, live, live);
 				if (configs == null) {
 					response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-					output = "An error occured while retrieving/generating the Client configurations. Check your server log.";
+					output = "An error occurred while retrieving/generating the Client configurations. Check your server log.";
 				} else {
 					response.setStatus(HttpServletResponse.SC_OK);
 					output = Utils.jsonToStr(configs);
 				}
 			} catch(Exception e) {
-				LOGGER.log(Level.SEVERE, "An error occured while retrieving/generating the Client configurations.", e);
+				LOGGER.log(Level.SEVERE, "An error occurred while retrieving/generating the Client configurations: {0}", Utils.getExceptionMessage(e));
+				LOGGER.log(Level.FINE, "Stack trace: ", e);
 				response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-				output = "An error occured while retrieving/generating the Client configurations. Check your server log.";
+				output = "An error occurred while retrieving/generating the Client configurations. Check your server log.";
 			}
 		}
 	}

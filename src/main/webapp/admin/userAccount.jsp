@@ -63,10 +63,11 @@
 						jsonObj.put("message", "Loaded data");
 						jsonObj.put("data", loggedUser.toJSonObject());
 					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "An error occured while retriving the user configuration.", e);
+						LOGGER.log(Level.SEVERE, "An error occurred while retrieving the user configuration: {0}", Utils.getExceptionMessage(e));
+						LOGGER.log(Level.FINE, "Stack trace: ", e);
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						jsonObj.put("success", false);
-						jsonObj.put("errors", new JSONArray().put("An error occured while retriving the user configuration. Check your server log."));
+						jsonObj.put("errors", new JSONArray().put("An error occurred while retrieving the user configuration. Check your server log."));
 					}
 					break;
 
@@ -99,10 +100,11 @@
 							jsonObj.put("data", configManager.getUser(loggedUser.getLoginName()));
 						}
 					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "An error occured while updating the user configuration.", e);
+						LOGGER.log(Level.SEVERE, "An error occurred while updating the user configuration: {0}", Utils.getExceptionMessage(e));
+						LOGGER.log(Level.FINE, "Stack trace: ", e);
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						jsonObj.put("success", false);
-						jsonObj.put("errors", new JSONArray().put("An error occured while updating the user configuration. Check your server log."));
+						jsonObj.put("errors", new JSONArray().put("An error occurred while updating the user configuration. Check your server log."));
 					}
 					break;
 

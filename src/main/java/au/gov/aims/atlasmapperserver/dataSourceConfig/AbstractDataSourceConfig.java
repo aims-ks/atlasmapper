@@ -33,7 +33,6 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 
 import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
@@ -76,15 +75,6 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 
 	@ConfigField
 	private String stylesUrl;
-
-	@Deprecated
-	@ConfigField
-	private String blacklistedLayers;
-	// Cache - avoid parsing blacklistedLayers string every times.
-	@Deprecated
-	private Set<String> blacklistedLayerIdsSet = null;
-	@Deprecated
-	private Set<Pattern> blacklistedLayerRegexesSet = null;
 
 	@ConfigField
 	private String blackAndWhiteListedLayers;
@@ -183,7 +173,10 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 									manualLayer.getLayerId(),
 									manualLayer);
 						} catch(Exception ex) {
-							LOGGER.log(Level.SEVERE, "Unexpected error occurred while parsing the following layer override for the data source ["+this.getDataSourceName()+"]:\n" + jsonGlobalOverride.toString(4), ex);
+							rawLayerCatalog.addWarning(this.getDataSourceId(), "Invalid layer override for layer id: " + layerId);
+							LOGGER.log(Level.SEVERE, "Unexpected error occurred while parsing the following layer override for the data source [{0}], layer id [{1}]: {2}\n{3}",
+									new String[]{this.getDataSourceName(), layerId, Utils.getExceptionMessage(ex), jsonGlobalOverride.toString(4)});
+							LOGGER.log(Level.FINE, "Stack trace: ", ex);
 						}
 					}
 				}
@@ -204,7 +197,10 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 					layerConfig.setIsBaseLayer(true);
 				} else if (this.isBaseLayer(layerConfig.getLayerName())) {
 					// Backward compatibility for AtlasMapper client ver. 1.2
-					LOGGER.log(Level.WARNING, "DEPRECATED LAYER ID USED FOR BASE LAYERS: Layer id [{0}] should be [{1}].", new String[]{layerConfig.getLayerName(), layerConfig.getLayerId()});
+					rawLayerCatalog.addWarning(this.getDataSourceId(), "Deprecated layer ID used for base layers: " +
+							"layer id [" + layerConfig.getLayerName() + "] should be [" + layerConfig.getLayerId() + "]");
+					LOGGER.log(Level.WARNING, "DEPRECATED LAYER ID USED FOR BASE LAYERS: Layer id [{0}] should be [{1}].",
+							new String[]{ layerConfig.getLayerName(), layerConfig.getLayerId() });
 					layerConfig.setIsBaseLayer(true);
 				}
 			}
@@ -215,9 +211,14 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 				new BlackAndWhiteListFilter<AbstractLayerConfig>(this.getBlackAndWhiteListedLayers());
 		layersMap = blackAndWhiteFilter.filter(layersMap);
 
+		if (layersMap.isEmpty()) {
+			rawLayerCatalog.addWarning(this.getDataSourceId(), "The data source contains no layer.");
+		}
+
 		// LayerCatalog after overrides
 		LayerCatalog layerCatalog = new LayerCatalog();
 		layerCatalog.addLayers(layersMap.values());
+		layerCatalog.addAllErrors(rawLayerCatalog.getErrors());
 
 		return layerCatalog;
 	}
@@ -240,34 +241,6 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 
 	public void setId(Integer id) {
 		this.id = id;
-	}
-
-	@Deprecated
-	public String getBlacklistedLayers() {
-		return null;
-	}
-
-	@Deprecated
-	public void setBlacklistedLayers(String blacklistedLayers) {
-		StringBuilder blackAndWhiteListSb = new StringBuilder();
-
-		String[] blacklistedLayersId = blacklistedLayers.split(SPLIT_PATTERN);
-		if (blacklistedLayersId != null) {
-			for (int i=0; i<blacklistedLayersId.length; i++) {
-				String blacklistedLayerId = blacklistedLayersId[i];
-				if (Utils.isNotBlank(blacklistedLayerId)) {
-					blackAndWhiteListSb.append(BlackAndWhiteListFilter.BLACK_LIST_PREFIX);
-					blackAndWhiteListSb.append(blacklistedLayerId);
-					blackAndWhiteListSb.append("\n");
-				}
-			}
-		}
-
-		String blackAndWhiteList = blackAndWhiteListSb.toString();
-		if (Utils.isNotBlank(blackAndWhiteList)) {
-			blackAndWhiteList = blackAndWhiteList.trim();
-			this.setBlackAndWhiteListedLayers(blackAndWhiteList);
-		}
 	}
 
 	public String getBlackAndWhiteListedLayers() {

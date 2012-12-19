@@ -22,13 +22,18 @@
 package au.gov.aims.atlasmapperserver.layerConfig;
 
 import au.gov.aims.atlasmapperserver.ConfigManager;
+import au.gov.aims.atlasmapperserver.Errors;
+import au.gov.aims.atlasmapperserver.URLCache;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.logging.Logger;
@@ -40,6 +45,7 @@ public class LayerCatalog {
 	private static final Logger LOGGER = Logger.getLogger(LayerCatalog.class.getName());
 
 	private SortedSet<AbstractLayerConfig> layers;
+	private Map<String, LayerErrors> errors;
 
 	/*
 	public LayerCatalog() {
@@ -93,6 +99,7 @@ public class LayerCatalog {
 	*/
 
 	public LayerCatalog() {
+		this.errors = new HashMap<String, LayerErrors>();
 		// Instantiate a TreeSet, using a comparator that sort layers in alphabetical order.
 		this.layers = new TreeSet<AbstractLayerConfig>(new Comparator<AbstractLayerConfig>() {
 			@Override
@@ -121,7 +128,7 @@ public class LayerCatalog {
 	}
 
 	public boolean isEmpty() {
-		return this.layers.isEmpty();
+		return this.layers.isEmpty() && this.errors.isEmpty();
 	}
 
 	/*
@@ -137,7 +144,7 @@ public class LayerCatalog {
 	}
 
 	public List<AbstractLayerConfig> getLayers() {
-		return new ArrayList(this.layers);
+		return new ArrayList<AbstractLayerConfig>(this.layers);
 	}
 
 	// Helper
@@ -177,5 +184,67 @@ public class LayerCatalog {
 		}
 
 		return layerConfig;
+	}
+
+	public Map<String, LayerErrors> getErrors() {
+		return this.errors;
+	}
+	public void addAllErrors(Map<String, LayerErrors> errors) {
+		for (Map.Entry<String, LayerErrors> error : errors.entrySet()) {
+			this.addAllErrors(error.getKey(), error.getValue());
+		}
+	}
+
+	public void addAllErrors(String dataSourceId, LayerErrors errors) {
+		for (LayerError error : errors.getErrors()) {
+			this.addError(dataSourceId, error.getMsg());
+		}
+		for (LayerError warn : errors.getWarnings()) {
+			this.addWarning(dataSourceId, warn.getMsg());
+		}
+	}
+
+	public void addError(String dataSourceId, String err) {
+		this.getErrors(dataSourceId).addError(err);
+	}
+	public void addWarning(String dataSourceId, String warn) {
+		this.getErrors(dataSourceId).addWarning(warn);
+	}
+	private LayerErrors getErrors(String dataSourceId) {
+		LayerErrors errors = this.errors.get(dataSourceId);
+		if (errors == null) {
+			errors = new LayerErrors();
+			this.errors.put(dataSourceId, errors);
+		}
+
+		return errors;
+	}
+
+	public static class LayerError extends Errors.Error {
+		private String msg;
+		public LayerError(String msg) {
+			this.msg = msg;
+		}
+		public String getMsg() { return this.msg; }
+		public JSONObject toJSON() throws JSONException {
+			JSONObject json = new JSONObject();
+			JSONArray msgArray = json.optJSONArray(null);
+			if (msgArray == null) {
+				msgArray = new JSONArray();
+				json.put("", msgArray);
+			}
+			msgArray.put(this.msg);
+			return json;
+		}
+	}
+
+	public static class LayerErrors extends Errors<LayerError> {
+		public void addError(String err) {
+			this.addError(new LayerError(err));
+		}
+
+		public void addWarning(String warn) {
+			this.addWarning(new LayerError(warn));
+		}
 	}
 }

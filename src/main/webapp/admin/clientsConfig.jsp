@@ -34,7 +34,7 @@
 <%@page import="au.gov.aims.atlasmapperserver.ConfigManager"%>
 <%@page import="au.gov.aims.atlasmapperserver.ActionType"%>
 <%@ page import="java.util.Map" %>
-<%@ page import="au.gov.aims.atlasmapperserver.URLCache" %>
+<%@ page import="au.gov.aims.atlasmapperserver.Errors" %>
 <%@page contentType="application/json" pageEncoding="UTF-8"%>
 <%
 	Logger LOGGER = Logger.getLogger("clientsConfig.jsp");
@@ -74,7 +74,8 @@
 							jsonObj.put("data", clientConfigs);
 						}
 					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "An error occurred while retrieving the client configuration.", e);
+						LOGGER.log(Level.SEVERE, "An error occurred while retrieving the client configuration: {0}", Utils.getExceptionMessage(e));
+						LOGGER.log(Level.FINE, "Stack trace: ", e);
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						jsonObj.put("success", false);
 						jsonObj.put("errors", new JSONArray().put("An error occurred while retrieving the client configuration. Check your server log."));
@@ -110,7 +111,8 @@
 							}
 						}
 					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "An error occurred while creating the client.", e);
+						LOGGER.log(Level.SEVERE, "An error occurred while creating the client: {0}", Utils.getExceptionMessage(e));
+						LOGGER.log(Level.FINE, "Stack trace: ", e);
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						jsonObj.put("success", false);
 						jsonObj.put("errors", new JSONArray().put("An error occurred while creating the client. Check your server log."));
@@ -127,7 +129,8 @@
 						jsonObj.put("message", "Updated record");
 						jsonObj.put("data", configManager.getClientConfigsJSonWithClientUrls(this.getServletConfig().getServletContext()));
 					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "An error occurred while updating the client.", e);
+						LOGGER.log(Level.SEVERE, "An error occurred while updating the client: {0}", Utils.getExceptionMessage(e));
+						LOGGER.log(Level.FINE, "Stack trace: ", e);
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						jsonObj.put("success", false);
 						jsonObj.put("errors", new JSONArray().put("An error occurred while updating the client. Check your server log."));
@@ -150,7 +153,8 @@
 							jsonObj.put("errors", new JSONArray().put("Some files could not be deleted."));
 						}
 					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "An error occurred while deleting the client.", e);
+						LOGGER.log(Level.SEVERE, "An error occurred while deleting the client: {0}", Utils.getExceptionMessage(e));
+						LOGGER.log(Level.FINE, "Stack trace: ", e);
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						jsonObj.put("success", false);
 						jsonObj.put("errors", new JSONArray().put("An error occurred while deleting the client. Check your server log."));
@@ -175,7 +179,8 @@
 							jsonObj.put("errors", new JSONArray().put("The client ID '"+clientId+"' is already in used."));
 						}
 					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "An error occurred while validating the client ID.", e);
+						LOGGER.log(Level.SEVERE, "An error occurred while validating the client ID: {0}", Utils.getExceptionMessage(e));
+						LOGGER.log(Level.FINE, "Stack trace: ", e);
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						jsonObj.put("success", false);
 						jsonObj.put("errors", new JSONArray().put("An error occurred while validating the client ID. Check your server log."));
@@ -194,7 +199,8 @@
 							jsonObj.put("errors", new JSONArray().put("There is no supported projections."));
 						}
 					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "An error occurred while getting the supported projections.", e);
+						LOGGER.log(Level.SEVERE, "An error occurred while getting the supported projections: {0}", Utils.getExceptionMessage(e));
+						LOGGER.log(Level.FINE, "Stack trace: ", e);
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						jsonObj.put("success", false);
 						jsonObj.put("errors", new JSONArray().put("An error occurred while getting the supported projections. Check your server log."));
@@ -226,8 +232,8 @@
 									jsonObj.put("success", false);
 									jsonObj.put("errors", new JSONArray().put("Client number ["+id+"] not found."));
 								} else {
-									Map<String, URLCache.Errors> warnings = configManager.generateClient(foundClientConfig, complete);
-									JSONObject errors = URLCache.Errors.toJSON(warnings);
+									Map<String, Errors> warnings = configManager.generateClient(foundClientConfig, complete);
+									JSONObject errors = Errors.toJSON(warnings);
 									response.setStatus(HttpServletResponse.SC_OK);
 									jsonObj.put("message", "Config Generated");
 									if (errors != null) {
@@ -237,7 +243,8 @@
 									jsonObj.put("success", !jsonObj.has("errors"));
 								}
 							} catch(Exception e) {
-								LOGGER.log(Level.SEVERE, "An error occurred while generating the Client configuration.", e);
+								LOGGER.log(Level.SEVERE, "An error occurred while generating the Client configuration: {0}", Utils.getExceptionMessage(e));
+								LOGGER.log(Level.FINE, "Stack trace: ", e);
 								response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 								jsonObj.put("success", false);
 								jsonObj.put("errors", new JSONArray().put("An error occurred while generating the Client configuration. Check your server log."));
@@ -250,8 +257,8 @@
 					try {
 						boolean complete = Boolean.parseBoolean(completeStr);
 
-						Map<String, URLCache.Errors> warnings = configManager.generateAllClients(complete);
-						JSONObject errors = URLCache.Errors.toJSON(warnings);
+						Map<String, Errors> warnings = configManager.generateAllClients(complete);
+						JSONObject errors = Errors.toJSON(warnings);
 						response.setStatus(HttpServletResponse.SC_OK);
 						jsonObj.put("message", "Config saved for all clients");
 						if (errors != null) {
@@ -260,7 +267,8 @@
 						}
 						jsonObj.put("success", !jsonObj.has("errors"));
 					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "An error occurred while generating the Client configurations.", e);
+						LOGGER.log(Level.SEVERE, "An error occurred while generating the Client configurations: {0}", Utils.getExceptionMessage(e));
+						LOGGER.log(Level.FINE, "Stack trace: ", e);
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						jsonObj.put("success", false);
 						jsonObj.put("errors", new JSONArray().put("An error occurred while generating the Client configurations. Check your server log."));
@@ -303,7 +311,8 @@
 									}
 								}
 							} catch(Exception e) {
-								LOGGER.log(Level.SEVERE, "An error occurred while retrieving/generating the Client configurations.", e);
+								LOGGER.log(Level.SEVERE, "An error occurred while retrieving/generating the Client configurations: {0}", Utils.getExceptionMessage(e));
+								LOGGER.log(Level.FINE, "Stack trace: ", e);
 								response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 								jsonObj.put("success", false);
 								jsonObj.put("errors", new JSONArray().put("An error occurred while retrieving/generating the Client configurations. Check your server log."));

@@ -507,7 +507,9 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 
 				layerOverride = LayerCatalog.createLayer(dataSourceType, layerOverrides, this.getConfigManager());
 			} catch(Exception ex) {
-				LOGGER.log(Level.SEVERE, "Unexpected error occurred while parsing the following layer override for the data source ["+this.getDataSourceName()+"]:\n" + layerOverrides.toString(4), ex);
+				LOGGER.log(Level.SEVERE, "Unexpected error occurred while parsing the following layer override for the data source [{0}]: {1}\n{2}",
+						new String[] { this.getDataSourceName(), Utils.getExceptionMessage(ex), layerOverrides.toString(4) });
+				LOGGER.log(Level.FINE, "Stack trace: ", ex);
 			}
 		}
 

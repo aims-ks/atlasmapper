@@ -99,7 +99,7 @@ public class SecureFilter implements Filter {
 		String uri = request.getRequestURI();
 		String userIP = request.getRemoteAddr();
 		if (loggedUser == null) {
-			LOGGER.log(Level.WARNING, "An anonymous user [{0}] has tried to access the protected resource [{1}].", new Object[]{
+			LOGGER.log(Level.FINE, "An anonymous user [{0}] has tried to access the protected resource [{1}].", new Object[]{
 				userIP,
 				uri
 			});
@@ -116,7 +116,7 @@ public class SecureFilter implements Filter {
 				this.sendRedirection(response);
 			}
 		} else {
-			LOGGER.log(Level.INFO, "User [{0}] [{1}] is accessing the protected resource [{2}].", new Object[]{
+			LOGGER.log(Level.FINE, "User [{0}] [{1}] is accessing the protected resource [{2}].", new Object[]{
 				loggedUser.getLoginName(),
 				userIP,
 				uri
@@ -157,7 +157,8 @@ public class SecureFilter implements Filter {
 			jsonError.put("success", false);
 			jsonError.put("errors", new JSONArray().put("Session timed out. Please, re-log in prior to execute this operation."));
 		} catch (JSONException ex) {
-			LOGGER.log(Level.WARNING, "Can not create a JSON error message...", ex);
+			LOGGER.log(Level.WARNING, "Can not create a JSON error message: {0}", Utils.getExceptionMessage(ex));
+			LOGGER.log(Level.FINE, "Stack trace: ", ex);
 		}
 		try {
 			out = response.getOutputStream();
@@ -182,7 +183,8 @@ public class SecureFilter implements Filter {
 			jsonError.put("success", false);
 			jsonError.put("errors", new JSONArray().put("The server is in an invalid state."));
 		} catch (JSONException ex) {
-			LOGGER.log(Level.WARNING, "Can not create a JSON error message...", ex);
+			LOGGER.log(Level.WARNING, "Can not create a JSON error message: {0}", Utils.getExceptionMessage(ex));
+			LOGGER.log(Level.FINE, "Stack trace: ", ex);
 		}
 		try {
 			out = response.getOutputStream();

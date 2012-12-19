@@ -360,14 +360,14 @@ public class URLCache {
 			}
 			if (in != null) {
 				try { in.close(); } catch (Exception e) {
-					LOGGER.log(Level.SEVERE, "Error occur while closing the URL");
-					LOGGER.log(Level.INFO, "Stack trace:", e);
+					LOGGER.log(Level.SEVERE, "Error occur while closing the URL: {0}", Utils.getExceptionMessage(e));
+					LOGGER.log(Level.FINE, "Stack trace:", e);
 				}
 			}
 			if (out != null) {
 				try { out.close(); } catch (Exception e) {
-					LOGGER.log(Level.SEVERE, "Error occur while closing the file");
-					LOGGER.log(Level.INFO, "Stack trace:", e);
+					LOGGER.log(Level.SEVERE, "Error occur while closing the file: {0}", Utils.getExceptionMessage(e));
+					LOGGER.log(Level.FINE, "Stack trace:", e);
 				}
 			}
 		}
@@ -393,16 +393,16 @@ public class URLCache {
 				try {
 					bw.close();
 				} catch (Exception e) {
-					LOGGER.log(Level.SEVERE, "Can not close the cache map buffered writer.");
-					LOGGER.log(Level.INFO, "Stack trace:", e);
+					LOGGER.log(Level.SEVERE, "Can not close the cache map buffered writer: {0}", Utils.getExceptionMessage(e));
+					LOGGER.log(Level.FINE, "Stack trace:", e);
 				}
 			}
 			if (writer != null) {
 				try {
 					writer.close();
 				} catch (Exception e) {
-					LOGGER.log(Level.SEVERE, "Can not close the cache map writer.");
-					LOGGER.log(Level.INFO, "Stack trace:", e);
+					LOGGER.log(Level.SEVERE, "Can not close the cache map writer: {0}", Utils.getExceptionMessage(e));
+					LOGGER.log(Level.FINE, "Stack trace:", e);
 				}
 			}
 		}
@@ -423,8 +423,8 @@ public class URLCache {
 				try {
 					reader.close();
 				} catch (Exception ex) {
-					LOGGER.log(Level.SEVERE, "Can not close the cache map reader.");
-					LOGGER.log(Level.INFO, "Stack trace:", ex);
+					LOGGER.log(Level.SEVERE, "Can not close the cache map reader: {0}", Utils.getExceptionMessage(ex));
+					LOGGER.log(Level.FINE, "Stack trace:", ex);
 				}
 			}
 		}
@@ -455,15 +455,17 @@ public class URLCache {
 			reader = new FileReader(jsonFile);
 			jsonResponse = new JSONObject(new JSONTokener(reader));
 		} catch(Exception ex) {
-			LOGGER.log(Level.SEVERE, "Can not load the JSON Object returning from the URL {0}.", urlStr);
-			LOGGER.log(Level.INFO, "Stack trace:", ex);
+			LOGGER.log(Level.SEVERE, "Can not load the JSON Object returning from the URL {0}: {1}",
+					new String[]{ urlStr, Utils.getExceptionMessage(ex) });
+			LOGGER.log(Level.FINE, "Stack trace:", ex);
 		} finally {
 			if (reader != null) {
 				try {
 					reader.close();
 				} catch (Exception ex) {
-					LOGGER.log(Level.SEVERE, "Can not close the JSON file {0}.", jsonFile.getAbsoluteFile());
-					LOGGER.log(Level.INFO, "Stack trace:", ex);
+					LOGGER.log(Level.SEVERE, "Can not close the JSON file {0}: {1}",
+							new String[]{ jsonFile.getAbsoluteFile().getAbsolutePath(), Utils.getExceptionMessage(ex) });
+					LOGGER.log(Level.FINE, "Stack trace:", ex);
 				}
 			}
 		}
@@ -529,14 +531,14 @@ public class URLCache {
 		} finally {
 			if (in != null) {
 				try { in.close(); } catch(Exception e) {
-					LOGGER.log(Level.WARNING, "Can not close the URL input stream.");
-					LOGGER.log(Level.INFO, "Stack trace:", e);
+					LOGGER.log(Level.WARNING, "Can not close the URL input stream: {0}", Utils.getExceptionMessage(e));
+					LOGGER.log(Level.FINE, "Stack trace:", e);
 				}
 			}
 			if (reader != null) {
 				try { reader.close(); } catch(Exception e) {
-					LOGGER.log(Level.WARNING, "Can not close the URL reader.");
-					LOGGER.log(Level.INFO, "Stack trace:", e);
+					LOGGER.log(Level.WARNING, "Can not close the URL reader: {0}", Utils.getExceptionMessage(e));
+					LOGGER.log(Level.FINE, "Stack trace:", e);
 				}
 			}
 		}
@@ -569,13 +571,17 @@ public class URLCache {
 							// Check if the client is using the data source.
 							AbstractDataSourceConfig dataSource = clientConfig.getDataSourceConfig(dataSourceId);
 							if (dataSource != null) {
+								URLErrors urlErrors = null;
 								if (!errors.containsKey(dataSourceId)) {
-									errors.put(dataSourceId, new Errors());
+									urlErrors = new URLErrors();
+									errors.put(dataSourceId, urlErrors);
+								} else {
+									urlErrors = (URLErrors)errors.get(dataSourceId);
 								}
 								if (cachedFile.isMandatory()) {
-									errors.get(dataSourceId).addError(url, errorMsg);
+									urlErrors.addError(url, errorMsg);
 								} else {
-									errors.get(dataSourceId).addWarning(url, errorMsg);
+									urlErrors.addWarning(url, errorMsg);
 								}
 							}
 						}
@@ -930,10 +936,10 @@ public class URLCache {
 	}
 
 
-	public static class Error {
+	public static class URLError extends Errors.Error {
 		private String url;
 		private String msg;
-		public Error(String url, String msg) {
+		public URLError(String url, String msg) {
 			this.url = url;
 			this.msg = msg;
 		}
@@ -946,94 +952,13 @@ public class URLCache {
 		}
 	}
 
-	public static class Errors {
-		private List<Error> errors;
-		private List<Error> warnings;
-
-		public Errors() {
-			this.errors = new ArrayList<Error>();
-			this.warnings = new ArrayList<Error>();
-		}
-
+	public static class URLErrors extends Errors<URLError> {
 		public void addError(String url, String err) {
-			this.errors.add(new Error(url, err));
-		}
-		public List<Error> getErrors() {
-			return this.errors;
+			this.addError(new URLError(url, err));
 		}
 
 		public void addWarning(String url, String warn) {
-			this.warnings.add(new Error(url, warn));
-		}
-		public List<Error> getWarnings() {
-			return this.warnings;
-		}
-
-		public void addAll(Errors errors) {
-			this.errors.addAll(errors.errors);
-			this.warnings.addAll(errors.warnings);
-		}
-
-		/**
-		 * {
-		 *     "errors": {
-		 *         "ea": ["err1", "err2", ...],
-		 *         "g": ["err1", "err2", ...]
-		 *     },
-		 *     "warnings": {
-		 *         "ea": ["warn1", "warn2", ...],
-		 *         "g": ["warn1", "warn2", ...]
-		 *     }
-		 * }
-		 * @param errorsMap
-		 * @return
-		 */
-		public static JSONObject toJSON(Map<String, Errors> errorsMap) throws JSONException {
-			JSONObject json = new JSONObject();
-			if (!errorsMap.isEmpty()) {
-				for (Map.Entry<String, Errors> errorsEntry : errorsMap.entrySet()) {
-					String dataSourceId = errorsEntry.getKey();
-					List<Error> errors = errorsEntry.getValue().getErrors();
-					List<Error> warnings = errorsEntry.getValue().getWarnings();
-
-					if (errors != null && !errors.isEmpty()) {
-						if (!json.has("errors")) {
-							json.put("errors", new JSONObject());
-						}
-						JSONObject jsonErrors = json.optJSONObject("errors");
-						if (jsonErrors != null) {
-							if (!jsonErrors.has(dataSourceId)) {
-								jsonErrors.put(dataSourceId, new JSONArray());
-							}
-							JSONArray dataSourceJsonErrors = jsonErrors.optJSONArray(dataSourceId);
-							if (dataSourceJsonErrors != null) {
-								for (Error error : errors) {
-									dataSourceJsonErrors.put(error.toJSON());
-								}
-							}
-						}
-					}
-
-					if (warnings != null && !warnings.isEmpty()) {
-						if (!json.has("warnings")) {
-							json.put("warnings", new JSONObject());
-						}
-						JSONObject jsonWarnings = json.optJSONObject("warnings");
-						if (jsonWarnings != null) {
-							if (!jsonWarnings.has(dataSourceId)) {
-								jsonWarnings.put(dataSourceId, new JSONArray());
-							}
-							JSONArray dataSourceJsonWarnings = jsonWarnings.optJSONArray(dataSourceId);
-							if (dataSourceJsonWarnings != null) {
-								for (Error warning : warnings) {
-									dataSourceJsonWarnings.put(warning.toJSON());
-								}
-							}
-						}
-					}
-				}
-			}
-			return json.length() > 0 ? json : null;
+			this.addWarning(new URLError(url, warn));
 		}
 	}
 
@@ -1222,8 +1147,9 @@ public class URLCache {
 			try {
 				downloadedTime = dateFormat.parse(downloadedTimeStr);
 			} catch (ParseException e) {
-				LOGGER.log(Level.WARNING, "Can not parse the downloaded time \"{0}\"", downloadedTimeStr);
-				LOGGER.log(Level.INFO, "Stacktrace: ", e);
+				LOGGER.log(Level.WARNING, "Can not parse the downloaded time \"{0}\": {1}",
+						new String[]{ downloadedTimeStr, Utils.getExceptionMessage(e) });
+				LOGGER.log(Level.FINE, "Stack trace: ", e);
 			}
 
 			return downloadedTime;

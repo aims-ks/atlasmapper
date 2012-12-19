@@ -22,6 +22,7 @@
 package au.gov.aims.atlasmapperserver.layerConfig;
 
 import au.gov.aims.atlasmapperserver.ConfigManager;
+import au.gov.aims.atlasmapperserver.Utils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -51,7 +52,9 @@ public class GoogleLayerConfig extends AbstractLayerConfig {
 				olOptions.put(NUM_ZOOM_LEVELS_KEY, numZoomLevels);
 			} catch(JSONException ex) {
 				// This will probably never happen...
-				LOGGER.log(Level.SEVERE, "Can not set the "+NUM_ZOOM_LEVELS_KEY+" properties for a google layer", ex);
+				LOGGER.log(Level.SEVERE, "Can not set the {0} properties for a google layer: {1}",
+						new String[] { NUM_ZOOM_LEVELS_KEY, Utils.getExceptionMessage(ex) });
+				LOGGER.log(Level.FINE, "Stack trace: ", ex);
 			}
 		}
 	}

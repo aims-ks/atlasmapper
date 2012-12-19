@@ -1857,8 +1857,8 @@ public class URLCacheTest extends TestCase {
 
 				this.serviceExists = success;
 			} catch (Exception ex) {
-				LOGGER.log(Level.SEVERE, "Unexpected error occurred while testing the URLCache");
-				LOGGER.log(Level.INFO, "Stacktrace:", ex);
+				LOGGER.log(Level.SEVERE, "Unexpected error occurred while testing the URLCache: {0}", Utils.getExceptionMessage(ex));
+				LOGGER.log(Level.INFO, "Stack trace:", ex);
 				if (errorMsg == null) {
 					errorMsg = ex.getMessage();
 				}
@@ -1867,8 +1867,8 @@ public class URLCacheTest extends TestCase {
 					try {
 						inputStream.close();
 					} catch (Exception ex) {
-						LOGGER.log(Level.SEVERE, "Can not close the input stream");
-						LOGGER.log(Level.INFO, "Stacktrace:", ex);
+						LOGGER.log(Level.SEVERE, "Can not close the input stream: {0}", Utils.getExceptionMessage(ex));
+						LOGGER.log(Level.INFO, "Stack trace:", ex);
 					}
 				}
 			}

@@ -65,7 +65,8 @@
 						jsonObj.put("message", "Loaded data");
 						jsonObj.put("data", configManager.getDataSourceConfigsJSon());
 					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "An error occurred while retrieving the data source configuration.", e);
+						LOGGER.log(Level.SEVERE, "An error occurred while retrieving the data source configuration: {0}", Utils.getExceptionMessage(e));
+						LOGGER.log(Level.FINE, "Stack trace: ", e);
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						jsonObj.put("success", false);
 						jsonObj.put("errors", new JSONArray().put("An error occurred while retrieving the data source configuration. Check your server log."));
@@ -91,7 +92,8 @@
 						jsonObj.put("message", "Created record");
 						jsonObj.put("data", dataSourceJSonArr);
 					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "An error occurred while creating a new data source.", e);
+						LOGGER.log(Level.SEVERE, "An error occurred while creating a new data source: {0}", Utils.getExceptionMessage(e));
+						LOGGER.log(Level.FINE, "Stack trace: ", e);
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						jsonObj.put("success", false);
 						jsonObj.put("errors", new JSONArray().put("An error occurred while creating a new data source. Check your server log."));
@@ -108,7 +110,8 @@
 						jsonObj.put("message", "Updated record");
 						jsonObj.put("data", configManager.getDataSourceConfigsJSon());
 					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "An error occurred while updating the data source.", e);
+						LOGGER.log(Level.SEVERE, "An error occurred while updating the data source: {0}", Utils.getExceptionMessage(e));
+						LOGGER.log(Level.FINE, "Stack trace: ", e);
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						jsonObj.put("success", false);
 						jsonObj.put("errors", new JSONArray().put("An error occurred while updating the data source. Check your server log."));
@@ -125,7 +128,8 @@
 						jsonObj.put("message", "Deleted record");
 						jsonObj.put("data", configManager.getDataSourceConfigsJSon());
 					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "An error occurred while deleting the data source.", e);
+						LOGGER.log(Level.SEVERE, "An error occurred while deleting the data source: {0}", Utils.getExceptionMessage(e));
+						LOGGER.log(Level.FINE, "Stack trace: ", e);
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						jsonObj.put("success", false);
 						jsonObj.put("errors", new JSONArray().put("An error occurred while deleting the data source. Check your server log."));
@@ -150,7 +154,8 @@
 							jsonObj.put("errors", new JSONArray().put("The data source ID '"+dataSourceId+"' is already in used."));
 						}
 					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "An error occurred while validating the data source ID.", e);
+						LOGGER.log(Level.SEVERE, "An error occurred while validating the data source ID: {0}", Utils.getExceptionMessage(e));
+						LOGGER.log(Level.FINE, "Stack trace: ", e);
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						jsonObj.put("success", false);
 						jsonObj.put("errors", new JSONArray().put("An error occurred while validating the data source ID. Check your server log."));
@@ -186,7 +191,8 @@
 							}
 						}
 					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "An error occurred while clearing the data source cache.", e);
+						LOGGER.log(Level.SEVERE, "An error occurred while clearing the data source cache: {0}", Utils.getExceptionMessage(e));
+						LOGGER.log(Level.FINE, "Stack trace: ", e);
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						jsonObj.put("success", false);
 						jsonObj.put("errors", new JSONArray().put("An error occurred while clearing the data source cache. Check your server log."));
@@ -200,7 +206,8 @@
 						jsonObj.put("success", true);
 						jsonObj.put("message", "Cache cleared");
 					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "An error occurred while clearing all data source cache.", e);
+						LOGGER.log(Level.SEVERE, "An error occurred while clearing all data source cache: {0}", Utils.getExceptionMessage(e));
+						LOGGER.log(Level.FINE, "Stack trace: ", e);
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						jsonObj.put("success", false);
 						jsonObj.put("errors", new JSONArray().put("An error occurred while clearing all data source cache. Check your server log."));

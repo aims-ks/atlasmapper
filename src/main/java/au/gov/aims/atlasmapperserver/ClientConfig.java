@@ -238,15 +238,20 @@ public class ClientConfig extends AbstractConfig {
 		LayerCatalog rawLayerCatalog = new LayerCatalog();
 
 		for (AbstractDataSourceConfig dataSource : this.getDataSourceConfigs()) {
+			String dataSourceId = null;
 			try {
 				if (dataSource != null) {
+					dataSourceId = dataSource.getDataSourceId();
 					LayerCatalog layerCatalog = dataSource.getLayerCatalog();
 					if (layerCatalog != null && !layerCatalog.isEmpty()) {
 						rawLayerCatalog.addLayers(layerCatalog.getLayers());
+						rawLayerCatalog.addAllErrors(layerCatalog.getErrors());
 					}
 				}
 			} catch(Exception ex) {
-				LOGGER.log(Level.INFO, "Exception occur while retrieving layers: ", ex);
+				rawLayerCatalog.addError(dataSourceId, "Exception occurred while retrieving layers: " + Utils.getExceptionMessage(ex));
+				LOGGER.log(Level.WARNING, "Exception occurred while retrieving layers: {0}", Utils.getExceptionMessage(ex));
+				LOGGER.log(Level.FINE, "Stack trace: ", ex);
 			}
 		}
 
@@ -292,6 +297,7 @@ public class ClientConfig extends AbstractConfig {
 								dataSource = this.getDataSourceConfig(dataSourceId);
 
 								if (dataSource == null) {
+									rawLayerCatalog.addWarning(dataSourceId, "Invalid manual override for layer " + layerId + " of client: " + this.getClientName());
 									LOGGER.log(Level.WARNING, "The manual override for the layer {0} of the client {1} is defining an invalid data source {2}.",
 											new String[]{layerId, this.getClientName(), dataSourceId});
 									continue;
@@ -302,8 +308,9 @@ public class ClientConfig extends AbstractConfig {
 								if (dataSource != null) {
 									dataSourceType = dataSource.getDataSourceType();
 								} else {
-									LOGGER.log(Level.WARNING, "The manual override for the layer {0} of the client {1} do not exists and can not be created because it do not define its data source type.",
-											new String[]{layerId, this.getClientName(), dataSourceId});
+									rawLayerCatalog.addWarning(dataSourceId, "Invalid manual override for layer " + layerId + " of client: " + this.getClientName());
+									LOGGER.log(Level.WARNING, "The manual override for the layer {0} of the client {1} define a layer override for a layer that do not exists and can not be created because it do not define its data source type.",
+											new String[]{layerId, this.getClientName()});
 									continue;
 								}
 							}
@@ -321,7 +328,10 @@ public class ClientConfig extends AbstractConfig {
 									manualLayer.getLayerId(),
 									manualLayer);
 						} catch(Exception ex) {
-							LOGGER.log(Level.SEVERE, "Unexpected error occurred while parsing the following layer override for the client ["+this.getClientName()+"]:\n" + jsonClientOverride.toString(4), ex);
+							rawLayerCatalog.addError(null, "Unexpected error occurred while parsing the layer override for the client "+this.getClientName()+".");
+							LOGGER.log(Level.SEVERE, "Unexpected error occurred while parsing the following layer override for the client [{0}]: {1}\n{2}",
+									new String[]{this.getClientName(), Utils.getExceptionMessage(ex), jsonClientOverride.toString(4)});
+							LOGGER.log(Level.FINE, "Stack trace: ", ex);
 						}
 					}
 				}
@@ -356,7 +366,10 @@ public class ClientConfig extends AbstractConfig {
 				layerConfig.setIsBaseLayer(true);
 			} else if (this.isBaseLayer(layerConfig.getLayerName())) {
 				// Backward compatibility
-				LOGGER.log(Level.WARNING, "DEPRECATED LAYER ID USED FOR BASE LAYERS: Layer id [{0}] should be [{1}].", new String[]{layerConfig.getLayerName(), layerConfig.getLayerId()});
+				rawLayerCatalog.addError(null, "Deprecated layer ID used for base layers of client "+this.getClientName()+": " +
+							"layer id [" + layerConfig.getLayerName() + "] should be [" + layerConfig.getLayerId() + "]");
+				LOGGER.log(Level.WARNING, "DEPRECATED LAYER ID USED FOR BASE LAYERS OF CLIENT {0}: Layer id [{1}] should be [{2}].",
+						new String[]{this.getClientName(), layerConfig.getLayerName(), layerConfig.getLayerId()});
 				layerConfig.setIsBaseLayer(true);
 			}
 		}
@@ -364,6 +377,7 @@ public class ClientConfig extends AbstractConfig {
 		// LayerCatalog after overrides
 		LayerCatalog layerCatalog = new LayerCatalog();
 		layerCatalog.addLayers(layersMap.values());
+		layerCatalog.addAllErrors(rawLayerCatalog.getErrors());
 
 		return layerCatalog;
 	}

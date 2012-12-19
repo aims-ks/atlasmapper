@@ -134,7 +134,8 @@ public class User extends AbstractConfig {
 		try {
 			this.getConfigManager().reloadUsersConfigIfNeeded();
 		} catch (Exception ex) {
-			LOGGER.log(Level.SEVERE, "Could not reload Users", ex);
+			LOGGER.log(Level.SEVERE, "Could not reload Users: {0}", Utils.getExceptionMessage(ex));
+			LOGGER.log(Level.FINE, "Stack trace:", ex);
 			return false;
 		}
 		return this.encryptedPassword.equals(

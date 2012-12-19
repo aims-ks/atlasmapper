@@ -108,7 +108,8 @@ public class Utils {
 
 			// TODO Add more projections
 		} catch (JSONException ex) {
-			LOGGER.log(Level.SEVERE, "Can not create the JSON map of supported projections.", ex);
+			LOGGER.log(Level.SEVERE, "Can not create the JSON map of supported projections: {0}", Utils.getExceptionMessage(ex));
+			LOGGER.log(Level.FINE, "Stack trace:", ex);
 		}
 	}
 
@@ -398,6 +399,23 @@ public class Utils {
 		return map;
 	}
 
+	public static String getExceptionMessage(Throwable ex) {
+		return getExceptionMessage(ex, "No message available");
+	}
+	public static String getExceptionMessage(Throwable ex, String defaultMsg) {
+		String msg = null;
+		if (ex != null) {
+			msg = ex.getMessage();
+			if (msg == null || msg.isEmpty()) {
+				msg = getExceptionMessage(ex.getCause(), defaultMsg);
+			}
+		}
+		if (msg == null || msg.isEmpty()) {
+			msg = defaultMsg;
+		}
+		return msg;
+	}
+
 	/**
 	 * Return a Base64 encoding of the MD5 of the parameter.
 	 * @param pass
@@ -408,7 +426,8 @@ public class Utils {
 			byte[] encryptPass = md5sum(pass);
 			return toHex(encryptPass);
 		} catch (NoSuchAlgorithmException ex) {
-			LOGGER.log(Level.SEVERE, "Can not encrypt the password.", ex);
+			LOGGER.log(Level.SEVERE, "Can not encrypt the password: {0}", Utils.getExceptionMessage(ex));
+			LOGGER.log(Level.FINE, "Stack trace:", ex);
 		}
 		// Unlikely to append
 		return pass;
@@ -464,12 +483,14 @@ public class Utils {
 		} finally {
 			if (in != null) {
 				try { in.close(); } catch (Exception e) {
-					LOGGER.log(Level.SEVERE, "Error occur while closing the file", e);
+					LOGGER.log(Level.SEVERE, "Error occur while closing the file: {0}", Utils.getExceptionMessage(e));
+					LOGGER.log(Level.FINE, "Stack trace:", e);
 				}
 			}
 			if (out != null) {
 				try { out.close(); } catch (Exception e) {
-					LOGGER.log(Level.SEVERE, "Error occur while closing the file", e);
+					LOGGER.log(Level.SEVERE, "Error occur while closing the file: {0}", Utils.getExceptionMessage(e));
+					LOGGER.log(Level.FINE, "Stack trace:", e);
 				}
 			}
 		}
@@ -493,14 +514,19 @@ public class Utils {
 				if (maxBytesFileSize >= 0) {
 					totalBytesRead += bytesRead;
 					if (totalBytesRead > maxBytesFileSize) {
-						throw new IOException("File size exceeded. The maximum expected size for this file was " + maxBytesFileSize + " bytes.");
+						throw new IOException("File size exceeded. The maximum size allowed for this file is " + maxBytesFileSize + " bytes.");
 					}
 				}
 				out.write(buf, 0, bytesRead);
 			}
 		} finally {
 			if (out != null) {
-				try { out.flush(); } catch(Exception e) { LOGGER.log(Level.SEVERE, "Cant flush the output.", e); }
+				try {
+					out.flush();
+				} catch(Exception e) {
+					LOGGER.log(Level.SEVERE, "Cant flush the output: {0}", Utils.getExceptionMessage(e));
+					LOGGER.log(Level.FINE, "Stack trace:", e);
+				}
 			}
 		}
 	}
@@ -733,7 +759,8 @@ public class Utils {
 
 			if (xOut || yOut) {
 				// Out of bound coordinates are usually due to invalid input. No data is better than wrong data.
-				LOGGER.log(Level.WARNING, "Coordinates out of bounds: ["+x+", "+y+"] minimum values: ["+Longitude.MIN_VALUE+", "+Latitude.MIN_VALUE+"] maximum values: ["+Longitude.MAX_VALUE+", "+Latitude.MAX_VALUE+"]");
+				LOGGER.log(Level.INFO, "Coordinates out of bounds: [{0}, {1}] minimum values: [{2}, {3}] maximum values: [{4}, {5}]",
+						new Object[]{ x, y, Longitude.MIN_VALUE, Latitude.MIN_VALUE, Longitude.MAX_VALUE, Latitude.MAX_VALUE });
 				valid = false;
 			}
 		}

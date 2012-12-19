@@ -240,7 +240,8 @@ public class ConfigManager {
 						try {
 							serverConfigReader.close();
 						} catch(Exception e) {
-							LOGGER.log(Level.SEVERE, "Can not close the server config file", e);
+							LOGGER.log(Level.SEVERE, "Can not close the server config file: {0}", Utils.getExceptionMessage(e));
+							LOGGER.log(Level.FINE, "Stack trace: ", e);
 						}
 					}
 				}
@@ -266,7 +267,8 @@ public class ConfigManager {
 		try {
 			jsonObj = new JSONObject(new JSONTokener(serverConfigReader));
 		} catch(JSONException ex) {
-			LOGGER.log(Level.WARNING, "Malformed AtlasMapper JSON config file. The configuration file can not be parsed.", ex);
+			LOGGER.log(Level.WARNING, "Malformed AtlasMapper JSON config file. The configuration file can not be parsed: {0}", Utils.getExceptionMessage(ex));
+			LOGGER.log(Level.FINE, "Stack trace: ", ex);
 			return;
 		}
 
@@ -297,7 +299,9 @@ public class ConfigManager {
 								dataSourceConfig.getDataSourceId(),
 								dataSourceConfig);
 					} catch (Exception ex) {
-						LOGGER.log(Level.SEVERE, "Unexpected error while parsing the following data source:\n" + rawDataSourceConfig.toString(4), ex);
+						LOGGER.log(Level.SEVERE, "Unexpected error while parsing the following data source: {0}\n{1}",
+								new String[] { Utils.getExceptionMessage(ex), rawDataSourceConfig.toString(4) });
+						LOGGER.log(Level.FINE, "Stack trace: ", ex);
 					}
 				} else {
 					LOGGER.log(Level.WARNING, "Malformed AtlasMapper JSON config file: a data source is not set properly [{0}]", rawDataSourceConfig);
@@ -346,12 +350,14 @@ public class ConfigManager {
 		} finally {
 			if (in != null) {
 				try { in.close(); } catch(Exception ex) {
-					LOGGER.log(Level.WARNING, "Can not close the InputStream", ex);
+					LOGGER.log(Level.WARNING, "Can not close the InputStream: {0}", Utils.getExceptionMessage(ex));
+					LOGGER.log(Level.FINE, "Stack trace: ", ex);
 				}
 			}
 			if (reader != null) {
 				try { reader.close(); } catch(Exception ex) {
-					LOGGER.log(Level.WARNING, "Can not close the Reader", ex);
+					LOGGER.log(Level.WARNING, "Can not close the Reader: {0}", Utils.getExceptionMessage(ex));
+					LOGGER.log(Level.FINE, "Stack trace: ", ex);
 				}
 			}
 		}
@@ -378,7 +384,8 @@ public class ConfigManager {
 						try {
 							usersConfigReader.close();
 						} catch(Exception e) {
-							LOGGER.log(Level.SEVERE, "Can not close the users config file", e);
+							LOGGER.log(Level.SEVERE, "Can not close the users config file: {0}", Utils.getExceptionMessage(e));
+							LOGGER.log(Level.FINE, "Stack trace: ", e);
 						}
 					}
 				}
@@ -438,12 +445,14 @@ public class ConfigManager {
 		} finally {
 			if (in != null) {
 				try { in.close(); } catch(Exception ex) {
-					LOGGER.log(Level.WARNING, "Can not close the InputStream", ex);
+					LOGGER.log(Level.WARNING, "Can not close the InputStream: {0}", Utils.getExceptionMessage(ex));
+					LOGGER.log(Level.FINE, "Stack trace: ", ex);
 				}
 			}
 			if (reader != null) {
 				try { reader.close(); } catch(Exception ex) {
-					LOGGER.log(Level.WARNING, "Can not close the Reader", ex);
+					LOGGER.log(Level.WARNING, "Can not close the Reader: {0}", Utils.getExceptionMessage(ex));
+					LOGGER.log(Level.FINE, "Stack trace: ", ex);
 				}
 			}
 		}
@@ -465,14 +474,16 @@ public class ConfigManager {
 					try {
 						writer.close();
 					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "Can not close the server config file", e);
+						LOGGER.log(Level.SEVERE, "Can not close the server config file: {0}", Utils.getExceptionMessage(e));
+						LOGGER.log(Level.FINE, "Stack trace: ", e);
 					}
 				}
 				// Reload the configuration to refresh the state of the server with the config that is in the file
 				try {
 					this.reloadServerConfig();
 				} catch (Exception e) {
-					LOGGER.log(Level.SEVERE, "Can not reload the server config file", e);
+					LOGGER.log(Level.SEVERE, "Can not reload the server config file: {0}", Utils.getExceptionMessage(e));
+					LOGGER.log(Level.FINE, "Stack trace: ", e);
 				}
 			}
 		} else {
@@ -480,7 +491,8 @@ public class ConfigManager {
 			try {
 				this.reloadServerConfig();
 			} catch(Exception e) {
-				LOGGER.log(Level.SEVERE, "Can not reload the server config file", e);
+				LOGGER.log(Level.SEVERE, "Can not reload the server config file: {0}", Utils.getExceptionMessage(e));
+				LOGGER.log(Level.FINE, "Stack trace: ", e);
 			}
 			throw new IOException(this.serverConfigFile.getCanonicalPath() + " is not writable.");
 		}
@@ -521,14 +533,16 @@ public class ConfigManager {
 					try {
 						writer.close();
 					} catch(Exception e) {
-						LOGGER.log(Level.SEVERE, "Can not close the users config file", e);
+						LOGGER.log(Level.SEVERE, "Can not close the users config file: {0}", Utils.getExceptionMessage(e));
+						LOGGER.log(Level.FINE, "Stack trace: ", e);
 					}
 				}
 				// Reload the configuration to refresh the state of the server with the config that is in the file
 				try {
 					this.reloadUsersConfig();
 				} catch (Exception e) {
-					LOGGER.log(Level.SEVERE, "Can not reload the users config file", e);
+					LOGGER.log(Level.SEVERE, "Can not reload the users config file: {0}", Utils.getExceptionMessage(e));
+					LOGGER.log(Level.FINE, "Stack trace: ", e);
 				}
 			}
 		} else {
@@ -536,7 +550,8 @@ public class ConfigManager {
 			try {
 				this.reloadUsersConfig();
 			} catch (Exception e) {
-				LOGGER.log(Level.SEVERE, "Can not reload the users config file", e);
+				LOGGER.log(Level.SEVERE, "Can not reload the users config file: {0}", Utils.getExceptionMessage(e));
+				LOGGER.log(Level.FINE, "Stack trace: ", e);
 			}
 			throw new IOException(this.usersConfigFile.getCanonicalPath() + " is not writable.");
 		}
@@ -563,7 +578,8 @@ public class ConfigManager {
 			this.reloadServerConfigIfNeeded();
 		} catch (Exception ex) {
 			// This should not happen...
-			LOGGER.log(Level.SEVERE, "Unexpected exception occurred while reloading the config. Fall back to demo mode.", ex);
+			LOGGER.log(Level.SEVERE, "Unexpected exception occurred while reloading the config. Fall back to demo mode. {0}", Utils.getExceptionMessage(ex));
+			LOGGER.log(Level.FINE, "Stack trace: ", ex);
 			return true;
 		}
 		return this.demoMode;
@@ -1188,14 +1204,14 @@ public class ConfigManager {
 	}
 
 	// Return error messages, if any
-	public Map<String, URLCache.Errors> generateAllClients(boolean complete) throws Exception {
-		Map<String, URLCache.Errors> errorMessages = new HashMap<String, URLCache.Errors>();
+	public Map<String, Errors> generateAllClients(boolean complete) throws Exception {
+		Map<String, Errors> errorMessages = new HashMap<String, Errors>();
 		for (ClientConfig clientConfig : this.getClientConfigs().values()) {
-			Map<String, URLCache.Errors> newWarnings = this._generateClient(clientConfig, complete);
+			Map<String, ? extends Errors> newWarnings = this._generateClient(clientConfig, complete);
 			if (newWarnings != null && !newWarnings.isEmpty()) {
-				for (Map.Entry<String, URLCache.Errors> newWarning : newWarnings.entrySet()) {
+				for (Map.Entry<String, ? extends Errors> newWarning : newWarnings.entrySet()) {
 					if (!errorMessages.containsKey(newWarning.getKey())) {
-						errorMessages.put(newWarning.getKey(), new URLCache.Errors());
+						errorMessages.put(newWarning.getKey(), new Errors());
 					}
 					errorMessages.get(newWarning.getKey()).addAll(newWarning.getValue());
 				}
@@ -1206,7 +1222,7 @@ public class ConfigManager {
 	}
 
 	// Return error messages, if any
-	public Map<String, URLCache.Errors> generateClient(Integer clientId, boolean complete) throws Exception {
+	public Map<String, Errors> generateClient(Integer clientId, boolean complete) throws Exception {
 		if (clientId == null) {
 			return null;
 		}
@@ -1215,12 +1231,12 @@ public class ConfigManager {
 	}
 
 	// Return error messages, if any
-	public Map<String, URLCache.Errors> generateClient(ClientConfig clientConfig, boolean complete) throws Exception {
+	public Map<String, Errors> generateClient(ClientConfig clientConfig, boolean complete) throws Exception {
 		return this._generateClient(clientConfig, complete);
 	}
 
 	// Return error messages, if any
-	private Map<String, URLCache.Errors> _generateClient(ClientConfig clientConfig, boolean complete) throws Exception {
+	private Map<String, Errors> _generateClient(ClientConfig clientConfig, boolean complete) throws Exception {
 		if (clientConfig == null) {
 			return null;
 		}
@@ -1235,9 +1251,28 @@ public class ConfigManager {
 		JSONObject generatedLayers = this.getClientConfigFileJSon(layerCatalog, clientConfig, ConfigType.LAYERS, false, true);
 
 		// Collect error messages
-		Map<String, URLCache.Errors> errorMessages = URLCache.getClientErrors(clientConfig, this.applicationFolder);
+		Map<String, LayerCatalog.LayerErrors> layerErrors = layerCatalog.getErrors();
+		Map<String, Errors> errorMessages = URLCache.getClientErrors(clientConfig, this.applicationFolder);
 
-		if (errorMessages.isEmpty()) {
+		// Merge the 2 maps
+		for (Map.Entry<String, LayerCatalog.LayerErrors> errors: layerErrors.entrySet()) {
+			if (!errorMessages.containsKey(errors.getKey())) {
+				errorMessages.put(errors.getKey(), errors.getValue());
+			} else {
+				errorMessages.get(errors.getKey()).addAll(errors.getValue());
+			}
+		}
+
+		// Verify if there is error (it may contains only warnings)
+		boolean hasError = false;
+		for (Errors errors : errorMessages.values()) {
+			if (!errors.getErrors().isEmpty()) {
+				hasError = true;
+				break;
+			}
+		}
+
+		if (!hasError) {
 			this.generateTemplateFiles(layerCatalog, generatedMainConfig, clientConfig, useGoogle);
 			this.saveGeneratedConfigs(clientConfig, generatedMainConfig, generatedEmbeddedConfig, generatedLayers);
 
@@ -1849,7 +1884,8 @@ public class ConfigManager {
 								}
 							}
 						} catch(IOException ex) {
-							LOGGER.log(Level.INFO, "Exception occur generating the client: ", ex);
+							LOGGER.log(Level.WARNING, "Exception occur generating the client: {0}", Utils.getExceptionMessage(ex));
+							LOGGER.log(Level.FINE, "Stack trace: ", ex);
 						}
 					}
 				}
@@ -1990,7 +2026,8 @@ public class ConfigManager {
 					try {
 						writer.close();
 					} catch(Exception e) {
-						LOGGER.log(Level.SEVERE, "Can not close the config file", e);
+						LOGGER.log(Level.SEVERE, "Can not close the config file: {0}", Utils.getExceptionMessage(e));
+						LOGGER.log(Level.FINE, "Stack trace: ", e);
 					}
 				}
 			}
@@ -2016,7 +2053,8 @@ public class ConfigManager {
 				try {
 					bw.close();
 				} catch (Exception e) {
-					LOGGER.log(Level.SEVERE, "Can not close the config file", e);
+					LOGGER.log(Level.SEVERE, "Can not close the config file: {0}", Utils.getExceptionMessage(e));
+					LOGGER.log(Level.FINE, "Stack trace: ", e);
 				}
 			}
 		}
@@ -2038,7 +2076,8 @@ public class ConfigManager {
 				try {
 					bw.close();
 				} catch (Exception e) {
-					LOGGER.log(Level.SEVERE, "Can not close the config file", e);
+					LOGGER.log(Level.SEVERE, "Can not close the config file: {0}", Utils.getExceptionMessage(e));
+					LOGGER.log(Level.FINE, "Stack trace: ", e);
 				}
 			}
 		}
@@ -2060,7 +2099,8 @@ public class ConfigManager {
 					try {
 						reader.close();
 					} catch(Exception e) {
-						LOGGER.log(Level.SEVERE, "Can not close the config file", e);
+						LOGGER.log(Level.SEVERE, "Can not close the config file: {0}", Utils.getExceptionMessage(e));
+						LOGGER.log(Level.FINE, "Stack trace: ", e);
 					}
 				}
 			}
@@ -2109,13 +2149,15 @@ public class ConfigManager {
 				jsonStrBuf.append(text);
 			}
 		} catch (Exception ex) {
-			Logger.getLogger(ConfigManager.class.getName()).log(Level.SEVERE, null, ex);
+			LOGGER.log(Level.SEVERE, "Can not retrieve the posted JSON object: ", Utils.getExceptionMessage(ex));
+			LOGGER.log(Level.FINE, "Stack trace: ", ex);
 		} finally {
 			if (reader != null) {
 				try {
 					reader.close();
 				} catch (Exception ex) {
-					LOGGER.log(Level.SEVERE, "Can not close the config file", ex);
+					LOGGER.log(Level.SEVERE, "Can not close the config file: {0}", Utils.getExceptionMessage(ex));
+					LOGGER.log(Level.FINE, "Stack trace: ", ex);
 				}
 			}
 		}

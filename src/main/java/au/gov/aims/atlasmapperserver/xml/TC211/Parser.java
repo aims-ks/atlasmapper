@@ -292,10 +292,10 @@ public class Parser {
 									this.doc.addPolygon(polygon);
 								}
 							} catch(Exception ex) {
-								LOGGER.log(Level.WARNING, "Can not parse the bounding box: [{0}, {1}, {2}, {3}]", new String[]{
-									this.west, this.east, this.south, this.north
+								LOGGER.log(Level.WARNING, "Can not parse the bounding box: [{0}, {1}, {2}, {3}]: {4}", new String[]{
+									this.west, this.east, this.south, this.north, Utils.getExceptionMessage(ex)
 								});
-								LOGGER.log(Level.FINE, "Stacktrace:", ex);
+								LOGGER.log(Level.FINE, "Stack trace:", ex);
 							}
 						}
 
@@ -332,8 +332,9 @@ public class Parser {
 								}
 								this.doc.addPolygon(polygon);
 							} catch(Exception ex) {
-								LOGGER.log(Level.WARNING, "Can not parse the polygon: [{0}]", coords);
-								LOGGER.log(Level.FINE, "Stacktrace:", ex);
+								LOGGER.log(Level.WARNING, "Can not parse the polygon: [{0}]: {1}",
+										new String[]{ coords, Utils.getExceptionMessage(ex) });
+								LOGGER.log(Level.FINE, "Stack trace:", ex);
 							}
 						}
 					}
@@ -532,8 +533,8 @@ public class Parser {
 				// It is possible, but very unlikely, that this error message get displayed more than once
 				// for the same String (it may happen if the text "AtlasMapper:" occurred more once in the
 				// applicationProfile string).
-				LOGGER.log(Level.WARNING, "Invalid JSON configuration for the AtlasMapper \"{0}\" in the applicationProfile: {1}", new String[]{ atlasMapperProfileStr, applicationProfileStr });
-				LOGGER.log(Level.INFO, "Stacktrace: ", ex);
+				LOGGER.log(Level.WARNING, "Invalid JSON configuration for the AtlasMapper \"{0}\" in the applicationProfile \"{1}\"\n{2}", new String[]{ atlasMapperProfileStr, applicationProfileStr, Utils.getExceptionMessage(ex) });
+				LOGGER.log(Level.FINE, "Stack trace: ", ex);
 			}
 		}
 

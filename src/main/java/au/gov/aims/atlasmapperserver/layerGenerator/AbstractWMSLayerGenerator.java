@@ -256,8 +256,9 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 						} catch (Exception e) {
 							LOGGER.log(Level.SEVERE, "Unexpected exception while parsing the metadata document URL: {0}\n" +
 									"The information provided by the GetCapabilities document indicate that the file is a " +
-									"TC211 text/xml file, which seems to not be the case.", url.toString());
-							LOGGER.log(Level.INFO, "Stacktrace: ", e);
+									"TC211 text/xml file, which seems to not be the case: {1}",
+									new String[] { url.toString(), Utils.getExceptionMessage(e) });
+							LOGGER.log(Level.FINE, "Stack trace: ", e);
 						}
 					}
 				}
@@ -267,7 +268,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 			// Sometime, there is valid metadata URL but they have been entered incorrectly.
 			// Brute force through all metadata URL and cross fingers to find one that will provide some usable info.
 			if (tc211Document == null) {
-				LOGGER.log(Level.INFO, "BRUTE FORCE: Could not find a valid TC211 text/xml metadata document for layer {0} of {1}. Try them all whatever their specified mime type.",
+				LOGGER.log(Level.FINE, "BRUTE FORCE: Could not find a valid TC211 text/xml metadata document for layer {0} of {1}. Try them all whatever their specified mime type.",
 						new String[]{ layerName, dataSourceConfig.getDataSourceName() });
 				MetadataURL validMetadataUrl = null;
 				for (MetadataURL metadataUrl : metadataUrls) {
@@ -279,7 +280,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 								if (tc211Document != null && !tc211Document.isEmpty()) {
 									validMetadataUrl = metadataUrl;
 								} else {
-									LOGGER.log(Level.INFO, "FAILURE: Invalid metadata document: {0}\n      Identified as \"{1} - {2}\"", new String[]{
+									LOGGER.log(Level.FINE, "FAILURE: Invalid metadata document: {0}\n      Identified as \"{1} - {2}\"", new String[]{
 											url.toString(),
 											metadataUrl.getType(),
 											metadataUrl.getFormat()
@@ -287,7 +288,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 									tc211Document = null;
 								}
 							} catch (Exception ex) {
-								LOGGER.log(Level.INFO, "FAILURE: Invalid metadata document: {0}\n      Identified as \"{1} - {2}\"\n      Exception message: {3}", new String[]{
+								LOGGER.log(Level.FINE, "FAILURE: Invalid metadata document: {0}\n      Identified as \"{1} - {2}\"\n      Exception message: {3}", new String[]{
 										url.toString(),
 										metadataUrl.getType(),
 										metadataUrl.getFormat(),
@@ -298,7 +299,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 					}
 				}
 				if (tc211Document != null && validMetadataUrl != null) {
-					LOGGER.log(Level.INFO, "SUCCESS: Valid metadata document: {0}\n      Identified as \"{1} - {2}\"", new String[]{
+					LOGGER.log(Level.FINE, "SUCCESS: Valid metadata document: {0}\n      Identified as \"{1} - {2}\"", new String[]{
 							validMetadataUrl.getUrl().toString(),
 							validMetadataUrl.getType(),
 							validMetadataUrl.getFormat()
@@ -459,8 +460,9 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 			try {
 				layerConfig = (L)layerConfig.applyOverrides(mestOverrides);
 			} catch (JSONException e) {
-				LOGGER.log(Level.SEVERE, "Unable to apply layer overrides found in the application profile field of the MEST server for layer id \"{0}\".", layerConfig.getLayerName());
-				LOGGER.log(Level.INFO, "Stacktrace: ", e);
+				LOGGER.log(Level.SEVERE, "Unable to apply layer overrides found in the application profile field of the MEST server for layer id \"{0}\": {1}",
+						new String[]{ layerConfig.getLayerName(), Utils.getExceptionMessage(e) });
+				LOGGER.log(Level.FINE, "Stack trace: ", e);
 			}
 		}
 

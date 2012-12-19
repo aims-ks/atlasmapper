@@ -23,6 +23,7 @@ package au.gov.aims.atlasmapperserver.servlet;
 
 import au.gov.aims.atlasmapperserver.ClientConfig;
 import au.gov.aims.atlasmapperserver.ServletUtils;
+import au.gov.aims.atlasmapperserver.Utils;
 import org.json.JSONException;
 
 import java.io.File;
@@ -145,11 +146,15 @@ public class ClientServlet extends HttpServlet {
 			ServletUtils.sendResponse(response, "File not found [" + urlRelativePath + "]");
 		} catch (IOException e) {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-			LOGGER.log(Level.SEVERE, "Problem sending file [" + filePath + "]: ", e);
+			LOGGER.log(Level.SEVERE, "Problem sending file [{0}]: {1}",
+					new String[]{ filePath, Utils.getExceptionMessage(e) });
+			LOGGER.log(Level.FINE, "Stack trace: ", e);
 			ServletUtils.sendResponse(response, "Problem sending file [" + urlRelativePath + "]: " + e.getMessage());
 		} catch (JSONException e) {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-			LOGGER.log(Level.SEVERE, "Error occurred while loading the configuration file [" + filePath + "]: ", e);
+			LOGGER.log(Level.SEVERE, "Error occurred while loading the configuration file [{0}]: {1}",
+					new String[]{ filePath, Utils.getExceptionMessage(e) });
+			LOGGER.log(Level.FINE, "Stack trace: ", e);
 			ServletUtils.sendResponse(response, "Error occurred while loading the configuration file [" + urlRelativePath + "]: " + e.getMessage());
 		}
 	}

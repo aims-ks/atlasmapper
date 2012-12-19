@@ -523,17 +523,25 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 				try {
 					reprojectedExtent = Utils.reprojectWKIDCoordinatesToDegrees(extent, "EPSG:" + wkid);
 				} catch (NoSuchAuthorityCodeException ex) {
-					LOGGER.log(Level.WARNING, "The layer ["+layerTitle+"] from the data source ["+dataSourceTitle+"] has an unknown extent CRS. " + ex.getMessage());
+					LOGGER.log(Level.INFO, "The layer [{0}] from the data source [{1}] has an unknown extent CRS: {2}",
+							new String[]{ layerTitle, dataSourceTitle, Utils.getExceptionMessage(ex) });
+					LOGGER.log(Level.FINEST, "Stack trace", ex);
 				} catch (Exception ex) {
-					LOGGER.log(Level.WARNING, "The layer ["+layerTitle+"] from the data source ["+dataSourceTitle+"] has an unsupported extent. " + ex.getMessage());
+					LOGGER.log(Level.INFO, "The layer [{0}] from the data source [{1}] has an unsupported extent: {2}",
+							new String[]{ layerTitle, dataSourceTitle, Utils.getExceptionMessage(ex) });
+					LOGGER.log(Level.FINEST, "Stack trace", ex);
 				}
 			} else if (Utils.isNotBlank(wkt)) {
 				try {
 					reprojectedExtent = Utils.reprojectWKTCoordinatesToDegrees(extent, wkt);
 				} catch (NoSuchAuthorityCodeException ex) {
-					LOGGER.log(Level.WARNING, "The layer ["+layerTitle+"] from the data source ["+dataSourceTitle+"] has an unknown extent CRS. " + ex.getMessage());
+					LOGGER.log(Level.INFO, "The layer [{0}] from the data source [{1}] has an unknown extent CRS: {2}",
+							new String[]{ layerTitle, dataSourceTitle, Utils.getExceptionMessage(ex) });
+					LOGGER.log(Level.FINEST, "Stack trace", ex);
 				} catch (Exception ex) {
-					LOGGER.log(Level.WARNING, "The layer ["+layerTitle+"] from the data source ["+dataSourceTitle+"] has an unsupported extent. " + ex.getMessage());
+					LOGGER.log(Level.INFO, "The layer [{0}] from the data source [{1}] has an unsupported extent: {2}",
+							new String[]{ layerTitle, dataSourceTitle, Utils.getExceptionMessage(ex) });
+					LOGGER.log(Level.FINEST, "Stack trace", ex);
 				}
 			}
 		}

@@ -113,7 +113,8 @@ public class Proxy extends HttpServlet {
 				reloadConfig(jsonMainConfig, jsonLayersConfig, clientConfig, preview);
 			}
 		} catch (Throwable ex) {
-			LOGGER.log(Level.SEVERE, "Error occurred while reloading the proxy configuration: ", ex);
+			LOGGER.log(Level.SEVERE, "Error occurred while reloading the proxy configuration: {0}", Utils.getExceptionMessage(ex));
+			LOGGER.log(Level.FINE, "Stack trace: ", ex);
 		}
 	}
 
@@ -132,7 +133,8 @@ public class Proxy extends HttpServlet {
 				LOGGER.log(Level.WARNING, "No allowed hosts found in AtlasMapperServer configuration.");
 			}
 		} catch (Exception ex) {
-			LOGGER.log(Level.SEVERE, "Error while retrieving the allowed hosts.", ex);
+			LOGGER.log(Level.SEVERE, "Error while retrieving the allowed hosts: {0}", Utils.getExceptionMessage(ex));
+			LOGGER.log(Level.FINE, "Stack trace: ", ex);
 		} finally {
 			if (foundAllowedHosts == null) {
 				LOGGER.log(Level.WARNING, "Could not retrieved the proxy allowed hosts. Default allowed hosts will be used.");
@@ -358,7 +360,12 @@ public class Proxy extends HttpServlet {
 										ServletUtils.sendResponse(response, inputStream);
 									} finally {
 										if (inputStream != null) {
-											try { inputStream.close(); } catch (Exception e) { LOGGER.log(Level.WARNING, "Cant close the URL input stream.", e); }
+											try {
+												inputStream.close();
+											} catch (Exception e) {
+												LOGGER.log(Level.WARNING, "Cant close the URL input stream: {0}", Utils.getExceptionMessage(e));
+												LOGGER.log(Level.FINE, "Stack trace: ", e);
+											}
 										}
 									}
 								} else if (responseCode == HttpServletResponse.SC_BAD_REQUEST) {
@@ -394,10 +401,11 @@ public class Proxy extends HttpServlet {
 								response.setContentType("text/plain");
 								response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 
-								String responseTxt = "An error occurred while opening the URL connection: ";
-								LOGGER.log(Level.WARNING, responseTxt, ex);
+								String responseTxt = "An error occurred while opening the URL connection: " + Utils.getExceptionMessage(ex);
+								LOGGER.log(Level.WARNING, responseTxt);
+								LOGGER.log(Level.FINE, "Stack trace: ", ex);
 
-								ServletUtils.sendResponse(response, responseTxt + ex.getMessage());
+								ServletUtils.sendResponse(response, responseTxt);
 							}
 						}
 					} else {
@@ -414,10 +422,11 @@ public class Proxy extends HttpServlet {
 				response.setContentType("text/plain");
 				response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 
-				String responseTxt = "An unexpected error occurred: ";
-				LOGGER.log(Level.WARNING, responseTxt, e);
+				String responseTxt = "An unexpected error occurred: " + Utils.getExceptionMessage(e);
+				LOGGER.log(Level.WARNING, responseTxt);
+				LOGGER.log(Level.FINE, "Stack trace: ", e);
 
-				ServletUtils.sendResponse(response, responseTxt + e.getMessage());
+				ServletUtils.sendResponse(response, responseTxt);
 			}
 		} else {
 			response.setContentType("text/plain");

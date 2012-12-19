@@ -56,7 +56,12 @@ public class ServletUtils {
 			ServletUtils.sendResponse(response, responseStream);
 		} finally {
 			if (responseStream != null) {
-				try { responseStream.close(); } catch (Exception ex) { LOGGER.log(Level.WARNING, "Cant close the FileInputStream.", ex); }
+				try {
+					responseStream.close();
+				} catch (Exception ex) {
+					LOGGER.log(Level.WARNING, "Cant close the FileInputStream: {0}", Utils.getExceptionMessage(ex));
+					LOGGER.log(Level.FINE, "Stack trace: ", ex);
+				}
 			}
 		}
 	}
@@ -75,7 +80,12 @@ public class ServletUtils {
 			ServletUtils.sendResponse(response, responseStream);
 		} finally {
 			if (responseStream != null) {
-				try { responseStream.close(); } catch (Exception ex) { LOGGER.log(Level.WARNING, "Cant close the ByteArrayInputStream.", ex); }
+				try {
+					responseStream.close();
+				} catch (Exception ex) {
+					LOGGER.log(Level.WARNING, "Cant close the ByteArrayInputStream: {0}", Utils.getExceptionMessage(ex));
+					LOGGER.log(Level.FINE, "Stack trace: ", ex);
+				}
 			}
 		}
 	}
@@ -96,7 +106,12 @@ public class ServletUtils {
 			Utils.binaryCopy(responseStream, out);
 		} finally {
 			if (out != null) {
-				try { out.close(); } catch(Exception e) { LOGGER.log(Level.SEVERE, "Cant close the output.", e); }
+				try {
+					out.close();
+				} catch(Exception e) {
+					LOGGER.log(Level.SEVERE, "Cant close the output: {0}", Utils.getExceptionMessage(e));
+					LOGGER.log(Level.FINE, "Stack trace: ", e);
+				}
 			}
 		}
 	}

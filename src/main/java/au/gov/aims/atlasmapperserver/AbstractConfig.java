@@ -136,7 +136,9 @@ public abstract class AbstractConfig implements Cloneable {
 					try {
 						rawValue = getter.invoke(this);
 					} catch (Exception ex) {
-						LOGGER.log(Level.SEVERE, "Can not call the method ["+getter.getName()+"] for the field ["+field.getName()+"]", ex);
+						LOGGER.log(Level.SEVERE, "Can not call the method [{0}] for the field [{1}]: {2}",
+								new String[] { getter.getName(), field.getName(), Utils.getExceptionMessage(ex) });
+						LOGGER.log(Level.FINE, "Stack trace: ", ex);
 					}
 
 					Object cleanValue = cleanValue(rawValue);
@@ -282,7 +284,9 @@ public abstract class AbstractConfig implements Cloneable {
 									try {
 										collectionTypes = ((ParameterizedType)setter.getGenericParameterTypes()[0]).getActualTypeArguments();
 									} catch(Exception e) {
-										LOGGER.log(Level.WARNING, "Can not find the types for the values in the collection ["+configName+"]", e);
+										LOGGER.log(Level.WARNING, "Can not find the types for the values in the collection [{0}]: {1}",
+												new String[] { configName, Utils.getExceptionMessage(e) });
+										LOGGER.log(Level.FINE, "Stack trace: ", e);
 									}
 								}
 
@@ -290,7 +294,9 @@ public abstract class AbstractConfig implements Cloneable {
 								setter.invoke(this, value);
 							}
 						} catch (Exception ex) {
-							LOGGER.log(Level.SEVERE, "Can not call the method ["+setter.getName()+"] for the field ["+field.getName()+"]", ex);
+							LOGGER.log(Level.SEVERE, "Can not call the method [{0}] for the field [{1}]: {2}",
+									new String[] { setter.getName(), field.getName(), Utils.getExceptionMessage(ex) });
+							LOGGER.log(Level.FINE, "Stack trace: ", ex);
 						}
 					}
 				}
@@ -336,11 +342,17 @@ public abstract class AbstractConfig implements Cloneable {
 					configValue.setJSONObjectKey(configName);
 					value = configValue;
 				} catch (NoSuchMethodException ex) {
-					LOGGER.log(Level.SEVERE, fieldClass.getName() + " has no constructor using a ConfigManager as parameter.", ex);
+					LOGGER.log(Level.SEVERE, "{0} has no constructor using a ConfigManager as parameter: {1}",
+							new String[] { fieldClass.getName(), Utils.getExceptionMessage(ex) });
+					LOGGER.log(Level.FINE, "Stack trace: ", ex);
 				} catch (InvocationTargetException ex) {
-					LOGGER.log(Level.SEVERE, fieldClass.getName() + " constructor generated an exception when called.", ex);
+					LOGGER.log(Level.SEVERE, "{0} constructor generated an exception when called: {1}",
+							new String[] { fieldClass.getName(), Utils.getExceptionMessage(ex) });
+					LOGGER.log(Level.FINE, "Stack trace: ", ex);
 				} catch (SecurityException ex) {
-					LOGGER.log(Level.SEVERE, fieldClass.getName() + " constructor can not be called due to security restrictions.", ex);
+					LOGGER.log(Level.SEVERE, "{0} constructor can not be called due to security restrictions: {1}",
+							new String[] { fieldClass.getName(), Utils.getExceptionMessage(ex) });
+					LOGGER.log(Level.FINE, "Stack trace: ", ex);
 				}
 			}
 		} else if (Map.class.isAssignableFrom(fieldClass)) {
@@ -541,11 +553,17 @@ public abstract class AbstractConfig implements Cloneable {
 					configValue.update(jsonValue);
 					value = configValue;
 				} catch (NoSuchMethodException ex) {
-					LOGGER.log(Level.SEVERE, fieldClass.getName() + " has no constructor using a ConfigManager as parameter.", ex);
+					LOGGER.log(Level.SEVERE, "{0} has no constructor using a ConfigManager as parameter: {1}",
+							new String[] { fieldClass.getName(), Utils.getExceptionMessage(ex) });
+					LOGGER.log(Level.FINE, "Stack trace: ", ex);
 				} catch (InvocationTargetException ex) {
-					LOGGER.log(Level.SEVERE, fieldClass.getName() + " constructor generated an exception when called.", ex);
+					LOGGER.log(Level.SEVERE, "{0} constructor generated an exception when called: {1}",
+							new String[] { fieldClass.getName(), Utils.getExceptionMessage(ex) });
+					LOGGER.log(Level.FINE, "Stack trace: ", ex);
 				} catch (SecurityException ex) {
-					LOGGER.log(Level.SEVERE, fieldClass.getName() + " constructor can not be called due to security restrictions.", ex);
+					LOGGER.log(Level.SEVERE, "{0} constructor can not be called due to security restrictions: {1}",
+							new String[] { fieldClass.getName(), Utils.getExceptionMessage(ex) });
+					LOGGER.log(Level.FINE, "Stack trace: ", ex);
 				}
 			}
 		} else if (Map.class.isAssignableFrom(fieldClass)) {
@@ -916,7 +934,9 @@ public abstract class AbstractConfig implements Cloneable {
 				//getterMethod = this.getClass().getDeclaredMethod(getter);
 				getterMethod = Utils.getMethod(field.getDeclaringClass(), getter);
 			} catch (Exception ex) {
-				LOGGER.log(Level.SEVERE, "Can not find the method ["+getter+"] for class ["+field.getDeclaringClass()+"]", ex);
+				LOGGER.log(Level.SEVERE, "Can not find the method [{0}] for class [{1}]: {2}", new String[] {
+						getter, field.getDeclaringClass().getName(), Utils.getExceptionMessage(ex)});
+				LOGGER.log(Level.FINE, "Stack trace: ", ex);
 			}
 		}
 		return getterMethod;
@@ -940,7 +960,9 @@ public abstract class AbstractConfig implements Cloneable {
 				//setterMethod = this.getClass().getDeclaredMethod(setter, type);
 				setterMethod = Utils.getMethod(field.getDeclaringClass(), setter, type);
 			} catch (Exception ex) {
-				LOGGER.log(Level.SEVERE, "Can not find the method ["+setter+"] for class ["+field.getDeclaringClass()+"]", ex);
+				LOGGER.log(Level.SEVERE, "Can not find the method [{0}] for class [{1}]: {2}", new String[] {
+						setter, field.getDeclaringClass().getName(), Utils.getExceptionMessage(ex)});
+				LOGGER.log(Level.FINE, "Stack trace: ", ex);
 			}
 		}
 		return setterMethod;
@@ -975,7 +997,9 @@ public abstract class AbstractConfig implements Cloneable {
 				}
 			}
 		} catch (Exception e) {
-			LOGGER.log(Level.SEVERE, "Can not clone Object of class: " + this.getClass().getName(), e);
+			LOGGER.log(Level.SEVERE, "Can not clone Object of class {0}: {1}",
+					new String[] { this.getClass().getName(), Utils.getExceptionMessage(e) });
+			LOGGER.log(Level.FINE, "Stack trace: ", e);
 		}
 
 		return clone;
@@ -1113,7 +1137,9 @@ public abstract class AbstractConfig implements Cloneable {
 							}
 						}
 					} catch (Exception ex) {
-						LOGGER.log(Level.SEVERE, "Can not call the method ["+getter.getName()+"] or ["+setter.getName()+"] for the field ["+field.getName()+"]", ex);
+						LOGGER.log(Level.SEVERE, "Can not call the method [{0}] or [{1}] for the field [{2}]: {3}", new String[] {
+								getter.getName(), setter.getName(), field.getName(), Utils.getExceptionMessage(ex)});
+						LOGGER.log(Level.FINE, "Stack trace: ", ex);
 					}
 				}
 			}

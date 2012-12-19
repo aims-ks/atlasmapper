@@ -53,7 +53,8 @@ public class LoginServlet extends HttpServlet {
 		try {
 			this.performTask(request, response);
 		} catch (JSONException ex) {
-			LOGGER.log(Level.SEVERE, "Can not create a JSON Response.", ex);
+			LOGGER.log(Level.SEVERE, "Can not create a JSON Response: {0}", Utils.getExceptionMessage(ex));
+			LOGGER.log(Level.FINE, "Stack trace: ", ex);
 		}
 	}
 
@@ -62,7 +63,8 @@ public class LoginServlet extends HttpServlet {
 		try {
 			this.performTask(request, response);
 		} catch (JSONException ex) {
-			LOGGER.log(Level.SEVERE, "Can not create a JSON Response.", ex);
+			LOGGER.log(Level.SEVERE, "Can not create a JSON Response: {0}", Utils.getExceptionMessage(ex));
+			LOGGER.log(Level.FINE, "Stack trace: ", ex);
 		}
 	}
 
@@ -76,7 +78,7 @@ public class LoginServlet extends HttpServlet {
 			String loginUsername = request.getParameter("loginUsername");
 			String loginPassword = request.getParameter("loginPassword");
 			if (loginUsername != null && loginUsername.length() > 0 && loginPassword != null && loginPassword.length() > 0 ) {
-				User user = this.login(session, loginUsername, loginPassword);
+				User user = this.login(session, loginUsername, loginPassword, request.getRemoteAddr());
 				if (user != null) {
 					result.put("success", true);
 				} else {
@@ -108,18 +110,20 @@ public class LoginServlet extends HttpServlet {
 				try {
 					out.flush();
 				} catch(Exception e) {
-					LOGGER.log(Level.SEVERE, "Can not flush the servlet response", e);
+					LOGGER.log(Level.SEVERE, "Can not flush the servlet response: {0}", Utils.getExceptionMessage(e));
+					LOGGER.log(Level.FINE, "Stack trace: ", e);
 				}
 				try {
 					out.close();
 				} catch(Exception e) {
-					LOGGER.log(Level.SEVERE, "Can not close the servlet response", e);
+					LOGGER.log(Level.SEVERE, "Can not close the servlet response: {0}", Utils.getExceptionMessage(e));
+					LOGGER.log(Level.FINE, "Stack trace: ", e);
 				}
 			}
 		}
 	}
 
-	private User login(HttpSession session, String loginName, String password) {
+	private User login(HttpSession session, String loginName, String password, String ip) {
 		if (session == null || loginName == null || password == null) {
 			return null;
 		}
@@ -128,10 +132,13 @@ public class LoginServlet extends HttpServlet {
 		try {
 			user = ConfigHelper.getConfigManager(session.getServletContext()).getUser(loginName);
 		} catch (Exception ex) {
-			LOGGER.log(Level.SEVERE, "Can not retrieved users", ex);
+			LOGGER.log(Level.SEVERE, "Can not retrieved users: {0}", Utils.getExceptionMessage(ex));
+			LOGGER.log(Level.FINE, "Stack trace: ", ex);
 		}
 		if (user == null) {
-			// The user do not exists
+			// The username do not exists
+			LOGGER.log(Level.WARNING, "IP {0} submitted invalid credentials using username [{1}]",
+					new String[] { ip, loginName });
 			return null;
 		}
 
@@ -142,6 +149,9 @@ public class LoginServlet extends HttpServlet {
 			LOGGER.log(Level.INFO, "User [{0}] has log in", user.getLoginName());
 			session.setAttribute(LOGGED_USER_KEY, user.getLoginName());
 			return user;
+		} else {
+			LOGGER.log(Level.WARNING, "IP {0} submitted invalid credentials using username [{1}]",
+					new String[] { ip, loginName });
 		}
 
 		return null;
@@ -158,7 +168,8 @@ public class LoginServlet extends HttpServlet {
 			try {
 				user = ConfigHelper.getConfigManager(session.getServletContext()).getUser(loginName);
 			} catch (Exception ex) {
-				LOGGER.log(Level.SEVERE, "Can not retrieved users", ex);
+				LOGGER.log(Level.SEVERE, "Can not retrieved users: {0}", Utils.getExceptionMessage(ex));
+				LOGGER.log(Level.FINE, "Stack trace: ", ex);
 			}
 			if (user != null) {
 				LOGGER.log(Level.INFO, "User [{0}] has log out", user.getLoginName());
@@ -182,7 +193,8 @@ public class LoginServlet extends HttpServlet {
 		try {
 			user = ConfigHelper.getConfigManager(session.getServletContext()).getUser(loginName);
 		} catch (Exception ex) {
-			LOGGER.log(Level.SEVERE, "Can not retrieved users", ex);
+			LOGGER.log(Level.SEVERE, "Can not retrieved users: {0}", Utils.getExceptionMessage(ex));
+			LOGGER.log(Level.FINE, "Stack trace: ", ex);
 		}
 		return user;
 	}
