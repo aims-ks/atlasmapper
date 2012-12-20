@@ -80,17 +80,10 @@
 	<script type="text/javascript" src="OpenLayers/OpenLayers-2.12/OpenLayers.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="OpenLayers-ux/PrintFrame.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="OpenLayers-ux/SearchResults.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="OpenLayers-ux/KML.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="OpenLayers-ux/NCWMS.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="OpenLayers-ux/NCTimeSeriesClickControl.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="OpenLayers-ux/NCTransectDrawControl.js?atlasmapperVer=${version}"></script>
-
-	<!-- OpenLayers support for Google layer, in version <= 2.11, has to be patched to support V > 3.6
-			(since google do not support V <= 3.6 anymore)
-		Bug: http://trac.osgeo.org/openlayers/ticket/3614
-		Patch: https://github.com/openlayers/openlayers/commit/92f04a7a4277a6c818ef2d40a2856910ed72d3d6
-		Date: 18-05-2012
-	-->
-	<!-- <script type="text/javascript" src="OpenLayers-ux/Google-v3.js?atlasmapperVer=${version}"></script> -->
 
 	<#if (useGoogle)>
 		<!-- If the client use any Google Layers -->

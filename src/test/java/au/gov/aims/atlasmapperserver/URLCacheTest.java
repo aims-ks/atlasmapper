@@ -25,11 +25,12 @@
  * enough for this kind of tests. Instead, it rely on an other WebApp called
  * HttpMockup.
  *
- * 1. Deploy the HttpMockup web application (httpmockup.war) to the localhost.
+ * 1. Deploy the HttpMockup web application (httpmockup.war) found in the test/resources folder.
  *     Note that the HttpMockup sources can be checked out from Google code. (currently not available)
  * 2. Change the HTTPMOCKUP_SERVICE_URL constant if the HttpMockup is deployed under a different URL.
+ *     Currently: http://localhost:8080/httpmockup/
  * 3. Run the tests. If the application is not deployed properly, it will display an error message and
- *     the tests will not be executed.
+ *     it will skip all tests.
  */
 
 /**

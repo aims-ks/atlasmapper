@@ -39,27 +39,14 @@ Atlas.Layer.KML = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 		if (this.json != null) {
 			var kmlUrl = this.json['kmlUrl'];
 
-			// Set the OpenLayer options, used by the library.
-			var layerOptions = {
-				strategies: [new OpenLayers.Strategy.Fixed()],
-				//visibility: layerJSon['<initialState>']['<activated>'],
-				//opacity: layerJSon['<initialState>']['<opacity>'],
-				projection: new OpenLayers.Projection("EPSG:4326"), // OpenLayers need this to reproject the KML, if needed.
-				protocol: new OpenLayers.Protocol.HTTP({
-					url: kmlUrl,
-					format: new OpenLayers.Format.KML({
-						extractStyles: true,
-						extractAttributes: true
-					})
-				})
-			};
-
+			var layerOptions = null;
 			if (typeof(this.json['olOptions']) !== 'undefined') {
-				layerOptions = this.applyOlOverrides(layerOptions, this.json['olOptions']);
+				layerOptions = this.json['olOptions'];
 			}
 
-			var kml = new OpenLayers.Layer.Vector(
+			var kml = new OpenLayers.Layer.ux.KML(
 				this.getTitle(),
+				kmlUrl,
 				layerOptions
 			);
 
@@ -82,9 +69,29 @@ Atlas.Layer.KML = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 			}
 
 			this.setLayer(kml);
+
+			// After the parsing of the KML document, retrieve the
+			// document name and set it in the JSON object.
+			kml.events.on({
+				loadend: function() {
+					this.json['documentName'] = kml.getDocumentName();
+					if (this.json['documentName']) {
+						kml.setName(this.getTitle());
+					}
+				},
+				scope: this
+			});
 		}
 	},
 
+	// Override
+	getTitle: function() {
+		var title = Atlas.Layer.AbstractLayer.prototype.getTitle.apply(this, arguments);
+		if (this.json['documentName']) {
+			return this.json['documentName'] + ' (' + title + ')';
+		}
+		return title;
+	},
 
 	// KML are vector; they can always be located, but their extent can only be calculated once the layer is loaded.
 	canBeLocated: function() {
@@ -98,15 +105,19 @@ Atlas.Layer.KML = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 
 	onFeatureSelect: function(event, select) {
 		var feature = event.feature;
-		// Since KML is user-generated, do naive protection against
-		// Javascript.
-		var content = "<h2>"+feature.attributes.name + "</h2>" + feature.attributes.description;
+
+		var content = "<h2>"+feature.attributes.name + "</h2>";
+		if (typeof(feature.attributes.description) !== 'undefined') {
+			content += feature.attributes.description;
+		}
+
 		// Javascript in KML can be unsafe.
 		if (!this.KML_ALLOW_JAVASCRIPT) {
 			if (content.search("<script") != -1) {
-				content = "Content contained Javascript! Escaped content below.<br />" + content.replace(/</g, "&lt;");
+				content = "Content contained Javascript! Escaped content below.<br />" + content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 			}
 		}
+
 		var that = this;
 		var popupId = 'kml-popup';
 		var popup = new OpenLayers.Popup.FramedCloud(

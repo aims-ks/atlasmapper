@@ -31,6 +31,14 @@
 	background-image: url(icons/save.gif) !important;
 }
 
+.icon-okay {
+	background-image: url(icons/accept.png) !important;
+}
+
+.icon-cancel {
+	background-image: url(icons/stop.png) !important;
+}
+
 .icon-reset {
 	background-image: url(icons/stop.png) !important;
 }

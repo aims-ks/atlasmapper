@@ -140,6 +140,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 	dataSourceType: null,
 
 	defaultValues: null,
+	kmlStore: null,
 
 	initComponent: function() {
 		this.defaultValues = Ext.create('Writer.LayerServerConfig', {
@@ -190,6 +191,92 @@ Ext.define('Writer.LayerServerConfigForm', {
 		];
 
 		var advancedItems = [];
+
+
+		/** Define the KML file URLs grid **/
+
+		this.kmlStore = Ext.create('Ext.data.Store', {
+			xtype: 'store',
+			storeId: 'kmlStore',
+			fields: ['id', 'url', 'title', 'description'],
+			// "data" is loaded by this.setActiveRecord(record), called by the action of the "Edit" / "Add" buttons of the data source's grid.
+			proxy: {
+				type: 'memory',
+				reader: {
+					type: 'json',
+					root: 'items'
+				}
+			}
+		});
+		var kmlDataGrid = Ext.create('Ext.grid.Panel', {
+			fieldLabel: 'KML file URLs',
+			qtipHtml: 'List of KML file URLs, separated by coma or new line. The file name (without extension) is used for the layer ID and the layer title. The layer title and many other attributes can be modified using the <em>Manual Override</em>.',
+			name: 'kmlDataGrid',
+			bodyPadding: 0,
+			border: false,
+			title: 'KML file URLs',
+			store: this.kmlStore,
+			columns: [
+				{ text: 'Layer ID',  dataIndex: 'id' },
+				{ text: 'URL', dataIndex: 'url', flex: 1 },
+				{ text: 'Display name', dataIndex: 'title' },
+				{
+					// http://docs.sencha.com/ext-js/4-0/#/api/Ext.grid.column.Action
+					header: 'Actions',
+					xtype: 'actioncolumn',
+					width: 50,
+					defaults: {
+						iconCls: 'grid-icon'
+					},
+					items: [
+						{
+							icon: '../resources/icons/edit.png',
+
+							// Bug: defaults is ignored (http://www.sencha.com/forum/showthread.php?138446-actioncolumn-ignore-defaults)
+							iconCls: 'grid-icon',
+
+							tooltip: 'Edit',
+							scope: this,
+							handler: function(grid, rowIndex, colIndex) {
+								var rec = grid.getStore().getAt(rowIndex);
+								if (rec) {
+									var editKMLWindow = this.getEditKMLWindow('save');
+									editKMLWindow.child('.form').loadRecord(rec);
+									editKMLWindow.show();
+								} else {
+									frameset.setError('No record has been selected.');
+								}
+							}
+						}
+					]
+				}
+			],
+			dockedItems: [
+				{
+					xtype: 'toolbar',
+					items: [
+						{
+							iconCls: 'icon-add',
+							text: 'Add',
+							scope: this,
+							handler: this.onKMLAddClick
+						}, {
+							iconCls: 'icon-delete',
+							text: 'Delete',
+							disabled: true,
+							itemId: 'deleteKML',
+							scope: this,
+							handler: this.onKMLDeleteClick
+						}
+					]
+				}
+			]
+		});
+		kmlDataGrid.getSelectionModel().on('selectionchange', this.onKMLSelectChange, this);
+		var kmlDatas = {
+			name: 'kmlDatas',
+			xtype: 'hiddenfield'
+		};
 
 
 		/** Define items that appears on some Data Source Types **/
@@ -326,14 +413,6 @@ Ext.define('Writer.LayerServerConfigForm', {
 			qtipHtml: 'This field override the feature requests URL provided by the GetCapabilities document.',
 			name: 'featureRequestsUrl'
 		};
-		var kmlUrls = {
-			fieldLabel: 'KML file URLs',
-			qtipHtml: 'List of KML file URLs, separated by coma or new line. The file name (without extension) is used for the layer ID and the layer title. The layer title and many other attributes can be modified using the <em>Manual Override</em>.',
-			name: 'kmlUrls',
-			xtype: 'textareafield',
-			resizable: {transparent: true}, resizeHandles: 's',
-			height: 100
-		};
 		var comment = {
 			fieldLabel: 'Comment',
 			qtipHtml: 'Comment for administrators. This field is not display anywhere else.',
@@ -431,8 +510,8 @@ Ext.define('Writer.LayerServerConfigForm', {
 				break;
 
 			case 'KML':
-				items.push(kmlUrls);
 				items.push(comment);
+				items.push(kmlDatas);
 
 				advancedItems.push(globalManualOverride);
 				break;
@@ -482,6 +561,10 @@ Ext.define('Writer.LayerServerConfigForm', {
 			items: items
 		}];
 
+		if (this.dataSourceType === 'KML') {
+			tabs.push(kmlDataGrid);
+		}
+
 		if (advancedItems.length > 0) {
 			tabs.push({
 				// Advanced config options
@@ -521,11 +604,169 @@ Ext.define('Writer.LayerServerConfigForm', {
 		this.callParent();
 	},
 
+	onKMLSelectChange: function(selModel, selections){
+		this.down('#deleteKML').setDisabled(selections.length === 0);
+	},
+
+	onKMLAddClick: function() {
+		var editKMLWindow = this.getEditKMLWindow('add');
+		editKMLWindow.show();
+	},
+	onKMLDeleteClick: function(button) {
+		var grid = button.ownerCt.ownerCt;
+
+		var selection = grid.getView().getSelectionModel().getSelection()[0];
+		if (selection) {
+			grid.store.remove(selection);
+			this._saveKMLRecords();
+		} else {
+			frameset.setError('Can not find the KML entry to delete');
+		}
+	},
+
+	getEditKMLWindow: function(action) {
+		var that = this;
+		var buttons = [];
+		var title = '';
+		if (action == 'save') {
+			title = 'Edit KML layer';
+			buttons = [
+				{
+					iconCls: 'icon-okay',
+					text: 'Apply',
+					handler: function() {
+						var window = this.ownerCt.ownerCt;
+						var form = window.child('.form');
+						var newValues = form.getValues();
+						var record = form.getRecord();
+
+						// Get the new KML values, update the current KML record and save it to the data source form
+						Ext.iterate(newValues, function(key, value) {
+							record.set(key, value);
+						});
+						that._saveKMLRecords();
+
+						window.close();
+					}
+				}, {
+					iconCls: 'icon-cancel',
+					text: 'Cancel',
+					handler: function() {
+						var window = this.ownerCt.ownerCt;
+						window.close();
+					}
+				}
+			];
+		} else {
+			title = 'Add KML layer';
+			buttons = [
+				{
+					iconCls: 'icon-add',
+					text: 'Create',
+					handler: function() {
+						var window = this.ownerCt.ownerCt;
+						var form = window.child('.form');
+						var newValues = form.getValues();
+
+						// Add the new entry to the KML store and save it to the data source form
+						that.kmlStore.add(form.getValues());
+						that._saveKMLRecords();
+
+						window.close();
+					}
+				}, {
+					iconCls: 'icon-cancel',
+					text: 'Cancel',
+					handler: function() {
+						var window = this.ownerCt.ownerCt;
+						window.close();
+					}
+				}
+			];
+		}
+
+		return new Ext.create('Ext.window.Window', {
+			title: title,
+			width: 500,
+			layout: 'fit',
+			constrainHeader: true,
+			closeAction: 'destroy',
+
+			items: [
+				{
+					xtype: 'form',
+					border: false,
+					bodyPadding: 5,
+					defaultType: 'textfield',
+					fieldDefaults: {
+						anchor: '100%',
+						labelAlign: 'right',
+						labelWidth: 100
+					},
+					items: [
+						{
+							fieldLabel: 'Layer ID',
+							qtipHtml: 'Unique layer ID.<br/>\n<b>WARNING</b> The value of this field must be unique amount ' +
+									'all layers of all datasets. Using the dataset ID as a prefix is a good way to avoid clashes.',
+							name: 'id'
+						}, {
+							fieldLabel: 'URL',
+							qtipHtml: 'URL to the KML file.',
+							name: 'url'
+						}, {
+							fieldLabel: 'Display name',
+							qtipHtml: 'Name of the layer, as displayed in the client; in the add layer tree, in the layer description and in the layer switcher.',
+							name: 'title'
+						}, {
+							fieldLabel: 'Description',
+							qtipHtml: 'Description in wiki format. For information about the wiki format, refer to the documentation from the navigation menu.',
+							name: 'description',
+							xtype: 'textareafield',
+							resizable: {transparent: true}, resizeHandles: 's',
+							height: 100
+						}
+					]
+				}
+			],
+			buttons: buttons
+		});
+	},
+
+	// Save the content of the grid into the kmlDatas hidden field.
+	_saveKMLRecords: function() {
+		// Update the current data source record using the data from the KML grid store
+		kmlDatas = [];
+		this.kmlStore.each(function(record) {
+			kmlDatas.push(record.data);
+		}, this);
+
+		this.getForm().setValues({
+			'kmlDatas': Ext.JSON.encode(kmlDatas)
+		});
+	},
+
 	setActiveRecord: function(record){
 		var form = this.getForm();
+		this.kmlStore.loadData([]);
 		if (record) {
 			this.activeRecord = record;
 			form.loadRecord(record);
+			var kmlDatas = record.get('kmlDatas');
+			if (kmlDatas) {
+				// Remove the proxy (proxy = transparent object wrapper to remember modification)
+				// ExtJS will recreate a new proxy if needed.
+				// Logically, the following operation should have no effect... but it really get rid of the proxy.
+				var cleanKMLDatas = [];
+				Ext.each(kmlDatas, function(kmlData) {
+					cleanKMLDatas.push(kmlData);
+				});
+
+				this.getForm().setValues({
+					'kmlDatas': Ext.JSON.encode(cleanKMLDatas)
+				});
+
+				this.kmlStore.loadData(cleanKMLDatas);
+			}
 		} else if (this.defaultValues) {
 			this.activeRecord = this.defaultValues;
 			form.loadRecord(this.defaultValues);
@@ -564,7 +805,6 @@ Ext.define('Writer.LayerServerConfigForm', {
 	onCreate: function(){
 		frameset.setSavingMessage('Creating...');
 		var form = this.getForm();
-
 		if (form.isValid()) {
 			this.fireEvent('create', this, form.getValues());
 			form.reset();
@@ -860,6 +1100,7 @@ Ext.define('Writer.LayerServerConfigGrid', {
 						}
 					}
 				}, {
+					iconCls: 'icon-cancel',
 					text: 'Cancel',
 					handler: function() {
 						var window = this.ownerCt.ownerCt;
@@ -888,9 +1129,12 @@ Ext.define('Writer.LayerServerConfigGrid', {
 						}
 					}
 				}, {
+					iconCls: 'icon-cancel',
 					text: 'Cancel',
 					handler: function() {
 						var window = this.ownerCt.ownerCt;
+						var form = window.child('.form');
+						form.onReset();
 						window.close();
 					}
 				}
@@ -915,6 +1159,7 @@ Ext.define('Writer.LayerServerConfigGrid', {
 						}
 					}
 				}, {
+					iconCls: 'icon-cancel',
 					text: 'Cancel',
 					handler: function() {
 						var window = this.ownerCt.ownerCt;
@@ -1021,7 +1266,7 @@ Ext.define('Writer.LayerServerConfig', {
 		'serviceUrls',
 		'getMapUrl',
 		'extraWmsServiceUrls',
-		'kmlUrls',
+		'kmlDatas',
 		'webCacheUrl',
 		'webCacheParameters',
 		'featureRequestsUrl',

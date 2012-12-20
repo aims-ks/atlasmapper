@@ -27,34 +27,80 @@ import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
 import au.gov.aims.atlasmapperserver.layerGenerator.KMLLayerGenerator;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class KMLDataSourceConfig extends AbstractDataSourceConfig {
+	private static final Logger LOGGER = Logger.getLogger(KMLDataSourceConfig.class.getName());
+
+	@ConfigField
+	private JSONArray kmlDatas;
+
+	@Deprecated
 	@ConfigField
 	private String kmlUrls;
-	// Cache - avoid parsing baseLayers string every times.
-	private Set<String> kmlUrlsSet = null;
+
 
 	public KMLDataSourceConfig(ConfigManager configManager) {
 		super(configManager);
 	}
 
-	public String getKmlUrls() {
-		return kmlUrls;
+	@Deprecated
+	public void setKmlUrls(String kmlUrls) throws JSONException {
+		if (Utils.isNotBlank(kmlUrls)) {
+			LOGGER.log(Level.WARNING, "DEPRECATED KmlUrls string. The KmlUrls has been converted:\n{0}", kmlUrls);
+			Set<String> kmlUrlsSet = AbstractConfig.toSet(kmlUrls);
+
+			this.kmlDatas = new JSONArray();
+			int i=0;
+			for (String kmlUrlStr : kmlUrlsSet) {
+				JSONObject urlObj = new JSONObject();
+				String id = this.getKmlUrlId(kmlUrlStr);
+				if (id == null) {
+					id = ""+(i++);
+				}
+				urlObj.put("id", id);
+				urlObj.put("url", kmlUrlStr);
+				urlObj.put("title", id);
+				this.kmlDatas.put(urlObj);
+			}
+		}
 	}
-	public Set<String> getKmlUrlsSet() {
-		if (this.kmlUrlsSet == null && Utils.isNotBlank(this.kmlUrls)) {
-			this.kmlUrlsSet = AbstractConfig.toSet(this.kmlUrls);
+	@Deprecated
+	private String getKmlUrlId(String kmlUrl) {
+		if (Utils.isBlank(kmlUrl)) {
+			return null;
 		}
 
-		return this.kmlUrlsSet;
+		int layerIdStart = kmlUrl.lastIndexOf('/');
+		if (layerIdStart < 0) {
+			return null;
+		}
+		layerIdStart++;
+
+		int layerIdEnd = kmlUrl.lastIndexOf('.');
+		layerIdEnd = (layerIdEnd >= 0 ? layerIdEnd : kmlUrl.length());
+
+		return kmlUrl.substring(layerIdStart, layerIdEnd);
+	}
+	@Deprecated
+	public String getKmlUrls() {
+		return null;
 	}
 
-	public void setKmlUrls(String kmlUrls) {
-		this.kmlUrls = kmlUrls;
-		this.kmlUrlsSet = null;
+	public JSONArray getKmlDatas() {
+		return this.kmlDatas;
 	}
+	public void setKmlDatas(JSONArray kmlDatas) {
+		this.kmlDatas = kmlDatas;
+	}
+
+
 
 	@Override
 	public AbstractLayerGenerator getLayerGenerator() {
@@ -65,7 +111,7 @@ public class KMLDataSourceConfig extends AbstractDataSourceConfig {
 	public String toString() {
 		return "KMLDataSourceConfig {\n" +
 				(this.getId()==null ? "" :                             "	id=" + this.getId() + "\n") +
-				(Utils.isBlank(kmlUrls) ? "" :                         "	kmlUrls=" + kmlUrls + "\n") +
+				(this.kmlDatas == null || this.kmlDatas.length() <= 0 ? "" :   "	kmlDatas=" + this.kmlDatas.toString() + "\n") +
 				(Utils.isBlank(this.getDataSourceId()) ? "" :          "	dataSourceId=" + this.getDataSourceId() + "\n") +
 				(Utils.isBlank(this.getDataSourceName()) ? "" :        "	dataSourceName=" + this.getDataSourceName() + "\n") +
 				(Utils.isBlank(this.getDataSourceType()) ? "" :        "	dataSourceType=" + this.getDataSourceType() + "\n") +

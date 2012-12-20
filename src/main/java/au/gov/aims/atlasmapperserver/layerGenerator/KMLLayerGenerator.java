@@ -24,6 +24,8 @@ package au.gov.aims.atlasmapperserver.layerGenerator;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.KMLDataSourceConfig;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.layerConfig.KMLLayerConfig;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -51,6 +53,7 @@ public class KMLLayerGenerator extends AbstractLayerGenerator<KMLLayerConfig, KM
 	public Collection<KMLLayerConfig> generateLayerConfigs(KMLDataSourceConfig dataSourceConfig) throws Exception {
 		List<KMLLayerConfig> layersConfig = null;
 
+		/*
 		Set<String> _kmlUrlsSet = dataSourceConfig.getKmlUrlsSet();
 		if (_kmlUrlsSet != null && !_kmlUrlsSet.isEmpty()) {
 			for (String kmlUrl : _kmlUrlsSet) {
@@ -77,6 +80,36 @@ public class KMLLayerGenerator extends AbstractLayerGenerator<KMLLayerConfig, KM
 				}
 			}
 		}
+		*/
+
+		JSONArray kmlDatas = dataSourceConfig.getKmlDatas();
+		if (kmlDatas != null && kmlDatas.length() > 0) {
+			for (int i=0, len=kmlDatas.length(); i<len; i++) {
+				JSONObject kmlData = kmlDatas.optJSONObject(i);
+				if (kmlData != null) {
+					KMLLayerConfig layer = new KMLLayerConfig(dataSourceConfig.getConfigManager());
+					layer.setLayerId(kmlData.optString("id", null));
+					layer.setKmlUrl(kmlData.optString("url", null));
+					layer.setTitle(kmlData.optString("title", null));
+
+					String description = kmlData.optString("description", null);
+					if (description != null) {
+						layer.setDescription(description);
+						layer.setDescriptionFormat("wiki");
+					}
+
+					if (layersConfig == null) {
+						layersConfig = new ArrayList<KMLLayerConfig>();
+					}
+
+					dataSourceConfig.bindLayer(layer);
+					//this.ensureUniqueLayerId(layer, dataSourceConfig);
+
+					layersConfig.add(layer);
+				}
+			}
+		}
+
 		return layersConfig;
 	}
 

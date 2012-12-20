@@ -33,8 +33,8 @@
 <%@page import="au.gov.aims.atlasmapperserver.ConfigHelper"%>
 <%@page import="au.gov.aims.atlasmapperserver.ConfigManager"%>
 <%@page import="au.gov.aims.atlasmapperserver.ActionType"%>
-<%@ page import="java.util.Map" %>
-<%@ page import="au.gov.aims.atlasmapperserver.Errors" %>
+<%@page import="java.util.Map" %>
+<%@page import="au.gov.aims.atlasmapperserver.Errors" %>
 <%@page contentType="application/json" pageEncoding="UTF-8"%>
 <%
 	Logger LOGGER = Logger.getLogger("clientsConfig.jsp");
