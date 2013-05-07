@@ -52,9 +52,10 @@ public class BingLayerGenerator extends AbstractLayerGenerator<BingLayerConfig, 
 	 *     * Bing Hybrid
 	 *     * Bing Aerial
 	 * @return
+	 * NOTE: Harvest is ignored since there is nothing to harvest.
 	 */
 	@Override
-	public Collection<BingLayerConfig> generateLayerConfigs(BingDataSourceConfig dataSourceConfig) {
+	public Collection<BingLayerConfig> generateLayerConfigs(BingDataSourceConfig dataSourceConfig, boolean harvest) {
 		if (bingLayersCache == null) {
 			bingLayersCache = new ArrayList<BingLayerConfig>();
 

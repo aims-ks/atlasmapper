@@ -204,6 +204,59 @@ Ext.define('Frameset', {
 	setErrorsAndWarnings: function(title, msg, response) {
 		this.beforeShow();
 		var errorMessages = '';
+
+		if (response && response.messages) {
+			errorMessages += '<div><b>Information:</b>';
+			errorMessages += '<ul class="bullet-list">\n';
+			if (response.messages[""]) {
+				Ext.each(response.messages[""], function(message) {
+					Ext.iterate(message, function(url, messageStr) {
+						errorMessages += '<li>';
+						if (typeof(messageStr) === 'string') {
+							errorMessages += Ext.String.htmlEncode(messageStr);
+						} else {
+							var first = true;
+							Ext.each(messageStr, function(messageElStr) {
+								if (first) { first = false; } else { errorMessages += '<br/>\n';}
+								errorMessages += Ext.String.htmlEncode(messageElStr);
+							}, this);
+						}
+						if (url) {
+							errorMessages += '<br/>\n' + this.urlToHtmlLink(url);
+						}
+						errorMessages += '</li>\n';
+					}, this);
+				}, this);
+			}
+			Ext.iterate(response.messages, function(dataSourceId, messages) {
+				if (dataSourceId) {
+					errorMessages += '<li>' + dataSourceId;
+					errorMessages += '<ul class="bullet-list">\n';
+					Ext.each(messages, function(message) {
+						Ext.iterate(message, function(url, messageStr) {
+							errorMessages += '<li>';
+							if (typeof(messageStr) === 'string') {
+								errorMessages += Ext.String.htmlEncode(messageStr);
+							} else {
+								var first = true;
+								Ext.each(messageStr, function(messageElStr) {
+									if (first) { first = false; } else { errorMessages += '<br/>\n';}
+									errorMessages += Ext.String.htmlEncode(messageElStr);
+								}, this);
+							}
+							if (url) {
+								errorMessages += '<br/>\n' + this.urlToHtmlLink(url);
+							}
+							errorMessages += '</li>\n';
+						}, this);
+					}, this);
+					errorMessages += '</ul>\n';
+					errorMessages += '</li>\n';
+				}
+			}, this);
+			errorMessages += '</ul></div>\n';
+		}
+
 		if (response && response.errors) {
 			errorMessages += '<div><b>Errors:</b>';
 			errorMessages += '<ul class="bullet-list">\n';
@@ -255,6 +308,7 @@ Ext.define('Frameset', {
 			}, this);
 			errorMessages += '</ul></div>\n';
 		}
+
 		if (response && response.warnings) {
 			errorMessages += '<div><b>Warnings:</b>';
 			errorMessages += '<ul class="bullet-list">\n';
@@ -307,9 +361,12 @@ Ext.define('Frameset', {
 			errorMessages += '</ul></div>\n';
 		}
 
-		var alertMsg = '<b>' + msg + '</b><br/>\n';
+		var alertMsg = '';
+		if (msg) {
+			alertMsg += '<b>' + msg + '</b><br/>\n<br/>\n';
+		}
 		if (errorMessages) {
-			alertMsg += '<br/>\n' + errorMessages;
+			alertMsg += errorMessages;
 		}
 
 		Ext.create('Ext.window.Window', {

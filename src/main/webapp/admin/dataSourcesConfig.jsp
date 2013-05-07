@@ -33,7 +33,9 @@
 <%@page import="org.json.JSONObject"%>
 <%@page import="au.gov.aims.atlasmapperserver.ConfigManager"%>
 <%@page import="au.gov.aims.atlasmapperserver.ActionType"%>
-<%@ page import="au.gov.aims.atlasmapperserver.URLCache" %>
+<%@page import="au.gov.aims.atlasmapperserver.URLCache" %>
+<%@page import="java.util.Map"%>
+<%@page import="au.gov.aims.atlasmapperserver.Errors"%>
 <%@page contentType="application/json" pageEncoding="UTF-8"%>
 <%
 	Logger LOGGER = Logger.getLogger("dataSourcesConfig.jsp");
@@ -162,6 +164,51 @@
 					}
 					break;
 
+				case PROCESS:
+					try {
+						if (Utils.isBlank(idStr)) {
+							response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+							jsonObj.put("success", false);
+							jsonObj.put("errors", new JSONArray().put("Missing parameter [id]."));
+						} else {
+							Integer id = null;
+							try {
+								id = Integer.valueOf(idStr);
+							} catch(Exception e) {
+								response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+								jsonObj.put("success", false);
+								jsonObj.put("errors", new JSONArray().put("Invalid id format."));
+							}
+
+							if (id == null) {
+								response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+								jsonObj.put("success", false);
+								jsonObj.put("errors", new JSONArray().put("Invalid id."));
+							} else {
+								AbstractDataSourceConfig foundDataSourceConfig = configManager.getDataSourceConfig(id);
+								Map<String, Errors> warnings = foundDataSourceConfig.process();
+								JSONObject errors = Errors.toJSON(warnings);
+								response.setStatus(HttpServletResponse.SC_OK);
+								jsonObj.put("message", "Config Generated");
+								if (errors != null) {
+									jsonObj.put("errors", errors.optJSONObject("errors"));
+									jsonObj.put("warnings", errors.optJSONObject("warnings"));
+									jsonObj.put("messages", errors.optJSONObject("messages"));
+								}
+								jsonObj.put("success", !jsonObj.has("errors"));
+							}
+						}
+					} catch (Exception e) {
+						LOGGER.log(Level.SEVERE, "An error occurred while downloading the data source document: {0}", Utils.getExceptionMessage(e));
+						LOGGER.log(Level.FINE, "Stack trace: ", e);
+						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+						jsonObj.put("success", false);
+						jsonObj.put("errors", new JSONArray().put("An error occurred while downloading the data source document. Check your server log."));
+					}
+					break;
+
+				/*
+				// DEPRECATED
 				case CLEARCACHE:
 					try {
 						if (Utils.isBlank(idStr)) {
@@ -198,10 +245,11 @@
 						jsonObj.put("errors", new JSONArray().put("An error occurred while clearing the data source cache. Check your server log."));
 					}
 					break;
+				*/
 
 				case CLEARALLCACHE:
 					try {
-						URLCache.clearCache(configManager.getApplicationFolder());
+						URLCache.clearCache(configManager);
 						response.setStatus(HttpServletResponse.SC_OK);
 						jsonObj.put("success", true);
 						jsonObj.put("message", "Cache cleared");

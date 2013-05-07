@@ -23,7 +23,6 @@ package au.gov.aims.atlasmapperserver;
 
 import java.net.URL;
 
-import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.WMSLayerConfig;
 import junit.framework.TestCase;
 import org.json.JSONException;

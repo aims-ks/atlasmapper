@@ -29,8 +29,8 @@ import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
 import au.gov.aims.atlasmapperserver.servlet.FileFinder;
 import au.gov.aims.atlasmapperserver.servlet.Proxy;
-import au.gov.aims.atlasmapperserver.xml.TC211.Document;
-import au.gov.aims.atlasmapperserver.xml.TC211.Parser;
+import au.gov.aims.atlasmapperserver.xml.TC211.TC211Document;
+import au.gov.aims.atlasmapperserver.xml.TC211.TC211Parser;
 import freemarker.template.Configuration;
 import freemarker.template.TemplateException;
 import java.io.BufferedReader;
@@ -652,7 +652,7 @@ public class ConfigManager {
 					AbstractDataSourceConfig dataSourceConfig = configs.remove1(dataSourceId);
 
 					// Clear dataSource cache since it doesn't exist anymore
-					URLCache.clearCache(this.applicationFolder, dataSourceConfig);
+					URLCache.clearCache(this, dataSourceConfig);
 				}
 			}
 		}
@@ -879,13 +879,13 @@ public class ConfigManager {
 	public JSONObject getMapStateForDataset(ClientConfig clientConfig, String iso19115_19139url, boolean live) throws Exception {
 		JSONArray jsonLayers = new JSONArray();
 
-		Document tc211Document = Parser.parseURL(this, null, new URL(iso19115_19139url), false);
+		TC211Document tc211Document = TC211Parser.parseURL(this, null, new URL(iso19115_19139url), false, false);
 
 		// *** Layers ***
 
-		List<Document.Link> links = tc211Document.getLinks();
-		for (Document.Link link : links) {
-			Document.Protocol linkProtocol = link.getProtocol();
+		List<TC211Document.Link> links = tc211Document.getLinks();
+		for (TC211Document.Link link : links) {
+			TC211Document.Protocol linkProtocol = link.getProtocol();
 			if (linkProtocol != null) {
 				JSONObject foundLayer = null;
 				String foundLayerID = null;
@@ -951,9 +951,9 @@ public class ConfigManager {
 				}
 
 				if (foundLayer == null) {
-					AbstractLayerConfig layer = Parser.createLayer(this, tc211Document, link);
+					AbstractLayerConfig layer = TC211Parser.createLayer(this, tc211Document, link);
 					if (layer != null) {
-						foundLayer = layer.generateLayer();
+						foundLayer = layer.generateLayer(null); // Not cached
 					}
 				}
 
@@ -971,9 +971,9 @@ public class ConfigManager {
 		// min lon, min lat, max lon, max lat
 		double[] bounds = null;
 
-		List<Document.Point> points = tc211Document.getPoints();
+		List<TC211Document.Point> points = tc211Document.getPoints();
 		if (points != null) {
-			for (Document.Point point : points) {
+			for (TC211Document.Point point : points) {
 				if (bounds == null) {
 					bounds = new double[]{ point.getLon(), point.getLat(), point.getLon(), point.getLat() };
 				} else {
@@ -987,10 +987,10 @@ public class ConfigManager {
 			}
 		}
 
-		List<Document.Polygon> polygons = tc211Document.getPolygons();
+		List<TC211Document.Polygon> polygons = tc211Document.getPolygons();
 		if (polygons != null) {
-			for (Document.Polygon polygon : polygons) {
-				for (Document.Point point : polygon.getPoints()) {
+			for (TC211Document.Polygon polygon : polygons) {
+				for (TC211Document.Point point : polygon.getPoints()) {
 					if (bounds == null) {
 						bounds = new double[]{ point.getLon(), point.getLat(), point.getLon(), point.getLat() };
 					} else {
@@ -1241,7 +1241,8 @@ public class ConfigManager {
 			return null;
 		}
 
-		LayerCatalog layerCatalog = clientConfig.getLayerCatalog();
+		// harvest = false: Let the data source manage when to download the document (refresh the cache)
+		LayerCatalog layerCatalog = clientConfig.getLayerCatalog(false);
 
 		boolean useGoogle = clientConfig.useGoogle(this);
 
@@ -1281,7 +1282,6 @@ public class ConfigManager {
 			Proxy.reloadConfig(generatedMainConfig, generatedLayers, clientConfig, false);
 		}
 
-		// Collect error messages
 		return errorMessages;
 	}
 
@@ -1634,7 +1634,7 @@ public class ConfigManager {
 			return null;
 		}
 
-		LayerCatalog layerCatalog = clientConfig.getLayerCatalog();
+		LayerCatalog layerCatalog = clientConfig.getLayerCatalog(false);
 
 		JSONObject debug = new JSONObject();
 
@@ -1662,7 +1662,7 @@ public class ConfigManager {
 
 		LayerCatalog layerCatalog = null;
 		if (generate) {
-			layerCatalog = clientConfig.getLayerCatalog();
+			layerCatalog = clientConfig.getLayerCatalog(false);
 		}
 		return this.getClientConfigFileJSon(layerCatalog, clientConfig, configType, live, generate);
 	}
@@ -1731,7 +1731,7 @@ public class ConfigManager {
 					layersConfig = new JSONObject();
 					if (layerCatalog != null) {
 						for (AbstractLayerConfig layerConfig : layerCatalog.getLayers()) {
-							JSONObject layerJSON = layerConfig.generateLayer();
+							JSONObject layerJSON = layerConfig.generateLayer(layerCatalog.getCachedLayer(layerConfig));
 
 							String layerId = layerConfig.getLayerId();
 							if (layerId != null) {

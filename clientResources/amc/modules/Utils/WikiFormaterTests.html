@@ -1,0 +1,479 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+		"http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ *  This file is part of AtlasMapper server and clients.
+ *
+ *  Copyright (C) 2011 Australian Institute of Marine Science
+ *
+ *  Contact: Gael Lafond <g.lafond@aims.org.au>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<link rel="icon" type="image/png" href="../../resources/favicon.png" />
+		<title>Wiki Formater - Unit tests</title>
+
+		<style>
+			table {
+				border-collapse:collapse;
+			}
+			th, td {
+				border: solid 1px #AAAAAA;
+				padding: 0.2em 0.4em;
+				vertical-align: top;
+			}
+			th {
+				background-color: #DDDDDD;
+			}
+
+			textarea {
+				width: 350px;
+				height: 80px;
+			}
+
+			/* Wrap text in PRE */
+			pre {
+				margin: 0;
+				white-space: pre-wrap;       /* css-3 */
+				white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+				white-space: -pre-wrap;      /* Opera 4-6 */
+				white-space: -o-pre-wrap;    /* Opera 7 */
+				word-wrap: break-word;       /* Internet Explorer 5.5+ */
+			}
+
+			.passed {
+				color: #00CC00;
+			}
+			.failed {
+				color: #CC0000;
+			}
+		</style>
+
+		<!-- WikiFormater is a OpenLayers class -->
+		<script type="text/javascript" src="../../OpenLayers/OpenLayers-2.12/OpenLayers.js"></script>
+		<script type="text/javascript" src="WikiFormater.js"></script>
+	</head>
+
+	<body>
+		<h1>Wiki Formater - Unit tests</h1>
+		<p>
+			This page is intended to be executed by the project developers,
+			to ensure the JavaScript class WikiFormater return the expected
+			results. It is recommended to run the tests on multiple browsers,
+			of different versions, even if it used only functions that are
+			known to behave the same way on every browsers (especially
+			Internet Explorer).
+		</p>
+
+		<p>
+			Result: <span id="result">Loading...</span>
+		</p>
+
+		<table>
+			<thead>
+				<tr>
+					<th>Passed</th>
+					<th>Input</th>
+					<th>Expected</th>
+					<th>Output</th>
+				</tr>
+			</thead>
+			<tfoot>
+				<tr>
+					<th>Passed</th>
+					<th>Input</th>
+					<th>Expected</th>
+					<th>Output</th>
+				</tr>
+			</tfoot>
+			<tbody>
+				<script type="text/javascript">
+					var wikiFormater = new Atlas.Utils.WikiFormater();
+
+					var nbPassed = 0;
+					var nbFailed = 0;
+
+					var wikiTexts = [
+						// Styles
+						[
+							'Bold: *expression*',
+							'Bold: <b>expression</b>'
+						], [
+							'Italic: /expression/',
+							'Italic: <i>expression</i>'
+						], [
+							'Underline: _expression_',
+							'Underline: <u>expression</u>'
+						], [
+							'Strike: -expression-',
+							'Strike: <s>expression</s>'
+						], [
+							'All 4, nested: */_-expression-_/*',
+							'All 4, nested: <b><i><u><s>expression</s></u></i></b>'
+						], [
+							'All 4, mixed: /*Mix* _of -different-_ *styles*/',
+							'All 4, mixed: <i><b>Mix</b> <u>of <s>different</s></u> <b>styles</b></i>'
+						], [
+							'_*Nested bold and underlined*_ (Valid)',
+							'<u><b>Nested bold and underlined</b></u> (Valid)'
+						], [
+							'*_Overlapping bold and underlined*_ (Invalid, only the first style, bold, is applied)',
+							'<b>_Overlapping bold and underlined</b>_ (Invalid, only the first style, bold, is applied)'
+						], [
+							'*not bo*ld (The end of the bold style is inside a word)',
+							'*not bo*ld (The end of the bold style is inside a word)'
+						],
+
+						// Headers
+						[
+							'==Heading 1==',
+							'<h1>Heading 1</h1>'
+						], [
+							'===Heading 2===',
+							'<h2>Heading 2</h2>'
+						], [
+							'====Heading 3====',
+							'<h3>Heading 3</h3>'
+						], [
+							'=====Heading 4=====',
+							'<h4>Heading 4</h4>'
+						], [
+							'======Heading 5======',
+							'<h5>Heading 5</h5>'
+						], [
+							'=======Heading 6=======',
+							'<h6>Heading 6</h6>'
+						], [
+							'========Too many "equals"========',
+							'========Too many "equals"========'
+						], [
+							'=======Unbalanced (use the minimum between the start and the end)====',
+							'<h3>===Unbalanced (use the minimum between the start and the end)</h3>'
+						],
+
+						// Bullet list
+						[
+							'* First element\n' +
+							'** /Sub/ element\n' +
+							'* *2nd* element',
+
+							'<ul>\n' +
+							'  <li>First element\n' +
+							'    <ul>\n' +
+							'      <li><i>Sub</i> element</li>\n' +
+							'    </ul>\n' +
+							'  </li>\n' +
+							'  <li><b>2nd</b> element</li>\n' +
+							'</ul>'
+						],
+
+						// Numbered list
+						[
+							'# First element\n' +
+							'## /Sub/ element\n' +
+							'# *2nd* element',
+
+							'<ol>\n' +
+							'  <li>First element\n' +
+							'    <ol>\n' +
+							'      <li><i>Sub</i> element</li>\n' +
+							'    </ol>\n' +
+							'  </li>\n' +
+							'  <li><b>2nd</b> element</li>\n' +
+							'</ol>'
+						],
+
+						// URLs
+						[
+							'http://www.google.com/',
+							'<a href="http://www.google.com/" target="_blank">http://www.google.com/</a>'
+						], [
+							'https://www.google.com/',
+							'<a href="https://www.google.com/" target="_blank">https://www.google.com/</a>'
+						], [
+							'ftp://www.google.com/',
+							'<a href="ftp://www.google.com/" target="_blank">ftp://www.google.com/</a>'
+						], [
+							'sftp://www.google.com/',
+							'<a href="sftp://www.google.com/" target="_blank">sftp://www.google.com/</a>'
+						], [
+							'file:///usr/bin/bash',
+							'<a href="file:///usr/bin/bash" target="_blank">file:///usr/bin/bash</a>'
+						], [
+							// Unknown protocol - not considered as a URL
+							'gopher://gopher.hprc.utoronto.ca/',
+							'gopher://gopher.hprc.utoronto.ca/'
+						], [
+							// Mailto should be avoid!
+							'mailto:someone@example.com',
+							'mailto:someone@example.com'
+						], [
+							'http://google.com/',
+							'<a href="http://google.com/" target="_blank">http://google.com/</a>'
+						], [
+							'www.google.com',
+							'<a href="http://www.google.com" target="_blank">www.google.com</a>'
+						], [
+							// This is not reconized as a URL
+							'google.com',
+							'google.com'
+						], [
+							'[[http://google.com/]]',
+							'<a href="http://google.com/" target="_blank">http://google.com/</a>'
+						], [
+							'[[http://www.google.com/|Google]]',
+							'<a href="http://www.google.com/" target="_blank">Google</a>'
+						], [
+							'[[page2.html|*Page /2/*]]',
+							'<a href="page2.html" target="_blank"><b>Page <i>2</i></b></a>'
+						], [
+							'[[IMG|../resources/images/maps-small.jpg|Maps]]',
+							'<img src="../resources/images/maps-small.jpg" alt="Maps" title="Maps"/>'
+						], [
+							'[[DOWNLOAD|../resources/images/maps-small.jpg]]',
+							'<a href="../resources/images/maps-small.jpg" download="maps-small.jpg" target="blank">maps-small.jpg</a>'
+						], [
+							'[[DOWNLOAD|../resources/images/maps-small.jpg|maps.jpg]]',
+							'<a href="../resources/images/maps-small.jpg" download="maps.jpg" target="blank">maps.jpg</a>'
+						], [
+							'[[DOWNLOAD|../resources/images/maps-small.jpg|mapsSmall.jpg|Maps]]',
+							'<a href="../resources/images/maps-small.jpg" download="mapsSmall.jpg" target="blank">Maps</a>'
+						], [
+							'[[DOWNLOAD|../resources/images/maps-small.jpg|maps-small.jpg|[[IMG|../resources/images/maps-small.jpg|Maps]]]]',
+							'<a href="../resources/images/maps-small.jpg" download="maps-small.jpg" target="blank"><img src="../resources/images/maps-small.jpg" alt="Maps" title="Maps"/></a>'
+						],
+
+						// Multiline text
+						[
+							'==Test multi line /Wiki/ format.==\n' +
+							'This *star is never closed so it must not be apply.\n' +
+							'This /slash is closed at the end of the document so everything from here should be italic.\n' +
+							'*Shipping list:*\n' +
+							'* Milk\n' +
+							'* Bread\n' +
+							'** _Raisin bread_\n' +
+							'** English muffins\n' +
+							'* Sweets\n' +
+							'** -Lolly pops-\n' +
+							'** Chocolate\n' +
+							'*** [[http://en.wikipedia.org/wiki/Caramel|*Caramel* chocolate]]\n' +
+							'*** [[http://en.wikipedia.org/wiki/Chocolate|Normal /chocolate/]]\n' +
+							'*** [[http://fr.wikipedia.org/wiki/Fichier:Vegan_Chocolate_Fudge.jpg|[[IMG|http://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Vegan_Chocolate_Fudge.jpg/100px-Vegan_Chocolate_Fudge.jpg|*Fudge* chocolate]]]]\n' +
+							'\n' +
+							'List of endangered species\n' +
+							'# Abbott\n' +
+							'## Abbott\'s Booby\n' +
+							'## Abbott\'s Duiker\n' +
+							'## Abbott\'s Starling\n' +
+							'# Abor\n' +
+							'## Abor Bug-eyed Frog\n' +
+							'# Abra\n' +
+							'## Abra Acanacu\n' +
+							'### Abra Acanacu Marsupial Frog [[IMG|http://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Gastrotheca_excubitor.jpg/100px-Gastrotheca_excubitor.jpg|Abra Acanacu Marsupial Frog]]\n' +
+							'## Abra Malaga Toad\n' +
+							'# Coral\n' +
+							'## Acropora\n' +
+							'### Acropora abrolhosensis\n' +
+							'### Acropora aculeus\n' +
+							'### Acropora acuminata\n' +
+							'### ...\n' +
+							'# African Viviparous Toad\n' +
+							'## Nectophrynoides\n' +
+							'### Nectophrynoides asperginis\n' +
+							'### Nectophrynoides cryptus\n' +
+							'### Nectophrynoides laticeps\n' +
+							'### ...\n' +
+							'End of italic/.\n' +
+							'\n',
+
+							'<h1>Test multi line <i>Wiki</i> format.</h1>\n' +
+							'This *star is never closed so it must not be apply.<br/>\n' +
+							'This <i>slash is closed at the end of the document so everything from here should be italic.<br/>\n' +
+							'<b>Shipping list:</b><br/>\n' +
+							'<ul>\n' +
+							'  <li>Milk</li>\n' +
+							'  <li>Bread\n' +
+							'    <ul>\n' +
+							'      <li><u>Raisin bread</u></li>\n' +
+							'      <li>English muffins</li>\n' +
+							'    </ul>\n' +
+							'  </li>\n' +
+							'  <li>Sweets\n' +
+							'    <ul>\n' +
+							'      <li><s>Lolly pops</s></li>\n' +
+							'      <li>Chocolate\n' +
+							'        <ul>\n' +
+							'          <li><a href="http://en.wikipedia.org/wiki/Caramel" target="_blank"><b>Caramel</b> chocolate</a></li>\n' +
+							'          <li><a href="http://en.wikipedia.org/wiki/Chocolate" target="_blank">Normal <i>chocolate</i></a></li>\n' +
+							'          <li><a href="http://fr.wikipedia.org/wiki/Fichier:Vegan_Chocolate_Fudge.jpg" target="_blank"><img src="http://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Vegan_Chocolate_Fudge.jpg/100px-Vegan_Chocolate_Fudge.jpg" alt="*Fudge* chocolate" title="*Fudge* chocolate"/></a></li>\n' +
+							'        </ul>\n' +
+							'      </li>\n' +
+							'    </ul>\n' +
+							'  </li>\n' +
+							'</ul>\n' +
+							'<br/>\n' +
+							'List of endangered species<br/>\n' +
+							'<ol>\n' +
+							'  <li>Abbott\n' +
+							'    <ol>\n' +
+							'      <li>Abbott\'s Booby</li>\n' +
+							'      <li>Abbott\'s Duiker</li>\n' +
+							'      <li>Abbott\'s Starling</li>\n' +
+							'    </ol>\n' +
+							'  </li>\n' +
+							'  <li>Abor\n' +
+							'    <ol>\n' +
+							'      <li>Abor Bug-eyed Frog</li>\n' +
+							'    </ol>\n' +
+							'  </li>\n' +
+							'  <li>Abra\n' +
+							'    <ol>\n' +
+							'      <li>Abra Acanacu\n' +
+							'        <ol>\n' +
+							'          <li>Abra Acanacu Marsupial Frog <img src="http://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Gastrotheca_excubitor.jpg/100px-Gastrotheca_excubitor.jpg" alt="Abra Acanacu Marsupial Frog" title="Abra Acanacu Marsupial Frog"/></li>\n' +
+							'        </ol>\n' +
+							'      </li>\n' +
+							'      <li>Abra Malaga Toad</li>\n' +
+							'    </ol>\n' +
+							'  </li>\n' +
+							'  <li>Coral\n' +
+							'    <ol>\n' +
+							'      <li>Acropora\n' +
+							'        <ol>\n' +
+							'          <li>Acropora abrolhosensis</li>\n' +
+							'          <li>Acropora aculeus</li>\n' +
+							'          <li>Acropora acuminata</li>\n' +
+							'          <li>...</li>\n' +
+							'        </ol>\n' +
+							'      </li>\n' +
+							'    </ol>\n' +
+							'  </li>\n' +
+							'  <li>African Viviparous Toad\n' +
+							'    <ol>\n' +
+							'      <li>Nectophrynoides\n' +
+							'        <ol>\n' +
+							'          <li>Nectophrynoides asperginis</li>\n' +
+							'          <li>Nectophrynoides cryptus</li>\n' +
+							'          <li>Nectophrynoides laticeps</li>\n' +
+							'          <li>...</li>\n' +
+							'        </ol>\n' +
+							'      </li>\n' +
+							'    </ol>\n' +
+							'  </li>\n' +
+							'</ol>\n' +
+							'End of italic</i>.<br/>\n' +
+							'<br/>\n'
+						]
+					];
+
+					// Replace multiple whitespaces by 1 single space and remove spaces before and after HTML tags.
+					// Example: <b> A   B</b > returns <b>A B</b>
+					// NOTE: This function is not optimised and should not be used anywhere else than in Unit tests
+					//     (it process every '<' and '>' even if they are not surrending by spaces).
+					function equaliseSpaces(str) {
+						return str.replace(/\s\s*/g, ' ').replace(/\s*>\s*/g, '>').replace(/\s*<\s*/g, '<');
+					}
+					function trim(str) {
+						return str.replace(/^\s\s*/, '').replace(/\s\s*$/, '');
+					}
+
+					function htmlEquals(htmlStr1, htmlStr2) {
+						return trim(equaliseSpaces(htmlStr1)) === trim(equaliseSpaces(htmlStr2));
+					}
+
+					function encodeHtml(htmlStr) {
+						return htmlStr.replace(/&/g, '&amp;').replace(/>/g, '&gt;').replace(/</g, '&lt;');
+					}
+
+					for (var i=0; i<wikiTexts.length; i++) {
+						var result = wikiFormater.format(wikiTexts[i][0]);
+						document.write('<tr>');
+						if (htmlEquals(result, wikiTexts[i][1])) {
+							document.write('<td class="passed">PASSED</td>');
+							nbPassed++;
+						} else {
+							document.write('<td class="failed">FAILED</td>');
+							nbFailed++;
+						}
+						document.write('<td><pre>' + encodeHtml(wikiTexts[i][0]) + '</pre></td>');
+						document.write('<td><pre>' + encodeHtml(wikiTexts[i][1]) + '</pre></td>');
+						document.write('<td><pre>' + encodeHtml(result) + '</pre></td>');
+						document.write('</tr>');
+					}
+
+					// Long URL truncation
+					document.write('<tr>');
+					document.write('<td colspan="4">Long URL truncation</td>');
+					document.write('</tr>');
+
+					var longURLs = [
+						[
+							'http://www.domain.com/abcdefghijklmnopqrstuvwxyz/index.html',
+							'<a href="http://www.domain.com/abcdefghijklmnopqrstuvwxyz/index.html" target="_blank">http://www.domain.com/abcdefghijklm...z/index.html</a>',
+							50
+						], [
+							'[[http://www.domain.com/abcdefghijklmnopqrstuvwxyz/index.html]]',
+							'<a href="http://www.domain.com/abcdefghijklmnopqrstuvwxyz/index.html" target="_blank">http://www.domain.com/abcdef...ndex.html</a>',
+							40
+						], [
+							'[[http://www.domain.com/abcdefghijklmnopqrstuvwxyz/index.html]]',
+							'<a href="http://www.domain.com/abcdefghijklmnopqrstuvwxyz/index.html" target="_blank">http://www.do...html</a>',
+							20
+						], [
+							'[[DOWNLOAD|http://www.domain.com/abcdefghijklmnopqrstuvwxyz/index.html]]',
+							'<a href="http://www.domain.com/abcdefghijklmnopqrstuvwxyz/index.html" download="index.html" target="blank">index.html</a>',
+							20
+						], [
+							'URL: http://www.domain.com/abcdefghijklmnopqrstuvwxyz/index.html',
+							'URL: <a href="http://www.domain.com/abcdefghijklmnopqrstuvwxyz/index.html" target="_blank">http:...ml</a>',
+							10
+						], [
+							'[[http://www.domain.com/abcdefghijklmnopqrstuvwxyz/index.html|Label]]',
+							'<a href="http://www.domain.com/abcdefghijklmnopqrstuvwxyz/index.html" target="_blank">Label</a>',
+							10
+						]
+					];
+					for (var i=0; i<longURLs.length; i++) {
+						wikiFormater.MAX_URL_LENGTH = longURLs[i][2];
+						var result = wikiFormater.format(longURLs[i][0]);
+						document.write('<tr>');
+						if (htmlEquals(result, longURLs[i][1])) {
+							document.write('<td class="passed">PASSED</td>');
+							nbPassed++;
+						} else {
+							document.write('<td class="failed">FAILED</td>');
+							nbFailed++;
+						}
+						document.write('<td><pre>' + encodeHtml(longURLs[i][0]) + '</pre><br/>Max length: ' + longURLs[i][2] + '</td>');
+						document.write('<td><pre>' + encodeHtml(longURLs[i][1]) + '</pre></td>');
+						document.write('<td><pre>' + encodeHtml(result) + '</pre></td>');
+						document.write('</tr>');
+					}
+
+					var resultEl = document.getElementById('result')
+					if (nbFailed > 0) {
+						resultEl.className = 'failed';
+						resultEl.innerHTML = 'FAILED: ' + nbFailed + ' tests has failed, ' + nbPassed + ' tests has passed.';
+					} else {
+						resultEl.className = 'passed';
+						resultEl.innerHTML = 'SUCCESS: ' + nbPassed + ' tests has passed.';
+					}
+				</script>
+			</tbody>
+		</table>
+	</body>
+</html>

@@ -239,6 +239,7 @@
 									if (errors != null) {
 										jsonObj.put("errors", errors.optJSONObject("errors"));
 										jsonObj.put("warnings", errors.optJSONObject("warnings"));
+										jsonObj.put("messages", errors.optJSONObject("messages"));
 									}
 									jsonObj.put("success", !jsonObj.has("errors"));
 								}
@@ -264,6 +265,7 @@
 						if (errors != null) {
 							jsonObj.put("errors", errors.optJSONObject("errors"));
 							jsonObj.put("warnings", errors.optJSONObject("warnings"));
+							jsonObj.put("messages", errors.optJSONObject("messages"));
 						}
 						jsonObj.put("success", !jsonObj.has("errors"));
 					} catch (Exception e) {

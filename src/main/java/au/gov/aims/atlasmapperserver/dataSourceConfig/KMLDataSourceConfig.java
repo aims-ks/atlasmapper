@@ -39,7 +39,7 @@ public class KMLDataSourceConfig extends AbstractDataSourceConfig {
 	private static final Logger LOGGER = Logger.getLogger(KMLDataSourceConfig.class.getName());
 
 	@ConfigField
-	private JSONArray kmlDatas;
+	private JSONArray kmlData;
 
 	@Deprecated
 	@ConfigField
@@ -50,13 +50,16 @@ public class KMLDataSourceConfig extends AbstractDataSourceConfig {
 		super(configManager);
 	}
 
+	/**
+	 * @deprecated  As of release 1.3.1, replaced by {@link #setKmlData(JSONArray kmlDatas)}
+	 */
 	@Deprecated
 	public void setKmlUrls(String kmlUrls) throws JSONException {
 		if (Utils.isNotBlank(kmlUrls)) {
 			LOGGER.log(Level.WARNING, "DEPRECATED KmlUrls string. The KmlUrls has been converted:\n{0}", kmlUrls);
 			Set<String> kmlUrlsSet = AbstractConfig.toSet(kmlUrls);
 
-			this.kmlDatas = new JSONArray();
+			this.kmlData = new JSONArray();
 			int i=0;
 			for (String kmlUrlStr : kmlUrlsSet) {
 				JSONObject urlObj = new JSONObject();
@@ -67,7 +70,7 @@ public class KMLDataSourceConfig extends AbstractDataSourceConfig {
 				urlObj.put("id", id);
 				urlObj.put("url", kmlUrlStr);
 				urlObj.put("title", id);
-				this.kmlDatas.put(urlObj);
+				this.kmlData.put(urlObj);
 			}
 		}
 	}
@@ -86,18 +89,22 @@ public class KMLDataSourceConfig extends AbstractDataSourceConfig {
 		int layerIdEnd = kmlUrl.lastIndexOf('.');
 		layerIdEnd = (layerIdEnd >= 0 ? layerIdEnd : kmlUrl.length());
 
-		return kmlUrl.substring(layerIdStart, layerIdEnd);
+		return this.getDataSourceId() + "_" +  kmlUrl.substring(layerIdStart, layerIdEnd);
 	}
+	/**
+	 * @deprecated  As of release 1.3.1, replaced by {@link #getKmlData()}
+	 */
 	@Deprecated
 	public String getKmlUrls() {
 		return null;
 	}
 
-	public JSONArray getKmlDatas() {
-		return this.kmlDatas;
+	// Note to myself: The word data is the plural of datum
+	public JSONArray getKmlData() {
+		return this.kmlData;
 	}
-	public void setKmlDatas(JSONArray kmlDatas) {
-		this.kmlDatas = kmlDatas;
+	public void setKmlData(JSONArray kmlData) {
+		this.kmlData = kmlData;
 	}
 
 
@@ -111,7 +118,7 @@ public class KMLDataSourceConfig extends AbstractDataSourceConfig {
 	public String toString() {
 		return "KMLDataSourceConfig {\n" +
 				(this.getId()==null ? "" :                             "	id=" + this.getId() + "\n") +
-				(this.kmlDatas == null || this.kmlDatas.length() <= 0 ? "" :   "	kmlDatas=" + this.kmlDatas.toString() + "\n") +
+				(this.kmlData == null || this.kmlData.length() <= 0 ? "" :     "	kmlData=" + this.kmlData.toString() + "\n") +
 				(Utils.isBlank(this.getDataSourceId()) ? "" :          "	dataSourceId=" + this.getDataSourceId() + "\n") +
 				(Utils.isBlank(this.getDataSourceName()) ? "" :        "	dataSourceName=" + this.getDataSourceName() + "\n") +
 				(Utils.isBlank(this.getDataSourceType()) ? "" :        "	dataSourceType=" + this.getDataSourceType() + "\n") +

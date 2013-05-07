@@ -61,7 +61,7 @@ public class WMSLayerConfig extends AbstractLayerConfig implements WMSDataSource
 	}
 
 	public Boolean isWmsQueryable() {
-		return wmsQueryable;
+		return this.wmsQueryable;
 	}
 
 	public void setWmsQueryable(Boolean wmsQueryable) {
@@ -151,8 +151,8 @@ public class WMSLayerConfig extends AbstractLayerConfig implements WMSDataSource
 	}
 
 	@Override
-	public JSONObject generateLayer() throws JSONException {
-		JSONObject jsonLayer = super.generateLayer();
+	public JSONObject generateLayer(AbstractLayerConfig cachedLayer) throws JSONException {
+		JSONObject jsonLayer = super.generateLayer(cachedLayer);
 
 		if (Utils.isNotBlank(this.getWebCacheUrl())) {
 			jsonLayer.put("webCacheUrl", this.getWebCacheUrl().trim());

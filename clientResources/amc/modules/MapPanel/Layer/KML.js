@@ -107,16 +107,19 @@ Atlas.Layer.KML = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 		var feature = event.feature;
 
 		var content = "<h2>"+feature.attributes.name + "</h2>";
+		var description = '';
 		if (typeof(feature.attributes.description) !== 'undefined') {
-			content += feature.attributes.description;
+			description += feature.attributes.description;
 		}
 
 		// Javascript in KML can be unsafe.
 		if (!this.KML_ALLOW_JAVASCRIPT) {
-			if (content.search("<script") != -1) {
-				content = "Content contained Javascript! Escaped content below.<br />" + content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+			if (description.search("<script") != -1) {
+				description = "Content contained Javascript! Escaped content below.<br />" + description.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 			}
 		}
+
+		content += description;
 
 		var that = this;
 		var popupId = 'kml-popup';

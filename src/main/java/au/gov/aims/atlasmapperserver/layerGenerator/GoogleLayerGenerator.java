@@ -59,9 +59,10 @@ public class GoogleLayerGenerator extends AbstractLayerGenerator<GoogleLayerConf
 	 *     * Google Hybrid
 	 *     * Google Satellite
 	 * @return
+	 * NOTE: Harvest is ignored since there is nothing to harvest.
 	 */
 	@Override
-	public Collection<GoogleLayerConfig> generateLayerConfigs(GoogleDataSourceConfig dataSourceConfig) {
+	public Collection<GoogleLayerConfig> generateLayerConfigs(GoogleDataSourceConfig dataSourceConfig, boolean harvest) {
 		if (googleLayersCache == null) {
 			googleLayersCache = new ArrayList<GoogleLayerConfig>();
 

@@ -464,13 +464,15 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 				(boundsArray[2] < -180 ? -180 : (boundsArray[2] > 180 ? 180 : boundsArray[2])),
 				(boundsArray[3] < -85 ? -85 : (boundsArray[3] > 85 ? 85 : boundsArray[3]))
 			);
-		}
-		if (bounds == null && typeof(this.layer.getDataExtent) === 'function') {
-			bounds = this.layer.getDataExtent();
+
+			if (bounds != null && this.mapPanel != null) {
+				bounds = bounds.transform(this.mapPanel.defaultLonLatProjection, this.mapPanel.map.getProjectionObject());
+			}
 		}
 
-		if (bounds != null && this.mapPanel != null) {
-			bounds = bounds.transform(this.mapPanel.defaultLonLatProjection, this.mapPanel.map.getProjectionObject());
+		if (bounds == null && typeof(this.layer.getDataExtent) === 'function') {
+			// getDataExtent() return already reprojected bounds
+			bounds = this.layer.getDataExtent();
 		}
 
 		return bounds;

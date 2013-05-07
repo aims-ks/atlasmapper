@@ -25,7 +25,7 @@ import au.gov.aims.atlasmapperserver.Utils;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Document {
+public class TC211Document {
 	// For logging purpose
 	private String uri;
 
@@ -36,7 +36,7 @@ public class Document {
 	// List of polygons, not closed. It's more efficient to close them with OpenLayers
 	private List<Polygon> polygons;
 
-	public Document(String uri) {
+	public TC211Document(String uri) {
 		this.uri = uri;
 	}
 

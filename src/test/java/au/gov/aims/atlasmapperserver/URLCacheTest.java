@@ -80,6 +80,8 @@
  *                 Rollback                      [test_NullTimeout_FailedRollback]
  *
  * Tests with real data - they should all pass if the previous tests are exhaustive enough:
+ *     [testFailTooLongNoFileSize]
+ *         Request file, it's now too large, return null, rollback. Ensure it do not download the whole thing.
  *     [testDownloadFailThenSucceed]
  *         Receive null at first request, rollback - timeout - receive something at 2nd request, commit
  *     [testSucceedThenTooLong]
@@ -101,8 +103,8 @@
  */
 package au.gov.aims.atlasmapperserver;
 
-import au.gov.aims.atlasmapperserver.xml.TC211.Document;
-import au.gov.aims.atlasmapperserver.xml.TC211.Parser;
+import au.gov.aims.atlasmapperserver.xml.TC211.TC211Document;
+import au.gov.aims.atlasmapperserver.xml.TC211.TC211Parser;
 import junit.framework.TestCase;
 import org.geotools.data.ows.WMSCapabilities;
 import org.geotools.ows.ServiceException;
@@ -121,6 +123,7 @@ import java.net.URLConnection;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+// TODO UPDATE TESTS - THE CACHE LOGIC HAS CHANGED - NOW ENTIRELY MANAGED BY THE USER, NO MORE TIMEOUT
 public class URLCacheTest extends TestCase {
 	private static final Logger LOGGER = Logger.getLogger(URLCacheTest.class.getName());
 	private static final String HTTPMOCKUP_SERVICE_URL = "http://localhost:8080/httpmockup/";
@@ -136,12 +139,12 @@ public class URLCacheTest extends TestCase {
 	//         Commit                            [test_New_Commit]
 	public void test_New_Commit() throws IOException, JSONException {
 		if (this.serviceExists()) {
-			URLCache.clearCache(getTestApplicationFolder());
 			ConfigManager configManager = getConfigManager();
+			URLCache.clearCache(configManager, false);
 
 			String urlStr = HTTPMOCKUP_SERVICE_URL + "?content=abcd";
 
-			File file = URLCache.getURLFile(configManager, null, urlStr, false);
+			File file = URLCache.getURLFile(configManager, null, urlStr, false, true);
 
 			// Validate the downloaded info
 			String content = readFile(file);
@@ -174,12 +177,12 @@ public class URLCacheTest extends TestCase {
 	//         Rollback                          [test_New_Rollback]
 	public void test_New_Rollback() throws IOException, JSONException {
 		if (this.serviceExists()) {
-			URLCache.clearCache(getTestApplicationFolder());
 			ConfigManager configManager = getConfigManager();
+			URLCache.clearCache(configManager, false);
 
 			String urlStr = HTTPMOCKUP_SERVICE_URL + "?content=abcd";
 
-			File file = URLCache.getURLFile(configManager, null, urlStr, false);
+			File file = URLCache.getURLFile(configManager, null, urlStr, false, true);
 
 			// Validate the downloaded info
 			String content = readFile(file);
@@ -212,12 +215,12 @@ public class URLCacheTest extends TestCase {
 	//         Commit                            [test_New_FailedCommit]
 	public void test_New_FailedCommit() throws IOException, JSONException {
 		if (this.serviceExists()) {
-			URLCache.clearCache(getTestApplicationFolder());
 			ConfigManager configManager = getConfigManager();
+			URLCache.clearCache(configManager, false);
 
 			String urlStr = NONE_EXISTING_URL;
 
-			File file = URLCache.getURLFile(configManager, null, urlStr, false);
+			File file = URLCache.getURLFile(configManager, null, urlStr, false, true);
 
 			// Validate the downloaded info
 			assertNull(file);
@@ -249,12 +252,12 @@ public class URLCacheTest extends TestCase {
 	//         Rollback                          [test_New_FailedRollback]
 	public void test_New_FailedRollback() throws IOException, JSONException {
 		if (this.serviceExists()) {
-			URLCache.clearCache(getTestApplicationFolder());
 			ConfigManager configManager = getConfigManager();
+			URLCache.clearCache(configManager, false);
 
 			String urlStr = NONE_EXISTING_URL;
 
-			File file = URLCache.getURLFile(configManager, null, urlStr, false);
+			File file = URLCache.getURLFile(configManager, null, urlStr, false, true);
 
 			// Validate the downloaded info
 			assertNull(file);
@@ -289,20 +292,20 @@ public class URLCacheTest extends TestCase {
 	//         2nd request (cached) - Commit     [test_Approved_Commit]
 	public void test_Approved_Commit() throws IOException, JSONException {
 		if (this.serviceExists()) {
-			URLCache.clearCache(getTestApplicationFolder());
 			ConfigManager configManager = getConfigManager();
+			URLCache.clearCache(configManager, false);
 
 			String urlStr = HTTPMOCKUP_SERVICE_URL + "?content=abcd";
 
 			// Download the file for the 1st time
-			File file1 = URLCache.getURLFile(configManager, null, urlStr, false);
+			File file1 = URLCache.getURLFile(configManager, null, urlStr, false, true);
 
 			// Commit (approve) the file
 			URLCache.commitURLFile(configManager, file1, urlStr);
 
 
 			// Re-request the file - the timeout hasn't expired, it must give the same cached file
-			File file2 = URLCache.getURLFile(configManager, null, urlStr, false);
+			File file2 = URLCache.getURLFile(configManager, null, urlStr, false, false);
 
 			// Ensure the returned file is the cached file
 			assertEquals(file1, file2);
@@ -339,20 +342,20 @@ public class URLCacheTest extends TestCase {
 	//         2nd request (cached) - Rollback   [test_Approved_Rollback]
 	public void test_Approved_Rollback() throws IOException, JSONException {
 		if (this.serviceExists()) {
-			URLCache.clearCache(getTestApplicationFolder());
 			ConfigManager configManager = getConfigManager();
+			URLCache.clearCache(configManager, false);
 
 			String urlStr = HTTPMOCKUP_SERVICE_URL + "?content=abcd";
 
 			// Download the file for the 1st time
-			File file1 = URLCache.getURLFile(configManager, null, urlStr, false);
+			File file1 = URLCache.getURLFile(configManager, null, urlStr, false, true);
 
 			// Commit (approve) the file
 			URLCache.commitURLFile(configManager, file1, urlStr);
 
 
 			// Re-request the file - the timeout hasn't expired, it must give the same cached file
-			File file2 = URLCache.getURLFile(configManager, null, urlStr, false);
+			File file2 = URLCache.getURLFile(configManager, null, urlStr, false, false);
 
 			// Ensure the returned file is the cached file
 			assertEquals(file1, file2);
@@ -395,13 +398,13 @@ public class URLCacheTest extends TestCase {
 	//             Commit                        [test_ApprovedTimeout_Commit]
 	public void test_ApprovedTimeout_Commit() throws IOException, JSONException {
 		if (this.serviceExists()) {
-			URLCache.clearCache(getTestApplicationFolder());
 			ConfigManager configManager = getConfigManager();
+			URLCache.clearCache(configManager, false);
 
 			String urlStr = HTTPMOCKUP_SERVICE_URL + "?content=abcd";
 
 			// Download the file for the 1st time
-			File file1 = URLCache.getURLFile(configManager, null, urlStr, false);
+			File file1 = URLCache.getURLFile(configManager, null, urlStr, false, true);
 
 			// Commit (approve) the file
 			URLCache.commitURLFile(configManager, file1, urlStr);
@@ -413,7 +416,7 @@ public class URLCacheTest extends TestCase {
 
 
 			// Re-request the file - the timeout has expired, it must re-download the file
-			File file2 = URLCache.getURLFile(configManager, null, urlStr, false);
+			File file2 = URLCache.getURLFile(configManager, null, urlStr, false, true);
 
 			// Ensure the returned file is NOT the cached file
 			assertFalse(file1.equals(file2));
@@ -454,13 +457,13 @@ public class URLCacheTest extends TestCase {
 	//             Rollback                      [test_ApprovedTimeout_Rollback]
 	public void test_ApprovedTimeout_Rollback() throws IOException, JSONException {
 		if (this.serviceExists()) {
-			URLCache.clearCache(getTestApplicationFolder());
 			ConfigManager configManager = getConfigManager();
+			URLCache.clearCache(configManager, false);
 
 			String urlStr = HTTPMOCKUP_SERVICE_URL + "?content=abcd";
 
 			// Download the file for the 1st time
-			File file1 = URLCache.getURLFile(configManager, null, urlStr, false);
+			File file1 = URLCache.getURLFile(configManager, null, urlStr, false, true);
 
 			// Commit (approve) the file
 			URLCache.commitURLFile(configManager, file1, urlStr);
@@ -471,8 +474,8 @@ public class URLCacheTest extends TestCase {
 			assertEquals(0, cachedFile.getExpiry());
 
 
-			// Re-request the file - the timeout hasn't expired, it must give the same cached file
-			File file2 = URLCache.getURLFile(configManager, null, urlStr, false);
+			// Re-request the file - the timeout has expired, it must re-download the file
+			File file2 = URLCache.getURLFile(configManager, null, urlStr, false, true);
 
 			// Ensure the returned file is NOT the cached file
 			assertFalse(file1.equals(file2));
@@ -517,14 +520,14 @@ public class URLCacheTest extends TestCase {
 	//             Commit                        [test_ApprovedTimeout_FailedCommit]
 	public void test_ApprovedTimeout_FailedCommit() throws IOException, JSONException {
 		if (this.serviceExists()) {
-			URLCache.clearCache(getTestApplicationFolder());
 			ConfigManager configManager = getConfigManager();
+			URLCache.clearCache(configManager, false);
 
 			String validUrlStr = HTTPMOCKUP_SERVICE_URL + "?content=abcd";
 			String invalidUrlStr = NONE_EXISTING_URL;
 
 			// Download the file for the 1st time
-			File file1 = URLCache.getURLFile(configManager, null, validUrlStr, false);
+			File file1 = URLCache.getURLFile(configManager, null, validUrlStr, false, true);
 
 			// Commit (approve) the file
 			URLCache.commitURLFile(configManager, file1, validUrlStr);
@@ -539,7 +542,7 @@ public class URLCacheTest extends TestCase {
 
 
 			// Re-request the file - the timeout has expired, it must re-download the file
-			File file2 = URLCache.getURLFile(configManager, null, invalidUrlStr, false);
+			File file2 = URLCache.getURLFile(configManager, null, invalidUrlStr, false, true);
 
 			// The URLCache can not download the new file, so it automatically rollback and return the first file
 			assertEquals(file1, file2);
@@ -574,14 +577,14 @@ public class URLCacheTest extends TestCase {
 	//             Rollback                      [test_ApprovedTimeout_FailedRollback]
 	public void test_ApprovedTimeout_FailedRollback() throws IOException, JSONException {
 		if (this.serviceExists()) {
-			URLCache.clearCache(getTestApplicationFolder());
 			ConfigManager configManager = getConfigManager();
+			URLCache.clearCache(configManager, false);
 
 			String validUrlStr = HTTPMOCKUP_SERVICE_URL + "?content=abcd";
 			String invalidUrlStr = NONE_EXISTING_URL;
 
 			// Download the file for the 1st time
-			File file1 = URLCache.getURLFile(configManager, null, validUrlStr, false);
+			File file1 = URLCache.getURLFile(configManager, null, validUrlStr, false, true);
 
 			// Commit (approve) the file
 			URLCache.commitURLFile(configManager, file1, validUrlStr);
@@ -596,7 +599,7 @@ public class URLCacheTest extends TestCase {
 
 
 			// Re-request the file - the timeout has expired, it must re-download the file
-			File file2 = URLCache.getURLFile(configManager, null, invalidUrlStr, false);
+			File file2 = URLCache.getURLFile(configManager, null, invalidUrlStr, false, true);
 
 			// The URLCache can not download the new file, so it automatically rollback and return the first file
 			assertEquals(file1, file2);
@@ -638,13 +641,13 @@ public class URLCacheTest extends TestCase {
 	//         2nd request (cached) - Commit     [test_NotApproved_Commit]
 	public void test_NotApproved_Commit() throws IOException, JSONException {
 		if (this.serviceExists()) {
-			URLCache.clearCache(getTestApplicationFolder());
 			ConfigManager configManager = getConfigManager();
+			URLCache.clearCache(configManager, false);
 
 			String urlStr = HTTPMOCKUP_SERVICE_URL + "?content=abcd";
 
 			// Download the file for the 1st time
-			File file1 = URLCache.getURLFile(configManager, null, urlStr, false);
+			File file1 = URLCache.getURLFile(configManager, null, urlStr, false, true);
 
 			// Rollback (refuse) the file
 			File file2 = URLCache.rollbackURLFile(configManager, file1, urlStr, "New error message");
@@ -654,7 +657,7 @@ public class URLCacheTest extends TestCase {
 
 
 			// Re-request the file - the timeout hasn't expired, it must give the same cached file
-			File file3 = URLCache.getURLFile(configManager, null, urlStr, false);
+			File file3 = URLCache.getURLFile(configManager, null, urlStr, false, false);
 
 			// Ensure the returned file is the cached file (refused => null)
 			assertNull(file3);
@@ -688,13 +691,13 @@ public class URLCacheTest extends TestCase {
 	//         2nd request (cached) - Rollback   [test_NotApproved_Rollback]
 	public void test_NotApproved_Rollback() throws IOException, JSONException {
 		if (this.serviceExists()) {
-			URLCache.clearCache(getTestApplicationFolder());
 			ConfigManager configManager = getConfigManager();
+			URLCache.clearCache(configManager, false);
 
 			String urlStr = HTTPMOCKUP_SERVICE_URL + "?content=abcd";
 
 			// Download the file for the 1st time
-			File file1 = URLCache.getURLFile(configManager, null, urlStr, false);
+			File file1 = URLCache.getURLFile(configManager, null, urlStr, false, true);
 
 			// Rollback (refuse) the file
 			File file2 = URLCache.rollbackURLFile(configManager, file1, urlStr, "New error message");
@@ -704,7 +707,7 @@ public class URLCacheTest extends TestCase {
 
 
 			// Re-request the file - the timeout hasn't expired, it must give the same cached file
-			File file3 = URLCache.getURLFile(configManager, null, urlStr, false);
+			File file3 = URLCache.getURLFile(configManager, null, urlStr, false, false);
 
 			// Ensure the returned file is the cached file (refused => null)
 			assertNull(file3);
@@ -743,13 +746,13 @@ public class URLCacheTest extends TestCase {
 	//             Commit                        [test_NotApprovedTimeout_Commit]
 	public void test_NotApprovedTimeout_Commit() throws IOException, JSONException {
 		if (this.serviceExists()) {
-			URLCache.clearCache(getTestApplicationFolder());
 			ConfigManager configManager = getConfigManager();
+			URLCache.clearCache(configManager, false);
 
 			String urlStr = HTTPMOCKUP_SERVICE_URL + "?content=abcd";
 
 			// Download the file for the 1st time
-			File file1 = URLCache.getURLFile(configManager, null, urlStr, false);
+			File file1 = URLCache.getURLFile(configManager, null, urlStr, false, true);
 
 			// Rollback (refuse) the file
 			File file2 = URLCache.rollbackURLFile(configManager, file1, urlStr, "New error message");
@@ -764,7 +767,7 @@ public class URLCacheTest extends TestCase {
 
 
 			// Re-request the file - the timeout has expired, it must re-download the file
-			File file3 = URLCache.getURLFile(configManager, null, urlStr, false);
+			File file3 = URLCache.getURLFile(configManager, null, urlStr, false, true);
 
 			// Validate the downloaded info
 			String content = readFile(file3);
@@ -806,13 +809,13 @@ public class URLCacheTest extends TestCase {
 	//             Rollback                      [test_NotApprovedTimeout_Rollback]
 	public void test_NotApprovedTimeout_Rollback() throws IOException, JSONException {
 		if (this.serviceExists()) {
-			URLCache.clearCache(getTestApplicationFolder());
 			ConfigManager configManager = getConfigManager();
+			URLCache.clearCache(configManager, false);
 
 			String urlStr = HTTPMOCKUP_SERVICE_URL + "?content=abcd";
 
 			// Download the file for the 1st time
-			File file1 = URLCache.getURLFile(configManager, null, urlStr, false);
+			File file1 = URLCache.getURLFile(configManager, null, urlStr, false, true);
 
 			// Rollback (refuse) the file
 			File file2 = URLCache.rollbackURLFile(configManager, file1, urlStr, "New error message");
@@ -827,7 +830,7 @@ public class URLCacheTest extends TestCase {
 
 
 			// Re-request the file - the timeout has expired, it must re-download the file
-			File file3 = URLCache.getURLFile(configManager, null, urlStr, false);
+			File file3 = URLCache.getURLFile(configManager, null, urlStr, false, true);
 
 			// Validate the downloaded info
 			String content = readFile(file3);
@@ -867,14 +870,14 @@ public class URLCacheTest extends TestCase {
 	//             Commit                        [test_NotApprovedTimeout_FailedCommit]
 	public void test_NotApprovedTimeout_FailedCommit() throws IOException, JSONException {
 		if (this.serviceExists()) {
-			URLCache.clearCache(getTestApplicationFolder());
 			ConfigManager configManager = getConfigManager();
+			URLCache.clearCache(configManager, false);
 
 			String validUrlStr = HTTPMOCKUP_SERVICE_URL + "?content=abcd";
 			String invalidUrlStr = NONE_EXISTING_URL;
 
 			// Download the file for the 1st time
-			File file1 = URLCache.getURLFile(configManager, null, validUrlStr, false);
+			File file1 = URLCache.getURLFile(configManager, null, validUrlStr, false, true);
 
 			// Rollback (refuse) the file
 			File file2 = URLCache.rollbackURLFile(configManager, file1, validUrlStr, "New error message");
@@ -892,7 +895,7 @@ public class URLCacheTest extends TestCase {
 
 
 			// Re-request the file - the timeout has expired, it must re-download the file
-			File file3 = URLCache.getURLFile(configManager, null, invalidUrlStr, false);
+			File file3 = URLCache.getURLFile(configManager, null, invalidUrlStr, false, true);
 
 			// The URLCache can not download the new file, so it automatically rollback and return the first file
 			assertNull(file3);
@@ -930,14 +933,14 @@ public class URLCacheTest extends TestCase {
 	//             Rollback                      [test_NotApprovedTimeout_FailedRollback]
 	public void test_NotApprovedTimeout_FailedRollback() throws IOException, JSONException {
 		if (this.serviceExists()) {
-			URLCache.clearCache(getTestApplicationFolder());
 			ConfigManager configManager = getConfigManager();
+			URLCache.clearCache(configManager, false);
 
 			String validUrlStr = HTTPMOCKUP_SERVICE_URL + "?content=abcd";
 			String invalidUrlStr = NONE_EXISTING_URL;
 
 			// Download the file for the 1st time
-			File file1 = URLCache.getURLFile(configManager, null, validUrlStr, false);
+			File file1 = URLCache.getURLFile(configManager, null, validUrlStr, false, true);
 
 			// Rollback (refuse) the file
 			File file2 = URLCache.rollbackURLFile(configManager, file1, validUrlStr, "New error message");
@@ -955,7 +958,7 @@ public class URLCacheTest extends TestCase {
 
 
 			// Re-request the file - the timeout has expired, it must re-download the file
-			File file3 = URLCache.getURLFile(configManager, null, invalidUrlStr, false);
+			File file3 = URLCache.getURLFile(configManager, null, invalidUrlStr, false, true);
 
 			// The URLCache can not download the new file, so it automatically rollback and return the first file
 			assertNull(file3);
@@ -999,13 +1002,13 @@ public class URLCacheTest extends TestCase {
 	//         2nd request (cached) - Commit     [test_Null_Commit]
 	public void test_Null_Commit() throws IOException, JSONException {
 		if (this.serviceExists()) {
-			URLCache.clearCache(getTestApplicationFolder());
 			ConfigManager configManager = getConfigManager();
+			URLCache.clearCache(configManager, false);
 
 			String urlStr = NONE_EXISTING_URL;
 
 			// Download the file for the 1st time
-			File file1 = URLCache.getURLFile(configManager, null, urlStr, false);
+			File file1 = URLCache.getURLFile(configManager, null, urlStr, false, true);
 
 			// Ensure the returned file is null
 			assertNull(file1);
@@ -1018,7 +1021,7 @@ public class URLCacheTest extends TestCase {
 
 
 			// Re-request the file - the timeout hasn't expired, it must give the same cached file
-			File file3 = URLCache.getURLFile(configManager, null, urlStr, false);
+			File file3 = URLCache.getURLFile(configManager, null, urlStr, false, false);
 
 			// Ensure the returned file is the cached file (refused => null)
 			assertNull(file3);
@@ -1052,13 +1055,13 @@ public class URLCacheTest extends TestCase {
 	//         2nd request (cached) - Rollback   [test_Null_Rollback]
 	public void test_Null_Rollback() throws IOException, JSONException {
 		if (this.serviceExists()) {
-			URLCache.clearCache(getTestApplicationFolder());
 			ConfigManager configManager = getConfigManager();
+			URLCache.clearCache(configManager, false);
 
 			String urlStr = NONE_EXISTING_URL;
 
 			// Download the file for the 1st time
-			File file1 = URLCache.getURLFile(configManager, null, urlStr, false);
+			File file1 = URLCache.getURLFile(configManager, null, urlStr, false, true);
 
 			// Ensure the returned file is null
 			assertNull(file1);
@@ -1071,7 +1074,7 @@ public class URLCacheTest extends TestCase {
 
 
 			// Re-request the file - the timeout hasn't expired, it must give the same cached file
-			File file3 = URLCache.getURLFile(configManager, null, urlStr, false);
+			File file3 = URLCache.getURLFile(configManager, null, urlStr, false, false);
 
 			// Ensure the returned file is the cached file (refused => null)
 			assertNull(file3);
@@ -1110,14 +1113,14 @@ public class URLCacheTest extends TestCase {
 	//             Commit                        [test_NullTimeout_Commit]
 	public void test_NullTimeout_Commit() throws IOException, JSONException {
 		if (this.serviceExists()) {
-			URLCache.clearCache(getTestApplicationFolder());
 			ConfigManager configManager = getConfigManager();
+			URLCache.clearCache(configManager, false);
 
 			String validUrlStr = HTTPMOCKUP_SERVICE_URL + "?content=abcd";
 			String invalidUrlStr = NONE_EXISTING_URL;
 
 			// Download the file for the 1st time
-			File file1 = URLCache.getURLFile(configManager, null, invalidUrlStr, false);
+			File file1 = URLCache.getURLFile(configManager, null, invalidUrlStr, false, true);
 
 			// Ensure the returned file is null
 			assertNull(file1);
@@ -1138,7 +1141,7 @@ public class URLCacheTest extends TestCase {
 
 
 			// Re-request the file - the timeout has expired, it must re-download the file
-			File file3 = URLCache.getURLFile(configManager, null, validUrlStr, false);
+			File file3 = URLCache.getURLFile(configManager, null, validUrlStr, false, true);
 
 			// Validate the downloaded info
 			String content = readFile(file3);
@@ -1177,14 +1180,14 @@ public class URLCacheTest extends TestCase {
 	//             Rollback                      [test_NullTimeout_Rollback]
 	public void test_NullTimeout_Rollback() throws IOException, JSONException {
 		if (this.serviceExists()) {
-			URLCache.clearCache(getTestApplicationFolder());
 			ConfigManager configManager = getConfigManager();
+			URLCache.clearCache(configManager, false);
 
 			String validUrlStr = HTTPMOCKUP_SERVICE_URL + "?content=abcd";
 			String invalidUrlStr = NONE_EXISTING_URL;
 
 			// Download the file for the 1st time
-			File file1 = URLCache.getURLFile(configManager, null, invalidUrlStr, false);
+			File file1 = URLCache.getURLFile(configManager, null, invalidUrlStr, false, true);
 
 			// Ensure the returned file is null
 			assertNull(file1);
@@ -1205,7 +1208,7 @@ public class URLCacheTest extends TestCase {
 
 
 			// Re-request the file - the timeout has expired, it must re-download the file
-			File file3 = URLCache.getURLFile(configManager, null, validUrlStr, false);
+			File file3 = URLCache.getURLFile(configManager, null, validUrlStr, false, true);
 
 			// Validate the downloaded info
 			String content = readFile(file3);
@@ -1245,13 +1248,13 @@ public class URLCacheTest extends TestCase {
 	//             Commit                        [test_NullTimeout_FailedCommit]
 	public void test_NullTimeout_FailedCommit() throws IOException, JSONException {
 		if (this.serviceExists()) {
-			URLCache.clearCache(getTestApplicationFolder());
 			ConfigManager configManager = getConfigManager();
+			URLCache.clearCache(configManager, false);
 
 			String urlStr = NONE_EXISTING_URL;
 
 			// Download the file for the 1st time
-			File file1 = URLCache.getURLFile(configManager, null, urlStr, false);
+			File file1 = URLCache.getURLFile(configManager, null, urlStr, false, true);
 
 			// Ensure the returned file is null
 			assertNull(file1);
@@ -1269,7 +1272,7 @@ public class URLCacheTest extends TestCase {
 
 
 			// Re-request the file - the timeout has expired, it must re-download the file
-			File file3 = URLCache.getURLFile(configManager, null, urlStr, false);
+			File file3 = URLCache.getURLFile(configManager, null, urlStr, false, true);
 
 			// The URLCache can not download the new file, so it automatically rollback and return the first file
 			assertNull(file3);
@@ -1307,13 +1310,13 @@ public class URLCacheTest extends TestCase {
 	//             Rollback                      [test_NullTimeout_FailedRollback]
 	public void test_NullTimeout_FailedRollback() throws IOException, JSONException {
 		if (this.serviceExists()) {
-			URLCache.clearCache(getTestApplicationFolder());
 			ConfigManager configManager = getConfigManager();
+			URLCache.clearCache(configManager, false);
 
 			String urlStr = NONE_EXISTING_URL;
 
 			// Download the file for the 1st time
-			File file1 = URLCache.getURLFile(configManager, null, urlStr, false);
+			File file1 = URLCache.getURLFile(configManager, null, urlStr, false, true);
 
 			// Ensure the returned file is null
 			assertNull(file1);
@@ -1331,7 +1334,7 @@ public class URLCacheTest extends TestCase {
 
 
 			// Re-request the file - the timeout has expired, it must re-download the file
-			File file3 = URLCache.getURLFile(configManager, null, urlStr, false);
+			File file3 = URLCache.getURLFile(configManager, null, urlStr, false, true);
 
 			// The URLCache can not download the new file, so it automatically rollback and return the first file
 			assertNull(file3);
@@ -1365,21 +1368,38 @@ public class URLCacheTest extends TestCase {
 	}
 
 
+	//     [testFailTooLongNoFileSize]
+	//         Request file, it's now too large, return null, rollback. Ensure it do not download the whole thing.
+	public void testFailTooLongNoFileSize() throws IOException, JSONException {
+		if (this.serviceExists()) {
+			ConfigManager configManager = getConfigManager();
+			URLCache.clearCache(configManager, false);
 
+			String hundredMbUrlStr = HTTPMOCKUP_SERVICE_URL + "?randomascii=" + (500 * 1024 * 1024);
+
+			// Download the file for the 1st time
+			File tooLarge = URLCache.getURLFile(configManager, null, hundredMbUrlStr, false, true);
+			assertNull(tooLarge);
+
+			File stillTooLarge = URLCache.rollbackURLFile(configManager, tooLarge, hundredMbUrlStr, "The file is too large.");
+			assertNull(stillTooLarge);
+		}
+	}
 
 
 	//     [testDownloadFailThenSucceed]
 	//         Receive null at first request, rollback - timeout - receive something at 2nd request, commit
 	public void testDownloadFailThenSucceed() throws IOException, JSONException {
 		if (this.serviceExists()) {
-			URLCache.clearCache(getTestApplicationFolder());
 			ConfigManager configManager = getConfigManager();
+			URLCache.clearCache(configManager, false);
+
 
 			String invalidUrlStr = NONE_EXISTING_URL;
 			String capUrlStr = HTTPMOCKUP_SERVICE_URL + "?resource=getCapabilities.xml";
 
 			// Download the file for the 1st time
-			File nullCap = URLCache.getURLFile(configManager, null, invalidUrlStr, false);
+			File nullCap = URLCache.getURLFile(configManager, null, invalidUrlStr, false, true);
 			assertNull(nullCap);
 
 			// Rollback (refuse) the file
@@ -1397,7 +1417,7 @@ public class URLCacheTest extends TestCase {
 
 
 			// Download the file for the 1st time
-			File validCap = URLCache.getURLFile(configManager, null, capUrlStr, false);
+			File validCap = URLCache.getURLFile(configManager, null, capUrlStr, false, true);
 
 			// Validate the cached info
 			cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), capUrlStr);
@@ -1424,16 +1444,17 @@ public class URLCacheTest extends TestCase {
 
 	//     [testSucceedThenTooLong]
 	//         Request file, commit - timeout - request same file, it's now too large, return null, rollback
+	// TODO REDO THIS TEST - LOGIC HAS CHANGED
 	public void testSucceedThenTooLong() throws IOException, JSONException {
 		if (this.serviceExists()) {
-			URLCache.clearCache(getTestApplicationFolder());
 			ConfigManager configManager = getConfigManager();
+			URLCache.clearCache(configManager, false);
 
 			String capUrlStr = HTTPMOCKUP_SERVICE_URL + "?resource=getCapabilities.xml";
 			String hundredMbUrlStr = HTTPMOCKUP_SERVICE_URL + "?randomascii=" + (100 * 1024 * 1024);
 
 			// Download the file for the 1st time
-			File validFile = URLCache.getURLFile(configManager, null, capUrlStr, false);
+			File validFile = URLCache.getURLFile(configManager, null, capUrlStr, false, true);
 			assertNotNull(validFile);
 
 			URLCache.commitURLFile(configManager, validFile, capUrlStr);
@@ -1449,14 +1470,14 @@ public class URLCacheTest extends TestCase {
 
 
 			// The file is too big, auto-rollback, return previous file.
-			File previousFile = URLCache.getURLFile(configManager, null, hundredMbUrlStr, false);
+			File previousFile = URLCache.getURLFile(configManager, null, hundredMbUrlStr, false, false);
 			assertEquals(validFile, previousFile);
 
 			assertEquals(SC_OK, cachedFile.getHttpStatusCode());
 			assertEquals(previousFile.getName(), cachedFile.getFilename());
-			assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
+			//assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
 			assertFalse(cachedFile.hasTemporaryData());
-			assertNotNull(cachedFile.getLatestErrorMessage());
+			//assertNotNull(cachedFile.getLatestErrorMessage());
 			assertTrue(cachedFile.isApproved());
 
 			assertTrue(validFile.exists());
@@ -1469,13 +1490,13 @@ public class URLCacheTest extends TestCase {
 	//         Get XML GetCapabilities document, parse, commit - timeout - receive same doc after timeout, parse, commit
 	public void testSucceedTwiceWithSameResult() throws IOException, JSONException, URISyntaxException, ServiceException {
 		if (this.serviceExists()) {
-			URLCache.clearCache(getTestApplicationFolder());
 			ConfigManager configManager = getConfigManager();
+			URLCache.clearCache(configManager, false);
 
 			String capUrlStr = HTTPMOCKUP_SERVICE_URL + "?resource=getCapabilities.xml";
 
 			// Download the file for the 1st time
-			WMSCapabilities cap = URLCache.getWMSCapabilitiesResponse(configManager, null, capUrlStr, false);
+			WMSCapabilities cap = URLCache.getWMSCapabilitiesResponse(configManager, null, capUrlStr, false, true);
 			URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), capUrlStr);
 			File capFile = cachedFile.getFile();
 
@@ -1489,7 +1510,7 @@ public class URLCacheTest extends TestCase {
 
 
 			// Download the file for the 2nd time
-			WMSCapabilities newCap = URLCache.getWMSCapabilitiesResponse(configManager, null, capUrlStr, false);
+			WMSCapabilities newCap = URLCache.getWMSCapabilitiesResponse(configManager, null, capUrlStr, false, true);
 			cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), capUrlStr);
 			File newCapFile = cachedFile.getFile();
 
@@ -1509,14 +1530,14 @@ public class URLCacheTest extends TestCase {
 	//         Get XML GetCapabilities document with stacktrace, unable to parse, rollback - timeout - receive valid document, parse, commit
 	public void testParseFailThenSucceed() throws IOException, JSONException, URISyntaxException, ServiceException {
 		if (this.serviceExists()) {
-			URLCache.clearCache(getTestApplicationFolder());
 			ConfigManager configManager = getConfigManager();
+			URLCache.clearCache(configManager, false);
 
 			String brokenCapUrlStr = HTTPMOCKUP_SERVICE_URL + "?resource=getBrokenCapabilities.xml";
 			String capUrlStr = HTTPMOCKUP_SERVICE_URL + "?resource=getCapabilities.xml";
 
 			// Download the file for the 1st time (the file is broken)
-			WMSCapabilities brokenCap = URLCache.getWMSCapabilitiesResponse(configManager, null, brokenCapUrlStr, false);
+			WMSCapabilities brokenCap = URLCache.getWMSCapabilitiesResponse(configManager, null, brokenCapUrlStr, false, true);
 			URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), brokenCapUrlStr);
 			File brokenCapFile = cachedFile.getFile();
 
@@ -1533,7 +1554,7 @@ public class URLCacheTest extends TestCase {
 
 
 			// Download the file for the 2nd time (not broken this time)
-			WMSCapabilities newCap = URLCache.getWMSCapabilitiesResponse(configManager, null, capUrlStr, false);
+			WMSCapabilities newCap = URLCache.getWMSCapabilitiesResponse(configManager, null, capUrlStr, false, true);
 			cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), capUrlStr);
 			File newCapFile = cachedFile.getFile();
 
@@ -1551,14 +1572,14 @@ public class URLCacheTest extends TestCase {
 	//         Get XML GetCapabilities document, parse, commit - timeout - receive document with stacktrace, unable to parse, rollback
 	public void testSucceedThenParseFail() throws IOException, JSONException, URISyntaxException, ServiceException {
 		if (this.serviceExists()) {
-			URLCache.clearCache(getTestApplicationFolder());
 			ConfigManager configManager = getConfigManager();
+			URLCache.clearCache(configManager, false);
 
 			String brokenCapUrlStr = HTTPMOCKUP_SERVICE_URL + "?resource=getBrokenCapabilities.xml";
 			String capUrlStr = HTTPMOCKUP_SERVICE_URL + "?resource=getCapabilities.xml";
 
 			// Download the file for the 1st time
-			WMSCapabilities cap = URLCache.getWMSCapabilitiesResponse(configManager, null, capUrlStr, false);
+			WMSCapabilities cap = URLCache.getWMSCapabilitiesResponse(configManager, null, capUrlStr, false, true);
 			URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), capUrlStr);
 			File capFile = cachedFile.getFile();
 
@@ -1575,7 +1596,7 @@ public class URLCacheTest extends TestCase {
 
 
 			// Download the file for the 2nd time
-			WMSCapabilities previousCap = URLCache.getWMSCapabilitiesResponse(configManager, null, brokenCapUrlStr, false);
+			WMSCapabilities previousCap = URLCache.getWMSCapabilitiesResponse(configManager, null, brokenCapUrlStr, false, true);
 			cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), brokenCapUrlStr);
 			File previousCapFile = cachedFile.getFile();
 
@@ -1595,13 +1616,13 @@ public class URLCacheTest extends TestCase {
 	//         Request TC211 document, receive HTML, unable to parse, rollback - timeout - receive valid TC211 document, parse, commit
 	public void testTC211ParseFailThenTC211Succeed() throws IOException, JSONException, SAXException, ParserConfigurationException {
 		if (this.serviceExists()) {
-			URLCache.clearCache(getTestApplicationFolder());
 			ConfigManager configManager = getConfigManager();
+			URLCache.clearCache(configManager, false);
 
 			String htmlTC211UrlStr = HTTPMOCKUP_SERVICE_URL + "?resource=tc211.html";
 			String xmlTC211UrlStr = HTTPMOCKUP_SERVICE_URL + "?resource=tc211.xml";
 
-			Document brokenTC211Document = Parser.parseURL(configManager, null, new URL(htmlTC211UrlStr), false);
+			TC211Document brokenTC211Document = TC211Parser.parseURL(configManager, null, new URL(htmlTC211UrlStr), false, true);
 			URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), htmlTC211UrlStr);
 			File brokenTC211File = cachedFile.getFile();
 
@@ -1618,7 +1639,7 @@ public class URLCacheTest extends TestCase {
 
 
 			// Download the file for the 2nd time (not broken this time)
-			Document tc211Document = Parser.parseURL(configManager, null, new URL(xmlTC211UrlStr), false);
+			TC211Document tc211Document = TC211Parser.parseURL(configManager, null, new URL(xmlTC211UrlStr), false, true);
 			cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), xmlTC211UrlStr);
 			File tc211File = cachedFile.getFile();
 
@@ -1636,13 +1657,13 @@ public class URLCacheTest extends TestCase {
 	//         Request TC211 document, parse, commit - timeout - receive HTML doc instead of TC211 document, unable to parse, rollback
 	public void testTC211SucceedThenTC211ParseFail() throws IOException, JSONException, SAXException, ParserConfigurationException {
 		if (this.serviceExists()) {
-			URLCache.clearCache(getTestApplicationFolder());
 			ConfigManager configManager = getConfigManager();
+			URLCache.clearCache(configManager, false);
 
 			String htmlTC211UrlStr = HTTPMOCKUP_SERVICE_URL + "?resource=tc211.html";
 			String xmlTC211UrlStr = HTTPMOCKUP_SERVICE_URL + "?resource=tc211.xml";
 
-			Document tc211Document = Parser.parseURL(configManager, null, new URL(xmlTC211UrlStr), false);
+			TC211Document tc211Document = TC211Parser.parseURL(configManager, null, new URL(xmlTC211UrlStr), false, true);
 			URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), xmlTC211UrlStr);
 			File tc211File = cachedFile.getFile();
 
@@ -1658,7 +1679,7 @@ public class URLCacheTest extends TestCase {
 			URLCache.diskCacheMap.put(htmlTC211UrlStr, cachedFile.toJSON());
 
 
-			Document previousTC211Document = Parser.parseURL(configManager, null, new URL(htmlTC211UrlStr), false);
+			TC211Document previousTC211Document = TC211Parser.parseURL(configManager, null, new URL(htmlTC211UrlStr), false, true);
 			cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), htmlTC211UrlStr);
 			File previousTC211File = cachedFile.getFile();
 
@@ -1679,8 +1700,8 @@ public class URLCacheTest extends TestCase {
 	// NOTE: This test may fail if the URL Cache class do not remove the filename when the file is deleted or not created.
 	public void testMultiUrl_Fail1_Success2_Fail1_WithRollback() throws IOException, JSONException {
 		if (this.serviceExists()) {
-			URLCache.clearCache(getTestApplicationFolder());
 			ConfigManager configManager = getConfigManager();
+			URLCache.clearCache(configManager, false);
 
 			String url1Str = NONE_EXISTING_URL;
 			String url2Str = HTTPMOCKUP_SERVICE_URL + "?content=abcd";
@@ -1689,7 +1710,7 @@ public class URLCacheTest extends TestCase {
 			// *** DOWNLOAD URL 1 ***
 
 			// Download the file for the 1st time
-			File file1_1 = URLCache.getURLFile(configManager, null, url1Str, false);
+			File file1_1 = URLCache.getURLFile(configManager, null, url1Str, false, true);
 
 			// Ensure the returned file is null
 			assertNull(file1_1);
@@ -1704,7 +1725,7 @@ public class URLCacheTest extends TestCase {
 			// *** DOWNLOAD URL 2 ***
 
 			// Download the file for the 1st time
-			File file2_1 = URLCache.getURLFile(configManager, null, url2Str, false);
+			File file2_1 = URLCache.getURLFile(configManager, null, url2Str, false, true);
 
 			// Ensure the returned file is not null
 			assertNotNull(file2_1);
@@ -1719,7 +1740,7 @@ public class URLCacheTest extends TestCase {
 			// *** DOWNLOAD URL 1 AGAIN ***
 
 			// Download the file for the 1st time
-			File file1_3 = URLCache.getURLFile(configManager, null, url1Str, false);
+			File file1_3 = URLCache.getURLFile(configManager, null, url1Str, false, true);
 
 			// Ensure the returned file is null
 			assertNull(file1_3);
@@ -1745,8 +1766,8 @@ public class URLCacheTest extends TestCase {
 	// NOTE: This test may fail if the URL Cache class do not remove the filename when the file is deleted or not created.
 	public void testMultiUrl_Fail1_Success2_Fail1_WithCommit() throws IOException, JSONException {
 		if (this.serviceExists()) {
-			URLCache.clearCache(getTestApplicationFolder());
 			ConfigManager configManager = getConfigManager();
+			URLCache.clearCache(configManager, false);
 
 			String url1Str = NONE_EXISTING_URL;
 			String url2Str = HTTPMOCKUP_SERVICE_URL + "?content=abcd";
@@ -1755,7 +1776,7 @@ public class URLCacheTest extends TestCase {
 			// *** DOWNLOAD URL 1 ***
 
 			// Download the file for the 1st time
-			File file1_1 = URLCache.getURLFile(configManager, null, url1Str, false);
+			File file1_1 = URLCache.getURLFile(configManager, null, url1Str, false, true);
 
 			// Ensure the returned file is null
 			assertNull(file1_1);
@@ -1767,7 +1788,7 @@ public class URLCacheTest extends TestCase {
 			// *** DOWNLOAD URL 2 ***
 
 			// Download the file for the 1st time
-			File file2_1 = URLCache.getURLFile(configManager, null, url2Str, false);
+			File file2_1 = URLCache.getURLFile(configManager, null, url2Str, false, true);
 
 			// Ensure the returned file is not null
 			assertNotNull(file2_1);
@@ -1782,7 +1803,7 @@ public class URLCacheTest extends TestCase {
 			// *** DOWNLOAD URL 1 AGAIN ***
 
 			// Download the file for the 1st time
-			File file1_3 = URLCache.getURLFile(configManager, null, url1Str, false);
+			File file1_3 = URLCache.getURLFile(configManager, null, url1Str, false, true);
 
 			// Ensure the returned file is null
 			assertNull(file1_3);

@@ -50,10 +50,21 @@
 		},
 		{
 			"id": 7,
-			"globalManualOverride": "{\n    \"kml_fictional-bunyip-sightings\": {\n        \"legendGroup\": \"Bunyip data\",\n        \"legendTitle\": \"Sightings\",\n        \"legendUrl\": \"http://maps.e-atlas.org.au/kmls/sightings-legend.png\",\n        \"title\": \"Bunyip sightings\"\n    },\n    \"kml_fictional-bunyip-tracks\": {\n        \"legendGroup\": \"Bunyip data\",\n        \"legendTitle\": \"Tracks\",\n        \"legendUrl\": \"http://maps.e-atlas.org.au/kmls/tracks-legend.png\",\n        \"title\": \"Bunyip tracks\"\n    }\n}",
+			"kmlData": [
+				{
+					"id": "kml_fictional-bunyip-sightings",
+					"title": "Bunyip sightings",
+					"url": "http://maps.e-atlas.org.au/kmls/fictional-bunyip-sightings.kml"
+				},
+				{
+					"id": "kml_fictional-bunyip-tracks",
+					"title": "Bunyip tracks",
+					"url": "http://maps.e-atlas.org.au/kmls/fictional-bunyip-tracks.kml"
+				}
+			],
+			"globalManualOverride": "{\n    \"kml_fictional-bunyip-sightings\": {\n        \"legendGroup\": \"Bunyip data\",\n        \"legendTitle\": \"Sightings\",\n        \"legendUrl\": \"http://maps.e-atlas.org.au/kmls/sightings-legend.png\"\n    },\n    \"kml_fictional-bunyip-tracks\": {\n        \"legendGroup\": \"Bunyip data\",\n        \"legendTitle\": \"Tracks\",\n        \"legendUrl\": \"http://maps.e-atlas.org.au/kmls/tracks-legend.png\"\n    }\n}",
 			"comment": "KML Data source having 2 KML in it. See the Advanced tab for the definition of the layer name, description, legend URL, etc.",
 			"dataSourceName": "Demo KML",
-			"kmlUrls": "http://maps.e-atlas.org.au/kmls/fictional-bunyip-sightings.kml\nhttp://maps.e-atlas.org.au/kmls/fictional-bunyip-tracks.kml",
 			"dataSourceType": "KML",
 			"dataSourceId": "kml",
 			"showInLegend": false

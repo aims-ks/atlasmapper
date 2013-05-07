@@ -131,6 +131,7 @@ function resetDataSourceIdValidator(is_error) {
 }
 
 var frameset = null;
+var harvestTimeout = 900000; // 15 minutes
 
 Ext.define('Writer.LayerServerConfigForm', {
 	extend: 'Ext.form.Panel',
@@ -154,11 +155,11 @@ Ext.define('Writer.LayerServerConfigForm', {
 		this.addEvents('create');
 
 
-		/** Define items that appair on all Data Source Types **/
+		/** Define items that appear on all Data Source Types **/
 
 		var items = [
 			{
-				// Grids records must have an unmutable ID
+				// Grids records must have an un-mutable ID
 				name: 'id',
 				xtype: 'hiddenfield'
 			}, {
@@ -219,7 +220,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 			columns: [
 				{ text: 'Layer ID',  dataIndex: 'id' },
 				{ text: 'URL', dataIndex: 'url', flex: 1 },
-				{ text: 'Display name', dataIndex: 'title' },
+				{ text: 'Display name', dataIndex: 'title', width: 200 },
 				{
 					// http://docs.sencha.com/ext-js/4-0/#/api/Ext.grid.column.Action
 					header: 'Actions',
@@ -232,7 +233,8 @@ Ext.define('Writer.LayerServerConfigForm', {
 						{
 							icon: '../resources/icons/edit.png',
 
-							// Bug: defaults is ignored (http://www.sencha.com/forum/showthread.php?138446-actioncolumn-ignore-defaults)
+							// This attribute has to by repeated due to a bug:
+							//     defaults is ignored (http://www.sencha.com/forum/showthread.php?138446-actioncolumn-ignore-defaults)
 							iconCls: 'grid-icon',
 
 							tooltip: 'Edit',
@@ -273,8 +275,8 @@ Ext.define('Writer.LayerServerConfigForm', {
 			]
 		});
 		kmlDataGrid.getSelectionModel().on('selectionchange', this.onKMLSelectChange, this);
-		var kmlDatas = {
-			name: 'kmlDatas',
+		var kmlData = {
+			name: 'kmlData',
 			xtype: 'hiddenfield'
 		};
 
@@ -511,7 +513,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 
 			case 'KML':
 				items.push(comment);
-				items.push(kmlDatas);
+				items.push(kmlData);
 
 				advancedItems.push(globalManualOverride);
 				break;
@@ -711,15 +713,18 @@ Ext.define('Writer.LayerServerConfigForm', {
 							name: 'id'
 						}, {
 							fieldLabel: 'URL',
-							qtipHtml: 'URL to the KML file.',
+							qtipTitle: 'URL <i>(kmlUrl)</i>',
+							qtipHtml: 'URL to the KML file. It can be a static file or a online service. Note that <i>KMZ</i> are <i>not supported</i>.',
 							name: 'url'
 						}, {
 							fieldLabel: 'Display name',
-							qtipHtml: 'Name of the layer, as displayed in the client; in the add layer tree, in the layer description and in the layer switcher.',
+							qtipTitle: 'Display name <i>(title)</i>',
+							qtipHtml: 'Name of the layer, as displayed in the client; in the add layer tree, layer description and layer switcher.',
 							name: 'title'
 						}, {
-							fieldLabel: 'Description',
-							qtipHtml: 'Description in wiki format. For information about the wiki format, refer to the documentation from the navigation menu.',
+							fieldLabel: 'Description (<a href="manualOverrideDoc.html#wiki" target="_blank">doc</a>)',
+							qtipTitle: 'Description <i>(description)</i>',
+							qtipHtml: 'Description in wiki format. For information about the wiki format, refer to the documentation.',
 							name: 'description',
 							xtype: 'textareafield',
 							resizable: {transparent: true}, resizeHandles: 's',
@@ -732,16 +737,16 @@ Ext.define('Writer.LayerServerConfigForm', {
 		});
 	},
 
-	// Save the content of the grid into the kmlDatas hidden field.
+	// Save the content of the grid into the kmlData hidden field.
 	_saveKMLRecords: function() {
 		// Update the current data source record using the data from the KML grid store
-		kmlDatas = [];
+		kmlData = [];
 		this.kmlStore.each(function(record) {
-			kmlDatas.push(record.data);
+			kmlData.push(record.data);
 		}, this);
 
 		this.getForm().setValues({
-			'kmlDatas': Ext.JSON.encode(kmlDatas)
+			'kmlData': Ext.JSON.encode(kmlData)
 		});
 	},
 
@@ -751,21 +756,21 @@ Ext.define('Writer.LayerServerConfigForm', {
 		if (record) {
 			this.activeRecord = record;
 			form.loadRecord(record);
-			var kmlDatas = record.get('kmlDatas');
-			if (kmlDatas) {
+			var kmlData = record.get('kmlData');
+			if (kmlData) {
 				// Remove the proxy (proxy = transparent object wrapper to remember modification)
 				// ExtJS will recreate a new proxy if needed.
 				// Logically, the following operation should have no effect... but it really get rid of the proxy.
-				var cleanKMLDatas = [];
-				Ext.each(kmlDatas, function(kmlData) {
-					cleanKMLDatas.push(kmlData);
+				var cleanKMLData = [];
+				Ext.each(kmlData, function(_kmlData) {
+					cleanKMLData.push(_kmlData);
 				});
 
 				this.getForm().setValues({
-					'kmlDatas': Ext.JSON.encode(cleanKMLDatas)
+					'kmlData': Ext.JSON.encode(cleanKMLData)
 				});
 
-				this.kmlStore.loadData(cleanKMLDatas);
+				this.kmlStore.loadData(cleanKMLData);
 			}
 		} else if (this.defaultValues) {
 			this.activeRecord = this.defaultValues;
@@ -825,6 +830,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 	}
 });
 
+// Definition of the Grid (the table that show the list of data sources)
 Ext.define('Writer.LayerServerConfigGrid', {
 	extend: 'Ext.grid.Panel',
 	alias: 'widget.writerlayerserverconfiggrid',
@@ -835,6 +841,7 @@ Ext.define('Writer.LayerServerConfigGrid', {
 	],
 
 	initComponent: function(){
+		var that = this;
 
 		Ext.apply(this, {
 			iconCls: 'icon-grid',
@@ -869,6 +876,23 @@ Ext.define('Writer.LayerServerConfigGrid', {
 							tooltip: 'Clear the cache of all capabilities documents.',
 							scope: this,
 							handler: function() {
+
+								var confirm = Ext.MessageBox.confirm(
+									'Confirm',
+									'Are you sure you want to delete all downloaded files associated with all data sources?<br/>' +
+									'This action can not be undone. The files will be re-downloaded after ' +
+									'running harvest for each data sources.',
+									function(btn) {
+										if (btn == 'yes') {
+											this.onClearAllCacheConfirmed();
+										}
+									},
+									this
+								);
+								// Set "No" as default
+								confirm.defaultButton = 2;
+
+/*
 								frameset.setSavingMessage('Clearing all cache.');
 
 								Ext.Ajax.request({
@@ -891,6 +915,7 @@ Ext.define('Writer.LayerServerConfigGrid', {
 										} else {
 											frameset.setErrors('An error occurred while clearing all cache.', responseObj, statusCode);
 										}
+										that.onReload();
 									},
 									failure: function(response) {
 										var responseObj = null;
@@ -903,8 +928,10 @@ Ext.define('Writer.LayerServerConfigGrid', {
 											}
 										}
 										frameset.setErrors('An error occurred while clearing all cache.', responseObj, statusCode);
+										that.onReload();
 									}
 								});
+*/
 							}
 						}
 					]
@@ -912,6 +939,14 @@ Ext.define('Writer.LayerServerConfigGrid', {
 			],
 			columns: [
 				{
+					width: 30,
+					sortable: true,
+					xtype: 'booleancolumn',
+					// The icon is placed using CSS and the text is hidden with CSS.
+					trueText: '<span class="grid-true"><span class="text">True</span></span>',
+					falseText: '<span class="grid-false"><span class="text">False</span></span>',
+					dataIndex: 'valid'
+				}, {
 					header: 'Data source ID',
 					width: 100,
 					sortable: true,
@@ -926,6 +961,11 @@ Ext.define('Writer.LayerServerConfigGrid', {
 					flex: 1,
 					sortable: true,
 					dataIndex: 'dataSourceName'
+				}, {
+					header: 'Last harvested',
+					width: 130,
+					sortable: true,
+					dataIndex: 'lastHarvested'
 				}, {
 					// http://docs.sencha.com/ext-js/4-0/#/api/Ext.grid.column.Action
 					header: 'Actions',
@@ -961,13 +1001,87 @@ Ext.define('Writer.LayerServerConfigGrid', {
 									frameset.setError('No record has been selected.');
 								}
 							}
+
+						}, {
+							icon: '../resources/icons/cog_go.png',
+							// Bug: defaults is ignored (http://www.sencha.com/forum/showthread.php?138446-actioncolumn-ignore-defaults)
+							iconCls: 'grid-icon',
+
+							tooltip: 'Run harvest',
+							scope: this,
+							handler: function(grid, rowIndex, colIndex) {
+								var rec = grid.getStore().getAt(rowIndex);
+								if (rec) {
+									var dataSource = rec.data;
+									if (dataSource) {
+										if (dataSource.cachingDisabled) {
+											frameset.setError('Can not process this data source: The cache is disabled.');
+										} else {
+											frameset.setSavingMessage('Processing ' + dataSource.dataSourceName + '.');
+
+											Ext.Ajax.request({
+												url: 'dataSourcesConfig.jsp',
+												timeout: harvestTimeout,
+												params: {
+													'action': 'PROCESS',
+													'id': dataSource.id
+												},
+												success: function(response){
+													var responseObj = null;
+													var statusCode = response ? response.status : null;
+													if (response && response.responseText) {
+														try {
+															responseObj = Ext.decode(response.responseText);
+														} catch (err) {
+															responseObj = {errors: [err.toString()]};
+														}
+													}
+													if(responseObj && responseObj.success){
+														if (responseObj.errors || responseObj.warnings) {
+															frameset.setErrorsAndWarnings('Data source process passed', 'Warning(s) occurred while processing the data source configuration.', responseObj, statusCode);
+														} else if (responseObj.messages) {
+															frameset.setErrorsAndWarnings('Data source process succeed', null, responseObj, statusCode);
+														} else {
+															frameset.setSavedMessage('Data source processed successfully.');
+														}
+													} else {
+														frameset.setErrorsAndWarnings('Process failed', 'Error(s) / warning(s) occurred while processing the data source configuration.', responseObj, statusCode);
+													}
+													that.onReload();
+												},
+												failure: function(response) {
+													if (response.timedout) {
+														frameset.setError('Request timed out.', 408);
+													} else {
+														var statusCode = response ? response.status : null;
+														var responseObj = null;
+														if (response && response.responseText) {
+															try {
+																responseObj = Ext.decode(response.responseText);
+															} catch (err) {
+																responseObj = {errors: [err.toString()]};
+															}
+														}
+														frameset.setErrors('An error occurred while processing the data source configuration.', responseObj, statusCode);
+													}
+													that.onReload();
+												}
+											});
+										}
+									}
+								} else {
+									frameset.setError('No record has been selected.');
+								}
+							}
+
+/*
 						}, {
 							icon: '../resources/icons/clear-cache.png',
 
 							// Bug: defaults is ignored (http://www.sencha.com/forum/showthread.php?138446-actioncolumn-ignore-defaults)
 							iconCls: 'grid-icon',
 
-							tooltip: 'Clear capabilities document cache',
+							tooltip: 'Clear downloaded cache',
 							scope: this,
 							handler: function(grid, rowIndex, colIndex) {
 								var rec = grid.getStore().getAt(rowIndex);
@@ -1020,7 +1134,10 @@ Ext.define('Writer.LayerServerConfigGrid', {
 									frameset.setError('No record has been selected.');
 								}
 							}
+*/
 						}
+
+
 					]
 				}
 			]
@@ -1198,6 +1315,10 @@ Ext.define('Writer.LayerServerConfigGrid', {
 		});
 	},
 
+	onReload: function() {
+		this.store.load();
+	},
+
 	onSelectChange: function(selModel, selections){
 		this.down('#delete').setDisabled(selections.length === 0);
 	},
@@ -1241,6 +1362,48 @@ Ext.define('Writer.LayerServerConfigGrid', {
 		} else {
 			frameset.setError('Can not find the data source to delete');
 		}
+	},
+
+	onClearAllCacheConfirmed: function() {
+		var that = this;
+		frameset.setSavingMessage('Clearing all cache.');
+
+		Ext.Ajax.request({
+			url: 'dataSourcesConfig.jsp',
+			params: {
+				'action': 'CLEARALLCACHE'
+			},
+			success: function(response){
+				var responseObj = null;
+				var statusCode = response ? response.status : null;
+				if (response && response.responseText) {
+					try {
+						responseObj = Ext.decode(response.responseText);
+					} catch (err) {
+						responseObj = {errors: [err.toString()]};
+					}
+				}
+				if(responseObj && responseObj.success){
+					frameset.setSavedMessage('All cache cleared successfully.');
+				} else {
+					frameset.setErrors('An error occurred while clearing all cache.', responseObj, statusCode);
+				}
+				that.onReload();
+			},
+			failure: function(response) {
+				var responseObj = null;
+				var statusCode = response ? response.status : null;
+				if (response && response.responseText) {
+					try {
+						responseObj = Ext.decode(response.responseText);
+					} catch (err) {
+						responseObj = {errors: [err.toString()]};
+					}
+				}
+				frameset.setErrors('An error occurred while clearing all cache.', responseObj, statusCode);
+				that.onReload();
+			}
+		});
 	}
 });
 
@@ -1259,14 +1422,16 @@ Ext.define('Writer.LayerServerConfig', {
 	// is unchecked).
 	fields: [
 		{name: 'id', type: 'int', useNull: true},
+		{name: 'valid', type: 'boolean', defaultValue: false},
 		{name: 'dataSourceId', sortType: 'asUCString'},
 		{name: 'dataSourceName', sortType: 'asUCString'},
 		{name: 'dataSourceType', type: 'string'},
+		{name: 'lastHarvested', type: 'string'},
 		'serviceUrl',
 		'serviceUrls',
 		'getMapUrl',
 		'extraWmsServiceUrls',
-		'kmlDatas',
+		'kmlData',
 		'webCacheUrl',
 		'webCacheParameters',
 		'featureRequestsUrl',

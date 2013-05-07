@@ -24,12 +24,17 @@ package au.gov.aims.atlasmapperserver.dataSourceConfig;
 import au.gov.aims.atlasmapperserver.AbstractConfig;
 import au.gov.aims.atlasmapperserver.ClientConfig;
 import au.gov.aims.atlasmapperserver.ConfigManager;
+import au.gov.aims.atlasmapperserver.Errors;
+import au.gov.aims.atlasmapperserver.URLCache;
 import au.gov.aims.atlasmapperserver.collection.BlackAndWhiteListFilter;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -48,6 +53,9 @@ import org.json.JSONSortedObject;
 public abstract class AbstractDataSourceConfig extends AbstractConfig implements AbstractDataSourceConfigInterface, Comparable<AbstractDataSourceConfig>, Cloneable {
 	private static final Logger LOGGER = Logger.getLogger(AbstractDataSourceConfig.class.getName());
 
+	// Date in big endian format, so the alphabetic order is chronological: 2013 / 10 / 30 - 23:31
+	private static final SimpleDateFormat DATE_FORMATER = new SimpleDateFormat("yyyy / MM / dd - HH:mm");
+
 	// Grids records must have an unmutable ID
 	@ConfigField
 	private Integer id;
@@ -60,6 +68,12 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 
 	@ConfigField
 	private String dataSourceType;
+
+	@ConfigField
+	private String lastHarvested;
+
+	@ConfigField
+	private boolean valid;
 
 	@ConfigField
 	private String serviceUrl;
@@ -117,22 +131,69 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 		return layer;
 	}
 
+	public Map<String, Errors> process() throws Exception {
+		LayerCatalog layerCatalog = this.getLayerCatalog(true);
+
+		// Collect error messages
+		Map<String, LayerCatalog.LayerErrors> layerErrors = layerCatalog.getErrors();
+
+		Map<String, Errors> errorMessages = URLCache.getDataSourceErrors(this, this.getConfigManager().getApplicationFolder());
+		for (Map.Entry<String, LayerCatalog.LayerErrors> errors: layerErrors.entrySet()) {
+			if (!errorMessages.containsKey(errors.getKey())) {
+				errorMessages.put(errors.getKey(), errors.getValue());
+			} else {
+				errorMessages.get(errors.getKey()).addAll(errors.getValue());
+			}
+		}
+
+		// Verify if there is error (it may contains only warnings)
+		boolean hasError = false;
+		for (Errors errors : errorMessages.values()) {
+			if (!errors.getErrors().isEmpty()) {
+				hasError = true;
+				break;
+			}
+		}
+
+		if (!hasError) {
+			// Do not change it if the last download fail, the previous one may still be usable.
+			this.setValid(true);
+		}
+
+		// Change last update date
+		this.setLastHarvestedDate(new Date());
+		// Write the changes to disk
+		this.getConfigManager().saveServerConfig();
+
+		return errorMessages;
+	}
+
 	// LayerCatalog - Before data source overrides
-	private LayerCatalog getRawLayerCatalog() throws Exception {
+	private LayerCatalog getRawLayerCatalog(boolean harvest) throws Exception {
 		LayerCatalog rawLayerCatalog = new LayerCatalog();
 		AbstractLayerGenerator layerGenerator = this.getLayerGenerator();
 
 		if (layerGenerator != null) {
-			rawLayerCatalog.addLayers(layerGenerator.generateLayerConfigs(this));
+			rawLayerCatalog.addLayers(layerGenerator.generateLayerConfigs(this, harvest));
+			rawLayerCatalog.addCachedLayers(layerGenerator.generateCachedLayerConfigs(this, harvest));
 		}
+		rawLayerCatalog.addAllErrors(layerGenerator.getErrors());
 
 		return rawLayerCatalog;
 	}
 
 	// LayerCatalog - After data source overrides
-	public LayerCatalog getLayerCatalog() throws Exception {
+
+	/**
+	 *
+	 * @param harvest True to download the associated documents (like the capabilities documents),
+	 *     false to use the cached documents.
+	 * @return
+	 * @throws Exception
+	 */
+	public LayerCatalog getLayerCatalog(boolean harvest) throws Exception {
 		// LayerCatalog before overrides
-		LayerCatalog rawLayerCatalog = this.getRawLayerCatalog();
+		LayerCatalog rawLayerCatalog = this.getRawLayerCatalog(harvest);
 
 		// Map of layers, after overrides, used to create the final layer catalog
 		HashMap<String, AbstractLayerConfig> layersMap = new HashMap<String, AbstractLayerConfig>();
@@ -151,6 +212,7 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 				}
 			}
 		}
+
 
 		// Create manual layers defined for this data source
 		if (globalOverrides != null && globalOverrides.length() > 0) {
@@ -212,13 +274,20 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 		layersMap = blackAndWhiteFilter.filter(layersMap);
 
 		if (layersMap.isEmpty()) {
-			rawLayerCatalog.addWarning(this.getDataSourceId(), "The data source contains no layer.");
+			rawLayerCatalog.addError(this.getDataSourceId(), "The data source contains no layer.");
 		}
 
 		// LayerCatalog after overrides
 		LayerCatalog layerCatalog = new LayerCatalog();
 		layerCatalog.addLayers(layersMap.values());
+		layerCatalog.addCachedLayers(rawLayerCatalog.getCachedLayers());
 		layerCatalog.addAllErrors(rawLayerCatalog.getErrors());
+
+		int nbLayers = layerCatalog.getLayers().size();
+		int nbCachedLayers = layerCatalog.getCachedLayers().size();
+
+		layerCatalog.addMessage(this.getDataSourceId(), "The data source contains " + nbLayers + " layer" + (nbLayers > 1 ? "s" : "") +
+				" and " + nbCachedLayers + " cached layer" + (nbCachedLayers > 1 ? "s" : ""));
 
 		return layerCatalog;
 	}
@@ -270,7 +339,7 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 	}
 
 	public JSONSortedObject getGlobalManualOverride() {
-		return globalManualOverride;
+		return this.globalManualOverride;
 	}
 
 	public void setGlobalManualOverride(JSONSortedObject globalManualOverride) {
@@ -278,11 +347,35 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 	}
 
 	public String getDataSourceType() {
-		return dataSourceType;
+		return this.dataSourceType;
 	}
 
 	public void setDataSourceType(String dataSourceType) {
 		this.dataSourceType = dataSourceType;
+	}
+
+	public String getLastHarvested() {
+		if (this.lastHarvested == null || this.lastHarvested.isEmpty()) {
+			return "Unknown";
+		}
+		return this.lastHarvested;
+	}
+
+	public void setLastHarvested(String lastHarvested) {
+		this.lastHarvested = lastHarvested;
+	}
+
+	public void setLastHarvestedDate(Date lastHarvestedDate) {
+		this.setLastHarvested(
+				lastHarvestedDate == null ? null : DATE_FORMATER.format(lastHarvestedDate));
+	}
+
+	public boolean isValid() {
+		return this.valid;
+	}
+
+	public void setValid(boolean valid) {
+		this.valid = valid;
 	}
 
 	public String getFeatureRequestsUrl() {

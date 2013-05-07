@@ -149,3 +149,26 @@ div.ajaxLoading {
 	background: url('icons/statusbar/loading.gif') no-repeat right center;
 	cursor: wait;
 }
+
+label .grid-true, label .grid-false {
+	margin-bottom: -2px;
+}
+
+.grid-true, .grid-false {
+	background-repeat: no-repeat;
+	display: inline-block;
+	width: 14px;
+	height: 14px;
+}
+
+.grid-true {
+	background-image: url("icons/accept.png");
+}
+
+.grid-false {
+	background-image: url("icons/cancel.png");
+}
+
+.grid-true .text, .grid-false .text {
+	display: none;
+}

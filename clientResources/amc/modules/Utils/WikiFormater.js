@@ -56,6 +56,8 @@ window["Atlas"]["Utils"] = window["Atlas"]["Utils"] || {};
  *         [[page2.html|*Page /2/*]]
  */
 Atlas.Utils.WikiFormater = OpenLayers.Class({
+	MAX_URL_LENGTH: 40,
+
 	initialize: function() {
 	},
 
@@ -83,9 +85,8 @@ Atlas.Utils.WikiFormater = OpenLayers.Class({
 	 *
 	 * See: https://github.com/lahdekorpi/Wiky.php/blob/master/wiky.inc.php
 	 *
-	 * @param String, using some Wiki format syntax.
+	 * @param input String, using some Wiki format syntax.
 	 * @return HTML String.
-	 * @private
 	 */
 	// Recursive method that treat the Wiki document as a tree.
 	// This method is faster than using regex to parse the document
@@ -106,7 +107,7 @@ Atlas.Utils.WikiFormater = OpenLayers.Class({
 		var output = '', currentChar = '', htmlChunk = '';
 
 		for (var i=0, len=input.length; i<len; i++) {
-			currentChar = input[i];
+			currentChar = input.charAt(i); // IE 7 and earlier do not support input[i]
 			htmlChunk = '';
 
 			// ********************
@@ -127,7 +128,7 @@ Atlas.Utils.WikiFormater = OpenLayers.Class({
 					if (closeTag) {
 						htmlChunk += openTag.tag + this.format(input.substring(openTag.index+1, closeTag.index)) + closeTag.tag;
 						i = closeTag.index;
-						currentChar = i < len ? input[i] : '';
+						currentChar = i < len ? input.charAt(i) : '';
 					}
 				}
 			}
@@ -135,16 +136,16 @@ Atlas.Utils.WikiFormater = OpenLayers.Class({
 			// *************
 			// * Wiki URLs *
 			// *************
-			if (currentChar === '[' && i+1 < len && input[i+1] === '[') {
+			if (currentChar === '[' && i+1 < len && input.charAt(i+1) === '[') {
 				var index = i, inURL = true, isURL = false;
 				// Find the index of the last URL chars
 				// NOTE: URLs can not contains URL, so the first closing tag is for the current URL.
 				while (inURL && index < len) {
 					// '\n' is not allow in Wiki URL
-					if (input[index] === '\n') {
+					if (input.charAt(index) === '\n') {
 						inURL = false;
 					}
-					if (input[index] === ']' && input[index-1] === ']') {
+					if (input.charAt(index+1) !== ']' && input.charAt(index) === ']' && input.charAt(index-1) === ']') {
 						inURL = false;
 						isURL = true;
 					}
@@ -154,19 +155,58 @@ Atlas.Utils.WikiFormater = OpenLayers.Class({
 				}
 				if (isURL) {
 					var htmlURL, wikiURL = input.substring(i+2, index-1);
-					var urlStr, label, wikiURLParts = wikiURL.split('|');
+					var urlStr, filename, label, wikiURLParts = wikiURL.split('|');
+
+					var type = 'URL';
 					if (wikiURLParts.length >= 2) {
-						label = this.format(wikiURLParts.pop());
-						// The URL may have '|' in it...
-						urlStr = wikiURLParts.join('|');
+						if (wikiURLParts[0] === 'IMG') {
+							// Remove IMG
+							type = wikiURLParts.shift();
+							urlStr = wikiURLParts.shift();
+							label = wikiURLParts.join('|');
+						} else if (wikiURLParts[0] === 'DOWNLOAD') {
+							// Remove DOWNLOAD
+							type = wikiURLParts.shift();
+							if (wikiURLParts.length >= 2) {
+								urlStr = wikiURLParts.shift();
+								filename = wikiURLParts.shift();
+								label = this.format(wikiURLParts.join('|'));
+								if (!label) {
+									label = filename;
+								}
+							} else {
+								urlStr = wikiURLParts[0];
+								filename = urlStr;
+
+								var lastSlashIndex = filename.lastIndexOf('/');
+								var questionMarkIndex = filename.indexOf('?');
+								if (questionMarkIndex < 0) { questionMarkIndex = filename.length; }
+
+								if (lastSlashIndex+1 < questionMarkIndex) {
+									filename = filename.substring(lastSlashIndex+1, questionMarkIndex);
+								}
+								label = filename;
+							}
+						} else {
+							urlStr = wikiURLParts.shift();
+							label = this.format(wikiURLParts.join('|'));
+						}
 					} else {
 						label = this._truncateURLForDisplay(wikiURL);
 						urlStr = wikiURL;
 					}
 
-					htmlChunk += '<a href="'+urlStr+'" target="_blank">'+label+'</a>';
+					if (type === 'IMG') {
+						htmlChunk += '<img src="'+urlStr+'" alt="'+label+'" title="'+label+'"/>';
+					} else if (type === 'DOWNLOAD') {
+						// NOTE: A[DOWNLOAD] is a HTML5 attribute. It's ignored if the browser do not support it.
+						//     http://www.w3.org/html/wg/drafts/html/master/links.html#downloading-resources
+						htmlChunk += '<a href="'+urlStr+'" download="'+filename+'" target="blank">'+label+'</a>';
+					} else {
+						htmlChunk += '<a href="'+urlStr+'" target="_blank">'+label+'</a>';
+					}
 					i = index;
-					currentChar = i < len ? input[i] : '';
+					currentChar = i < len ? input.charAt(i) : '';
 				}
 			}
 
@@ -179,7 +219,7 @@ Atlas.Utils.WikiFormater = OpenLayers.Class({
 					var label = this._truncateURLForDisplay(urlStr);
 					htmlChunk += '<a href="'+urlStr+'" target="_blank">'+label+'</a>';
 					i += urlStr.length-1;
-					currentChar = i < len ? input[i] : '';
+					currentChar = i < len ? input.charAt(i) : '';
 				}
 			}
 
@@ -192,26 +232,26 @@ Atlas.Utils.WikiFormater = OpenLayers.Class({
 					var label = this._truncateURLForDisplay(urlStr);
 					htmlChunk += '<a href="http://'+urlStr+'" target="_blank">'+label+'</a>';
 					i += urlStr.length-1;
-					currentChar = i < len ? input[i] : '';
+					currentChar = i < len ? input.charAt(i) : '';
 				}
 			}
 
 			// ***********************************
 			// * Headers (<h1>, <h2>, ..., <h6>) *
 			// ***********************************
-			if (currentChar === '=' && (i <= 0 || input[i-1] === '\n')) {
+			if (currentChar === '=' && (i <= 0 || input.charAt(i-1) === '\n')) {
 				// Collect open tag ("\n=====")
 				var index = i, openTag = '=', closeTag = '',
 					lineStartIndex = i, lineEndIndex;
-				while (index+1 < len && input[index+1] === '=') {
+				while (index+1 < len && input.charAt(index+1) === '=') {
 					index++;
 					openTag += '=';
 				}
 
 				// Collect close tag ("=====\n")
-				while (index+1 < len && input[index+1] !== '\n') {
+				while (index+1 < len && input.charAt(index+1) !== '\n') {
 					index++;
-					if (input[index] === '=') {
+					if (input.charAt(index) === '=') {
 						closeTag += '=';
 					} else {
 						// reset
@@ -231,7 +271,7 @@ Atlas.Utils.WikiFormater = OpenLayers.Class({
 					// lineEndIndex   => last '='
 					// lineEndIndex+1 => the '\n'
 					i = lineEndIndex+1;
-					currentChar = i < len ? input[i] : '';
+					currentChar = i < len ? input.charAt(i) : '';
 				}
 			}
 
@@ -242,7 +282,7 @@ Atlas.Utils.WikiFormater = OpenLayers.Class({
 				// Collect all lines that define the list
 				var index = i, inList = true;
 				while (inList && index < len) {
-					if (index > 0 && input[index-1] === '\n') {
+					if (index > 0 && input.charAt(index-1) === '\n') {
 						// The cursor is at the beginning of a new line.
 						// It's time to check if the line is still part
 						// of the bullet list.
@@ -256,7 +296,7 @@ Atlas.Utils.WikiFormater = OpenLayers.Class({
 
 				htmlChunk += this._createHTMLList(this._createListObjFromWikiFormat(listBlock));
 				i = index-1;
-				currentChar = i < len ? input[i] : '';
+				currentChar = i < len ? input.charAt(i) : '';
 			}
 
 			// *****************
@@ -266,7 +306,7 @@ Atlas.Utils.WikiFormater = OpenLayers.Class({
 				// Collect all lines that define the list
 				var index = i, inList = true;
 				while (inList && index < len) {
-					if (index > 0 && input[index-1] === '\n') {
+					if (index > 0 && input.charAt(index-1) === '\n') {
 						// The cursor is at the beginning of a new line.
 						// It's time to check if the line is still part
 						// of the bullet list.
@@ -280,7 +320,7 @@ Atlas.Utils.WikiFormater = OpenLayers.Class({
 
 				htmlChunk += this._createHTMLList(this._createListObjFromWikiFormat(listBlock, true), true);
 				i = index-1;
-				currentChar = i < len ? input[i] : '';
+				currentChar = i < len ? input.charAt(i) : '';
 			}
 
 			// Default
@@ -295,52 +335,73 @@ Atlas.Utils.WikiFormater = OpenLayers.Class({
 	},
 
 
+	/**
+	 * @param char
+	 * @return {Boolean}
+	 * @private
+	 */
 	_isStyleChar: function(char) {
 		return char === '*' || char === '/' || char === '_' || char === '-';
 	},
 
+	/**
+	 * @param input
+	 * @param index
+	 * @param numbered
+	 * @return {Boolean}
+	 * @private
+	 */
 	_isListLine: function(input, index, numbered) {
 		var len = input.length, bulletChar = numbered ? '#' : '*';
-		if (input[index] !== bulletChar || (index > 0 && input[index-1] !== '\n')) {
+		if (input.charAt(index) !== bulletChar || (index > 0 && input.charAt(index-1) !== '\n')) {
 			return false;
 		}
-		while (index < len && input[index] === bulletChar) {
+		while (index < len && input.charAt(index) === bulletChar) {
 			index++;
 		}
 		// It is a list only if the next character after the stars is a white space.
-		return /\s/.test(input[index]);
+		return /\s/.test(input.charAt(index));
 	},
 
 	/**
-	 * {
+	 * @param input
+	 * @param index
+	 * @return {
 	 *     type: '*',  // '*', '/', '_' or '-'
 	 *     index: 123, // Index of the character in the input string
 	 *     open: true, // Open or close tag
 	 *     tag: '<b>'  // Equivalent HTML tag, either open or close.
 	 * }
+	 * @private
 	 */
 	_getStyleTag: function(input, index) {
 		var tag = {
-			type: input[index],
+			type: input.charAt(index),
 			index: index
 		};
 
-		var styleDelimiterRegex = /[\s\.,]/;
+		// Delimiter: Allow caracter before the style char, to be considered as a style char.
+		//     Example: "This is *important* " => "important" is considered as bold because it's surrounded by spaces.
+		//         "end of -sentence-." => "sentence" is striked out because has a space before and a period after.
+		//         "value1|*value2*" => "value2" is bold because it has a pipe before and a end of string at the end.
+		//             The pipe and brakets chars are mostly used to detect style inside element, like in a link label,
+		//             to not accidently consider the label style end with the current style end.
+		var styleDelimiterRegex = /[\s\.,\|\[\]]/;
 
 		// Check if the sequence start with white space
 		var len = input.length, startIndex = index, endIndex = index;
-		while (startIndex-1 >= 0 && this._isStyleChar(input[startIndex-1])) {
+		while (startIndex-1 >= 0 && this._isStyleChar(input.charAt(startIndex-1))) {
 			startIndex--;
 		}
-		while (endIndex+1 < len && this._isStyleChar(input[endIndex+1])) {
+		while (endIndex+1 < len && this._isStyleChar(input.charAt(endIndex+1))) {
 			endIndex++;
 		}
 
-		if ((startIndex-1 < 0 || styleDelimiterRegex.test(input[startIndex-1])) &&
-				(endIndex+1 >= len || !styleDelimiterRegex.test(input[endIndex+1]))) {
+		if ((startIndex-1 < 0 || styleDelimiterRegex.test(input.charAt(startIndex-1))) &&
+				(endIndex+1 >= len || !styleDelimiterRegex.test(input.charAt(endIndex+1)))) {
 			tag.open = true;
-		} else if ((startIndex-1 < 0 || !styleDelimiterRegex.test(input[startIndex-1])) &&
-				(endIndex+1 >= len || styleDelimiterRegex.test(input[endIndex+1]))) {
+		} else if ((startIndex-1 < 0 || !styleDelimiterRegex.test(input.charAt(startIndex-1))) &&
+				(endIndex+1 >= len || styleDelimiterRegex.test(input.charAt(endIndex+1)))) {
 			tag.open = false;
 		} else {
 			return null;
@@ -361,10 +422,16 @@ Atlas.Utils.WikiFormater = OpenLayers.Class({
 		return tag;
 	},
 
+	/**
+	 * @param input
+	 * @param openTag
+	 * @return {*}
+	 * @private
+	 */
 	_findCloseTag: function(input, openTag) {
 		var tag, closeTag, currentChar = '';
 		for (var i=openTag.index+1, len=input.length; i<len; i++) {
-			currentChar = input[i];
+			currentChar = input.charAt(i);
 			if (this._isStyleChar(currentChar)) {
 				tag = this._getStyleTag(input, i);
 				if (tag && tag.type === openTag.type) {
@@ -385,51 +452,57 @@ Atlas.Utils.WikiFormater = OpenLayers.Class({
 		}
 	},
 
-	// Create a list object from a Wiki string
-	// Wiki String:
-	// * Item A
-	// * Item B
-	// ** Item B1
-	// ** Item B2
-	// * Item C
-	// ** Item C1
-	// *** Item C11
-	// * Item D
-	//
-	// List:
-	// [
-	//     {
-	//         value: 'Item A',
-	//         children: []
-	//     }, {
-	//         value: 'Item B',
-	//         children: [
-	//             }
-	//                 value: 'Item B1',
-	//                 children: []
-	//             }, {
-	//                 value: 'Item B2',
-	//                 children: []
-	//             }
-	//         ]
-	//     }, {
-	//         value: 'Item C',
-	//         children: [
-	//             }
-	//                 value: 'Item C1',
-	//                 children: [
-	//                     }
-	//                         value: 'Item C11',
-	//                         children: []
-	//                     }
-	//                 ]
-	//             }
-	//         ]
-	//     }, {
-	//         value: 'Item D',
-	//         children: []
-	//     }
-	// ]
+	/**
+	 * Create a list object from a Wiki string
+	 * Wiki String:
+	 * * Item A
+	 * * Item B
+	 * ** Item B1
+	 * ** Item B2
+	 * * Item C
+	 * ** Item C1
+	 * *** Item C11
+	 * * Item D
+	 *
+	 * List:
+	 * [
+	 *     {
+	 *         value: 'Item A',
+	 *         children: []
+	 *     }, {
+	 *         value: 'Item B',
+	 *         children: [
+	 *             }
+	 *                 value: 'Item B1',
+	 *                 children: []
+	 *             }, {
+	 *                 value: 'Item B2',
+	 *                 children: []
+	 *             }
+	 *         ]
+	 *     }, {
+	 *         value: 'Item C',
+	 *         children: [
+	 *             }
+	 *                 value: 'Item C1',
+	 *                 children: [
+	 *                     }
+	 *                         value: 'Item C11',
+	 *                         children: []
+	 *                     }
+	 *                 ]
+	 *             }
+	 *         ]
+	 *     }, {
+	 *         value: 'Item D',
+	 *         children: []
+	 *     }
+	 * ]
+	 * @param listStr
+	 * @param numbered
+	 * @return [*] Array of list item, containing a value and a array of children.
+	 * @private
+	 */
 	_createListObjFromWikiFormat: function(listStr, numbered) {
 		var bulletChar = numbered ? '#' : '*';
 		var valueRegex = numbered ? /^#+\s+/ : /^\*+\s+/;
@@ -463,7 +536,13 @@ Atlas.Utils.WikiFormater = OpenLayers.Class({
 		return bulletListObj[0].children;
 	},
 
-	// Create a HTML list for a list object
+	/**
+	 * Create a HTML list for a list object
+	 * @param list
+	 * @param numbered
+	 * @return String
+	 * @private
+	 */
 	_createHTMLList: function(list, numbered) {
 		var listTagName = numbered ? 'ol' : 'ul';
 
@@ -480,8 +559,13 @@ Atlas.Utils.WikiFormater = OpenLayers.Class({
 		return htmlList;
 	},
 
+	/**
+	 * @param url
+	 * @return String
+	 * @private
+	 */
 	_truncateURLForDisplay: function(url) {
-		var maxUrlLength = 40;// this.MAX_URL_LENGTH || 40;
+		var maxUrlLength = this.MAX_URL_LENGTH || 40;
 
 		if (maxUrlLength == 1) {
 			return ".";
@@ -504,31 +588,48 @@ Atlas.Utils.WikiFormater = OpenLayers.Class({
 		return url;
 	},
 
-	// If it starts with (sftp|ftp|http|https|file)://
+	/**
+	 * If it starts with (sftp|ftp|http|https|file)://
+	 * @param input
+	 * @param i
+	 * @return {Boolean}
+	 * @private
+	 */
 	_isCompleteURL: function(input, i) {
 		var inputChunk = input.substr(i, 10);
 		return /^(sftp|ftp|http|https|file):\/\//.test(inputChunk);
 	},
-	// If it starts with www.(Something)
+	/**
+	 * If it starts with www.(Something)
+	 * @param input
+	 * @param i
+	 * @return {Boolean}
+	 * @private
+	 */
 	_isIncompleteURL: function(input, i) {
 		var inputChunk = input.substr(i, 5);
 		return /^www\.\S/.test(inputChunk);
 	},
 
+	/**
+	 * @param input
+	 * @param i
+	 * @return {String}
+	 * @private
+	 */
 	_toURL: function(input, i) {
 		var urlCharRegex = /[a-zA-Z0-9\$\-_\.\+\!\*'\(\),;\/\?:@=&#%]/,
 			urlEndingCharRegex = /[a-zA-Z0-9\/]/,
 			len = input.length, index = i;
 
-		while (index < len && urlCharRegex.test(input[index])) {
+		while (index < len && urlCharRegex.test(input.charAt(index))) {
 			index++;
 		}
 		index--;
-		while (index >= 0 && !urlEndingCharRegex.test(input[index])) {
+		while (index >= 0 && !urlEndingCharRegex.test(input.charAt(index))) {
 			index--;
 		}
 
 		return input.substring(i, index+1);
 	}
 });
-

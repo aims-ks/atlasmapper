@@ -432,11 +432,23 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 	}
 
 	public List<LayerStyleConfig> getStyles() {
-		return styles;
+		return this.styles;
 	}
 
 	public void setStyles(List<LayerStyleConfig> styles) {
 		this.styles = styles;
+	}
+
+	public LayerStyleConfig getStyle(String styleName) {
+		if (styleName == null || this.styles == null || this.styles.isEmpty()) {
+			return null;
+		}
+		for (LayerStyleConfig style : this.styles) {
+			if (styleName.equals(style.getName())) {
+				return style;
+			}
+		}
+		return null;
 	}
 
 	public Boolean isCached() {
@@ -521,12 +533,14 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 	}
 
 	// TODO Specific pieces into specific classes (example: WMSLayerConfig parts goes into WMSLayerConfig class)
-	public JSONObject generateLayer() throws JSONException {
+	public JSONObject generateLayer(AbstractLayerConfig cachedLayer) throws JSONException {
 		// AbstractLayerConfig implements AbstractDataSourceConfigInterface
 		JSONObject jsonLayer = AbstractDataSourceConfigInterfaceHelper.generateDataSourceInterface(this, null);
 
 		if (this.isCached() != null) {
 			jsonLayer.put("cached", this.isCached());
+		} else {
+			jsonLayer.put("cached", (cachedLayer != null));
 		}
 
 		if (this.getOlParams() != null) {
@@ -615,14 +629,21 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 				for (LayerStyleConfig style : styles) {
 					String styleName = style.getName();
 					if (styleName != null) {
+						styleName = styleName.trim();
+
+						Boolean cached = null;
+						if (cachedLayer != null) {
+							cached = firstStyle || cachedLayer.getStyle(styleName) != null;
+						}
+
+						JSONObject jsonStyle = this.generateLayerStyle(style, cached);
+
 						if (firstStyle) {
 							firstStyle = false;
 							styleName = "";
 						}
-
-						JSONObject jsonStyle = this.generateLayerStyle(style);
 						if (jsonStyle != null && jsonStyle.length() > 0) {
-							jsonStyles.put(styleName.trim(), jsonStyle);
+							jsonStyles.put(styleName, jsonStyle);
 						}
 					}
 				}
@@ -657,7 +678,7 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 		return jsonLayer;
 	}
 
-	private JSONObject generateLayerStyle(LayerStyleConfig style) throws JSONException {
+	private JSONObject generateLayerStyle(LayerStyleConfig style, Boolean cached) throws JSONException {
 		if (style == null) {
 			return null;
 		}
@@ -676,6 +697,12 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 
 		if (style.isDefault() != null) {
 			jsonStyle.put("default", style.isDefault());
+		}
+
+		if (style.isCached() != null) {
+			jsonStyle.put("cached", style.isCached());
+		} else if (cached != null) {
+			jsonStyle.put("cached", cached);
 		}
 
 		if (Utils.isNotBlank(style.getDescription())) {

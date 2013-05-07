@@ -21,6 +21,7 @@
 
 package au.gov.aims.atlasmapperserver;
 
+import au.gov.aims.atlasmapperserver.collection.MultiKeyHashMap;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.servlet.FileFinder;
 import org.apache.commons.httpclient.HttpStatus;
@@ -30,6 +31,9 @@ import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.conn.PoolingClientConnectionManager;
+import org.apache.http.impl.conn.SchemeRegistryFactory;
+import org.apache.http.util.EntityUtils;
 import org.geotools.data.ows.WMSCapabilities;
 import org.geotools.data.wms.xml.WMSSchema;
 import org.geotools.ows.ServiceException;
@@ -110,7 +114,16 @@ public class URLCache {
  	 */
 	protected static JSONObject diskCacheMap = null;
 
-	private static HttpClient httpClient = new DefaultHttpClient();
+	private static HttpClient httpClient = null;
+	static {
+		// Set a pool of multiple connections so more than one client can be generated simultaneously
+		// See: http://stackoverflow.com/questions/12799006/how-to-solve-error-invalid-use-of-basicclientconnmanager-make-sure-to-release
+		PoolingClientConnectionManager cxMgr = new PoolingClientConnectionManager(SchemeRegistryFactory.createDefault());
+		cxMgr.setMaxTotal(100);
+		cxMgr.setDefaultMaxPerRoute(20);
+
+		httpClient = new DefaultHttpClient(cxMgr);
+	}
 
 	private static File getApplicationFolder(ConfigManager configManager) {
 		if (configManager == null) {
@@ -135,11 +148,13 @@ public class URLCache {
 	 * @param configManager
 	 * @param dataSource
 	 * @param urlStr
+	 * @param mandatory True to cancel the client generation if the file cause problem
+	 * @param harvest True to force download, false to use cache
 	 * @return
 	 * @throws IOException
 	 * @throws JSONException
 	 */
-	public static File getURLFile(ConfigManager configManager, AbstractDataSourceConfig dataSource, String urlStr, boolean mandatory) throws IOException, JSONException {
+	public static File getURLFile(ConfigManager configManager, AbstractDataSourceConfig dataSource, String urlStr, boolean mandatory, boolean harvest) throws IOException, JSONException {
 		File applicationFolder = getApplicationFolder(configManager);
 
 		String dataSourceId = null;
@@ -171,13 +186,14 @@ public class URLCache {
 				}
 
 				// Check if the file reach its expiry
-				Date downloadedTime = cachedFile.getDownloadedTime();
+//				Date downloadedTime = cachedFile.getDownloadedTime();
 
-				if (downloadedTime != null) {
-					long expiry = cachedFile.getExpiry();
-					if (expiry >= 0) {
-						long age = new Date().getTime() - downloadedTime.getTime();
-						if (age >= expiry * NB_MS_PER_HOUR || cachingDisabled) {
+//				if (downloadedTime != null) {
+//					long expiry = cachedFile.getExpiry();
+//					if (expiry >= 0) {
+//						long age = new Date().getTime() - downloadedTime.getTime();
+//						if (age >= expiry * NB_MS_PER_HOUR || cachingDisabled) {
+						if (harvest || cachingDisabled) {
 							String tmpFilename = CachedFile.generateFilename(cacheFolder, urlStr);
 							cachedFile.setTemporaryFilename(tmpFilename);
 							// Set the time of the last download tentative; which is now
@@ -193,8 +209,8 @@ public class URLCache {
 							cachedFile.setLatestErrorMessage(responseStatus.getErrorMessage());
 							cachedFile.cleanUpFilenames();
 						}
-					}
-				}
+//					}
+//				}
 			}
 
 			// The URL is not present in the cache. Load it!
@@ -315,7 +331,8 @@ public class URLCache {
 			return responseStatus;
 		}
 
-		HttpGet httpGet = null;
+		HttpGet httpGet = new HttpGet(uri);
+		HttpEntity entity = null;
 		InputStream in = null;
 		FileOutputStream out = null;
 
@@ -324,7 +341,6 @@ public class URLCache {
 			//     http://hc.apache.org/httpcomponents-core-ga/httpcore/apidocs/index.html
 			//     http://hc.apache.org/httpcomponents-client-ga/httpclient/apidocs/index.html
 			// Example: http://hc.apache.org/httpcomponents-client-ga/tutorial/html/fundamentals.html#d5e37
-			httpGet = new HttpGet(uri);
 			HttpResponse response = httpClient.execute(httpGet);
 
 			StatusLine httpStatus = response.getStatusLine();
@@ -332,14 +348,16 @@ public class URLCache {
 				responseStatus.setStatusCode(httpStatus.getStatusCode());
 			}
 
-			HttpEntity entity = response.getEntity();
+			// The entity is streamed
+			entity = response.getEntity();
 			if (entity != null) {
 				long contentSizeMb = entity.getContentLength() / (1024*1024); // in megabytes
-				// Over 8 millions terabytes
+				// long value can go over 8 millions terabytes
 
 				if (contentSizeMb < maxFileSizeMb) {
 					in = entity.getContent();
 					out = new FileOutputStream(file);
+					// The file size may be unknown on the server. This method stop streaming when the file size reach the limit.
 					Utils.binaryCopy(in, out, maxFileSizeMb * (1024*1024));
 				} else {
 					LOGGER.log(Level.WARNING, "File size exceeded for URL {0}\n" +
@@ -355,6 +373,8 @@ public class URLCache {
 			responseStatus.setErrorMessage(getErrorMessage(ex));
 		} finally {
 			if (httpGet != null) {
+				// Cancel the connection, if it's still alive
+				httpGet.abort();
 				// Close connections
 				httpGet.reset();
 			}
@@ -432,12 +452,12 @@ public class URLCache {
 		purgeCache(applicationFolder);
 	}
 
-	public static JSONObject getJSONResponse(ConfigManager configManager, AbstractDataSourceConfig dataSource, String urlStr, boolean mandatory) throws IOException, JSONException {
+	public static JSONObject getJSONResponse(ConfigManager configManager, AbstractDataSourceConfig dataSource, String urlStr, boolean mandatory, boolean harvest) throws IOException, JSONException {
 		File jsonFile = null;
 
 		JSONObject jsonResponse = null;
 		try {
-			jsonFile = getURLFile(configManager, dataSource, urlStr, mandatory);
+			jsonFile = getURLFile(configManager, dataSource, urlStr, mandatory, harvest);
 			jsonResponse = parseFile(jsonFile, urlStr);
 			commitURLFile(configManager, jsonFile, urlStr);
 		} catch(Exception ex) {
@@ -547,6 +567,51 @@ public class URLCache {
 	}
 
 
+	public static Map<String, Errors> getDataSourceErrors(AbstractDataSourceConfig dataSourceConfig, File applicationFolder) throws IOException, JSONException {
+		File diskCacheFolder = FileFinder.getDiskCacheFolder(applicationFolder);
+		if (diskCacheMap == null) {
+			loadDiskCacheMap(applicationFolder);
+		}
+
+		// Collect warnings
+		Map<String, Errors> errors = new HashMap<String, Errors>();
+
+		// Add errors reported by the disk cache utility (filter by specified data source)
+		if (diskCacheMap != null && diskCacheMap.length() > 0) {
+			Iterator<String> urls = diskCacheMap.keys();
+			String url;
+			boolean hasChanged = false;
+			while (urls.hasNext()) {
+				url = urls.next();
+				CachedFile cachedFile = getCachedFile(applicationFolder, url);
+				if (!cachedFile.isEmpty()) {
+					String errorMsg = cachedFile.getLatestErrorMessage();
+					if (Utils.isNotBlank(errorMsg)) {
+						for (String dataSourceId : cachedFile.getDataSourceIds()) {
+							if (dataSourceConfig.getDataSourceId().equals(dataSourceId)) {
+								URLErrors urlErrors = null;
+								if (!errors.containsKey(dataSourceId)) {
+									urlErrors = new URLErrors();
+									errors.put(dataSourceId, urlErrors);
+								} else {
+									urlErrors = (URLErrors)errors.get(dataSourceId);
+								}
+								if (cachedFile.isMandatory()) {
+									urlErrors.addError(url, errorMsg);
+								} else {
+									urlErrors.addWarning(url, errorMsg);
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		return errors;
+	}
+
+
 	// DatasourceID, Errors
 	public static Map<String, Errors> getClientErrors(ClientConfig clientConfig, File applicationFolder) throws IOException, JSONException {
 		File diskCacheFolder = FileFinder.getDiskCacheFolder(applicationFolder);
@@ -557,6 +622,7 @@ public class URLCache {
 		// Collect warnings
 		Map<String, Errors> errors = new HashMap<String, Errors>();
 
+		// Add errors reported by the disk cache utility (filter with data sources used by the specified client)
 		if (diskCacheMap != null && diskCacheMap.length() > 0) {
 			Iterator<String> urls = diskCacheMap.keys();
 			String url;
@@ -594,7 +660,7 @@ public class URLCache {
 	}
 
 
-	public static WMSCapabilities getWMSCapabilitiesResponse(ConfigManager configManager, AbstractDataSourceConfig dataSource, String urlStr, boolean mandatory) throws IOException, ServiceException, JSONException, URISyntaxException {
+	public static WMSCapabilities getWMSCapabilitiesResponse(ConfigManager configManager, AbstractDataSourceConfig dataSource, String urlStr, boolean mandatory, boolean harvest) throws IOException, ServiceException, JSONException, URISyntaxException {
 		File capabilitiesFile = null;
 		WMSCapabilities wmsCapabilities;
 
@@ -613,7 +679,7 @@ public class URLCache {
 			}
 
 			try {
-				capabilitiesFile = getURLFile(configManager, dataSource, urlStr, mandatory);
+				capabilitiesFile = getURLFile(configManager, dataSource, urlStr, mandatory, harvest);
 				wmsCapabilities = getCapabilities(capabilitiesFile);
 				commitURLFile(configManager, capabilitiesFile, urlStr);
 			} catch (Exception ex) {
@@ -671,8 +737,21 @@ public class URLCache {
 	}
 
 
-	public static void clearCache(File applicationFolder) throws IOException, JSONException {
+	public static void clearCache(ConfigManager configManager) throws IOException, JSONException {
+		clearCache(configManager, true);
+	}
+
+	/**
+	 *
+	 * @param configManager
+	 * @param updateDataSources Use with unit tests only.
+	 * @throws IOException
+	 * @throws JSONException
+	 */
+	protected static void clearCache(ConfigManager configManager, boolean updateDataSources) throws IOException, JSONException {
 		searchResponseCache.clear();
+
+		File applicationFolder = configManager.getApplicationFolder();
 
 		// Clear cached files
 		if (applicationFolder == null) return;
@@ -698,13 +777,28 @@ public class URLCache {
 			}
 			folder.delete();
 		}
+
+		if (updateDataSources) {
+			// Set data sources harvested date to null
+			MultiKeyHashMap<Integer, String, AbstractDataSourceConfig> dataSources = configManager.getDataSourceConfigs();
+			AbstractDataSourceConfig dataSource = null;
+			for (Map.Entry<Integer, AbstractDataSourceConfig> dataSourceEntry : dataSources.entrySet()) {
+				dataSource = dataSourceEntry.getValue();
+				dataSource.setLastHarvestedDate(null);
+				dataSource.setValid(false);
+			}
+			// Write the changes to disk
+			configManager.saveServerConfig();
+		}
 	}
 
 	public static void clearSearchCache(String urlStr) {
 		searchResponseCache.remove(urlStr);
 	}
 
-	public static void clearCache(File applicationFolder, AbstractDataSourceConfig dataSource) throws JSONException, IOException {
+	protected static void clearCache(ConfigManager configManager, AbstractDataSourceConfig dataSource) throws JSONException, IOException {
+		File applicationFolder = configManager.getApplicationFolder();
+
 		if (dataSource == null || applicationFolder == null) {
 			return;
 		}
@@ -1012,6 +1106,15 @@ public class URLCache {
 		JSONObject jsonCachedFile;
 		File cacheFolder;
 
+		/**
+		 * @param cacheFolder
+		 * @param dataSourceId
+		 * @param filename
+		 * @param downloadedTime
+		 * @param expiry
+		 * @param mandatory True to cancel the client generation if the file cause problem
+		 * @throws JSONException
+		 */
 		public CachedFile(File cacheFolder, String dataSourceId, String filename, Date downloadedTime, int expiry, boolean mandatory) throws JSONException {
 			this.cacheFolder = cacheFolder;
 
@@ -1189,6 +1292,11 @@ public class URLCache {
 		public boolean isMandatory() {
 			return this.jsonCachedFile.optBoolean("mandatory", false);
 		}
+
+		/**
+		 * @param mandatory True to cancel the client generation if the file cause problem
+		 * @throws JSONException
+		 */
 		public void setMandatory(boolean mandatory) throws JSONException {
 			this.jsonCachedFile.put("mandatory", mandatory);
 		}

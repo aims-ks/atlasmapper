@@ -32,10 +32,10 @@ public class ParserTest extends TestCase {
 		URL url = ParserTest.class.getClassLoader().getResource("tc211_full.xml"); // "http://mest.aodn.org.au/geonetwork/srv/en/iso19139.xml?uuid=87263960-92f0-4836-b8c5-8486660ddfe0";
 
 		InputStream inputStream = null;
-		Document doc = null;
+		TC211Document doc = null;
 		try {
 			inputStream = url.openStream();
-			doc = Parser.parseInputStream(inputStream, "tc211_full.xml");
+			doc = TC211Parser.parseInputStream(inputStream, "tc211_full.xml");
 		} finally {
 			if (inputStream != null) {
 				inputStream.close();
@@ -46,15 +46,15 @@ public class ParserTest extends TestCase {
 				"A number of ecological features that are of conservation value because of the role they play in the environment of the Coral Sea have been identified and mapped. Key ecological features (KEFs) meet one or more of the following criteria:\n1. a species, group of species or a community with a regionally important ecological role (e.g. a predator, prey that affects a large biomass or a number of marine species);\n2. a species, group of species or a community that is nationally or regionally important for biodiversity;\n3. an area or habitat that is nationally or regionally important for:\na) enhanced or high productivity (such as predictable upwellings - an upwelling occurs when cold nutrient rich waters from the bottom of the ocean rise to the surface);\nb) aggregations of marine life (such as feeding, resting, breeding or nursery areas);\nc) biodiversity and endemism (species which only occur in a specific area); or\n4. a unique seafloor feature, with known or presumed ecological properties of regional significance.\n\n\nKEFs have been identified by the Australian Government on the basis of advice from scientists about the ecological processes and characteristics of the area. A workshop held in Perth in September 2006 also contributed to this scientific advice and helped to underpin the identification of key ecological features. Three KEFs have been identified in the Coral Sea:\n\n1. Tasmantid seamount chain\n2. Reefs, cays and hebivorous fish of the Queensland Plateau\n3. Reefs, cays and hebivorous fish of the Marion Plateau\n\nIn order to create a spatial representation of KEFs for the Coral Sea, some interpretation of the information was required. DSEWPaC has made every effort to use the best available spatial information and best judgement on how to spatially represent the features based on the scientific advice provided. This does not preclude others from making their own interpretation of available information.",
 				doc.getAbstract());
 
-		List<Document.Link> links = doc.getLinks();
+		List<TC211Document.Link> links = doc.getLinks();
 		assertEquals("Number of read links do not match", 3, links.size());
 
-		for (Document.Link link : links) {
+		for (TC211Document.Link link : links) {
 			String linkUrl = link.getUrl();
 
 			if (linkUrl.equals("http://mest.aodn.org.au:80/geonetwork/srv/en/metadata.show?uuid=87263960-92f0-4836-b8c5-8486660ddfe0")) {
 				assertEquals("Link protocol miss match for link URL: " + linkUrl,
-						Document.Protocol.METADATA_URL, link.getProtocol());
+						TC211Document.Protocol.METADATA_URL, link.getProtocol());
 
 				assertNull("Link name miss match for link URL: " + linkUrl,
 						link.getName());
@@ -64,7 +64,7 @@ public class ParserTest extends TestCase {
 
 			} else if (linkUrl.equals("")) {
 				assertEquals("Link protocol miss match for link URL: " + linkUrl,
-						Document.Protocol.OGC_WEB_MAP_SERVICE_VER_1_1_1, link.getProtocol());
+						TC211Document.Protocol.OGC_WEB_MAP_SERVICE_VER_1_1_1, link.getProtocol());
 
 				assertEquals("Link name miss match for link URL: " + linkUrl,
 						"", link.getName());
@@ -74,7 +74,7 @@ public class ParserTest extends TestCase {
 
 			} else if (linkUrl.equals("http://www.environment.gov.au/metadataexplorer/download_test_form.jsp?dataTitle=Key Ecological Features within the Coral Sea&dataPoCemail=marine.metadata@environment.gov.au&dataFormat=Shapefile")) {
 				assertEquals("Link protocol miss match for link URL: " + linkUrl,
-						Document.Protocol.DATA_FOR_DOWNLOAD_URL, link.getProtocol());
+						TC211Document.Protocol.DATA_FOR_DOWNLOAD_URL, link.getProtocol());
 
 				assertNull("Link name miss match for link URL: " + linkUrl,
 						link.getName());
@@ -95,10 +95,10 @@ public class ParserTest extends TestCase {
 		URL url = new URL("http://mest.aodn.org.au/geonetwork/srv/en/iso19139.xml?uuid=87263960-92f0-4836-b8c5-8486660ddfe0");
 
 		InputStream inputStream = null;
-		Document doc = null;
+		TC211Document doc = null;
 		try {
 			inputStream = url.openStream();
-			doc = Parser.parseInputStream(inputStream, "http://mest.aodn.org.au/geonetwork/srv/en/iso19139.xml?uuid=87263960-92f0-4836-b8c5-8486660ddfe0");
+			doc = TC211Parser.parseInputStream(inputStream, "http://mest.aodn.org.au/geonetwork/srv/en/iso19139.xml?uuid=87263960-92f0-4836-b8c5-8486660ddfe0");
 		} finally {
 			if (inputStream != null) {
 				inputStream.close();
@@ -109,15 +109,15 @@ public class ParserTest extends TestCase {
 				"A number of ecological features that are of conservation value because of the role they play in the environment of the Coral Sea have been identified and mapped. Key ecological features (KEFs) meet one or more of the following criteria:\n1. a species, group of species or a community with a regionally important ecological role (e.g. a predator, prey that affects a large biomass or a number of marine species);\n2. a species, group of species or a community that is nationally or regionally important for biodiversity;\n3. an area or habitat that is nationally or regionally important for:\na) enhanced or high productivity (such as predictable upwellings - an upwelling occurs when cold nutrient rich waters from the bottom of the ocean rise to the surface);\nb) aggregations of marine life (such as feeding, resting, breeding or nursery areas);\nc) biodiversity and endemism (species which only occur in a specific area); or\n4. a unique seafloor feature, with known or presumed ecological properties of regional significance.\n\n\nKEFs have been identified by the Australian Government on the basis of advice from scientists about the ecological processes and characteristics of the area. A workshop held in Perth in September 2006 also contributed to this scientific advice and helped to underpin the identification of key ecological features. Three KEFs have been identified in the Coral Sea:\n\n1. Tasmantid seamount chain\n2. Reefs, cays and hebivorous fish of the Queensland Plateau\n3. Reefs, cays and hebivorous fish of the Marion Plateau\n\nIn order to create a spatial representation of KEFs for the Coral Sea, some interpretation of the information was required. DSEWPaC has made every effort to use the best available spatial information and best judgement on how to spatially represent the features based on the scientific advice provided. This does not preclude others from making their own interpretation of available information.",
 				doc.getAbstract());
 
-		List<Document.Link> links = doc.getLinks();
+		List<TC211Document.Link> links = doc.getLinks();
 		assertEquals("Number of read links do not match", 3, links.size());
 
-		for (Document.Link link : links) {
+		for (TC211Document.Link link : links) {
 			String linkUrl = link.getUrl();
 
 			if (linkUrl.equals("http://mest.aodn.org.au:80/geonetwork/srv/en/metadata.show?uuid=87263960-92f0-4836-b8c5-8486660ddfe0")) {
 				assertEquals("Link protocol miss match for link URL: " + linkUrl,
-						Document.Protocol.METADATA_URL, link.getProtocol());
+						TC211Document.Protocol.METADATA_URL, link.getProtocol());
 
 				assertNull("Link name miss match for link URL: " + linkUrl,
 						link.getName());
@@ -127,7 +127,7 @@ public class ParserTest extends TestCase {
 
 			} else if (linkUrl.equals("")) {
 				assertEquals("Link protocol miss match for link URL: " + linkUrl,
-						Document.Protocol.OGC_WEB_MAP_SERVICE_VER_1_1_1, link.getProtocol());
+						TC211Document.Protocol.OGC_WEB_MAP_SERVICE_VER_1_1_1, link.getProtocol());
 
 				assertEquals("Link name miss match for link URL: " + linkUrl,
 						"", link.getName());
@@ -137,7 +137,7 @@ public class ParserTest extends TestCase {
 
 			} else if (linkUrl.equals("http://www.environment.gov.au/metadataexplorer/download_test_form.jsp?dataTitle=Key Ecological Features within the Coral Sea&dataPoCemail=marine.metadata@environment.gov.au&dataFormat=Shapefile")) {
 				assertEquals("Link protocol miss match for link URL: " + linkUrl,
-						Document.Protocol.DATA_FOR_DOWNLOAD_URL, link.getProtocol());
+						TC211Document.Protocol.DATA_FOR_DOWNLOAD_URL, link.getProtocol());
 
 				assertNull("Link name miss match for link URL: " + linkUrl,
 						link.getName());
@@ -157,10 +157,10 @@ public class ParserTest extends TestCase {
 		URL url = ParserTest.class.getClassLoader().getResource("tc211_minimal.xml");
 
 		InputStream inputStream = null;
-		Document doc = null;
+		TC211Document doc = null;
 		try {
 			inputStream = url.openStream();
-			doc = Parser.parseInputStream(inputStream, "tc211_minimal.xml");
+			doc = TC211Parser.parseInputStream(inputStream, "tc211_minimal.xml");
 		} finally {
 			if (inputStream != null) {
 				inputStream.close();
@@ -171,17 +171,17 @@ public class ParserTest extends TestCase {
 				"Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
 				doc.getAbstract());
 
-		List<Document.Link> links = doc.getLinks();
+		List<TC211Document.Link> links = doc.getLinks();
 		assertEquals("Number of read links do not match", 1, links.size());
 
-		for (Document.Link link : links) {
+		for (TC211Document.Link link : links) {
 			String linkUrl = link.getUrl();
 
 			assertEquals("Link URL miss match",
 					"http://www.lipsum.com/", linkUrl);
 
 			assertEquals("Link protocol miss match",
-					Document.Protocol.METADATA_URL, link.getProtocol());
+					TC211Document.Protocol.METADATA_URL, link.getProtocol());
 
 			assertEquals("Link name miss match",
 					"Lorem Ipsum", link.getName());
@@ -197,10 +197,10 @@ public class ParserTest extends TestCase {
 		URL url = ParserTest.class.getClassLoader().getResource("tc211_AODN-example.xml");
 
 		InputStream inputStream = null;
-		Document doc = null;
+		TC211Document doc = null;
 		try {
 			inputStream = url.openStream();
-			doc = Parser.parseInputStream(inputStream, "tc211_AODN-example.xml");
+			doc = TC211Parser.parseInputStream(inputStream, "tc211_AODN-example.xml");
 		} finally {
 			if (inputStream != null) {
 				inputStream.close();
@@ -211,17 +211,17 @@ public class ParserTest extends TestCase {
 				"Link provided as an example in the AODN Cookbook",
 				doc.getAbstract());
 
-		List<Document.Link> links = doc.getLinks();
+		List<TC211Document.Link> links = doc.getLinks();
 		assertEquals("Number of read links do not match", 1, links.size());
 
-		for (Document.Link link : links) {
+		for (TC211Document.Link link : links) {
 			String linkUrl = link.getUrl();
 
 			assertEquals("Link URL miss match",
 					"http://imos2.ersa.edu.au/geo2/imos/wms", linkUrl);
 
 			assertEquals("Link protocol miss match",
-					Document.Protocol.OGC_WEB_MAP_SERVICE_VER_1_1_1, link.getProtocol());
+					TC211Document.Protocol.OGC_WEB_MAP_SERVICE_VER_1_1_1, link.getProtocol());
 
 			assertEquals("Link name miss match",
 					"imos:ctd_profile_vw", link.getName());
@@ -238,10 +238,10 @@ public class ParserTest extends TestCase {
 		SAXParseException expectedException = null;
 		try {
 			InputStream inputStream = null;
-			Document doc = null;
+			TC211Document doc = null;
 			try {
 				inputStream = url.openStream();
-				doc = Parser.parseInputStream(inputStream, "tc211_unbalanced.xml");
+				doc = TC211Parser.parseInputStream(inputStream, "tc211_unbalanced.xml");
 			} finally {
 				if (inputStream != null) {
 					inputStream.close();

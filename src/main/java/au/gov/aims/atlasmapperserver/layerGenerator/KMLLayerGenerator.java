@@ -49,50 +49,28 @@ public class KMLLayerGenerator extends AbstractLayerGenerator<KMLLayerConfig, KM
 		return layer.getLayerId();
 	}
 
+	/**
+	 * @param dataSourceConfig
+	 * @param harvest
+	 * @return
+	 * @throws Exception
+	 * NOTE: Harvest is ignored since there is nothing to harvest.
+	 */
 	@Override
-	public Collection<KMLLayerConfig> generateLayerConfigs(KMLDataSourceConfig dataSourceConfig) throws Exception {
+	public Collection<KMLLayerConfig> generateLayerConfigs(KMLDataSourceConfig dataSourceConfig, boolean harvest) throws Exception {
 		List<KMLLayerConfig> layersConfig = null;
 
-		/*
-		Set<String> _kmlUrlsSet = dataSourceConfig.getKmlUrlsSet();
-		if (_kmlUrlsSet != null && !_kmlUrlsSet.isEmpty()) {
-			for (String kmlUrl : _kmlUrlsSet) {
-				if (Utils.isNotBlank(kmlUrl)) {
-					int layerIdStart = kmlUrl.lastIndexOf('/')+1;
-					int layerIdEnd = kmlUrl.lastIndexOf('.');
-					layerIdEnd = (layerIdEnd > 0 ? layerIdEnd : kmlUrl.length());
-
-					String layerId = kmlUrl.substring(layerIdStart, layerIdEnd);
-
+		JSONArray kmlData = dataSourceConfig.getKmlData();
+		if (kmlData != null && kmlData.length() > 0) {
+			for (int i=0, len=kmlData.length(); i<len; i++) {
+				JSONObject kmlInfo = kmlData.optJSONObject(i);
+				if (kmlInfo != null) {
 					KMLLayerConfig layer = new KMLLayerConfig(dataSourceConfig.getConfigManager());
-					layer.setLayerId(layerId);
-					layer.setTitle(layerId);
-					layer.setKmlUrl(kmlUrl);
+					layer.setLayerId(kmlInfo.optString("id", null));
+					layer.setKmlUrl(kmlInfo.optString("url", null));
+					layer.setTitle(kmlInfo.optString("title", null));
 
-					if (layersConfig == null) {
-						layersConfig = new ArrayList<KMLLayerConfig>();
-					}
-
-					dataSourceConfig.bindLayer(layer);
-					this.ensureUniqueLayerId(layer, dataSourceConfig);
-
-					layersConfig.add(layer);
-				}
-			}
-		}
-		*/
-
-		JSONArray kmlDatas = dataSourceConfig.getKmlDatas();
-		if (kmlDatas != null && kmlDatas.length() > 0) {
-			for (int i=0, len=kmlDatas.length(); i<len; i++) {
-				JSONObject kmlData = kmlDatas.optJSONObject(i);
-				if (kmlData != null) {
-					KMLLayerConfig layer = new KMLLayerConfig(dataSourceConfig.getConfigManager());
-					layer.setLayerId(kmlData.optString("id", null));
-					layer.setKmlUrl(kmlData.optString("url", null));
-					layer.setTitle(kmlData.optString("title", null));
-
-					String description = kmlData.optString("description", null);
+					String description = kmlInfo.optString("description", null);
 					if (description != null) {
 						layer.setDescription(description);
 						layer.setDescriptionFormat("wiki");
@@ -103,6 +81,7 @@ public class KMLLayerGenerator extends AbstractLayerGenerator<KMLLayerConfig, KM
 					}
 
 					dataSourceConfig.bindLayer(layer);
+					// Do not call ensure unique layer ID, we thrust the admin to choose unique ID.
 					//this.ensureUniqueLayerId(layer, dataSourceConfig);
 
 					layersConfig.add(layer);

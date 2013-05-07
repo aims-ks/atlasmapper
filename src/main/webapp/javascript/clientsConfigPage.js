@@ -137,10 +137,10 @@ Ext.define('Writer.ClientConfigForm', {
 		var dataSourcesItems = [];
 		// NOTE: data sources variable is set in clientsConfigPage.jsp
 		// I don't want to do an Ajax query to get those...
-		Ext.iterate(dataSources, function(dataSourceId, dataSourceName) {
+		Ext.iterate(dataSources, function(dataSourceId, dataSourceObj) {
 			dataSourcesItems.push({
 				name: 'dataSources',
-				boxLabel: dataSourceName,
+				boxLabel: (dataSourceObj.valid ? '<span class="grid-true"><span class="text">Valid</span></span> ' : '<span class="grid-false"><span class="text">Valid</span></span> ') + dataSourceObj.name,
 				inputValue: dataSourceId
 			});
 		});
@@ -750,6 +750,7 @@ Ext.define('Writer.ClientConfigForm', {
 	}
 });
 
+// Definition of the Grid (the table that show the list of clients)
 Ext.define('Writer.ClientConfigGrid', {
 	extend: 'Ext.grid.Panel',
 	alias: 'widget.writerclientconfiggrid',
@@ -836,7 +837,7 @@ Ext.define('Writer.ClientConfigGrid', {
 						return val ? '<a href="'+val+'" target="_blank">'+val+'</a>' : '';
 					}
 				}, {
-					header: 'Live client',
+					header: 'Current client',
 					flex: 1,
 					sortable: true,
 					dataIndex: 'clientUrl',
@@ -1478,6 +1479,8 @@ Ext.define('Writer.ClientConfigGrid', {
 				if(responseObj && responseObj.success){
 					if (responseObj.errors || responseObj.warnings) {
 						frameset.setErrorsAndWarnings('Generation passed', 'Warning(s) occurred while generating the client configuration.', responseObj, statusCode);
+					} else if (responseObj.messages) {
+						frameset.setErrorsAndWarnings('Generation succeed', null, responseObj, statusCode);
 					} else {
 						frameset.setSavedMessage('client configuration generated successfully.');
 					}

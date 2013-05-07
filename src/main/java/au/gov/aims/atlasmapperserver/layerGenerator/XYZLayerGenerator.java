@@ -43,8 +43,15 @@ public class XYZLayerGenerator extends AbstractLayerGenerator<XYZLayerConfig, XY
 		return layer.getLayerId();
 	}
 
+	/**
+	 * @param dataSourceConfig
+	 * @param harvest
+	 * @return
+	 * @throws Exception
+	 * NOTE: Harvest is ignored since there is nothing to harvest.
+	 */
 	@Override
-	public Collection<XYZLayerConfig> generateLayerConfigs(XYZDataSourceConfig dataSourceConfig) throws Exception {
+	public Collection<XYZLayerConfig> generateLayerConfigs(XYZDataSourceConfig dataSourceConfig, boolean harvest) throws Exception {
 		return null; // All layers are created using the layer overrides
 	}
 

@@ -68,7 +68,12 @@
 					boolean first = true;
 					for (AbstractDataSourceConfig cfg : dataSourceConfigs) {
 						if (cfg != null) {
-							%><%=(first?"":",\n") + "'" + Utils.safeJsStr(cfg.getDataSourceId()) + "': '" + Utils.safeJsStr(cfg.getDataSourceName()) + "'" %><%
+							%><%=(first?"":",\n") +
+									"'" + Utils.safeJsStr(cfg.getDataSourceId()) + "': {" +
+										"name: '" + Utils.safeJsStr(cfg.getDataSourceName()) + "'," +
+										"valid: " + cfg.isValid() +
+									"}"
+							%><%
 							first = false;
 						}
 					}

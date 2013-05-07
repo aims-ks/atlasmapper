@@ -90,7 +90,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 	}
 
 	@Override
-	public Collection<AbstractLayerConfig> generateLayerConfigs(ArcGISMapServerDataSourceConfig dataSourceConfig) throws Exception {
+	public Collection<AbstractLayerConfig> generateLayerConfigs(ArcGISMapServerDataSourceConfig dataSourceConfig, boolean harvest) throws Exception {
 		if (dataSourceConfig == null) {
 			throw new IllegalArgumentException("ArcGIS Map Server generation requested for a null data source.");
 		}
@@ -98,7 +98,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 		Map<String, AbstractLayerConfig> layers = new HashMap<String, AbstractLayerConfig>();
 
 		// Fill the Map of layers
-		this.parseJSON(layers, null, null, null, dataSourceConfig);
+		this.parseJSON(layers, null, null, null, dataSourceConfig, harvest);
 
 		return layers.values();
 	}
@@ -136,7 +136,14 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 		return Utils.setUrlParameter(Utils.setUrlParameter(url.toString(), "f", "json"), "pretty", "true");
 	}
 
-	private List<AbstractLayerConfig> parseJSON(Map<String, AbstractLayerConfig> allLayers, String wmsPath, String arcGISPath, String type, ArcGISMapServerDataSourceConfig dataSourceConfig) throws IOException, JSONException {
+	private List<AbstractLayerConfig> parseJSON(
+			Map<String, AbstractLayerConfig> allLayers,
+			String wmsPath,
+			String arcGISPath,
+			String type,
+			ArcGISMapServerDataSourceConfig dataSourceConfig,
+			boolean harvest) throws IOException, JSONException {
+
 		// We currently only support MapServer. Other possible values: GlobeServer
 		if (type != null && !this.isServiceSupported(type)) {
 			return null;
@@ -150,7 +157,8 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 				dataSourceConfig.getConfigManager(),
 				dataSourceConfig,
 				getJSONUrl(dataSourceConfig.getServiceUrl(), arcGISPath, type),
-				true
+				true,
+				harvest
 		);
 
 		List<AbstractLayerConfig> children = new ArrayList<AbstractLayerConfig>();
@@ -174,7 +182,8 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 									dataSourceConfig.getConfigManager(),
 									dataSourceConfig,
 									getJSONUrl(dataSourceConfig.getServiceUrl(), arcGISPath, type, groupId),
-									true
+									true,
+									harvest
 							);
 						}
 
@@ -194,7 +203,8 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 									dataSourceConfig.getConfigManager(),
 									dataSourceConfig,
 									getJSONUrl(dataSourceConfig.getServiceUrl(), arcGISPath, type, layerId),
-									true
+									true,
+									harvest
 							);
 						}
 
@@ -257,7 +267,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 					// If one of the folder name is null or an empty string, the URL will be the same, returning the
 					// same folder name including the null / empty string.
 					if (Utils.isNotBlank(childArcGISPath)) {
-						this.parseJSON(allLayers, childArcGISPath, childArcGISPath, null, dataSourceConfig);
+						this.parseJSON(allLayers, childArcGISPath, childArcGISPath, null, dataSourceConfig, harvest);
 					}
 				}
 			}
@@ -275,11 +285,12 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 								dataSourceConfig.getConfigManager(),
 								dataSourceConfig,
 								getJSONUrl(dataSourceConfig.getServiceUrl(), childArcGISPath, childType),
-								true
+								true,
+								harvest
 						);
 					}
 
-					List<AbstractLayerConfig> subChildren = this.parseJSON(allLayers, wmsPath, childArcGISPath, childType, dataSourceConfig);
+					List<AbstractLayerConfig> subChildren = this.parseJSON(allLayers, wmsPath, childArcGISPath, childType, dataSourceConfig, harvest);
 					if (subChildren != null) {
 						AbstractLayerConfig layerService = this.getLayerServiceConfig(childArcGISPath, subChildren, jsonServiceExtra, dataSourceConfig);
 						this.ensureUniqueLayerId(layerService, dataSourceConfig);

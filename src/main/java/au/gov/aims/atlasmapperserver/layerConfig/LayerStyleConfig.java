@@ -43,6 +43,9 @@ public class LayerStyleConfig extends AbstractConfig implements Comparable<Layer
 	@ConfigField(name="default", getter="isDefault", setter="setDefault")
 	private Boolean _default;
 
+	@ConfigField
+	private Boolean cached;
+
 	public LayerStyleConfig(ConfigManager configManager) {
 		super(configManager);
 	}
@@ -66,6 +69,14 @@ public class LayerStyleConfig extends AbstractConfig implements Comparable<Layer
 
 	public void setDefault(Boolean _default) {
 		this._default = _default;
+	}
+
+	public Boolean isCached() {
+		return this.cached;
+	}
+
+	public void setCached(Boolean cached) {
+		this.cached = cached;
 	}
 
 	public String getDescription() {
@@ -119,6 +130,7 @@ public class LayerStyleConfig extends AbstractConfig implements Comparable<Layer
 				(Utils.isBlank(title) ? "" :       "	title=" + title + "\n") +
 				(Utils.isBlank(description) ? "" : "	description=" + description + "\n") +
 				(_default == null ? "" :           "	default=" + _default + "\n") +
+				(cached == null ? "" :             "	cachable=" + cached + "\n") +
 			'}';
 	}
 }

@@ -56,8 +56,8 @@ public class XYZLayerConfig extends AbstractLayerConfig {
 	}
 
 	@Override
-	public JSONObject generateLayer() throws JSONException {
-		JSONObject jsonLayer = super.generateLayer();
+	public JSONObject generateLayer(AbstractLayerConfig cachedLayer) throws JSONException {
+		JSONObject jsonLayer = super.generateLayer(cachedLayer);
 
 		if (Utils.isNotBlank(this.getFormat())) {
 			jsonLayer.put("format", this.getFormat().trim());

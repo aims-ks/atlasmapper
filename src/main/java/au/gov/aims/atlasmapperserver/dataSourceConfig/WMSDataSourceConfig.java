@@ -66,13 +66,7 @@ public class WMSDataSourceConfig extends AbstractDataSourceConfig implements WMS
 
 	@Override
 	public AbstractLayerGenerator getLayerGenerator() throws Exception {
-		AbstractLayerGenerator layerGenerator;
-		try {
-			layerGenerator = new WMSLayerGenerator(this);
-		} catch (ServiceException e) {
-			throw new IOException("Service Exception occurred while retrieving the WMS layer generator.", e);
-		}
-		return layerGenerator;
+		return new WMSLayerGenerator(this);
 	}
 
 	public String getGetMapUrl() {

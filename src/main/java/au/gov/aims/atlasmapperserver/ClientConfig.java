@@ -234,7 +234,7 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	// LayerCatalog - Before data source overrides
-	private LayerCatalog getRawLayerCatalog() throws IOException, JSONException {
+	private LayerCatalog getRawLayerCatalog(boolean harvest) throws IOException, JSONException {
 		LayerCatalog rawLayerCatalog = new LayerCatalog();
 
 		for (AbstractDataSourceConfig dataSource : this.getDataSourceConfigs()) {
@@ -242,10 +242,9 @@ public class ClientConfig extends AbstractConfig {
 			try {
 				if (dataSource != null) {
 					dataSourceId = dataSource.getDataSourceId();
-					LayerCatalog layerCatalog = dataSource.getLayerCatalog();
+					LayerCatalog layerCatalog = dataSource.getLayerCatalog(harvest);
 					if (layerCatalog != null && !layerCatalog.isEmpty()) {
-						rawLayerCatalog.addLayers(layerCatalog.getLayers());
-						rawLayerCatalog.addAllErrors(layerCatalog.getErrors());
+						rawLayerCatalog.addCatalog(layerCatalog);
 					}
 				}
 			} catch(Exception ex) {
@@ -259,8 +258,8 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	// LayerCatalog - After data source overrides
-	public LayerCatalog getLayerCatalog() throws IOException, JSONException {
-		LayerCatalog rawLayerCatalog = this.getRawLayerCatalog();
+	public LayerCatalog getLayerCatalog(boolean harvest) throws IOException, JSONException {
+		LayerCatalog rawLayerCatalog = this.getRawLayerCatalog(harvest);
 
 		// Map of layers, after overrides, used to create the final layer catalog
 		HashMap<String, AbstractLayerConfig> layersMap = new HashMap<String, AbstractLayerConfig>();
@@ -377,6 +376,7 @@ public class ClientConfig extends AbstractConfig {
 		// LayerCatalog after overrides
 		LayerCatalog layerCatalog = new LayerCatalog();
 		layerCatalog.addLayers(layersMap.values());
+		layerCatalog.addCachedLayers(rawLayerCatalog.getCachedLayers());
 		layerCatalog.addAllErrors(rawLayerCatalog.getErrors());
 
 		return layerCatalog;

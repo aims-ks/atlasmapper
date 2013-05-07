@@ -56,8 +56,8 @@ public class GroupLayerConfig extends AbstractLayerConfig {
 	}
 
 	@Override
-	public JSONObject generateLayer() throws JSONException {
-		JSONObject jsonLayer = super.generateLayer();
+	public JSONObject generateLayer(AbstractLayerConfig cachedLayer) throws JSONException {
+		JSONObject jsonLayer = super.generateLayer(cachedLayer);
 
 		if(Utils.isNotBlank(this.getGroupPath())) {
 			// TODO groupPath instead of arcGISPath

@@ -30,10 +30,12 @@ import java.util.Map;
 public class Errors<E extends Errors.Error> {
 	private List<E> errors;
 	private List<E> warnings;
+	private List<E> messages;
 
 	public Errors() {
 		this.errors = new ArrayList<E>();
 		this.warnings = new ArrayList<E>();
+		this.messages = new ArrayList<E>();
 	}
 
 	public void addError(E error) {
@@ -50,9 +52,17 @@ public class Errors<E extends Errors.Error> {
 		return this.warnings;
 	}
 
+	public void addMessage(E msg) {
+		this.messages.add(msg);
+	}
+	public List<E> getMessages() {
+		return this.messages;
+	}
+
 	public void addAll(Errors errors) {
 		this.errors.addAll(errors.errors);
 		this.warnings.addAll(errors.warnings);
+		this.messages.addAll(errors.messages);
 	}
 
 	/**
@@ -64,6 +74,10 @@ public class Errors<E extends Errors.Error> {
 	 *     "warnings": {
 	 *         "ea": ["warn1", "warn2", ...],
 	 *         "g": ["warn1", "warn2", ...]
+	 *     },
+	 *     "messages": {
+	 *         "ea": ["msg1", "msg2", ...],
+	 *         "g": ["msg1", "msg2", ...]
 	 *     }
 	 * }
 	 * @param errorsMap
@@ -76,6 +90,7 @@ public class Errors<E extends Errors.Error> {
 				String dataSourceId = errorsEntry.getKey();
 				List<Error> errors = errorsEntry.getValue().getErrors();
 				List<Error> warnings = errorsEntry.getValue().getWarnings();
+				List<Error> messages = errorsEntry.getValue().getMessages();
 
 				if (errors != null && !errors.isEmpty()) {
 					if (!json.has("errors")) {
@@ -108,6 +123,24 @@ public class Errors<E extends Errors.Error> {
 						if (dataSourceJsonWarnings != null) {
 							for (Error warning : warnings) {
 								dataSourceJsonWarnings.put(warning.toJSON());
+							}
+						}
+					}
+				}
+
+				if (messages != null && !messages.isEmpty()) {
+					if (!json.has("messages")) {
+						json.put("messages", new JSONObject());
+					}
+					JSONObject jsonMessages = json.optJSONObject("messages");
+					if (jsonMessages != null) {
+						if (!jsonMessages.has(dataSourceId)) {
+							jsonMessages.put(dataSourceId, new JSONArray());
+						}
+						JSONArray dataSourceJsonMessages = jsonMessages.optJSONArray(dataSourceId);
+						if (dataSourceJsonMessages != null) {
+							for (Error message : messages) {
+								dataSourceJsonMessages.put(message.toJSON());
 							}
 						}
 					}

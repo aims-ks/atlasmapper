@@ -23,7 +23,6 @@ package au.gov.aims.atlasmapperserver.layerConfig;
 
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.Errors;
-import au.gov.aims.atlasmapperserver.URLCache;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -45,97 +44,26 @@ public class LayerCatalog {
 	private static final Logger LOGGER = Logger.getLogger(LayerCatalog.class.getName());
 
 	private SortedSet<AbstractLayerConfig> layers;
+	private HashMap<String, AbstractLayerConfig> cachedLayers;
 	private Map<String, LayerErrors> errors;
-
-	/*
-	public LayerCatalog() {
-		// Instantiate a TreeSet, using a comparator that sort layers in alphabetical order.
-		this.layers = new TreeSet<AbstractLayerConfig>(new Comparator<AbstractLayerConfig>() {
-			@Override
-			public int compare(AbstractLayerConfig layer1, AbstractLayerConfig layer2) {
-				// Same instance or both null
-				if (layer1 == layer2) { return 0; }
-
-				// Place null at the end of the list
-				if (layer1 == null) { return -1; }
-				if (layer2 == null) { return 1; }
-
-				// Order according to the layer title, or name (ID defined by the server) if layer name are identical
-				String layerTitle1 = (layer1.getTitle() == null ? layer1.getLayerName() : layer1.getTitle());
-				String layerTitle2 = (layer2.getTitle() == null ? layer2.getLayerName() : layer2.getTitle());
-
-				// Compare the Title, so the layer will appear in alphabetic order
-				int cmp = layerTitle1.compareToIgnoreCase(layerTitle2);
-
-				// If both layers has the same spelling, ignoring case => compare them considering the case
-				if (cmp == 0) {
-					cmp = layerTitle1.compareTo(layerTitle2);
-				}
-
-				// If both layers has the same spelling, considering case => compare globally unique IDs (IDs unique for the whole application, not just unique for the service)
-				if (cmp == 0) {
-					String layerId1 = layer1.getLayerId();
-					String layerId2 = layer2.getLayerId();
-
-					if (layerId1 == layerId2) {
-						// Same String instance or both null (this should only happen when the 2 instances represent the same layer)
-						cmp = 0;
-					} else if (layerId1 == null) {
-						// Null at the end of the list (this should never happen, all layers has a unique ID)
-						cmp = -1;
-					} else if (layerId2 == null) {
-						// Null at the end of the list (this should never happen, all layers has a unique ID)
-						cmp = 1;
-					} else {
-						// Compare ID, considering case to minimise the probability of clashes
-						cmp = layerId1.compareTo(layerId2);
-					}
-				}
-
-				return cmp;
-			}
-		});
-	}
-	*/
 
 	public LayerCatalog() {
 		this.errors = new HashMap<String, LayerErrors>();
+
 		// Instantiate a TreeSet, using a comparator that sort layers in alphabetical order.
-		this.layers = new TreeSet<AbstractLayerConfig>(new Comparator<AbstractLayerConfig>() {
-			@Override
-			public int compare(AbstractLayerConfig layer1, AbstractLayerConfig layer2) {
-				// Same instance or both null
-				if (layer1 == layer2) { return 0; }
-
-				// Place null at the end of the list
-				if (layer1 == null) { return -1; }
-				if (layer2 == null) { return 1; }
-
-				String layerId1 = layer1.getLayerId();
-				String layerId2 = layer2.getLayerId();
-
-				// Same String instance or both null (this should only happen when the 2 instances represent the same layer)
-				if (layerId1 == layerId2) { return 0; }
-
-				// Null at the end of the list (this should never happen, all layers has a unique ID)
-				if (layerId1 == null) { return -1; }
-				if (layerId2 == null) { return 1; }
-
-				// Compare ID, considering case to minimise the probability of clashes
-				return layerId1.compareTo(layerId2);
-			}
-		});
+		this.layers = new TreeSet<AbstractLayerConfig>(new LayerComparator());
+		this.cachedLayers = new HashMap<String, AbstractLayerConfig>();
 	}
 
 	public boolean isEmpty() {
 		return this.layers.isEmpty() && this.errors.isEmpty();
 	}
 
-	/*
-	public void addLayer(AbstractLayerConfig layer) {
-		this.layers.add(layer);
+	public void addCatalog(LayerCatalog catalog) {
+		this.addLayers(catalog.getLayers());
+		this.addCachedLayers(catalog.getCachedLayers());
+		this.addAllErrors(catalog.getErrors());
 	}
-	*/
 
 	public void addLayers(Collection<? extends AbstractLayerConfig> layers) {
 		if (layers != null && !layers.isEmpty()) {
@@ -143,8 +71,27 @@ public class LayerCatalog {
 		}
 	}
 
+	public void addCachedLayers(Collection<? extends AbstractLayerConfig> layers) {
+		if (layers != null && !layers.isEmpty()) {
+			for (AbstractLayerConfig layer : layers) {
+				this.cachedLayers.put(layer.getLayerId(), layer);
+			}
+		}
+	}
+
 	public List<AbstractLayerConfig> getLayers() {
 		return new ArrayList<AbstractLayerConfig>(this.layers);
+	}
+
+	public List<AbstractLayerConfig> getCachedLayers() {
+		return new ArrayList<AbstractLayerConfig>(this.cachedLayers.values());
+	}
+
+	public AbstractLayerConfig getCachedLayer(AbstractLayerConfig layer) {
+		if (layer == null) {
+			return null;
+		}
+		return this.cachedLayers.get(layer.getLayerId());
 	}
 
 	// Helper
@@ -202,6 +149,9 @@ public class LayerCatalog {
 		for (LayerError warn : errors.getWarnings()) {
 			this.addWarning(dataSourceId, warn.getMsg());
 		}
+		for (LayerError msg : errors.getMessages()) {
+			this.addMessage(dataSourceId, msg.getMsg());
+		}
 	}
 
 	public void addError(String dataSourceId, String err) {
@@ -209,6 +159,9 @@ public class LayerCatalog {
 	}
 	public void addWarning(String dataSourceId, String warn) {
 		this.getErrors(dataSourceId).addWarning(warn);
+	}
+	public void addMessage(String dataSourceId, String msg) {
+		this.getErrors(dataSourceId).addMessage(msg);
 	}
 	private LayerErrors getErrors(String dataSourceId) {
 		LayerErrors errors = this.errors.get(dataSourceId);
@@ -245,6 +198,10 @@ public class LayerCatalog {
 
 		public void addWarning(String warn) {
 			this.addWarning(new LayerError(warn));
+		}
+
+		public void addMessage(String msg) {
+			this.addMessage(new LayerError(msg));
 		}
 	}
 }
