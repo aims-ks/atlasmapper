@@ -34,7 +34,10 @@ Atlas.Layer.WMTS = OpenLayers.Class(Atlas.Layer.WMS, {
 	initialize: function(mapPanel, jsonLayer, parent) {
 		Atlas.Layer.WMS.prototype.initialize.apply(this, arguments);
 
+		// WMTS do not support cache (as long as I know)
+		this.useCache = false;
+
 		// TODO Do not call initialize from WMS, create a real WMTS layer.
-		//Atlas.Layer.AbstractLayer.prototype.initialize.apply(this, map, jsonLayer);
+		//Atlas.Layer.AbstractLayer.prototype.initialize.apply(this, arguments);
 	}
 });

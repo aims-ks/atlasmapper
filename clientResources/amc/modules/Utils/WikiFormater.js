@@ -201,7 +201,7 @@ Atlas.Utils.WikiFormater = OpenLayers.Class({
 					} else if (type === 'DOWNLOAD') {
 						// NOTE: A[DOWNLOAD] is a HTML5 attribute. It's ignored if the browser do not support it.
 						//     http://www.w3.org/html/wg/drafts/html/master/links.html#downloading-resources
-						htmlChunk += '<a href="'+urlStr+'" download="'+filename+'" target="blank">'+label+'</a>';
+						htmlChunk += '<a href="'+urlStr+'" download="'+filename+'" target="_blank">'+label+'</a>';
 					} else {
 						htmlChunk += '<a href="'+urlStr+'" target="_blank">'+label+'</a>';
 					}

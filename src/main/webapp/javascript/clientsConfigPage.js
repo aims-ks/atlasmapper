@@ -807,6 +807,16 @@ Ext.define('Writer.ClientConfigGrid', {
 					xtype: 'radiocolumn',
 					dataIndex: 'default'
 				}, {
+					header: 'Enable',
+					width: 50,
+					align: 'center',
+					sortable: true,
+					xtype: 'booleancolumn',
+					// The icon is placed using CSS and the text is hidden with CSS.
+					trueText: '<span class="grid-true"><span class="text">True</span></span>',
+					falseText: '<span class="grid-false"><span class="text">False</span></span>',
+					dataIndex: 'enable'
+				}, {
 					header: 'Client ID',
 					width: 100,
 					sortable: true,
@@ -816,18 +826,6 @@ Ext.define('Writer.ClientConfigGrid', {
 					width: 100,
 					sortable: true,
 					dataIndex: 'clientName'
-				}, {
-					header: 'Enable',
-					width: 50,
-					sortable: true,
-					dataIndex: 'enable',
-					align: 'center',
-					renderer: function(val) {
-						if (val) {
-							return '<img src="../resources/icons/accept.png" />';
-						}
-						return '<img src="../resources/icons/cancel.png" />';
-					}
 				}, {
 					header: 'Preview <i>(using the new config; this option is slower)</i>',
 					flex: 1,
@@ -852,6 +850,11 @@ Ext.define('Writer.ClientConfigGrid', {
 					renderer: function(val) {
 						return val ? '<a href="'+val+'" target="_blank">'+val+'</a>' : '';
 					}
+				}, {
+					header: 'Last generated',
+					width: 130,
+					sortable: true,
+					dataIndex: 'lastGenerated'
 				}, {
 					// http://docs.sencha.com/ext-js/4-0/#/api/Ext.grid.column.Action
 					header: 'Actions',
@@ -1592,20 +1595,34 @@ Ext.define('Writer.ClientConfigGrid', {
 						responseObj = {errors: [err.toString()]};
 					}
 				}
-				if (responseObj && responseObj.success) {
-					frameset.setSavedMessage('Configuration files successfully generated');
+
+				if(responseObj && responseObj.success){
+					if (responseObj.errors || responseObj.warnings) {
+						frameset.setErrorsAndWarnings('Generation passed', 'Warning(s) occurred while generating the clients\' configuration.', responseObj, statusCode);
+					} else if (responseObj.messages) {
+						frameset.setErrorsAndWarnings('Generation succeed', null, responseObj, statusCode);
+					} else {
+						frameset.setSavedMessage('client configuration generated successfully.');
+					}
 					that.onReload();
 				} else {
-					frameset.setErrors('An error occurred while generating the configuration files.', responseObj, statusCode);
+					frameset.setErrorsAndWarnings('Generation failed', 'Error(s) / warning(s) occurred while generating the clients\' configuration.', responseObj, statusCode);
 				}
 			},
 			failure: function(response) {
 				if (response.timedout) {
 					frameset.setError('Request timed out.', 408);
 				} else {
-					var responseObj = Ext.decode(response.responseText);
 					var statusCode = response ? response.status : null;
-					frameset.setErrors('An error occurred while generating the configuration files.', responseObj, statusCode);
+					var responseObj = null;
+					if (response && response.responseText) {
+						try {
+							responseObj = Ext.decode(response.responseText);
+						} catch (err) {
+							responseObj = {errors: [err.toString()]};
+						}
+					}
+					frameset.setErrors('An error occurred while generating the clients\' configuration.', responseObj, statusCode);
 				}
 			}
 		});
@@ -1699,6 +1716,7 @@ Ext.define('Writer.ClientConfig', {
 		'embeddedClientModules', // String or Array<String>
 
 		'manualOverride',
+		'lastGenerated',
 		'legendParameters',
 		'clientUrl',
 		'previewClientUrl',

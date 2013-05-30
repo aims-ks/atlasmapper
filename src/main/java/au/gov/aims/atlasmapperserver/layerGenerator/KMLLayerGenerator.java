@@ -22,7 +22,6 @@
 package au.gov.aims.atlasmapperserver.layerGenerator;
 
 import au.gov.aims.atlasmapperserver.dataSourceConfig.KMLDataSourceConfig;
-import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.layerConfig.KMLLayerConfig;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -30,7 +29,6 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 
 public class KMLLayerGenerator extends AbstractLayerGenerator<KMLLayerConfig, KMLDataSourceConfig> {
 

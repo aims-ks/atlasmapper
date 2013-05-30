@@ -31,10 +31,12 @@
 <%@page import="au.gov.aims.atlasmapperserver.Utils"%>
 <%@page import="org.json.JSONArray"%>
 <%@page import="org.json.JSONObject"%>
+<%@page import="au.gov.aims.atlasmapperserver.ServletUtils"%>
+
 <%@page contentType="application/json" pageEncoding="UTF-8"%>
 <%
 	String actionStr = request.getParameter("action");
-	String layerIdsStr = request.getParameter("layerIds");
+	String[] layerIds = ServletUtils.getComaSeparatedParameters(request, "layerIds");
 	String iso19115_19139url = request.getParameter("iso19115_19139url");
 	String clientId = request.getParameter("client");
 
@@ -99,8 +101,7 @@
 					jsonObj.put("message", "Layers found");
 					jsonObj.put("data", mapState);
 				}
-			} else if (Utils.isNotBlank(layerIdsStr)) {
-				String[] layerIds = layerIdsStr.split("\\s*,\\s*");
+			} else if (layerIds != null) {
 				JSONObject foundLayers = configManager.getClientLayers(clientConfig, layerIds, live);
 
 				if (foundLayers == null || foundLayers.length() <= 0) {

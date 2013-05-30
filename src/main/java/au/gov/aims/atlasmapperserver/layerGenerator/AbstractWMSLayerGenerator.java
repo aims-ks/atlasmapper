@@ -34,36 +34,30 @@ import au.gov.aims.atlasmapperserver.xml.WMTS.WMTSParser;
 import org.geotools.data.ows.CRSEnvelope;
 import org.geotools.data.ows.Layer;
 import org.geotools.data.ows.OperationType;
-import org.geotools.data.ows.Service;
 import org.geotools.data.ows.StyleImpl;
 import org.geotools.data.ows.WMSCapabilities;
 import org.geotools.data.ows.WMSRequest;
 import org.geotools.data.wms.xml.MetadataURL;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.opengis.util.InternationalString;
 
+import java.io.File;
+import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D extends WMSDataSourceConfig> extends AbstractLayerGenerator<L, D> {
 	private static final Logger LOGGER = Logger.getLogger(AbstractWMSLayerGenerator.class.getName());
 
-	private WMSCapabilities wmsCapabilities = null;
 	private String wmsVersion = null;
 	private URL featureRequestsUrl = null;
 	private URL wmsServiceUrl = null;
 	private URL legendUrl = null;
 	private URL stylesUrl = null;
-
-	private WMTSDocument gwcCapabilities = null;
-	private URL gwcServiceUrl = null;
 
 	public AbstractWMSLayerGenerator(D dataSource) {
 		super(dataSource);
@@ -84,34 +78,40 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 
 	@Override
 	public Collection<L> generateLayerConfigs(D dataSource, boolean harvest) throws Exception {
-		this.wmsCapabilities = URLCache.getWMSCapabilitiesResponse(dataSource.getConfigManager(), dataSource, dataSource.getServiceUrl(), true, harvest);
-		if (this.wmsCapabilities != null) {
-			WMSRequest wmsRequestCapabilities = this.wmsCapabilities.getRequest();
+		WMSCapabilities wmsCapabilities = URLCache.getWMSCapabilitiesResponse(dataSource.getConfigManager(), dataSource, dataSource.getServiceUrl(), true, harvest);
+		if (wmsCapabilities != null) {
+			WMSRequest wmsRequestCapabilities = wmsCapabilities.getRequest();
 			if (wmsRequestCapabilities != null) {
 				this.featureRequestsUrl = this.getOperationUrl(wmsRequestCapabilities.getGetFeatureInfo());
 				this.wmsServiceUrl = this.getOperationUrl(wmsRequestCapabilities.getGetMap());
 				this.legendUrl = this.getOperationUrl(wmsRequestCapabilities.getGetLegendGraphic());
-				this.wmsVersion = this.wmsCapabilities.getVersion();
-				this.stylesUrl = this.getOperationUrl(wmsRequestCapabilities.getGetStyles());
+				this.wmsVersion = wmsCapabilities.getVersion();
+
+				// GetStyles URL is in GeoTools API but not in the Capabilities document.
+				//     GeoTools probably craft the URL. It's not very useful.
+				//this.stylesUrl = this.getOperationUrl(wmsRequestCapabilities.getGetStyles());
 			}
+
+			return this.getLayersInfoFromCaps(wmsCapabilities, dataSource, harvest);
 		}
 
-		return this.getLayersInfoFromCaps(dataSource, harvest);
+		return null;
 	}
 
 	@Override
 	public Collection<L> generateCachedLayerConfigs(D dataSource, boolean harvest) throws Exception {
-		String gwcUrl = dataSource.getWebCacheUrl();
-		if (gwcUrl != null && !gwcUrl.isEmpty()) {
-			this.gwcServiceUrl = new URL(gwcUrl);
+		// When the webCacheEnable checkbox is unchecked, no layers are cached.
+		if (dataSource.isWebCacheEnable() == null || dataSource.isWebCacheEnable() == false) {
+			return null;
 		}
-		this.gwcCapabilities = this.getGWCDocument(dataSource.getConfigManager(), dataSource, harvest);
+
+		WMTSDocument gwcCapabilities = this.getGWCDocument(dataSource.getConfigManager(), dataSource, harvest);
 
 		Collection<L> layerConfigs = new ArrayList<L>();
 
-		if (this.gwcCapabilities != null) {
+		if (gwcCapabilities != null) {
 			// http://docs.geotools.org/stable/javadocs/org/geotools/data/wms/WebMapServer.html
-			Layer rootLayer = this.gwcCapabilities.getLayer();
+			Layer rootLayer = gwcCapabilities.getLayer();
 
 			if (rootLayer != null) {
 				// The boolean at the end is use to ignore the root from the capabilities document. It can be added (change to false) if some users think it's useful to see the root...
@@ -125,98 +125,146 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 	/**
 	 * Try to find and parse the WMTS document associated with this WMS service.
 	 * Algo:
-	 *     If a GWC URL is provided
-	 *         Try to parse it as a WMTS capabilities document.
-	 *         If that didn't work, try to craft a WMTS URL from the GWC URL and parse it.
-	 *         If that didn't work, return null and add an error
-	 *     Else
-	 *         Try to craft a WMTS URL from the WMS URL, assuming it follows GeoServer standards.
-	 *         If that didn't work, return null
+	 *     Get GWC Capabilities Document URL  or  craft it from the WMS URL.
+	 *     Get GWC URL  or  craft it from the WMS URL.
+	 *         NOTE: This URL is used by the generated client only.
+	 *         TODO: Parse the GWC WMS Cap doc instead of the WMTS doc and get the GWC URL from it.
+	 *     Try to parse it as a WMTS capabilities document.
+	 *     If that didn't work, try to rectify the WMTS capabilities document URL and try again.
+	 *     If that didn't work, return null and add an error.
 	 */
 	public WMTSDocument getGWCDocument(ConfigManager configManager, D dataSource, boolean harvest) {
+		// GWC service is not mandatory; failing to parse this won't cancel the generation of the client.
 		boolean gwcMandatory = false;
+
+		// No WMS service = no need to cache anything.
+		if (this.wmsServiceUrl == null) {
+			return null;
+		}
+
+		// Used to craft GWC URL
 		String gwcSubPath = "gwc";
 		URL gwcBaseURL = null;
 
 		// Message from the most explicit exception (hopefully), to be add to the error sent back to the admin.
 		String exceptionMessage = null;
 
+		// Try to resolve the GWC URL, assuming it works just like GeoServer
+		//     We have WMS URL: http://domain.com:80/geoserver/ows?SERVICE=WMS&amp;
+		//     We want GWC URL: http://domain.com:80/geoserver/gwc/
+		try {
+			// baseURL = http://domain.com:80/geoserver/
+			// From the WMS Service URL provided by the capabilities document
+			URL baseURL = new URL(this.wmsServiceUrl.getProtocol(), this.wmsServiceUrl.getHost(), this.wmsServiceUrl.getPort(), this.wmsServiceUrl.getPath());
+
+			// gwcBaseURL = http://domain.com:80/geoserver/gwc/
+			gwcBaseURL = new URL(baseURL, gwcSubPath+"/");
+		} catch (Exception ex) {
+			// Error occurred while crafting the GWC URL. This is unlikely to happen.
+			LOGGER.log(Level.FINE, "Fail to craft a GWC URL using the WMS URL", ex);
+		}
+
+		// Get GWC URL or craft it from WMS URL
+		URL gwcUrl = null;
+		String gwcUrlStr = dataSource.getWebCacheUrl();
+		try {
+			if (gwcUrlStr == null || gwcUrlStr.isEmpty()) {
+				if (gwcBaseURL != null) {
+					gwcUrl = new URL(gwcBaseURL, "service/wms");
+					dataSource.setWebCacheUrl(gwcUrl.toString());
+				}
+			}
+		} catch (Exception ex) {
+			// This should not happen
+			LOGGER.log(Level.WARNING, "Fail craft the GWC URL.", ex);
+		}
+
+		// Get GWC Capabilities Document URL or craft it from WMS URL
+		URL gwcCapUrl = null;
+		File gwcCapFile = null;
+		String gwcCapUrlStr = dataSource.getWebCacheCapabilitiesUrl();
+		try {
+			if (gwcCapUrlStr == null || gwcCapUrlStr.isEmpty()) {
+				if (gwcBaseURL != null) {
+					gwcCapUrl = new URL(gwcBaseURL, "service/wmts?REQUEST=getcapabilities");
+				}
+			} else {
+				if (gwcCapUrlStr.startsWith("file://")) {
+					// Local file URL
+					gwcCapFile = new File(new URI(gwcCapUrlStr));
+				} else {
+					gwcCapUrl = new URL(gwcCapUrlStr);
+				}
+			}
+		} catch (Exception ex) {
+			// This should not happen
+			LOGGER.log(Level.WARNING, "Fail craft the GWC Capabilities Document URL.", ex);
+		}
+
+
+		// Parsing of the GWC cap doc (WMTS)
 		WMTSDocument document = null;
-		if (this.gwcServiceUrl != null) {
-			URL gwcUrl = this.gwcServiceUrl;
+
+		if (gwcCapUrl == null && gwcCapFile == null) {
+			exceptionMessage = "Can not determine the GWC Capabilities document URL.";
+		} else {
 			try {
-				document = WMTSParser.parseURL(configManager, dataSource, gwcUrl, gwcMandatory, harvest);
+				if (gwcCapFile != null) {
+					document = WMTSParser.parseFile(gwcCapFile, gwcCapUrlStr);
+				} else {
+					document = WMTSParser.parseURL(configManager, dataSource, gwcCapUrl, gwcMandatory, harvest);
+				}
 			} catch (Exception ex) {
 				// This happen every time the admin set a GWC base URL instead of a WMTS capabilities document.
 				// The next block try to work around this by crafting a WMTS URL.
 				LOGGER.log(Level.FINE, "Fail to parse the given GWC URL as a WMTS capabilities document.", ex);
 				exceptionMessage = ex.getMessage();
 			}
-			if (document != null) {
-				// The given GWC URL was pointing at a valid WMTS document.
-				return document;
-			}
 
-			// Try to add some parameters
-			String urlPath = gwcUrl.getPath() + "/"; // Add a slash a the end, just in case the URL ends like this: .../geoserver/gwc
-			int gwcIndex = urlPath.indexOf("/"+gwcSubPath+"/");
-			if (gwcIndex >= 0) {
-				// Remove everything after /gwc/
-				try {
-					gwcBaseURL = new URL(gwcUrl.getProtocol(), gwcUrl.getHost(), gwcUrl.getPort(), urlPath.substring(0, gwcIndex + gwcSubPath.length() + 2));
-				} catch (Exception ex) {
-					// Error occurred while crafting the GWC URL. This is unlikely to happen.
-					LOGGER.log(Level.FINE, "Fail to craft a GWC URL using the given GWC URL", ex);
-				}
-			}
+			// Try to add some parameters to the given GWC cap url (the provided URL may be incomplete, something like http://domain.com:80/geoserver/gwc/service/wmts)
+			if (document == null) {
+				// Add a slash a the end of the URL, just in case the URL ends like this: .../geoserver/gwc
+				String urlPath = gwcCapUrl.getPath() + "/";
+				// Look for "/gwc/"
+				int gwcIndex = urlPath.indexOf("/"+gwcSubPath+"/");
+				if (gwcIndex >= 0) {
+					try {
+						// Remove everything after "/gwc/"
+						URL modifiedGwcBaseURL = new URL(gwcCapUrl.getProtocol(), gwcCapUrl.getHost(), gwcCapUrl.getPort(), urlPath.substring(0, gwcIndex + gwcSubPath.length() + 2));
+						// Add WMTS URL part
+						URL modifiedGwcCapUrl = new URL(modifiedGwcBaseURL, "service/wmts?REQUEST=getcapabilities");
+						// Try to download the doc again
+						document = WMTSParser.parseURL(configManager, dataSource, modifiedGwcCapUrl, gwcMandatory, harvest);
 
-		} else {
-			// Try to resolve the GWC URL, assuming it works just like GeoServer
-			//     We have WMS URL: http://domain.com:80/geoserver/ows?SERVICE=WMS&amp;
-			//     We want GWC URL: http://domain.com:80/geoserver/gwc/
-			URL gwcUrl = this.wmsServiceUrl;
-			if (gwcUrl != null) {
-				try {
-					// baseURL = http://domain.com:80/geoserver/
-					URL baseURL = new URL(gwcUrl.getProtocol(), gwcUrl.getHost(), gwcUrl.getPort(), gwcUrl.getPath());
-
-					// gwcBaseURL = http://domain.com:80/geoserver/gwc/
-					gwcBaseURL = new URL(baseURL, gwcSubPath+"/");
-				} catch (Exception ex) {
-					// Error occurred while crafting the GWC URL. This is unlikely to happen.
-					LOGGER.log(Level.FINE, "Fail to craft a GWC URL using the WMS URL", ex);
+						if (document != null) {
+							// If it works, save the crafted URL
+							gwcCapUrl = modifiedGwcCapUrl;
+						}
+					} catch (Exception ex) {
+						// Error occurred while crafting the GWC URL. This is unlikely to happen.
+						LOGGER.log(Level.FINE, "Fail to craft a GWC URL using the given GWC URL", ex);
+						exceptionMessage = ex.getMessage();
+					}
 				}
 			}
 		}
 
-		if (gwcBaseURL != null) {
-			// At this point, we should have something like:
-			//     http://domain.com:80/geoserver/gwc/
-			// Assuming the service follows GeoServer "standards", we can build the URL by adding:
-			//     service/wmts?REQUEST=getcapabilities
-			// Result:
-			//     http://domain.com:80/geoserver/gwc/service/wmts?REQUEST=getcapabilities
-			// If the service have a GWC but is not following GeoServer standards, the admin can always provide a
-			// complete WMTS URL to the capabilities document.
-			URL gwcUrl = null;
-			try {
-				gwcUrl = new URL(gwcBaseURL, "service/wmts?REQUEST=getcapabilities");
-				document = WMTSParser.parseURL(configManager, dataSource, gwcUrl, gwcMandatory, harvest);
-			} catch (Exception ex) {
-				LOGGER.log(Level.FINE, "Fail to parse the crafted WMTS URL as a WMTS capabilities document.\n" +
-						"WMTS URL: " + (gwcUrl == null ? "NULL" : gwcUrl.toString()), ex);
-				if (exceptionMessage == null) { exceptionMessage = ex.getMessage(); }
+		if (document == null) {
+			if (gwcCapUrlStr != null && !gwcCapUrlStr.isEmpty()) {
+				String errorMsg = "Could not find a valid WMTS capability document at the given GWC URL. " +
+						"Assuming all layers are cached. If the caching feature do not work properly, " +
+						"disable it in the data source config and report a bug." +
+						(exceptionMessage == null ? "" : "\nError: " + exceptionMessage);
+				if (gwcMandatory) {
+					this.addError(dataSource.getDataSourceId(), errorMsg);
+				} else {
+					this.addWarning(dataSource.getDataSourceId(), errorMsg);
+				}
 			}
+		} else if (gwcCapUrlStr == null || gwcCapUrlStr.isEmpty()) {
+			dataSource.setWebCacheCapabilitiesUrl(gwcCapUrl.toString());
 		}
 
-		// Error: Could not get any GWC capabilities document, but a URL as been provided by the admin.
-		if (this.gwcServiceUrl != null && document == null) {
-			this.addError(dataSource.getDataSourceId(),
-				"Could not find a valid WMTS capability document at the given GWC URL. Assuming all layers are cached. If the caching feature do not work properly, disable it in the data source config and report a bug." +
-						(exceptionMessage == null ? "" : "\nError: " + exceptionMessage));
-		}
-
-		// Return the document. Note that it may be NULL if the parser didn't managed to parse it.
 		return document;
 	}
 
@@ -228,20 +276,22 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 	}
 
 	/**
+	 * @param wmsCapabilities
 	 * @param dataSourceConfig
 	 * @param harvest True do download associated metadata documents (TC211), false to use the cached ones.
 	 * @return
 	 */
 	private Collection<L> getLayersInfoFromCaps(
+			WMSCapabilities wmsCapabilities,
 			D dataSourceConfig, // Data source of layers (to link the layer to its data source)
 			boolean harvest
 	) {
-		if (this.wmsCapabilities == null) {
+		if (wmsCapabilities == null) {
 			return null;
 		}
 
 		// http://docs.geotools.org/stable/javadocs/org/geotools/data/wms/WebMapServer.html
-		Layer rootLayer = this.wmsCapabilities.getLayer();
+		Layer rootLayer = wmsCapabilities.getLayer();
 
 		Collection<L> layerConfigs = new ArrayList<L>();
 		// The boolean at the end is use to ignore the root from the capabilities document. It can be added (change to false) if some users think it's useful to see the root...
@@ -367,13 +417,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 
 		String layerName = layer.getName();
 		if (Utils.isBlank(layerName)) {
-			String serviceTitle = "unknown";
-			Service service = this.wmsCapabilities.getService();
-			if (service != null) {
-				serviceTitle = service.getTitle();
-			}
-
-			LOGGER.log(Level.WARNING, "The Capabilities Document [{0}] contains layers without name (other than the root layer).", serviceTitle);
+			LOGGER.log(Level.WARNING, "The Capabilities Document of the data source [{0}] contains layers without name (other than the root layer).", dataSourceConfig.getDataSourceName());
 			return null;
 		}
 
@@ -447,13 +491,60 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 		layerName = layerConfig.getLayerName();
 
 		String title = layer.getTitle();
-		String description = null;
-		JSONObject mestOverrides = null;
+
+		// Build the description using info found in the Capabilities document and the MEST document.
+		StringBuilder descriptionSb = new StringBuilder();
+
+		TC211Document.Link layerLink = this.getMetadataLayerLink(tc211Document, layerName);
+
+		String layerDescription = layer.get_abstract();
+		String metadataDescription = tc211Document == null ? null : tc211Document.getAbstract();
+		String metadataLayerDescription = layerLink == null ? null : layerLink.getDescription();
+		String metadataLinksWikiFormat = this.getMetadataLinksWikiFormat(tc211Document);
+
+		// Clean-up
+		if (layerDescription != null) { layerDescription = layerDescription.trim(); }
+		if (metadataDescription != null) { metadataDescription = metadataDescription.trim(); }
+		if (metadataLayerDescription != null) { metadataLayerDescription = metadataLayerDescription.trim(); }
+		if (metadataLinksWikiFormat != null) { metadataLinksWikiFormat = metadataLinksWikiFormat.trim(); }
+
+		// Layer description: Get from cap doc, or from MEST if cap doc do not have one.
+		if (layerDescription != null && !layerDescription.isEmpty()) {
+			descriptionSb.append(layerDescription);
+		} else if (metadataLayerDescription != null && !metadataLayerDescription.isEmpty()) {
+			descriptionSb.append(metadataLayerDescription);
+		}
+
+		if (metadataDescription != null && !metadataDescription.isEmpty()) {
+			if (descriptionSb.length() > 0) {
+				descriptionSb.append("\n\n*Dataset description*\n");
+			}
+			descriptionSb.append(metadataDescription);
+		}
+
+		// If cap doc has a description, the layer description from the MEST will appear here.
+		if (layerDescription != null && !layerDescription.isEmpty() &&
+				metadataLayerDescription != null && !metadataLayerDescription.isEmpty()) {
+			if (descriptionSb.length() > 0) {
+				descriptionSb.append("\n\n*Dataset layer description*\n");
+			}
+			descriptionSb.append(metadataLayerDescription);
+		}
+
+		if (metadataLinksWikiFormat != null && !metadataLinksWikiFormat.isEmpty()) {
+			if (descriptionSb.length() > 0) {
+				descriptionSb.append("\n\n");
+			}
+			descriptionSb.append("*Online resources*\n");
+			descriptionSb.append(metadataLinksWikiFormat);
+		}
 
 		// Get the description from the metadata document, if available
+/*
 		if (tc211Document != null) {
-			description = tc211Document.getAbstract();
+			description += tc211Document.getAbstract();
 
+			// Add links found in the metadata document and layer description (if any)
 			List<TC211Document.Link> links = tc211Document.getLinks();
 			if (links != null && !links.isEmpty()) {
 				// Set the Online Resources, using wiki format
@@ -540,21 +631,19 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 				description += onlineResources.toString();
 			}
 		}
-
+*/
 		if (Utils.isNotBlank(title)) {
 			layerConfig.setTitle(title);
 		}
 
-		// If no description were present in the metadata document, get the description from the capabilities document
-		if (Utils.isBlank(description)) {
-			description = layer.get_abstract();
-		}
-
 		// If a description has been found, either in the metadata or capabilities document, set it in the layerConfig.
-		if (Utils.isNotBlank(description)) {
-			layerConfig.setDescription(description);
+		if (descriptionSb.length() > 0) {
+			layerConfig.setDescription(descriptionSb.toString());
 		}
 
+		if (metadataLinksWikiFormat != null && !metadataLinksWikiFormat.isEmpty()) {
+			layerConfig.setDownloadLinks(metadataLinksWikiFormat);
+		}
 
 		layerConfig.setWmsQueryable(layer.isQueryable());
 
@@ -566,7 +655,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 		if (styleImpls != null && !styleImpls.isEmpty()) {
 			List<LayerStyleConfig> styles = new ArrayList<LayerStyleConfig>(styleImpls.size());
 			for (StyleImpl styleImpl : styleImpls) {
-				LayerStyleConfig styleConfig = styleToLayerStyleConfig(dataSourceConfig.getConfigManager(), layerName, styleImpl);
+				LayerStyleConfig styleConfig = styleToLayerStyleConfig(dataSourceConfig.getConfigManager(), styleImpl);
 
 				if (styleConfig != null) {
 					styles.add(styleConfig);
@@ -589,21 +678,110 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 		// Link the layer to it's data source
 		dataSourceConfig.bindLayer(layerConfig);
 
-		// Apply layer overrides found in the MEST
-		if (mestOverrides != null && mestOverrides.length() > 0) {
-			try {
-				layerConfig = (L)layerConfig.applyOverrides(mestOverrides);
-			} catch (JSONException e) {
-				LOGGER.log(Level.SEVERE, "Unable to apply layer overrides found in the application profile field of the MEST server for layer id \"{0}\": {1}",
-						new String[]{ layerConfig.getLayerName(), Utils.getExceptionMessage(e) });
-				LOGGER.log(Level.FINE, "Stack trace: ", e);
-			}
-		}
-
 		return layerConfig;
 	}
 
-	private LayerStyleConfig styleToLayerStyleConfig(ConfigManager configManager, String layerName, StyleImpl style) {
+	private TC211Document.Link getMetadataLayerLink(TC211Document tc211Document, String layerName) {
+		if (tc211Document != null) {
+			List<TC211Document.Link> links = tc211Document.getLinks();
+			if (links != null && !links.isEmpty()) {
+				for (TC211Document.Link link : links) {
+					// Only display links with none null URL.
+					if (Utils.isNotBlank(link.getUrl())) {
+						TC211Document.Protocol linkProtocol = link.getProtocol();
+						if (linkProtocol != null) {
+							if (linkProtocol.isOGC()) {
+								// If the link is a OGC url (most likely WMS GetMap) and the url match the layer url, parse its description.
+								if (layerName.equalsIgnoreCase(link.getName())) {
+									return link;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		return null;
+	}
+
+	private String getMetadataLinksWikiFormat(TC211Document tc211Document) {
+		StringBuilder onlineResources = null;
+
+		if (tc211Document != null) {
+			// Add links found in the metadata document and layer description (if any)
+			List<TC211Document.Link> links = tc211Document.getLinks();
+			if (links != null && !links.isEmpty()) {
+				// Set the Online Resources, using wiki format
+				onlineResources = new StringBuilder();
+				for (TC211Document.Link link : links) {
+					// Only display links with none null URL.
+					if (Utils.isNotBlank(link.getUrl())) {
+						TC211Document.Protocol linkProtocol = link.getProtocol();
+						if (linkProtocol != null) {
+							if (linkProtocol.isWWW()) {
+								// Dataset links such as point of truth, data download, etc.
+								String linkUrl = link.getUrl();
+								String linkTitle = link.getDescription();
+								if (Utils.isBlank(linkTitle)) {
+									linkTitle = link.getName();
+								}
+
+								// Clean-up the URL, to be sure it will be parsable by the wiki format parser.
+								// NOTE: URLEncoder can not be used here since it would also encode parts that
+								//     should not be encoded (like the "http://")
+								if (Utils.isNotBlank(linkUrl)) {
+									linkUrl = linkUrl
+											// Replace square brackets with their URL encoding.
+											//     (they may cause problem with the wiki format parser)
+											.replace("[", "%5B").replace("]", "%5D")
+											// Replace pipe with its URL encoding.
+											//     (it may cause problem with the wiki format parser)
+											.replace("|", "%7C")
+											// Encore space using its URL encoding.
+											// NOTE: "%20" is safer than "+" since the "+" is only valid in the
+											//     query string (the part after the ?).
+											.replace(" ", "%20")
+											// Other white spaces should not be present in a URL anyway.
+											.replace("\\s", "");
+								}
+
+								// Clean-up the title, to be sure it will be parsable by the wiki format parser.
+								if (Utils.isNotBlank(linkTitle)) {
+									linkTitle = linkTitle
+											// Replace square brackets with their HTML entity.
+											//     (they may cause problem with the wiki format parser)
+											.replace("[", "&#91;").replace("]", "&#93;")
+											// Replace pipe with its HTML entity.
+											//     (it may cause problem with the wiki format parser)
+											.replace("|", "&#124;")
+											// Replace chain of whitespaces with one space.
+											//     (newline in a link cause the wiki format parser to fail)
+											.replaceAll("\\s+", " ");
+								}
+
+								// Bullet list of URLs, in Wiki format:
+								// * [[url|title]]
+								// * [[url|title]]
+								// * [[url|title]]
+								// ...
+								onlineResources.append("* [[");
+								onlineResources.append(linkUrl);
+								if (Utils.isNotBlank(linkTitle)) {
+									onlineResources.append("|");
+									onlineResources.append(linkTitle);
+								}
+								onlineResources.append("]]\n");
+							}
+						}
+					}
+				}
+			}
+		}
+
+		return onlineResources == null ? null : onlineResources.toString();
+	}
+
+	private LayerStyleConfig styleToLayerStyleConfig(ConfigManager configManager, StyleImpl style) {
 		String name = style.getName();
 		InternationalString intTitle = style.getTitle();
 		InternationalString intDescription = style.getAbstract();

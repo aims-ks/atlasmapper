@@ -71,6 +71,9 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 	private String descriptionFormat;
 
 	@ConfigField
+	private String downloadLinks;
+
+	@ConfigField
 	private String systemDescription;
 
 	// TODO Rename to Path
@@ -146,8 +149,8 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 	@ConfigField
 	private String legendParameters;
 
-	@ConfigField
-	private String stylesUrl;
+//	@ConfigField
+//	private String stylesUrl;
 
 	@ConfigField
 	private String baseLayers;
@@ -317,6 +320,14 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 
 	public void setDescriptionFormat(String descriptionFormat) {
 		this.descriptionFormat = descriptionFormat;
+	}
+
+	public String getDownloadLinks() {
+		return this.downloadLinks;
+	}
+
+	public void setDownloadLinks(String downloadLinks) {
+		this.downloadLinks = downloadLinks;
 	}
 
 	public String getSystemDescription() {
@@ -569,6 +580,10 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 		}
 		if (Utils.isNotBlank(this.getSystemDescription())) {
 			jsonLayer.put("systemDescription", this.getSystemDescription().trim());
+		}
+
+		if (Utils.isNotBlank(this.getDownloadLinks())) {
+			jsonLayer.put("downloadLinks", this.getDownloadLinks().trim());
 		}
 
 		if (Utils.isNotBlank(this.getProjection())) {

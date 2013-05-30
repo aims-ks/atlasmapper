@@ -26,10 +26,18 @@
 		<filter-name>SecureFilter</filter-name>
 		<filter-class>au.gov.aims.atlasmapperserver.servlet.login.SecureFilter</filter-class>
 	</filter>
+	<filter>
+		<filter-name>LocalHostFilter</filter-name>
+		<filter-class>au.gov.aims.atlasmapperserver.servlet.login.LocalHostFilter</filter-class>
+	</filter>
 
 	<filter-mapping>
 		<filter-name>SecureFilter</filter-name>
 		<url-pattern>/admin/*</url-pattern>
+	</filter-mapping>
+	<filter-mapping>
+		<filter-name>LocalHostFilter</filter-name>
+		<url-pattern>/localhost/*</url-pattern>
 	</filter-mapping>
 
 	<servlet>

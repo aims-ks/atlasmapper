@@ -49,7 +49,7 @@ public class Tree extends AbstractModule {
 	@Override
 	// NOTE: The version must match the version in the client /clientResources/amc/modules/Trees/Trees.js
 	public double getVersion() {
-		return 1.0;
+		return 2.0;
 	}
 
 	@Override
@@ -127,12 +127,15 @@ public class Tree extends AbstractModule {
 		return currentBranch;
 	}
 
-	// In the future, we might want to return a more complex object.
-	private String getTreeLeaf(AbstractLayerConfig layerConfig) {
-		String layerTitle = layerConfig.getTitle();
-		if (layerTitle == null) {
-			layerTitle = layerConfig.getLayerId();
+	private JSONObject getTreeLeaf(AbstractLayerConfig layerConfig) throws JSONException {
+		JSONObject leaf = new JSONObject();
+		if (Utils.isNotBlank(layerConfig.getTitle())) {
+			leaf.put("title", layerConfig.getTitle());
 		}
-		return layerTitle;
+		if (layerConfig.getLayerBoundingBox() != null) {
+			leaf.put("bbox", layerConfig.getLayerBoundingBox());
+		}
+
+		return leaf;
 	}
 }

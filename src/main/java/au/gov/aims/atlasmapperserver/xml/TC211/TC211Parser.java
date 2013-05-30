@@ -158,7 +158,7 @@ public class TC211Parser {
 
 
 
-
+	@Deprecated
 	public static Map<String, StringBuilder> parseMestDescription(String descriptionStr) {
 		Map<String, StringBuilder> descriptionMap = new HashMap<String, StringBuilder>();
 
@@ -216,6 +216,7 @@ public class TC211Parser {
 	 * @return A map of Application name (as key) associated with it related configuration (JSONObject value)
 	 */
 	// AtlasMapper:{"hasLegend": false,"wmsQueryable": false } Metadataviewer:{"onlyShow":true}
+	@Deprecated
 	public static JSONObject parseMestApplicationProfile(String applicationProfileStr) {
 		int applicationConfigIndex = applicationProfileStr.indexOf(APPLICATION_PROFILE_ATTR);
 

@@ -29,7 +29,6 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -175,10 +174,14 @@ public class LayerCatalog {
 
 	public static class LayerError extends Errors.Error {
 		private String msg;
+
 		public LayerError(String msg) {
 			this.msg = msg;
 		}
+
 		public String getMsg() { return this.msg; }
+
+		@Override
 		public JSONObject toJSON() throws JSONException {
 			JSONObject json = new JSONObject();
 			JSONArray msgArray = json.optJSONArray(null);
@@ -188,6 +191,28 @@ public class LayerCatalog {
 			}
 			msgArray.put(this.msg);
 			return json;
+		}
+
+		@Override
+		public boolean equals(Errors.Error error) {
+			// Same instance
+			if (this == error) {
+				return true;
+			}
+			// Instance of the wrong class
+			if (!(error instanceof LayerError)) {
+				return false;
+			}
+			LayerError layerError = (LayerError)error;
+			// Same msg instance or both null
+			if (this.msg == layerError.msg) {
+				return true;
+			}
+			// Only one is null
+			if (this.msg == null || layerError.msg == null) {
+				return false;
+			}
+			return this.msg.equals(layerError.msg);
 		}
 	}
 

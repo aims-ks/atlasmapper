@@ -28,9 +28,9 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.List;
 
-public class ParserTest extends TestCase {
+public class WMTSParserTest extends TestCase {
 	public void testParsing() throws Exception {
-		URL url = ParserTest.class.getClassLoader().getResource("geoWebCache1-4_wmts.xml");
+		URL url = WMTSParserTest.class.getClassLoader().getResource("geoWebCache1-4_wmts.xml");
 
 		InputStream inputStream = null;
 		WMTSDocument doc = null;

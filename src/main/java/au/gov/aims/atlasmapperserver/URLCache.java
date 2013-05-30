@@ -33,7 +33,6 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.PoolingClientConnectionManager;
 import org.apache.http.impl.conn.SchemeRegistryFactory;
-import org.apache.http.util.EntityUtils;
 import org.geotools.data.ows.WMSCapabilities;
 import org.geotools.data.wms.xml.WMSSchema;
 import org.geotools.ows.ServiceException;
@@ -158,14 +157,14 @@ public class URLCache {
 		File applicationFolder = getApplicationFolder(configManager);
 
 		String dataSourceId = null;
-		Boolean cachingDisabled = null;
+		Boolean activeDownload = null;
 		if (dataSource != null) {
 			dataSourceId = dataSource.getDataSourceId();
-			cachingDisabled = dataSource.isCachingDisabled();
+			activeDownload = dataSource.isActiveDownload();
 		}
 
-		if (cachingDisabled == null) {
-			cachingDisabled = false;
+		if (activeDownload == null) {
+			activeDownload = false;
 		}
 
 		if (diskCacheMap == null) {
@@ -185,32 +184,22 @@ public class URLCache {
 					hasChanged = true;
 				}
 
-				// Check if the file reach its expiry
-//				Date downloadedTime = cachedFile.getDownloadedTime();
+				if (harvest || activeDownload) {
+					String tmpFilename = CachedFile.generateFilename(cacheFolder, urlStr);
+					cachedFile.setTemporaryFilename(tmpFilename);
+					// Set the time of the last download tentative; which is now
+					cachedFile.setDownloadedTime(new Date());
+					hasChanged = true;
 
-//				if (downloadedTime != null) {
-//					long expiry = cachedFile.getExpiry();
-//					if (expiry >= 0) {
-//						long age = new Date().getTime() - downloadedTime.getTime();
-//						if (age >= expiry * NB_MS_PER_HOUR || cachingDisabled) {
-						if (harvest || cachingDisabled) {
-							String tmpFilename = CachedFile.generateFilename(cacheFolder, urlStr);
-							cachedFile.setTemporaryFilename(tmpFilename);
-							// Set the time of the last download tentative; which is now
-							cachedFile.setDownloadedTime(new Date());
-							hasChanged = true;
+					File tmpFile = new File(cachedFile.getCachedFileFolder(), tmpFilename);
 
-							File tmpFile = new File(cachedFile.getCachedFileFolder(), tmpFilename);
+					LOGGER.log(Level.INFO, "\n### DOWNLOADING ### Re-download URL {0}\n", urlStr);
 
-							LOGGER.log(Level.INFO, "\n### DOWNLOADING ### Expired URL {0}\n", urlStr);
-
-							ResponseStatus responseStatus = loadURLToFile(urlStr, tmpFile);
-							cachedFile.setTemporaryHttpStatusCode(responseStatus.getStatusCode());
-							cachedFile.setLatestErrorMessage(responseStatus.getErrorMessage());
-							cachedFile.cleanUpFilenames();
-						}
-//					}
-//				}
+					ResponseStatus responseStatus = loadURLToFile(urlStr, tmpFile);
+					cachedFile.setTemporaryHttpStatusCode(responseStatus.getStatusCode());
+					cachedFile.setLatestErrorMessage(responseStatus.getErrorMessage());
+					cachedFile.cleanUpFilenames();
+				}
 			}
 
 			// The URL is not present in the cache. Load it!
@@ -1033,16 +1022,48 @@ public class URLCache {
 	public static class URLError extends Errors.Error {
 		private String url;
 		private String msg;
+
 		public URLError(String url, String msg) {
 			this.url = url;
 			this.msg = msg;
 		}
+
 		public String getUrl() { return this.url; }
+
 		public String getMsg() { return this.msg; }
+
+		@Override
 		public JSONObject toJSON() throws JSONException {
 			JSONObject json = new JSONObject();
 			json.put(this.url, this.msg);
 			return json;
+		}
+
+		@Override
+		public boolean equals(Errors.Error error) {
+			// Same instance
+			if (this == error) {
+				return true;
+			}
+			// Instance of the wrong class
+			if (!(error instanceof URLError)) {
+				return false;
+			}
+			URLError urlError = (URLError)error;
+			// Not same URL
+			if ((this.url == null && urlError.url != null) ||
+					(this.url != null && !this.url.equals(urlError.url))) {
+				return false;
+			}
+			// Same URL, same msg instance or both null
+			if (this.msg == urlError.msg) {
+				return true;
+			}
+			// Same URL, only one msg is null
+			if (this.msg == null || urlError.msg == null) {
+				return false;
+			}
+			return this.msg.equals(urlError.msg);
 		}
 	}
 

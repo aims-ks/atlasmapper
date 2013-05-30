@@ -39,7 +39,7 @@ Atlas.AbstractMapPanel = {
 		"addLayerIds", "addLayers", "layerAdded",
 		"removeLayer", "layerRemoved",
 		"locateLayer", "saveStateChange",
-		'legendVisibilityChange', 'dpiChange',
+		'legendVisibilityChange', 'dpiChange', 'gutterChange',
 		'render'
 	],
 
@@ -57,6 +57,7 @@ Atlas.AbstractMapPanel = {
 	bounds: null,
 	maxZoom: null,
 
+	// Default DPI: DPI used by the layer server (WMS) when no DPI value is specified.
 	// The API doc specifically say that the default DPI is 90,
 	// but in fact, it's somewhere between 91 and 95.
 	// Since this setting do not make a big difference, I prefer
@@ -65,6 +66,10 @@ Atlas.AbstractMapPanel = {
 	// http://docs.geoserver.org/latest/en/user/services/wms/vendor.html#format-options
 	DEFAULT_DPI: 90,
 	dpi: 90,
+
+	// Default gutter: Gutter used by the layer server (WMS) when no gutter value is specified.
+	DEFAULT_GUTTER: 0,
+	gutter: 0,
 
 	renderTo: null,
 	embedded: false,
@@ -104,50 +109,111 @@ Atlas.AbstractMapPanel = {
 			pullState: false
 		};
 
-		if (typeof(parameters['l'+this.mapId]) !== 'undefined' && parameters['l'+this.mapId] != null) {
-			this.urlState.layerIds = (parameters['l'+this.mapId].constructor == Array) ? parameters['l'+this.mapId] : [parameters['l'+this.mapId]];
+		// NOTE: Layers name and styles may contains coma (Geoscience Australia does it), so we can't use OpenLayers parameters here.
+		//     (OpenLayers automatically decode the parameter than split it instead of splitting it than decoding it...)
+
+		// Layers: Coma separated list of layer ID, to be loaded on the map. The order is preserved: first layer on top, last on bottom.
+		var urlLayers = this._getComaSeparatedParameters('l'+this.mapId);
+		if (urlLayers != null) {
+			this.urlState.layerIds = urlLayers;
 		}
-		if (typeof(parameters['s'+this.mapId]) !== 'undefined' && parameters['s'+this.mapId] != null) {
-			this.urlState.styles = (parameters['s'+this.mapId].constructor == Array) ? parameters['s'+this.mapId] : [parameters['s'+this.mapId]];
+		// Styles: Coma separated list of styles to use with the layers. Leave empty to use default style.
+		//     The order must match the one specified with the layers parameter.
+		var urlStyles = this._getComaSeparatedParameters('s'+this.mapId);
+		if (urlStyles != null) {
+			this.urlState.styles = urlStyles;
 		}
+
+		// Visibility: Coma separated list of 'f' for false, 't' or missing value for true. The order must match the one specified with the layers parameter.
 		if (typeof(parameters['v'+this.mapId]) !== 'undefined' && parameters['v'+this.mapId] != null) {
 			this.urlState.visibilities = (parameters['v'+this.mapId].constructor == Array) ? parameters['v'+this.mapId] : [parameters['v'+this.mapId]];
 		}
+		// Opacity: Real value of the interval [0-1[ to set the opacity, 1 or missing value for fully opaque
 		if (typeof(parameters['o'+this.mapId]) !== 'undefined' && parameters['o'+this.mapId] != null) {
 			this.urlState.opacities = (parameters['o'+this.mapId].constructor == Array) ? parameters['o'+this.mapId] : [parameters['o'+this.mapId]];
 		}
 
+		// Longitude, Latitude of the center of the map: 2 coma separated real values representing respectively the longitude and the latitude.
 		if (typeof(parameters['ll']) !== 'undefined' && parameters['ll'] != null && parameters['ll'].constructor == Array) {
 			this.urlState.center = parameters['ll'];
 		}
+		// Zoom: Integer value following the standard, 0 for the whole world, higher value to zoom in. Maximum value depend on the base layer.
 		if (typeof(parameters['z']) !== 'undefined' && parameters['z'] != null) {
 			this.urlState.zoom = parseInt(parameters['z']);
 		}
 
+		// Bounding box: 4 coma separated real values representing respectively
+		//     the west (left) boundary, south (bottom) boundary, east (right) boundary and the north (top) boundary.
+		//     Automatically fit the following bounding box, choosing the best zoom level and map center.
+		//     NOTE: If specified, zoom and center are ignored.
 		if (typeof(parameters['bbox']) !== 'undefined' && parameters['bbox'] != null && parameters['bbox'].constructor == Array) {
 			this.urlState.bbox = parameters['bbox'];
 		}
+		// Max zoom: Used with bounding box only. Specify the maximum wanted zoom level. This is used to avoid
+		//     zooming to close when the bounding box is very small.
 		if (typeof(parameters['maxz']) !== 'undefined' && parameters['maxz'] != null) {
 			this.urlState.maxZoom = parseInt(parameters['maxz']);
 		}
 
-		if (typeof(parameters['loc']) !== 'undefined' && parameters['loc'] != null) {
-			this.urlState.locate = parameters['loc'];
+		// Locate: ID of a layer to automatically locate.
+		var urlLocate = this._getRawParameter('loc');
+		if (urlLocate != null) {
+			this.urlState.locate = decodeURIComponent(urlLocate);
 		}
+		// Load default layers:
 		if (typeof(parameters['dl']) !== 'undefined' && parameters['dl'] != null) {
 			this.urlState.loadDefaultLayers = (parameters['dl'].toLowerCase() === 't' || parameters['dl'].toLowerCase() === 'true');
 		}
 
+		// Pull state: Internal used only
+		// Used with the embedded map shown on the window to save the map. It tells to get it's initial state from the main map.
 		if (typeof(parameters['pullState']) !== 'undefined' && parameters['pullState'] != null) {
 			this.pullState = (parameters['pullState'].toLowerCase() === 't' || parameters['pullState'].toLowerCase() === 'true');
 		}
 
 		// layers parameter, used with the MetadataViewer to display arbitrary WMS / KML layers
+		// Arbitrary layers: Coma separated list of layers un-available through the AtlasMapper.
+		//     Since the AtlasMapper don't know anything about those layers, more information has to be provided.
+		//     The layers has to be defined in the following format:
+		// Format:
+		//     {
+		//         <TYPE>: <LAYERS>,
+		//         <TYPE>: <LAYERS>,
+		//         ...
+		//     }
+		//     <TYPE>
+		//         'PTS': The layer define a list of points.
+		//             <LAYERS>: Array of points. Each point is an array of 2 real value (longitude, latitude).
+		//                 Example:
+		//                     'PTS': [[149, -17], [150.5, -18.2223], ...]
+		//         'POLY': The layer define a list of polygons.
+		//             <LAYERS>: Array of polygons. Each polygon is an array of points. Each point is an array of
+		//                 2 real value (longitude, latitude). The last point of the polygon do not have to be the
+		//                 same as the first one, the AtlasMapper will automatically close the polygons.
+		//                 Example:
+		//                     'POLY': [
+		//                         [[149, -17], [150.5, -18.2223], ...],
+		//                         [[155, -17], [165.5, -18.2223], ...],
+		//                         ...
+		//                     ]
+		//         'KML': The layer is a URL to a KML file.
+		//             <LAYERS>: Array of URLs to KML files.
+		//                 Example:
+		//                     'KML': ["http://domain.com/kmls/ships.kml", "http://domain.com/kmls/tracks.kml", ...]
+		//         'WMS': (default) The layer is a WMS layer.
+		//             <LAYERS>: Object representing the WMS layers. The ID of the object is the server URL.
+		//                 The value is an array of layer name as defined in the WMS server.
+		//                 Example:
+		//                     'WMS': {
+		//                         'http://domain.com/geoserver/wms': ['layer_name_1', 'layer_name_2', ...]
+		//                     }
 		if (typeof(parameters['layers']) !== 'undefined' && parameters['layers'] != null) {
 			var layersArray = (parameters['layers'].constructor == Array) ? parameters['layers'] : [parameters['layers']];
 			this.urlState.arbitraryLayers = this._parseLayersParameter(layersArray);
 		}
 
+
+		// Request all the layers associated with a metadata record. Used with the metadata viewer.
 		if (typeof(parameters['iso19115_19139url']) !== 'undefined' && parameters['iso19115_19139url'] != null) {
 			this.urlState.iso19115_19139url = parameters['iso19115_19139url'];
 		}
@@ -482,6 +548,7 @@ Atlas.AbstractMapPanel = {
 			});
 		}
 
+		// Request all the layers associated with a metadata record.
 		if (this.urlState != null && this.urlState.iso19115_19139url != null) {
 			Atlas.core.requestIso19115_19139State(this.urlState.iso19115_19139url, function(state) {
 				if (state) {
@@ -521,6 +588,40 @@ Atlas.AbstractMapPanel = {
 				this.addLayerById(defaultLayers[i].layerId);
 			}
 		}
+	},
+
+	_getComaSeparatedParameters: function(parameter) {
+		var rawValue = this._getRawParameter(parameter);
+		if (rawValue == null) {
+			return null;
+		}
+
+		var rawValueParts = rawValue.split(/\s*,\s*/);
+		var valueParts = [];
+		for (var i= 0, len=rawValueParts.length; i<len; i++) {
+			valueParts[i] = decodeURIComponent(rawValueParts[i]);
+		}
+
+		return valueParts;
+	},
+
+	_getRawParameter: function(parameter) {
+		if (!parameter || !window || !window.location || !window.location.search) {
+			return null;
+		}
+
+		// query = the query string; <key>=<value>&<key>=<value>...
+		var query = window.location.search.substring(1);
+		var queryParts = query.split("&");
+		for (var i=0, len=queryParts.length; i<len; i++) {
+			var queryPart = queryParts[i];
+			var queryPair = queryPart.split("=");
+			var key = decodeURIComponent(queryPair[0]);
+			if (parameter === key) {
+				return queryPair[1];
+			}
+		}
+		return null;
 	},
 
 	_parseLayersParameter: function(layersArray) {
@@ -702,12 +803,13 @@ Atlas.AbstractMapPanel = {
 							v0 += ',';
 						}
 						// Layers (l0)
-						l0 += jsonLayer['layerId']
+						// NOTE: encodeURIComponent() is a native JavaScript function, supported by all major browsers.
+						l0 += encodeURIComponent(jsonLayer['layerId']);
 						// Styles (s0)
 						if (typeof(layer.params) !== 'undefined' && layer.params != null &&
 								typeof(layer.params['STYLES']) !== 'undefined' && layer.params['STYLES'] != null &&
 								layer.params['STYLES'].length > 0) {
-							s0 += layer.params['STYLES'];
+							s0 += encodeURIComponent(layer.params['STYLES']);
 						}
 						// Opacities (o0)
 						if (typeof(layer.opacity) !== 'undefined' && layer.opacity != null && layer.opacity !== 1) {
@@ -836,6 +938,21 @@ Atlas.AbstractMapPanel = {
 			} else {
 				// TODO Error message on the page
 				alert('Invalid DPI value. Please, select a value between ' + dpiMin + ' and ' + dpiMax + '.');
+			}
+		}
+	},
+
+	changeGutter: function(gutter) {
+		if (this.gutter != gutter) {
+			// for validation
+			var gutterMin = 0, gutterMax = 500;
+
+			if (gutter >= gutterMin && gutter <= gutterMax) {
+				this.gutter = gutter;
+				this.ol_fireEvent('gutterChange', {gutter: gutter});
+			} else {
+				// TODO Error message on the page
+				alert('Invalid gutter value. Please, select a value between ' + gutterMin + ' and ' + gutterMax + '.');
 			}
 		}
 	},

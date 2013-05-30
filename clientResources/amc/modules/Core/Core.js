@@ -621,7 +621,6 @@ Atlas.Core = OpenLayers.Class({
 					var len = layersMapForType.length;
 					for (var i=0; i<len; i++) {
 						var kmlURL = layersMapForType[i];
-						var layerId = OpenLayers.Util.createUniqueID("KML_");
 
 						// Try to find the Server URL in the list of datasources
 						var kmlLayerJSon = this._findKMLLayerJSon(kmlURL);

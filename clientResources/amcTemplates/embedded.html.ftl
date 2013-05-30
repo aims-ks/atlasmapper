@@ -68,6 +68,7 @@
 	<![endif]-->
 
 	<script type="text/javascript" src="OpenLayers/OpenLayers-2.12/OpenLayers.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="OpenLayers-ux/Bing.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="OpenLayers-ux/PrintFrame.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="OpenLayers-ux/SearchResults.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="OpenLayers-ux/KML.js?atlasmapperVer=${version}"></script>
@@ -77,7 +78,9 @@
 
 	<#if (useGoogle)>
 		<!-- If the client use any Google Layers -->
-		<script type="text/javascript" src="http://maps.google.com/maps/api/js?v=3.7&amp;sensor=false&amp;atlasmapperVer=${version}"></script>
+		<!-- NOTE: Relative URL without scheme (http or https) use the scheme or the current page.
+			This is valid according to the RFC 3986 http://www.ietf.org/rfc/rfc3986.txt -->
+		<script type="text/javascript" src="//maps.google.com/maps/api/js?v=3.7&amp;sensor=false&amp;atlasmapperVer=${version}"></script>
 	</#if>
 
 	<script type="text/javascript" src="extjs/3.3.0/ext-3.3.0/adapter/ext/ext-base.js?atlasmapperVer=${version}"></script>
@@ -133,6 +136,7 @@
 	<script type="text/javascript" src="modules/Trees/LayerTreeLoader.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="modules/Trees/LayerNode.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="modules/Info/Info.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="modules/Info/DescriptionPanel.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="modules/Info/OptionsPanel.js?atlasmapperVer=${version}"></script>
 
 	<script type="text/javascript">

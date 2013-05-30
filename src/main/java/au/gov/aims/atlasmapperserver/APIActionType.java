@@ -1,7 +1,7 @@
 /*
  *  This file is part of AtlasMapper server and clients.
  *
- *  Copyright (C) 2011 Australian Institute of Marine Science
+ *  Copyright (C) 2012 Australian Institute of Marine Science
  *
  *  Contact: Gael Lafond <g.lafond@aims.org.au>
  *
@@ -18,23 +18,11 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+package au.gov.aims.atlasmapperserver;
 
-package au.gov.aims.atlasmapperserver.dataSourceConfig;
-
-import au.gov.aims.atlasmapperserver.ConfigManager;
-import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
-import au.gov.aims.atlasmapperserver.layerGenerator.NcWMSLayerGenerator;
-import org.geotools.ows.ServiceException;
-
-import java.io.IOException;
-
-public class NcWMSDataSourceConfig extends WMSDataSourceConfig {
-	public NcWMSDataSourceConfig(ConfigManager configManager) {
-		super(configManager);
-	}
-
-	@Override
-	public AbstractLayerGenerator createLayerGenerator() throws Exception {
-		return new NcWMSLayerGenerator(this);
-	}
+/**
+ * List possible actions that may be used with webapp/localhost/api.jsp
+ */
+public enum APIActionType {
+	REFRESH
 }

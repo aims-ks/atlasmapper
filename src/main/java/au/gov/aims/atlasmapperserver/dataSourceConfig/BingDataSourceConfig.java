@@ -38,7 +38,7 @@ public class BingDataSourceConfig extends AbstractDataSourceConfig {
 	}
 
 	@Override
-	public AbstractLayerGenerator getLayerGenerator() {
+	public AbstractLayerGenerator createLayerGenerator() {
 		return new BingLayerGenerator(this);
 	}
 

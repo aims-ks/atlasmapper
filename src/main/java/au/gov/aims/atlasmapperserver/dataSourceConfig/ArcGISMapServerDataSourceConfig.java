@@ -61,7 +61,7 @@ public class ArcGISMapServerDataSourceConfig extends AbstractDataSourceConfig im
 	}
 
 	@Override
-	public AbstractLayerGenerator getLayerGenerator() {
+	public AbstractLayerGenerator createLayerGenerator() {
 		return new ArcGISMapServerLayerGenerator(this);
 	}
 

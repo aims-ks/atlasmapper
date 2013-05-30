@@ -24,9 +24,6 @@ package au.gov.aims.atlasmapperserver.dataSourceConfig;
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
 import au.gov.aims.atlasmapperserver.layerGenerator.WMTSLayerGenerator;
-import org.geotools.ows.ServiceException;
-
-import java.io.IOException;
 
 public class WMTSDataSourceConfig extends WMSDataSourceConfig {
 	public WMTSDataSourceConfig(ConfigManager configManager) {
@@ -34,7 +31,7 @@ public class WMTSDataSourceConfig extends WMSDataSourceConfig {
 	}
 
 	@Override
-	public AbstractLayerGenerator getLayerGenerator() throws Exception {
+	public AbstractLayerGenerator createLayerGenerator() throws Exception {
 		return new WMTSLayerGenerator(this);
 	}
 }

@@ -31,7 +31,7 @@ public class TilesDataSourceConfig extends AbstractDataSourceConfig {
 	}
 
 	@Override
-	public AbstractLayerGenerator getLayerGenerator() {
+	public AbstractLayerGenerator createLayerGenerator() {
 		throw new NotImplementedException();
 	}
 }

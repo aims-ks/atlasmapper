@@ -60,11 +60,11 @@ Atlas.Info = Ext.extend(Ext.Component, {
 
 				var panelConfig = {
 					mapPanel: this.mapPanel,
-					title: tabName,
-					cls: 'infoTab'
+					title: tabName
 				};
 
 				if (tabObj['type'] === 'options') {
+					panelConfig.cls = 'infoTab';
 					if (tabObj['defaultContent']) {
 						panelConfig.html = tabObj['defaultContent'];
 					}
@@ -74,14 +74,20 @@ Atlas.Info = Ext.extend(Ext.Component, {
 					if (tabObj['type'] === 'description') {
 						this.descriptionTab = this.tabs.length;
 					}
+
+					panelConfig.iframe = {
+						mapPanel: this.mapPanel,
+						border: false,
+						cls: 'iframeTab'
+					};
 					if (tabObj['defaultContent']) {
-						panelConfig.html = tabObj['defaultContent'];
+						panelConfig.iframe.html = tabObj['defaultContent'];
 					}
 					if (tabObj['defaultUrl']) {
-						panelConfig.src = tabObj['defaultUrl'];
+						panelConfig.iframe.src = tabObj['defaultUrl'];
 					}
 
-					this.tabs.push(new Ext.ux.IFramePanel(panelConfig));
+					this.tabs.push(new Atlas.DescriptionPanel(panelConfig));
 				}
 			}, this);
 		}
@@ -157,13 +163,7 @@ Atlas.Info = Ext.extend(Ext.Component, {
 					this.tabs[i].setSrc(srcs[srcInd]);
 				} else {
 					if (i == this.descriptionTab) {
-						var description = atlasLayer ? atlasLayer.getDescription() : null;
-						if (description) {
-							this.tabs[i].setContent(description);
-						} else {
-							// Reset the tab's SRC
-							this.tabs[i].setSrc();
-						}
+						this.tabs[i].setLayer(atlasLayer);
 					} else {
 						// Reset the tab's SRC
 						this.tabs[i].setSrc();

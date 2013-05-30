@@ -26,7 +26,7 @@ Atlas.Trees = Ext.extend(Ext.Component, {
 	mapPanel: null,
 
 	// NOTE: The version must match the version in the server /src/main/java/au/gov/aims/atlasmapperserver/module/Tree.java
-	CURRENT_CONFIG_VERSION: 1.0,
+	CURRENT_CONFIG_VERSION: 2.0,
 
 	initComponent: function() {
 		Atlas.Trees.superclass.initComponent.call(this);
@@ -52,7 +52,7 @@ Atlas.Trees = Ext.extend(Ext.Component, {
 				});
 			});
 			// Sort tabs in alphabetic order
-			orderedTrees.sort(this.sortByName);
+			orderedTrees.sort(function(a, b) { return that.sortByName(a, b); });
 
 			Ext.each(orderedTrees, function(treeObj) {
 				var treeName = treeObj.name;
@@ -103,15 +103,15 @@ Atlas.Trees = Ext.extend(Ext.Component, {
 		if (!b || !b.name) { return 1; }
 
 		var lca = '';
-		if (typeof(a.child) == 'string') {
-			lca = a.child.toLowerCase();
+		if (this.isLeaf(a.child) && a.child.title) {
+			lca = a.child.title.toLowerCase();
 		} else {
 			lca = a.name.toLowerCase();
 		}
 
 		var lcb = '';
-		if (typeof(b.child) == 'string') {
-			lcb = b.child.toLowerCase();
+		if (this.isLeaf(b.child) && b.child.title) {
+			lcb = b.child.title.toLowerCase();
 		} else {
 			lcb = b.name.toLowerCase();
 		}
@@ -166,8 +166,8 @@ Atlas.Trees = Ext.extend(Ext.Component, {
 			if (!a || !a.name || !a.child) { return -1; }
 			if (!b || !b.name || !b.child) { return 1; }
 
-			var aIsLeaf = (typeof(a.child) == 'string');
-			var bIsLeaf = (typeof(b.child) == 'string');
+			var aIsLeaf = that.isLeaf(a.child);
+			var bIsLeaf = that.isLeaf(b.child);
 			// Move files below folders
 			if (aIsLeaf && !bIsLeaf) { return 1; }
 			if (!aIsLeaf && bIsLeaf) { return -1; }
@@ -177,19 +177,22 @@ Atlas.Trees = Ext.extend(Ext.Component, {
 
 		Ext.each(orderedNode, function(nodeObj) {
 			var childName = nodeObj.name;
-			var child = nodeObj.child;
+			// Ignore the added attribute "__isLeaf__"
+			if (childName !== '__isLeaf__') {
+				var child = nodeObj.child;
 
-			if (typeof(child) == 'string') {
-				this.createTreeLeaf(child, childName, children, path);
-			} else {
-				// Clone the Path array
-				var childPath = path.slice(0);
-				childPath.push(childName);
+				if (this.isLeaf(child)) {
+					this.createTreeLeaf(child, childName, children, path);
+				} else {
+					// Clone the Path array
+					var childPath = path.slice(0);
+					childPath.push(childName);
 
-				// Recursivity
-				// Call createTreeNode with every children
-				// TODO Use a TreeLoader to load branches asynchronously
-				children.push(this.createTreeNode(child, childName, childPath));
+					// Recursivity
+					// Call createTreeNode with every children
+					// TODO Use a TreeLoader to load branches asynchronously
+					children.push(this.createTreeNode(child, childName, childPath));
+				}
 			}
 		}, this);
 
@@ -201,20 +204,88 @@ Atlas.Trees = Ext.extend(Ext.Component, {
 		}
 	},
 
+	/**
+	 * Return true if the node is a leaf.
+	 * NOTE: This is not trivial; Node contains a collection of objects with arbitrary keys. Leaves are also
+	 *     objects, that contains a collection of known keys, but the list of keys may expend in the future.
+	 * NOTE 2: Since this operation is expensive, the result is cache in the node object.
+	 * @param node
+	 * @returns {boolean} Return true the node contains an attribute with a value that is not an object
+	 *     (this is more robust than just checking for known attributes) or if the attribute is a known object
+	 *     attribute (like 'bbox') and it's value is valid (for 'bbox', we check that it is an array of 4 number).
+	 *     NOTE: An empty note is a valid leaf, since none of the attributes are mandatory.
+	 */
+	isLeaf: function(node) {
+		if (node === null || typeof(node) !== 'object') {
+			// This should not happen
+			return false;
+		}
+		if (typeof(node.__isLeaf__) === 'undefined') {
+			var isLeaf = true;
+			Ext.iterate(node, function(key, value) {
+				// Only leafs contains attributes that are not objects (like 'title', it's a String)
+				if (typeof(value) !== 'object') {
+					isLeaf = true;
+					return false; // Stop Ext.iterate
+				}
+				// Special case for attribute that are object;
+				// no attribute are mandatory so the leaf could contains only one of them. We have to check them all.
+				if (key === 'bbox') {
+					if (!this.isBBoxAttribute(value)) {
+						isLeaf = false;
+						return false; // Stop Ext.iterate
+					}
+				} else {
+					// If it contains an object that is not defined here, it's not a leaf.
+					isLeaf = false;
+					return false; // Stop Ext.iterate
+				}
+				// In the future, leaves may contains other attributes. They will need to be tested here...
+			}, this);
+			// All attributes are valid (note that not attribute is also valid)
 
-	createTreeLeaf: function(title, layerId, children, path) {
+			// Cache the result in the object
+			node.__isLeaf__ = isLeaf;
+		}
+		return node.__isLeaf__;
+	},
+
+	isBBoxAttribute: function(value) {
+		if (typeof(value) !== 'object') {
+			return false;
+		}
+		if (typeof(value.length) === 'undefined') {
+			return false;
+		}
+		if (value.length !== 4) {
+			return false;
+		}
+		var containsDigits = true;
+		Ext.each(value, function(digit) {
+			if (typeof(digit) !== 'number') {
+				containsDigits = false;
+				return false; // Stop Ext.each
+			}
+		});
+		return containsDigits;
+	},
+
+	createTreeLeaf: function(leafNode, layerId, children, path) {
 		this.cacheLayerTreePath(layerId, path);
 
 		// LayerLeaf
 		children.push({
-			text: title,
+			text: leafNode.title ? leafNode.title : layerId,
+			bbox: leafNode.bbox ? leafNode.bbox : null,
 			cls: 'x-tree-noicon',
-			layerId: layerId,
 			leaf: true,
-			checked: false
+			checked: false,
+
+			// Proprietary additions
+			layerId: layerId,
+			bbox: leafNode.bbox
 		});
 	},
-
 
 	cacheLayerTreePath: function(layerId, path) {
 		// Clone the Path array
@@ -227,7 +298,27 @@ Atlas.Trees = Ext.extend(Ext.Component, {
 		this.treePaths[layerId].push(layerPath);
 	},
 
+	grayoutOutOfBoundLayers: function(mapBBox) {
+		Ext.each(this.trees, function(tree) {
+			this._grayoutOutOfBoundLayers(tree, mapBBox);
+		}, this);
+	},
+	_grayoutOutOfBoundLayers: function(node, mapBBox) {
+		if (node.isLeaf()) {
+			// Grayout, if needed
+			console.log(node.attributes.bbox);
+		} else {
+			// Recursion with children
+			if (node.childNodes && node.childNodes.length > 0) {
+				for (var i=0, len=node.childNodes.length; i<len; i++) {
+					this._grayoutOutOfBoundLayers(node.childNodes[i]);
+				}
+			}
+		}
+	},
+
 	// Method to override
+	// See: Atlas.AddLayersWindow (modules/LayersPanel/AddLayersWindow.js)
 	selectionChange: function(node) {},
 
 	highlightLayer: function(layerId) {

@@ -30,7 +30,6 @@ import au.gov.aims.atlasmapperserver.collection.BlackAndWhiteListFilter;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -52,9 +51,6 @@ import org.json.JSONSortedObject;
  */
 public abstract class AbstractDataSourceConfig extends AbstractConfig implements AbstractDataSourceConfigInterface, Comparable<AbstractDataSourceConfig>, Cloneable {
 	private static final Logger LOGGER = Logger.getLogger(AbstractDataSourceConfig.class.getName());
-
-	// Date in big endian format, so the alphabetic order is chronological: 2013 / 10 / 30 - 23:31
-	private static final SimpleDateFormat DATE_FORMATER = new SimpleDateFormat("yyyy / MM / dd - HH:mm");
 
 	// Grids records must have an unmutable ID
 	@ConfigField
@@ -107,7 +103,7 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 	private JSONSortedObject globalManualOverride;
 
 	@ConfigField
-	private Boolean cachingDisabled;
+	private Boolean activeDownload;
 
 	@ConfigField
 	private Boolean showInLegend;
@@ -115,6 +111,9 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 	@ConfigField
 	private String comment;
 
+	// TODO This variable is temporary used in wait for the refactorisation of the data source save state (saving what have been parsing from the Capabilities document, into a file that is than used to generate the layers and client data source info)
+	@Deprecated
+	private AbstractLayerGenerator layerGenerator;
 
 	protected AbstractDataSourceConfig(ConfigManager configManager) {
 		super(configManager);
@@ -132,6 +131,7 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 	}
 
 	public Map<String, Errors> process() throws Exception {
+		this.layerGenerator = null;
 		LayerCatalog layerCatalog = this.getLayerCatalog(true);
 
 		// Collect error messages
@@ -171,13 +171,13 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 	// LayerCatalog - Before data source overrides
 	private LayerCatalog getRawLayerCatalog(boolean harvest) throws Exception {
 		LayerCatalog rawLayerCatalog = new LayerCatalog();
-		AbstractLayerGenerator layerGenerator = this.getLayerGenerator();
 
+		AbstractLayerGenerator layerGenerator = this.getLayerGenerator(true);
 		if (layerGenerator != null) {
 			rawLayerCatalog.addLayers(layerGenerator.generateLayerConfigs(this, harvest));
 			rawLayerCatalog.addCachedLayers(layerGenerator.generateCachedLayerConfigs(this, harvest));
+			rawLayerCatalog.addAllErrors(layerGenerator.getErrors());
 		}
-		rawLayerCatalog.addAllErrors(layerGenerator.getErrors());
 
 		return rawLayerCatalog;
 	}
@@ -367,7 +367,7 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 
 	public void setLastHarvestedDate(Date lastHarvestedDate) {
 		this.setLastHarvested(
-				lastHarvestedDate == null ? null : DATE_FORMATER.format(lastHarvestedDate));
+				lastHarvestedDate == null ? null : ConfigManager.DATE_FORMATER.format(lastHarvestedDate));
 	}
 
 	public boolean isValid() {
@@ -438,12 +438,12 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 		this.dataSourceName = dataSourceName;
 	}
 
-	public Boolean isCachingDisabled() {
-		return this.cachingDisabled;
+	public Boolean isActiveDownload() {
+		return this.activeDownload;
 	}
 
-	public void setCachingDisabled(Boolean cachingDisabled) {
-		this.cachingDisabled = cachingDisabled;
+	public void setActiveDownload(Boolean activeDownload) {
+		this.activeDownload = activeDownload;
 	}
 
 	public Boolean isShowInLegend() {
@@ -505,7 +505,15 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 		}
 	}
 
-	public abstract AbstractLayerGenerator getLayerGenerator() throws Exception;
+	public abstract AbstractLayerGenerator createLayerGenerator() throws Exception;
+
+	@Deprecated
+	public AbstractLayerGenerator getLayerGenerator(boolean createNew) throws Exception {
+		if (createNew || this.layerGenerator == null) {
+			this.layerGenerator = this.createLayerGenerator();
+		}
+		return this.layerGenerator;
+	}
 
 	@Override
 	// Order data sources by data source name

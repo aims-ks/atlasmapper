@@ -949,5 +949,63 @@ ea_ea:GBR_UQ_Inshore-pesticides_AvDryPSHeq-2005-6
 				<i>http://domain.com/atlasmapper/client/demo/index.html?z=4&l0=ala_ALA:fire_frq,ea_ea:GBR_UQ_Inshore-pesticides_AvDryPSHeq-2005-6&s0=,Inshore-pesticides-AvDryPSHeq-Blue&o0=,0.5&v0=false</i>
 			</p>
 		</div>
+
+		<h2 id="experimental">Experimental features</h2>
+		<div id="experimentalDiv">
+			<p>
+				The following list of features are experimental. They can be used but the interface is subject to
+				change in the next releases, without backward compatibility.
+			</p>
+
+			<h3 id="webapi">Web API</h3>
+			<div id="webapiDiv">
+				<p>
+					The <i>Web API</i> can be used to trigger action from a URL, without having to login. For security
+					reason, the URL can only be called from <i>localhost</i>.
+				</p>
+				<p>
+					<b>Usage:</b> http://localhost:8080/atlasmapper/localhost/api.jsp?action=<b>&lt;ACTION&gt;</b>&amp;<b>&lt;PARAMETERS&gt;</b>
+				</p>
+				<table>
+					<tr>
+						<th class="desc">Description</th>
+						<th class="action">Action</th>
+						<th class="params">Parameters</th>
+						<th class="examples">Examples</th>
+					</tr>
+					<tr>
+						<td class="desc">
+							Re-harvest data sources &amp; re-generate clients.<br/>
+							<b>NOTE:</b> When data sources and clients are specified in the URL, the data sources
+								are always harvested before generating the client. This may not be the case if
+								they are called in individual URLs.
+						</td>
+						<td class="action">REFRESH</td>
+						<td class="params">
+							<ul>
+								<li><b>dataSourceIds:</b> Optional coma separated list of data source ID.</li>
+								<li><b>clientIds:</b> Optional coma separated list of client ID.</li>
+							</ul>
+						</td>
+						<td class="examples">
+							<ul>
+								<li>
+									Refresh the cache for the data sources ID "ea" and "imos":<br/>
+									<b>http://localhost:8080/atlasmapper/localhost/api.jsp?action=REFRESH&amp;dataSourceIds=ea,imos</b>
+								</li>
+								<li>
+									Regenerate the clients ID "demo" and "maps":<br/>
+									<b>http://localhost:8080/atlasmapper/localhost/api.jsp?action=REFRESH&amp;clientIds=demo,maps</b>
+								</li>
+								<li>
+									Refresh the cache for the data source "ea", then regenerate the client "demo":<br/>
+									<b>http://localhost:8080/atlasmapper/localhost/api.jsp?action=REFRESH&amp;dataSourceIds=ea&amp;clientIds=demo</b>
+								</li>
+							</ul>
+						</td>
+					</tr>
+				</table>
+			</div>
+		</div>
 	</body>
 </html>

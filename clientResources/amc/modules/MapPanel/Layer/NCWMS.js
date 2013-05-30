@@ -35,6 +35,9 @@ Atlas.Layer.NCWMS = OpenLayers.Class(Atlas.Layer.WMS, {
 		// Do not call initialize from WMS because it would create a useless WMS layer.
 		Atlas.Layer.AbstractLayer.prototype.initialize.apply(this, arguments);
 
+		// ncWMS do not support cache
+		this.useCache = false;
+
 		// TODO Support Multiple URLS => this._getWMSExtraServiceUrls(),
 		var layerParams = this.getWMSLayerParams();
 		this.setLayer(new OpenLayers.Layer.ux.NCWMS(

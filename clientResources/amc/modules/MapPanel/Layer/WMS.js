@@ -39,6 +39,9 @@ Atlas.Layer.WMS = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 	 * mapPanel - {Object} Instance of the MapPanel in which the layer is used
 	 */
 	initialize: function(mapPanel, jsonLayer, parent) {
+		// WMS use cache when possible (by default)
+		this.useCache = true;
+
 		if (mapPanel && mapPanel.dpi != mapPanel.DEFAULT_DPI) {
 			// Set the initial layer DPI
 			// Clone jsonLayer
@@ -80,7 +83,28 @@ Atlas.Layer.WMS = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 			mapPanel.ol_on("dpiChange", function(evt) {
 				that._dpiChange(evt.dpi);
 			});
+			mapPanel.ol_on("gutterChange", function(evt) {
+				that._gutterChange(evt.gutter);
+			});
 		}
+	},
+
+	// Override
+	setOptions: function(optionsPanel) {
+		var that = this;
+		var useCache = {
+			xtype: "checkbox",
+			name: "useCache",
+			cls: "advancedOption",
+			fieldLabel: "Use server cache when available",
+			checked: true,
+			handler: function(checkbox, checked) {
+				that.useCache = !!checked;
+				// This trigger a redraw if needed (if the server URL has changed)
+				that.setParameters({});
+			}
+		};
+		optionsPanel.addOption(this, useCache);
 	},
 
 	// override
@@ -99,6 +123,32 @@ Atlas.Layer.WMS = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 		} else {
 			this.setParameters({'format_options': 'dpi:' + dpi});
 		}
+	},
+
+	// Called when the gutter change on the mapPanel
+	// TODO Find a way to dynamically change the layers gutter.
+	// NOTE: According to this old post:
+	//     http://lists.osgeo.org/pipermail/openlayers-users/2007-January/000461.html
+	//     the tiles are loaded in a "frame" (probably a div) smaller than the image, then they are centered to hide the extra space (the gutter)
+	//     I need to change the imageSize without changing the tileSize...
+	_gutterChange: function(gutter) {
+		var defaultGutter = this.mapPanel ? this.mapPanel.DEFAULT_GUTTER : 0;
+		/*
+		// Good try, but that doesn't work. Gutter is an OpenLayers option, not a URL parameter
+		if (gutter == defaultGutter) {
+			this.setParameters({'gutter': null});
+		} else {
+			this.setParameters({'gutter': gutter});
+		}
+		*/
+
+		/*
+		// Closer, but still not working. OpenLayer request bigger tile, overlap them, but do not crop them.
+		var tileSize = (this.layer.tileSize) ? this.layer.tileSize : this.layer.map.getTileSize();
+		this.layer.gutter = gutter;
+		this.layer.imageSize = new OpenLayers.Size(tileSize.w + (2*gutter), tileSize.h + (2*gutter));
+		this.layer.redraw();
+		*/
 	},
 
 	_getTileSizeForDPI: function(dpi) {

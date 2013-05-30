@@ -146,11 +146,12 @@ Ext.define('Writer.LayerServerConfigForm', {
 	initComponent: function() {
 		this.defaultValues = Ext.create('Writer.LayerServerConfig', {
 			'dataSourceType': 'WMS',
-			'cachingDisabled': false,
+			'activeDownload': false,
+			'webCacheEnable': true,
 			'showInLegend': true,
 			'forcePNG24': true,
 			'legendParameters': 'FORMAT=image/png\nHEIGHT=10\nWIDTH=20',
-			'webCacheParameters': 'LAYERS, TRANSPARENT, SERVICE, VERSION, REQUEST, EXCEPTIONS, FORMAT, SRS, BBOX, WIDTH, HEIGHT'
+			'webCacheParameters': 'LAYERS, TRANSPARENT, SERVICE, VERSION, REQUEST, EXCEPTIONS, FORMAT, SRS, BBOX, WIDTH, HEIGHT, STYLES'
 		});
 		this.addEvents('create');
 
@@ -173,7 +174,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 				value: this.dataSourceType
 			}, {
 				fieldLabel: 'Data source ID',
-				qtipHtml: 'This field is used internally to associate layers with a data source. It must be short, to minimise data transfer, and unique amount the other <em>Data source ID</em>. It\'s a good practice to only use lower case letters and number for this field.',
+				qtipHtml: 'This field is used internally to associate layers with a data source. It must be short, to minimise data transfer, and unique amount the other <em>Data source ID</em>. It\'s a good practice to only use lower case letters and number for this field.<br/><strong>WARNING:</strong> Modifying the value of this field will remove the data source from clients that are using it.',
 				name: 'dataSourceId',
 				xtype: 'ajaxtextfield',
 				ajax: {
@@ -329,10 +330,10 @@ Ext.define('Writer.LayerServerConfigForm', {
 			resizable: {transparent: true}, resizeHandles: 's',
 			height: 100
 		};
-		var cachingDisabled = {
-			qtipHtml: 'Check this box to disable the caching of the capabilities document. This is usually used with local servers, during development.<br/><b>WARNING</b> This option should always be unchecked on production servers.',
-			boxLabel: 'Disable caching',
-			name: 'cachingDisabled',
+		var activeDownload = {
+			qtipHtml: 'Check this box to force the generation of the client to re-download the file on every generation. This is usually used with local servers, during development.<br/><b>WARNING</b> Disabling the cache slow down the client considerably. Caching should always be used on production servers.',
+			boxLabel: 'Active download',
+			name: 'activeDownload',
 			xtype: 'checkboxfield'
 		}
 		var showInLegend = {
@@ -353,7 +354,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 
 		var serviceUrl = {
 			fieldLabel: 'Service URL',
-			qtipHtml: 'URL to the layer service. This URL is used by a java library to download the layers or the WMS capabilities document. Setting this field alone with <em>Data source ID</em> and <em>Data source name</em> is usually enough. Note that a full URL to the capabilities document can also be provided, including additional parameters.',
+			qtipHtml: 'URL to the layer service. This URL is used by a java library to download the layers or the WMS capabilities document. Setting this field alone with <em>Data source ID</em> and <em>Data source name</em> is usually enough. Note that a full URL to the capabilities document can also be provided, including additional parameters.<br/>NOTE: WMS services may use the file protocol here.<br/>Example: file:///somepath/capabilities.xml',
 			name: 'serviceUrl'
 		};
 		var serviceUrls = {
@@ -385,6 +386,19 @@ Ext.define('Writer.LayerServerConfigForm', {
 			fieldLabel: 'Secondary WMS service URLs',
 			qtipHtml: 'List of URLs, separated by coma or new line. This field can be used to provide additional URLs to access the tiles, which is useful for doing server load balancing and allow the client\'s browser to download more tiles simultaneously.',
 			name: 'extraWmsServiceUrls'
+		};
+
+		var webCacheEnable = {
+			qtipHtml: 'Uncheck this box to disable tile caching (from the Web Cache server).',
+			boxLabel: 'Enable Web cache',
+			name: 'webCacheEnable',
+			xtype: 'checkboxfield'
+		}
+
+		var webCacheCapabilitiesUrl = {
+			fieldLabel: 'Web Cache capabilities document URL (WMTS)',
+			qtipHtml: 'URL to the Web Cache capabilities document (WMTS). This URL will be used to get discover which layers and which styles are cached.<br/>NOTE: File protocol is allowed here.<br/>Example: file:///somepath/capabilities.xml',
+			name: 'webCacheCapabilitiesUrl'
 		};
 		var webCacheUrl = {
 			fieldLabel: 'Web Cache URL',
@@ -464,7 +478,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 			case 'WMS':
 				items.push(Ext.apply(serviceUrl, { fieldLabel: 'WMS service URL' }));
 				items.push(baseLayers);
-				items.push(cachingDisabled);
+				items.push(activeDownload);
 				items.push(comment);
 
 				advancedItems.push(globalManualOverride);
@@ -473,6 +487,8 @@ Ext.define('Writer.LayerServerConfigForm', {
 				advancedItems.push(legendParameters);
 				advancedItems.push(legendUrl);
 				//advancedItems.push(extraWmsServiceUrls);
+				advancedItems.push(webCacheEnable);
+				advancedItems.push(webCacheCapabilitiesUrl);
 				advancedItems.push(webCacheUrl);
 				advancedItems.push(webCacheParameters);
 				advancedItems.push(getMapUrl);
@@ -482,7 +498,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 			case 'NCWMS':
 				items.push(Ext.apply(serviceUrl, { fieldLabel: 'ncWMS service URL' }));
 				items.push(baseLayers);
-				items.push(cachingDisabled);
+				items.push(activeDownload);
 				items.push(comment);
 
 				advancedItems.push(globalManualOverride);
@@ -498,7 +514,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 			case 'WMTS':
 				items.push(Ext.apply(serviceUrl, { fieldLabel: 'WMTS service URL' }));
 				items.push(baseLayers);
-				items.push(cachingDisabled);
+				items.push(activeDownload);
 				items.push(comment);
 
 				advancedItems.push(globalManualOverride);
@@ -536,7 +552,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 			case 'ARCGIS_MAPSERVER':
 				items.push(Ext.apply(serviceUrl, { fieldLabel: 'ArcGIS service URL' }));
 				items.push(baseLayers);
-				items.push(cachingDisabled);
+				items.push(activeDownload);
 				items.push(comment);
 
 				advancedItems.push(globalManualOverride);
@@ -940,6 +956,7 @@ Ext.define('Writer.LayerServerConfigGrid', {
 			columns: [
 				{
 					width: 30,
+					align: 'center',
 					sortable: true,
 					xtype: 'booleancolumn',
 					// The icon is placed using CSS and the text is hidden with CSS.
@@ -1014,21 +1031,44 @@ Ext.define('Writer.LayerServerConfigGrid', {
 								if (rec) {
 									var dataSource = rec.data;
 									if (dataSource) {
-										if (dataSource.cachingDisabled) {
-											frameset.setError('Can not process this data source: The cache is disabled.');
-										} else {
-											frameset.setSavingMessage('Processing ' + dataSource.dataSourceName + '.');
+										frameset.setSavingMessage('Processing ' + dataSource.dataSourceName + '.');
 
-											Ext.Ajax.request({
-												url: 'dataSourcesConfig.jsp',
-												timeout: harvestTimeout,
-												params: {
-													'action': 'PROCESS',
-													'id': dataSource.id
-												},
-												success: function(response){
-													var responseObj = null;
+										Ext.Ajax.request({
+											url: 'dataSourcesConfig.jsp',
+											timeout: harvestTimeout,
+											params: {
+												'action': 'PROCESS',
+												'id': dataSource.id
+											},
+											success: function(response){
+												var responseObj = null;
+												var statusCode = response ? response.status : null;
+												if (response && response.responseText) {
+													try {
+														responseObj = Ext.decode(response.responseText);
+													} catch (err) {
+														responseObj = {errors: [err.toString()]};
+													}
+												}
+												if(responseObj && responseObj.success){
+													if (responseObj.errors || responseObj.warnings) {
+														frameset.setErrorsAndWarnings('Data source process passed', 'Warning(s) occurred while processing the data source configuration.', responseObj, statusCode);
+													} else if (responseObj.messages) {
+														frameset.setErrorsAndWarnings('Data source process succeed', null, responseObj, statusCode);
+													} else {
+														frameset.setSavedMessage('Data source processed successfully.');
+													}
+												} else {
+													frameset.setErrorsAndWarnings('Process failed', 'Error(s) / warning(s) occurred while processing the data source configuration.', responseObj, statusCode);
+												}
+												that.onReload();
+											},
+											failure: function(response) {
+												if (response.timedout) {
+													frameset.setError('Request timed out.', 408);
+												} else {
 													var statusCode = response ? response.status : null;
+													var responseObj = null;
 													if (response && response.responseText) {
 														try {
 															responseObj = Ext.decode(response.responseText);
@@ -1036,38 +1076,11 @@ Ext.define('Writer.LayerServerConfigGrid', {
 															responseObj = {errors: [err.toString()]};
 														}
 													}
-													if(responseObj && responseObj.success){
-														if (responseObj.errors || responseObj.warnings) {
-															frameset.setErrorsAndWarnings('Data source process passed', 'Warning(s) occurred while processing the data source configuration.', responseObj, statusCode);
-														} else if (responseObj.messages) {
-															frameset.setErrorsAndWarnings('Data source process succeed', null, responseObj, statusCode);
-														} else {
-															frameset.setSavedMessage('Data source processed successfully.');
-														}
-													} else {
-														frameset.setErrorsAndWarnings('Process failed', 'Error(s) / warning(s) occurred while processing the data source configuration.', responseObj, statusCode);
-													}
-													that.onReload();
-												},
-												failure: function(response) {
-													if (response.timedout) {
-														frameset.setError('Request timed out.', 408);
-													} else {
-														var statusCode = response ? response.status : null;
-														var responseObj = null;
-														if (response && response.responseText) {
-															try {
-																responseObj = Ext.decode(response.responseText);
-															} catch (err) {
-																responseObj = {errors: [err.toString()]};
-															}
-														}
-														frameset.setErrors('An error occurred while processing the data source configuration.', responseObj, statusCode);
-													}
-													that.onReload();
+													frameset.setErrors('An error occurred while processing the data source configuration.', responseObj, statusCode);
 												}
-											});
-										}
+												that.onReload();
+											}
+										});
 									}
 								} else {
 									frameset.setError('No record has been selected.');
@@ -1088,7 +1101,7 @@ Ext.define('Writer.LayerServerConfigGrid', {
 								if (rec) {
 									var dataSource = rec.data;
 									if (dataSource) {
-										if (dataSource.cachingDisabled) {
+										if (dataSource.activeDownload) {
 											frameset.setError('Can not clear the cache: The cache is disabled.');
 										} else {
 											frameset.setSavingMessage('Clearing ' + dataSource.dataSourceName + ' cache.');
@@ -1432,6 +1445,8 @@ Ext.define('Writer.LayerServerConfig', {
 		'getMapUrl',
 		'extraWmsServiceUrls',
 		'kmlData',
+		{name: 'webCacheEnable', type: 'boolean', defaultValue: false},
+		'webCacheCapabilitiesUrl',
 		'webCacheUrl',
 		'webCacheParameters',
 		'featureRequestsUrl',
@@ -1441,7 +1456,7 @@ Ext.define('Writer.LayerServerConfig', {
 		'baseLayers',
 		'overlayLayers',
 		'globalManualOverride',
-		{name: 'cachingDisabled', type: 'boolean', defaultValue: false},
+		{name: 'activeDownload', type: 'boolean', defaultValue: false},
 		{name: 'showInLegend', type: 'boolean', defaultValue: false},
 		{name: 'forcePNG24', type: 'boolean', defaultValue: false},
 		'ignoredArcGISPath',

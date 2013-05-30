@@ -26,17 +26,12 @@ import au.gov.aims.atlasmapperserver.layerConfig.GoogleLayerConfig;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  *
  * @author glafond
  */
 public class GoogleLayerGenerator extends AbstractLayerGenerator<GoogleLayerConfig, GoogleDataSourceConfig> {
-	// The layers do not changes often enough to develop some sort of parser.
-	private static Collection<GoogleLayerConfig> googleLayersCache = null;
-
 	public GoogleLayerGenerator(GoogleDataSourceConfig dataSource) {
 		super(dataSource);
 	}
@@ -63,21 +58,20 @@ public class GoogleLayerGenerator extends AbstractLayerGenerator<GoogleLayerConf
 	 */
 	@Override
 	public Collection<GoogleLayerConfig> generateLayerConfigs(GoogleDataSourceConfig dataSourceConfig, boolean harvest) {
-		if (googleLayersCache == null) {
-			googleLayersCache = new ArrayList<GoogleLayerConfig>();
+		Collection<GoogleLayerConfig> googleLayers = new ArrayList<GoogleLayerConfig>();
 
-			googleLayersCache.add(this.createGoogleLayer(dataSourceConfig, "TERRAIN", "Google Physical", null, 16));
+		googleLayers.add(this.createGoogleLayer(dataSourceConfig, "TERRAIN", "Google Physical", null, 16));
 
-			// This layer goes up to 22, but it's pointless to go that close... 20 is good enough
-			googleLayersCache.add(this.createGoogleLayer(dataSourceConfig, "ROADMAP", "Google Streets", null, 20));
+		// This layer goes up to 22, but it's pointless to go that close... 20 is good enough
+		googleLayers.add(this.createGoogleLayer(dataSourceConfig, "ROADMAP", "Google Streets", null, 20));
 
-			// The number of zoom level is a mix of 20 - 22, depending on the location, OpenLayers do not support that very well...
-			googleLayersCache.add(this.createGoogleLayer(dataSourceConfig, "HYBRID", "Google Hybrid", null, 20));
+		// The number of zoom level is a mix of 20 - 22, depending on the location, OpenLayers do not support that very well...
+		googleLayers.add(this.createGoogleLayer(dataSourceConfig, "HYBRID", "Google Hybrid", null, 20));
 
-			// The number of zoom level is a mix of 20 - 22, depending on the location, OpenLayers do not support that very well...
-			googleLayersCache.add(this.createGoogleLayer(dataSourceConfig, "SATELLITE", "Google Satellite", null, 20));
-		}
-		return googleLayersCache;
+		// The number of zoom level is a mix of 20 - 22, depending on the location, OpenLayers do not support that very well...
+		googleLayers.add(this.createGoogleLayer(dataSourceConfig, "SATELLITE", "Google Satellite", null, 20));
+
+		return googleLayers;
 	}
 
 	@Override

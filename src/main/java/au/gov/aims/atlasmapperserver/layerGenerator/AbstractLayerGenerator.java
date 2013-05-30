@@ -41,7 +41,18 @@ public abstract class AbstractLayerGenerator<L extends AbstractLayerConfig, D ex
 	protected abstract String getUniqueLayerId(L layer, D dataSourceConfig);
 	public abstract Collection<L> generateLayerConfigs(D dataSourceConfig, boolean harvest) throws Exception;
 
-	// Most data source type do not support caching. We don't want to override this everywhere.
+	//
+
+	/**
+	 * Override this method on specific layer generators (see AbstractWMSLayerGenerator for example).
+	 * By default, this method return NULL since most data source do not support caching.
+	 * IE: That would be overkill to have an abstract method and having every layer generator
+	 *     to override it.
+	 * @param dataSource
+	 * @param harvest
+	 * @return
+	 * @throws Exception
+	 */
 	public Collection<L> generateCachedLayerConfigs(D dataSource, boolean harvest) throws Exception {
 		return null;
 	}

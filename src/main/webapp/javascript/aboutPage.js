@@ -98,7 +98,7 @@ Ext.onReady(function() {
 				'			</p>\n' +
 				'			<table>\n' +
 				'				<tr>\n' +
-				'					<th style="width: 10em"><a href="http://openlayers.org/" target="_blank">OpenLayers 2.11</a></th>\n' +
+				'					<th style="width: 10em"><a href="http://openlayers.org/" target="_blank">OpenLayers 2.12</a></th>\n' +
 				'					<td style="width: 8em">Javascript</td>\n' +
 				'					<td style="width: 18em"><a href="http://svn.openlayers.org/trunk/openlayers/license.txt" target="_blank">FreeBSD</a></td>\n' +
 				'				</tr>\n' +

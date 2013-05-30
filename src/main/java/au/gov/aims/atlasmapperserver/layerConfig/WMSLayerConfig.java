@@ -185,7 +185,7 @@ public class WMSLayerConfig extends AbstractLayerConfig implements WMSDataSource
 			jsonLayer.put("wmsFeatureRequestLayers", wmsFeatureRequestLayers);
 		}
 
-		if(this.isWmsTransectable() != null) {
+		if (this.isWmsTransectable() != null) {
 			jsonLayer.put("wmsTransectable", this.isWmsTransectable());
 		}
 

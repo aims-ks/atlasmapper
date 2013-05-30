@@ -45,6 +45,9 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 	// Save state, using URL parameters
 	layerState: null,
 
+	// Use cache when possible (see WMS.js)
+	useCache: false,
+
 	/**
 	 * Private Constructor: Atlas.Layer.AbstractLayer
 	 *
@@ -125,7 +128,7 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 	},
 
 	_canUseWebCache: function(layerParams, newParams) {
-		if (this.json == null || (typeof(this.json['cached']) !== 'undefined' && !this.json['cached'])) {
+		if (!this.useCache || this.json == null || (typeof(this.json['cached']) !== 'undefined' && !this.json['cached'])) {
 			return false;
 		}
 
@@ -147,7 +150,7 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 						}
 					}
 				}
-				if (newValue && !this._webCacheSupportParam(paramName, supportedParams)) {
+				if (newValue && !this._webCacheSupportParam(paramName, newValue, supportedParams)) {
 					return false;
 				}
 			}
@@ -158,7 +161,7 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 			for(var newParamName in newParams) {
 				if(newParams.hasOwnProperty(newParamName)) {
 					newValue = newParams[newParamName];
-					if (newValue && !this._webCacheSupportParam(newParamName, supportedParams)) {
+					if (newValue && !this._webCacheSupportParam(newParamName, newValue, supportedParams)) {
 						return false;
 					}
 				}
@@ -168,7 +171,7 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 		return true;
 	},
 
-	_webCacheSupportParam: function(paramName, supportedParams) {
+	_webCacheSupportParam: function(paramName, value, supportedParams) {
 		if (!supportedParams || supportedParams.length <= 0) {
 			// Supported parameters is not set:
 			// The Web Cache server support everything
@@ -178,6 +181,16 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 		for (var i=0; i < supportedParams.length; i++) {
 			var supportedParam = supportedParams[i];
 			if (supportedParam.toUpperCase() === paramName.toUpperCase()) {
+				// Exception for STYLES
+				if (paramName.toUpperCase() === 'STYLES') {
+					if (typeof(this.json['styles']) === 'undefined' ||
+							typeof(this.json['styles'][value]) === 'undefined' ||
+							typeof(this.json['styles'][value]['cached']) === 'undefined' ||
+							this.json['styles'][value]['cached'] === null) {
+						return false;
+					}
+					return !!this.json['styles'][value]['cached'];
+				}
 				return true;
 			}
 		}
@@ -286,6 +299,10 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 		}
 
 		return desc;
+	},
+
+	getDownloadLinks: function() {
+		return this._wikiFormat(this._safeHtml(this.json['downloadLinks']));
 	},
 
 	// to override
@@ -577,7 +594,7 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 
 	// Can be overridden
 	setOptions: function(optionsPanel) {
-		// optionsPanel.addOption(this, ???);
+		// optionsPanel.addOption(this, {definition of an ExtJS form field});
 	},
 
 	// Determine if the layer need a reload by comparing the values

@@ -90,7 +90,7 @@ public class XYZDataSourceConfig extends AbstractDataSourceConfig {
 	}
 
 	@Override
-	public AbstractLayerGenerator getLayerGenerator() {
+	public AbstractLayerGenerator createLayerGenerator() {
 		return new XYZLayerGenerator(this);
 	}
 

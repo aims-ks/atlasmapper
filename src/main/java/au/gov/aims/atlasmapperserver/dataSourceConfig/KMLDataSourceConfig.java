@@ -110,7 +110,7 @@ public class KMLDataSourceConfig extends AbstractDataSourceConfig {
 
 
 	@Override
-	public AbstractLayerGenerator getLayerGenerator() {
+	public AbstractLayerGenerator createLayerGenerator() {
 		return new KMLLayerGenerator(this);
 	}
 

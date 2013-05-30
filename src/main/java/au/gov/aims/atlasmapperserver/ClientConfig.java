@@ -23,6 +23,7 @@ package au.gov.aims.atlasmapperserver;
 
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
+import au.gov.aims.atlasmapperserver.dataSourceConfig.GoogleDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.GroupLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
@@ -33,6 +34,7 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -227,6 +229,10 @@ public class ClientConfig extends AbstractConfig {
 
 	@ConfigField(demoReadOnly = true)
 	private String layerInfoServiceUrl;
+
+
+	@ConfigField
+	private String lastGenerated;
 
 
 	public ClientConfig(ConfigManager configManager) {
@@ -847,6 +853,23 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 
+	public String getLastGenerated() {
+		if (this.lastGenerated == null || this.lastGenerated.isEmpty()) {
+			return "Unknown";
+		}
+		return this.lastGenerated;
+	}
+
+	public void setLastGenerated(String lastGenerated) {
+		this.lastGenerated = lastGenerated;
+	}
+
+	public void setLastGeneratedDate(Date lastGenerated) {
+		this.setLastGenerated(
+				lastGenerated == null ? null : ConfigManager.DATE_FORMATER.format(lastGenerated));
+	}
+
+
 	public JSONObject toJSonObjectWithClientUrls(ServletContext context) throws JSONException {
 		JSONObject json = this.toJSonObject();
 		json.put("clientUrl", this.getClientUrl(context));
@@ -945,7 +968,8 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	// Helper
-	public boolean useGoogle(ConfigManager configManager) throws JSONException, IOException {
+	// Return the first Google data source this client define. It should logically not have more than one.
+	public GoogleDataSourceConfig getFirstGoogleDataSource(ConfigManager configManager) throws JSONException, IOException {
 		JSONArray dataSourcesArray = this.getDataSources();
 		if (dataSourcesArray != null) {
 			for (int i=0; i < dataSourcesArray.length(); i++) {
@@ -953,13 +977,13 @@ public class ClientConfig extends AbstractConfig {
 				if (Utils.isNotBlank(clientDataSourceId)) {
 					AbstractDataSourceConfig dataSourceConfig =
 							configManager.getDataSourceConfigs().get2(clientDataSourceId);
-					if (dataSourceConfig != null && "GOOGLE".equalsIgnoreCase(dataSourceConfig.getDataSourceType())) {
-						return true;
+					if (dataSourceConfig != null && dataSourceConfig instanceof GoogleDataSourceConfig) {
+						return (GoogleDataSourceConfig)dataSourceConfig;
 					}
 				}
 			}
 		}
-		return false;
+		return null;
 	}
 
 	// Helper

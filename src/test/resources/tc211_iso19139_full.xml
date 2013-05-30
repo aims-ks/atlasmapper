@@ -1,0 +1,581 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gmd:MD_Metadata xmlns:gmd="http://www.isotc211.org/2005/gmd" xmlns:gco="http://www.isotc211.org/2005/gco" xmlns:gml="http://www.opengis.net/gml" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:geonet="http://www.fao.org/geonetwork" xsi:schemaLocation="http://www.isotc211.org/2005/gmd http://www.isotc211.org/2005/gmd/gmd.xsd      http://www.opengis.net/gml http://www.isotc211.org/2005/gml/gml.xsd      http://www.w3.org/1999/xlink http://www.isotc211.org/2005/xlink/xlinks.xsd">
+  <gmd:fileIdentifier>
+      <gco:CharacterString>{96C8FB9D-C3C4-11DE-3FCD-EA228444A7C1}</gco:CharacterString>
+  </gmd:fileIdentifier>
+  <gmd:language>
+      <gco:CharacterString>eng</gco:CharacterString>
+  </gmd:language>
+  <gmd:characterSet>
+      <gmd:MD_CharacterSetCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_CharacterSetCode" codeListValue="utf8"/>
+  </gmd:characterSet>
+  <gmd:parentIdentifier>
+      <gco:CharacterString>{BCCC58B7-92E2-4041-A670-DDC85534EEB1}</gco:CharacterString>
+  </gmd:parentIdentifier>
+  <gmd:hierarchyLevel>
+      <gmd:MD_ScopeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_ScopeCode" codeListValue="dataset">dataset</gmd:MD_ScopeCode>
+  </gmd:hierarchyLevel>
+  <gmd:contact>
+      <gmd:CI_ResponsibleParty id="metadataContact">
+         <gmd:organisationName>
+            <gco:CharacterString>Department of Science, Information Technology, Innovation and the Arts</gco:CharacterString>
+         </gmd:organisationName>
+         <gmd:positionName>
+            <gco:CharacterString>Science Delivery, Land Resource Officer</gco:CharacterString>
+         </gmd:positionName>
+         <gmd:contactInfo>
+            <gmd:CI_Contact>
+               <gmd:phone>
+                  <gmd:CI_Telephone>
+                     <gmd:voice>
+                        <gco:CharacterString>07 3170 5644</gco:CharacterString>
+                     </gmd:voice>
+                  </gmd:CI_Telephone>
+               </gmd:phone>
+               <gmd:address>
+                  <gmd:CI_Address>
+                     <gmd:deliveryPoint>
+                        <gco:CharacterString>EcoSciences Precinct, GPO Box 5078</gco:CharacterString>
+                     </gmd:deliveryPoint>
+                     <gmd:city>
+                        <gco:CharacterString>Brisbane</gco:CharacterString>
+                     </gmd:city>
+                     <gmd:administrativeArea>
+                        <gco:CharacterString>QLD</gco:CharacterString>
+                     </gmd:administrativeArea>
+                     <gmd:postalCode>
+                        <gco:CharacterString>4001</gco:CharacterString>
+                     </gmd:postalCode>
+                     <gmd:country>
+                        <gco:CharacterString>Australia</gco:CharacterString>
+                     </gmd:country>
+                     <gmd:electronicMailAddress>
+                        <gco:CharacterString>soils@qld.gov.au</gco:CharacterString>
+                     </gmd:electronicMailAddress>
+                  </gmd:CI_Address>
+               </gmd:address>
+               <gmd:onlineResource>
+                  <gmd:CI_OnlineResource>
+                     <gmd:linkage>
+                        <gmd:URL>http://www.qld.gov.au/dsitia</gmd:URL>
+                     </gmd:linkage>
+                  </gmd:CI_OnlineResource>
+               </gmd:onlineResource>
+            </gmd:CI_Contact>
+         </gmd:contactInfo>
+         <gmd:role>
+            <gmd:CI_RoleCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_RoleCode" codeListValue="pointOfContact">pointOfContact</gmd:CI_RoleCode>
+         </gmd:role>
+      </gmd:CI_ResponsibleParty>
+  </gmd:contact>
+  <gmd:dateStamp>
+      <gco:Date>2012-04-13</gco:Date>
+  </gmd:dateStamp>
+  <gmd:metadataStandardName>
+      <gco:CharacterString>ISO 19115:2005, ANZLIC ISO 1.1</gco:CharacterString>
+  </gmd:metadataStandardName>
+  <gmd:metadataStandardVersion>
+      <gco:CharacterString>QGIS</gco:CharacterString>
+  </gmd:metadataStandardVersion>
+  <gmd:referenceSystemInfo>
+      <gmd:MD_ReferenceSystem id="coordRefSystem">
+         <gmd:referenceSystemIdentifier>
+            <gmd:RS_Identifier>
+               <gmd:authority>
+                  <gmd:CI_Citation>
+                     <gmd:title>
+                        <gco:CharacterString>EPSG Geodetic Parameter
+                                Dataset</gco:CharacterString>
+                     </gmd:title>
+                     <gmd:date>
+                        <gmd:CI_Date>
+                           <gmd:date>
+                              <gco:Date>2007-07-16</gco:Date>
+                           </gmd:date>
+                           <gmd:dateType>
+                              <gmd:CI_DateTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_DateTypeCode" codeListValue="revision">revision</gmd:CI_DateTypeCode>
+                           </gmd:dateType>
+                        </gmd:CI_Date>
+                     </gmd:date>
+                     <gmd:edition>
+                        <gco:CharacterString>Version 6.13</gco:CharacterString>
+                     </gmd:edition>
+                  </gmd:CI_Citation>
+               </gmd:authority>
+               <gmd:code>
+                  <gco:CharacterString>EPSG:4938</gco:CharacterString>
+               </gmd:code>
+            </gmd:RS_Identifier>
+         </gmd:referenceSystemIdentifier>
+      </gmd:MD_ReferenceSystem>
+  </gmd:referenceSystemInfo>
+  <gmd:referenceSystemInfo>
+      <gmd:MD_ReferenceSystem id="projection">
+         <gmd:referenceSystemIdentifier>
+            <gmd:RS_Identifier>
+               <gmd:authority gco:nilReason="unknown"/>
+               <gmd:code>
+                  <gco:CharacterString>GDA94</gco:CharacterString>
+               </gmd:code>
+               <gmd:codeSpace>
+                  <gco:CharacterString>Projection</gco:CharacterString>
+               </gmd:codeSpace>
+            </gmd:RS_Identifier>
+         </gmd:referenceSystemIdentifier>
+      </gmd:MD_ReferenceSystem>
+  </gmd:referenceSystemInfo>
+  <gmd:identificationInfo>
+      <gmd:MD_DataIdentification>
+         <gmd:citation>
+            <gmd:CI_Citation>
+               <gmd:title>
+                  <gco:CharacterString>Acid sulfate soils of Tannum Sands to Gladstone - Central Queensland</gco:CharacterString>
+               </gmd:title>
+               <gmd:alternateTitle>
+                  <gco:CharacterString>IQATLAS.QLD_ASS_TANNUMGLAD_50K_A</gco:CharacterString>
+               </gmd:alternateTitle>
+               <gmd:date>
+                  <gmd:CI_Date>
+                     <gmd:date>
+                        <gco:Date>2004-01-01</gco:Date>
+                     </gmd:date>
+                     <gmd:dateType>
+                        <gmd:CI_DateTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_DateTypeCode" codeListValue="publication"/>
+                     </gmd:dateType>
+                  </gmd:CI_Date>
+               </gmd:date>
+               <gmd:citedResponsibleParty>
+                  <gmd:CI_ResponsibleParty id="resourceCustodian">
+                     <gmd:organisationName>
+                        <gco:CharacterString>Department of Science, Information Technology, Innovation and the Arts</gco:CharacterString>
+                     </gmd:organisationName>
+                     <gmd:positionName>
+                        <gco:CharacterString>Assistant Director-General, Science Delivery</gco:CharacterString>
+                     </gmd:positionName>
+                     <gmd:contactInfo>
+                        <gmd:CI_Contact>
+                           <gmd:onlineResource>
+                              <gmd:CI_OnlineResource>
+                                 <gmd:linkage>
+                                    <gmd:URL>http://www.derm.qld.gov.au/science/slr/index.html</gmd:URL>
+                                 </gmd:linkage>
+                              </gmd:CI_OnlineResource>
+                           </gmd:onlineResource>
+                        </gmd:CI_Contact>
+                     </gmd:contactInfo>
+                     <gmd:role>
+                        <gmd:CI_RoleCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_RoleCode" codeListValue="custodian">custodian</gmd:CI_RoleCode>
+                     </gmd:role>
+                  </gmd:CI_ResponsibleParty>
+               </gmd:citedResponsibleParty>
+               <gmd:citedResponsibleParty>
+                  <gmd:CI_ResponsibleParty id="resourceOwner">
+                     <gmd:organisationName>
+                        <gco:CharacterString>Department of Science, Information Technology, Innovation and the Arts</gco:CharacterString>
+                     </gmd:organisationName>
+                     <gmd:positionName>
+                        <gco:CharacterString>Assistant Director-General, Science Delivery</gco:CharacterString>
+                     </gmd:positionName>
+                     <gmd:role>
+                        <gmd:CI_RoleCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_RoleCode" codeListValue="owner">owner</gmd:CI_RoleCode>
+                     </gmd:role>
+                  </gmd:CI_ResponsibleParty>
+               </gmd:citedResponsibleParty>
+            </gmd:CI_Citation>
+         </gmd:citation>
+         <gmd:abstract>
+            <gco:CharacterString>This dataset is an acid sulfate soils map for the coastline from Tannum Sands to Gladstone, Central Queensland. It shows the presence of...</gco:CharacterString>
+         </gmd:abstract>
+         <gmd:status>
+            <gmd:MD_ProgressCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_ProgressCode" codeListValue="completed">completed</gmd:MD_ProgressCode>
+         </gmd:status>
+         <gmd:pointOfContact>
+            <gmd:CI_ResponsibleParty>
+               <gmd:organisationName>
+                  <gco:CharacterString>Department of Science, Information Technology, Innovation and the Arts</gco:CharacterString>
+               </gmd:organisationName>
+               <gmd:positionName>
+                  <gco:CharacterString>Science Delivery, Land Resource Officer</gco:CharacterString>
+               </gmd:positionName>
+               <gmd:contactInfo>
+                  <gmd:CI_Contact>
+                     <gmd:phone>
+                        <gmd:CI_Telephone>
+                           <gmd:voice>
+                              <gco:CharacterString>07 3170 5644</gco:CharacterString>
+                           </gmd:voice>
+                        </gmd:CI_Telephone>
+                     </gmd:phone>
+                     <gmd:address>
+                        <gmd:CI_Address>
+                           <gmd:deliveryPoint>
+                              <gco:CharacterString>EcoSciences Precinct, GPO Box 5078</gco:CharacterString>
+                           </gmd:deliveryPoint>
+                           <gmd:city>
+                              <gco:CharacterString>Brisbane</gco:CharacterString>
+                           </gmd:city>
+                           <gmd:administrativeArea>
+                              <gco:CharacterString>QLD</gco:CharacterString>
+                           </gmd:administrativeArea>
+                           <gmd:postalCode>
+                              <gco:CharacterString>4001</gco:CharacterString>
+                           </gmd:postalCode>
+                           <gmd:country>
+                              <gco:CharacterString>Australia</gco:CharacterString>
+                           </gmd:country>
+                           <gmd:electronicMailAddress>
+                              <gco:CharacterString>soils@qld.gov.au</gco:CharacterString>
+                           </gmd:electronicMailAddress>
+                        </gmd:CI_Address>
+                     </gmd:address>
+                     <gmd:onlineResource>
+                        <gmd:CI_OnlineResource>
+                           <gmd:linkage>
+                              <gmd:URL>http://www.qld.gov.au/dsitia</gmd:URL>
+                           </gmd:linkage>
+                        </gmd:CI_OnlineResource>
+                     </gmd:onlineResource>
+                  </gmd:CI_Contact>
+               </gmd:contactInfo>
+               <gmd:role>
+                  <gmd:CI_RoleCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_RoleCode" codeListValue="pointOfContact"/>
+               </gmd:role>
+            </gmd:CI_ResponsibleParty>
+         </gmd:pointOfContact>
+         <gmd:resourceMaintenance>
+            <gmd:MD_MaintenanceInformation>
+               <gmd:maintenanceAndUpdateFrequency>
+                  <gmd:MD_MaintenanceFrequencyCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_MaintenanceFrequencyCode" codeListValue="asNeeded"/>
+               </gmd:maintenanceAndUpdateFrequency>
+            </gmd:MD_MaintenanceInformation>
+         </gmd:resourceMaintenance>
+         <gmd:resourceFormat>
+            <gmd:MD_Format>
+               <gmd:name>
+                  <gco:CharacterString>SHP or TAB</gco:CharacterString>
+               </gmd:name>
+               <gmd:version>
+                  <gco:CharacterString>1</gco:CharacterString>
+               </gmd:version>
+            </gmd:MD_Format>
+         </gmd:resourceFormat>
+         <gmd:descriptiveKeywords>
+            <gmd:MD_Keywords id="ThemeAnzlicThesaurus">
+               <gmd:keyword>
+                  <gco:CharacterString>HAZARDS</gco:CharacterString>
+               </gmd:keyword>
+               <gmd:keyword>
+                  <gco:CharacterString>SOIL</gco:CharacterString>
+               </gmd:keyword>
+               <gmd:type>
+                  <gmd:MD_KeywordTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_KeywordTypeCode" codeListValue="theme">theme</gmd:MD_KeywordTypeCode>
+               </gmd:type>
+               <gmd:thesaurusName>
+                  <gmd:CI_Citation>
+                     <gmd:title>
+                        <gco:CharacterString>ANZLIC Search Words</gco:CharacterString>
+                     </gmd:title>
+                     <gmd:date>
+                        <gmd:CI_Date>
+                           <gmd:date gco:nilReason="unknown"/>
+                           <gmd:dateType>
+                              <gmd:CI_DateTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_DateTypeCode" codeListValue="publication">publication</gmd:CI_DateTypeCode>
+                           </gmd:dateType>
+                        </gmd:CI_Date>
+                     </gmd:date>
+                  </gmd:CI_Citation>
+               </gmd:thesaurusName>
+            </gmd:MD_Keywords>
+         </gmd:descriptiveKeywords>
+         <gmd:descriptiveKeywords>
+            <gmd:MD_Keywords id="ThemeQGISThesaurus">
+               <gmd:keyword>
+                  <gco:CharacterString>Vector Data</gco:CharacterString>
+               </gmd:keyword>
+               <gmd:type>
+                  <gmd:MD_KeywordTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_KeywordTypeCode" codeListValue="theme">theme</gmd:MD_KeywordTypeCode>
+               </gmd:type>
+               <gmd:thesaurusName>
+                  <gmd:CI_Citation>
+                     <gmd:title>
+                        <gco:CharacterString>Queensland Government Information Service (QGIS) Product Types</gco:CharacterString>
+                     </gmd:title>
+                     <gmd:date>
+                        <gmd:CI_Date>
+                           <gmd:date gco:nilReason="unknown"/>
+                           <gmd:dateType>
+                              <gmd:CI_DateTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_DateTypeCode" codeListValue="publication">publication</gmd:CI_DateTypeCode>
+                           </gmd:dateType>
+                        </gmd:CI_Date>
+                     </gmd:date>
+                  </gmd:CI_Citation>
+               </gmd:thesaurusName>
+            </gmd:MD_Keywords>
+         </gmd:descriptiveKeywords>
+         <gmd:resourceConstraints>
+            <gmd:MD_SecurityConstraints>
+               <gmd:classification>
+                  <gmd:MD_ClassificationCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_ClassificationCode" codeListValue="unclassified">unclassified</gmd:MD_ClassificationCode>
+               </gmd:classification>
+               <gmd:classificationSystem>
+                  <gco:CharacterString>Resource Access Level</gco:CharacterString>
+               </gmd:classificationSystem>
+            </gmd:MD_SecurityConstraints>
+         </gmd:resourceConstraints>
+         <gmd:resourceConstraints>
+            <gmd:MD_LegalConstraints>
+               <gmd:useLimitation>
+                  <gco:CharacterString>(C) State of Queensland (Department of Science, Information Technology, Innovation and the Arts) 2013</gco:CharacterString>
+               </gmd:useLimitation>
+               <gmd:useConstraints>
+                  <gmd:MD_RestrictionCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_RestrictionCode" codeListValue="copyright">copyright</gmd:MD_RestrictionCode>
+               </gmd:useConstraints>
+            </gmd:MD_LegalConstraints>
+         </gmd:resourceConstraints>
+         <gmd:resourceConstraints>
+            <gmd:MD_LegalConstraints>
+               <gmd:useLimitation>
+                  <gco:CharacterString>This material is licensed under a &lt;a rel="license" href="http://creativecommons.org/licenses/by/3.0/au/"&gt;Creative Commons - Attribution 3.0 Australia&lt;/a&gt; licence.&lt;br /&gt; &lt;a rel="license" href="http://creativecommons.org/licenses/by/3.0/au/"&gt;&lt;img alt="Creative Commons License" title="Creative Commons - Attribution 3.0 Australia License" style="border: 0;" src="http://i.creativecommons.org/l/by/3.0/au/88x31.png" /&gt;&lt;/a&gt;&lt;br /&gt; The Department of Science, Information Technology, Innovation and the Arts requests attribution in the following manner:&lt;/br&gt; &amp;copy State of Queensland 2013.  Updated data available at http://dds.information.qld.gov.au/dds/</gco:CharacterString>
+               </gmd:useLimitation>
+               <gmd:useConstraints>
+                  <gmd:MD_RestrictionCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_RestrictionCode" codeListValue="license">license</gmd:MD_RestrictionCode>
+               </gmd:useConstraints>
+            </gmd:MD_LegalConstraints>
+         </gmd:resourceConstraints>
+         <gmd:resourceConstraints>
+            <gmd:MD_LegalConstraints>
+               <gmd:useConstraints>
+                  <gmd:MD_RestrictionCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_RestrictionCode" codeListValue="otherRestrictions">otherRestrictions</gmd:MD_RestrictionCode>
+               </gmd:useConstraints>
+               <gmd:otherConstraints>
+                  <gco:CharacterString>Based on or contains data provided by the State of Queensland 2012.  The State makes no representations or warranties in relation to the supplied data, and you agree that, to the extent permitted by law, all warranties relating to accuracy, reliability, completeness, currency or suitability for any particular purpose and all liability for any loss, damage or costs (including consequential damage) incurred in any way (including but not limited to that arising from negligence) in connection with any use of or reliance on the supplied data are excluded or limited.  You agree to continually indemnify the State (including its officers and employees) against any loss, cost, expense, damage and liability of any kind (including consequential damage and liability in negligence) arising directly or indirectly from or related to any claim relating to your use of the supplied data or any product made from the supplied data.</gco:CharacterString>
+               </gmd:otherConstraints>
+            </gmd:MD_LegalConstraints>
+         </gmd:resourceConstraints>
+         <gmd:spatialRepresentationType>
+            <gmd:MD_SpatialRepresentationTypeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_SpatialRepresentationTypeCode" codeListValue="vector">vector</gmd:MD_SpatialRepresentationTypeCode>
+         </gmd:spatialRepresentationType>
+         <gmd:spatialResolution>
+            <gmd:MD_Resolution>
+               <gmd:equivalentScale>
+                  <gmd:MD_RepresentativeFraction>
+                     <gmd:denominator>
+                        <gco:Integer>50000</gco:Integer>
+                     </gmd:denominator>
+                  </gmd:MD_RepresentativeFraction>
+               </gmd:equivalentScale>
+            </gmd:MD_Resolution>
+         </gmd:spatialResolution>
+         <gmd:language>
+            <gco:CharacterString>eng</gco:CharacterString>
+         </gmd:language>
+         <gmd:characterSet gco:nilReason="unknown"/>
+         <gmd:topicCategory>
+            <gmd:MD_TopicCategoryCode>environment</gmd:MD_TopicCategoryCode>
+         </gmd:topicCategory>
+         <gmd:topicCategory>
+            <gmd:MD_TopicCategoryCode>geoscientificInformation</gmd:MD_TopicCategoryCode>
+         </gmd:topicCategory>
+         <gmd:environmentDescription>
+            <gco:CharacterString>ArcSDE</gco:CharacterString>
+         </gmd:environmentDescription>
+         <gmd:extent>
+            <gmd:EX_Extent>
+               <gmd:geographicElement>
+                  <gmd:EX_GeographicBoundingBox>
+                     <gmd:westBoundLongitude>
+                        <gco:Decimal>151.129000</gco:Decimal>
+                     </gmd:westBoundLongitude>
+                     <gmd:eastBoundLongitude>
+                        <gco:Decimal>151.411000</gco:Decimal>
+                     </gmd:eastBoundLongitude>
+                     <gmd:southBoundLatitude>
+                        <gco:Decimal>-24.002000</gco:Decimal>
+                     </gmd:southBoundLatitude>
+                     <gmd:northBoundLatitude>
+                        <gco:Decimal>-23.760000</gco:Decimal>
+                     </gmd:northBoundLatitude>
+                  </gmd:EX_GeographicBoundingBox>
+               </gmd:geographicElement>
+               <gmd:temporalElement>
+                  <gmd:EX_TemporalExtent>
+                     <gmd:extent>
+                        <gml:TimePeriod frame="#ISO-8601" gml:id="timePeriod1">
+                           <gml:beginPosition>2004</gml:beginPosition>
+                           <gml:endPosition indeterminatePosition="now">2004</gml:endPosition>
+                        </gml:TimePeriod>
+                     </gmd:extent>
+                  </gmd:EX_TemporalExtent>
+               </gmd:temporalElement>
+            </gmd:EX_Extent>
+         </gmd:extent>
+         <gmd:supplementalInformation>
+            <gco:CharacterString>SALI project code CQAG (CQA)</gco:CharacterString>
+         </gmd:supplementalInformation>
+      </gmd:MD_DataIdentification>
+  </gmd:identificationInfo>
+  <gmd:distributionInfo>
+      <gmd:MD_Distribution>
+         <gmd:distributionFormat>
+            <gmd:MD_Format id="DownloadService">
+               <gmd:name>
+                  <gco:CharacterString>Queensland Government Information Service</gco:CharacterString>
+               </gmd:name>
+               <gmd:version gco:nilReason="inapplicable"/>
+               <gmd:specification>
+                  <gco:CharacterString>Download Service</gco:CharacterString>
+               </gmd:specification>
+               <gmd:formatDistributor>
+                  <gmd:MD_Distributor>
+                     <gmd:distributorContact>
+                        <gmd:CI_ResponsibleParty>
+                           <gmd:organisationName>
+                              <gco:CharacterString>Department of Science, Information Technology, Innovation and the Arts</gco:CharacterString>
+                           </gmd:organisationName>
+                           <gmd:role>
+                              <gmd:CI_RoleCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_RoleCode" codeListValue="resourceProvider">resourceProvider</gmd:CI_RoleCode>
+                           </gmd:role>
+                        </gmd:CI_ResponsibleParty>
+                     </gmd:distributorContact>
+                     <gmd:distributionOrderProcess>
+                        <gmd:MD_StandardOrderProcess>
+                           <gmd:fees>
+                              <gco:CharacterString>IncPrice=0; GST=0; Currency=AUD; AcctRef=0</gco:CharacterString>
+                           </gmd:fees>
+                           <gmd:orderingInstructions>
+                              <gco:CharacterString>This data is available through the Queensland Government Information Service web site. Large orders over the download limit are burnt to DVD and posted. An additional fee applies for postage and handling.</gco:CharacterString>
+                           </gmd:orderingInstructions>
+                        </gmd:MD_StandardOrderProcess>
+                     </gmd:distributionOrderProcess>
+                     <gmd:distributorTransferOptions>
+                        <gmd:MD_DigitalTransferOptions>
+                           <gmd:onLine>
+                              <gmd:CI_OnlineResource id="dns1">
+                                 <gmd:linkage>
+                                    <gmd:URL>http://dds.information.qld.gov.au/dds/</gmd:URL>
+                                 </gmd:linkage>
+                              </gmd:CI_OnlineResource>
+                           </gmd:onLine>
+                        </gmd:MD_DigitalTransferOptions>
+                     </gmd:distributorTransferOptions>
+                  </gmd:MD_Distributor>
+               </gmd:formatDistributor>
+            </gmd:MD_Format>
+         </gmd:distributionFormat>
+         <gmd:distributionFormat>
+            <gmd:MD_Format id="GptBehaviour">
+               <gmd:name>
+                  <gco:CharacterString>downloadableData</gco:CharacterString>
+               </gmd:name>
+               <gmd:version>
+                  <gco:CharacterString>10.0</gco:CharacterString>
+               </gmd:version>
+               <gmd:specification>
+                  <gco:CharacterString>ESRI ArcGIS Server Geoportal Extension Content Type</gco:CharacterString>
+               </gmd:specification>
+            </gmd:MD_Format>
+         </gmd:distributionFormat>
+         <gmd:distributor>
+            <gmd:MD_Distributor id="distributorContact1">
+               <gmd:distributorContact>
+                  <gmd:CI_ResponsibleParty>
+                     <gmd:organisationName>
+                        <gco:CharacterString>Department of Science, Information Technology, Innovation and the Arts</gco:CharacterString>
+                     </gmd:organisationName>
+                     <gmd:positionName>
+                        <gco:CharacterString>QGISfeedback@dnrm.qld.gov.au</gco:CharacterString>
+                     </gmd:positionName>
+                     <gmd:role>
+                        <gmd:CI_RoleCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_RoleCode" codeListValue="distributor">distributor</gmd:CI_RoleCode>
+                     </gmd:role>
+                  </gmd:CI_ResponsibleParty>
+               </gmd:distributorContact>
+               <gmd:distributorFormat>
+                  <gmd:MD_Format>
+                     <gmd:name>
+                        <gco:CharacterString>Through the Queensland Government Information Service available as ESRI Shape file and MapInfo Tab file</gco:CharacterString>
+                     </gmd:name>
+                     <gmd:version gco:nilReason="inapplicable"/>
+                  </gmd:MD_Format>
+               </gmd:distributorFormat>
+               <gmd:distributorTransferOptions>
+                  <gmd:MD_DigitalTransferOptions>
+                     <gmd:transferSize>
+                        <gco:Real>1</gco:Real>
+                     </gmd:transferSize>
+                     <gmd:onLine>
+                        <gmd:CI_OnlineResource>
+                           <gmd:linkage>
+                              <gmd:URL>http://dds.information.qld.gov.au/dds?title="Acid sulfate soils of Tannum Sands to Gladstone - Central Queensland"</gmd:URL>
+                           </gmd:linkage>
+                        </gmd:CI_OnlineResource>
+                     </gmd:onLine>
+                  </gmd:MD_DigitalTransferOptions>
+               </gmd:distributorTransferOptions>
+            </gmd:MD_Distributor>
+         </gmd:distributor>
+         <gmd:transferOptions>
+            <gmd:MD_DigitalTransferOptions id="download">
+               <gmd:onLine>
+                  <gmd:CI_OnlineResource>
+                     <gmd:linkage>
+                        <gmd:URL/>
+                     </gmd:linkage>
+                     <gmd:function>
+                        <gmd:CI_OnLineFunctionCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#CI_OnLineFunctionCode" codeListValue="download">download</gmd:CI_OnLineFunctionCode>
+                     </gmd:function>
+                  </gmd:CI_OnlineResource>
+               </gmd:onLine>
+               <!-- Added from AODN MEST document, to have a non empty link -->
+               <gmd:onLine>
+                  <gmd:CI_OnlineResource>
+                     <gmd:linkage>
+                        <gmd:URL>http://www.environment.gov.au/metadataexplorer/download_test_form.jsp?dataTitle=Key Ecological Features within the Coral Sea&amp;dataPoCemail=marine.metadata@environment.gov.au&amp;dataFormat=Shapefile</gmd:URL>
+                     </gmd:linkage>
+                     <gmd:protocol>
+                        <gco:CharacterString>WWW:LINK-1.0-http--downloaddata</gco:CharacterString>
+                     </gmd:protocol>
+                     <gmd:description>
+                        <gco:CharacterString>Downloadable Data</gco:CharacterString>
+                     </gmd:description>
+                  </gmd:CI_OnlineResource>
+               </gmd:onLine>
+            </gmd:MD_DigitalTransferOptions>
+         </gmd:transferOptions>
+      </gmd:MD_Distribution>
+  </gmd:distributionInfo>
+  <gmd:dataQualityInfo>
+      <gmd:DQ_DataQuality>
+         <gmd:scope>
+            <gmd:DQ_Scope>
+               <gmd:level>
+                  <gmd:MD_ScopeCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_ScopeCode" codeListValue="dataset">dataset</gmd:MD_ScopeCode>
+               </gmd:level>
+            </gmd:DQ_Scope>
+         </gmd:scope>
+         <gmd:lineage>
+            <gmd:LI_Lineage>
+               <gmd:statement>
+                  <gco:CharacterString>Further information on this dataset can be found in the following report:
+Ross, DJ (2004) Acid Sulfate Soils, Tannum Sands - Gladstone Area, Central Queensland Coast. Department of Natural Resources and Mines, Queensland.
+
+Available at: http://tinyurl.com/7l2n3fq</gco:CharacterString>
+               </gmd:statement>
+            </gmd:LI_Lineage>
+         </gmd:lineage>
+      </gmd:DQ_DataQuality>
+  </gmd:dataQualityInfo>
+  <gmd:metadataConstraints>
+      <gmd:MD_SecurityConstraints>
+         <gmd:useLimitation>
+            <gco:CharacterString>Public</gco:CharacterString>
+         </gmd:useLimitation>
+         <gmd:classification>
+            <gmd:MD_ClassificationCode codeList="http://www.isotc211.org/2005/resources/Codelist/gmxCodelists.xml#MD_ClassificationCode" codeListValue="unclassified"/>
+         </gmd:classification>
+         <gmd:classificationSystem>
+            <gco:CharacterString>Metadata Access Level</gco:CharacterString>
+         </gmd:classificationSystem>
+      </gmd:MD_SecurityConstraints>
+  </gmd:metadataConstraints>
+</gmd:MD_Metadata>

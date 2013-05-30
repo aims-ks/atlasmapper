@@ -189,17 +189,19 @@ Atlas.MapToolsPanel = Ext.extend(Ext.form.FormPanel, {
 
 	showMapConfigWindow: function() {
 		var items = [];
-		var dpiOptions = [[90], [180], [360]];
-		var currentValue = 90;
+
+		// DPI
+		var dpiOptions = [[90], [180], [240], [360]];
+		var currentDpiValue = 90;
 		if (this.mapPanel) {
-			currentValue = this.mapPanel.dpi || this.mapPanel.DEFAULT_DPI;
+			currentDpiValue = this.mapPanel.dpi || this.mapPanel.DEFAULT_DPI;
 		}
 
 		if (dpiOptions.length > 1) {
 			var dpiSelectConfig = {
 				xtype: 'combo',
 				fieldLabel: 'DPI',
-				value: currentValue,
+				value: currentDpiValue,
 				typeAhead: false,
 				editable: true,
 				triggerAction: 'all',
@@ -225,7 +227,47 @@ Atlas.MapToolsPanel = Ext.extend(Ext.form.FormPanel, {
 			}
 
 			items.push(dpiSelectConfig);
-		};
+		}
+
+		// Gutter
+		var gutterOptions = [[0], [20], [50], [100]];
+		var currentGutterValue = 0;
+		if (this.mapPanel) {
+			currentGutterValue = this.mapPanel.gutter || 0;
+		}
+
+		if (gutterOptions.length > 1) {
+			var gutterSelectConfig = {
+				xtype: 'combo',
+				fieldLabel: 'Gutter',
+				value: currentGutterValue,
+				typeAhead: false,
+				editable: true,
+				triggerAction: 'all',
+				lazyRender: true,
+				mode: 'local',
+				store: new Ext.data.ArrayStore({
+					fields: ['name'],
+					data: gutterOptions
+				}),
+				valueField: 'name',
+				displayField: 'name',
+				allowBlank: false,
+				listeners: {
+					select: this.changeGutter,
+					change: this.changeGutter, // Fired when manually edited
+					scope: this
+				}
+			};
+
+			// IE is awful with width calculation. Better give it a safe value.
+			if (Ext.isIE && (!Ext.ieVersion || Ext.ieVersion < 8)) {
+				gutterSelectConfig.width = 115;
+			}
+
+			// TODO Fix _gutterChange in Layer/WMS.js before enabling this option
+			//items.push(gutterSelectConfig);
+		}
 
 		var configWindow = new Ext.Window({
 			title: 'Map options',
@@ -251,6 +293,11 @@ Atlas.MapToolsPanel = Ext.extend(Ext.form.FormPanel, {
 	changeDPI: function(field) {
 		if (field && this.mapPanel) {
 			this.mapPanel.changeDpi(parseInt(field.getValue()));
+		}
+	},
+	changeGutter: function(field) {
+		if (field && this.mapPanel) {
+			this.mapPanel.changeGutter(parseInt(field.getValue()));
 		}
 	},
 

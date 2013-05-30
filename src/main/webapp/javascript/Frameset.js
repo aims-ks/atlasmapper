@@ -426,7 +426,7 @@ Ext.define('Frameset', {
 			urlDisplay = url.substring(0, beginningLength) + "..." + url.substring(url.length - endingLength);
 		}
 
-		return '<a href="'+url+'">'+Ext.String.htmlEncode(urlDisplay)+'</a>';
+		return '<a href="'+url+'" target="_blank">'+Ext.String.htmlEncode(urlDisplay)+'</a>';
 	},
 
 	setError: function(error, statusCode) {

@@ -39,30 +39,54 @@ public class Errors<E extends Errors.Error> {
 	}
 
 	public void addError(E error) {
+		// Only add that error if we don't already have it
+		for (E err : this.errors) {
+			if (err.equals(error)) {
+				return;
+			}
+		}
 		this.errors.add(error);
 	}
 	public List<E> getErrors() {
 		return this.errors;
 	}
 
-	public void addWarning(E warn) {
-		this.warnings.add(warn);
+	public void addWarning(E warning) {
+		// Only add that warning if we don't already have it
+		for (E warn : this.warnings) {
+			if (warn.equals(warning)) {
+				return;
+			}
+		}
+		this.warnings.add(warning);
 	}
 	public List<E> getWarnings() {
 		return this.warnings;
 	}
 
-	public void addMessage(E msg) {
-		this.messages.add(msg);
+	public void addMessage(E message) {
+		// Only add that message if we don't already have it
+		for (E msg : this.messages) {
+			if (msg.equals(message)) {
+				return;
+			}
+		}
+		this.messages.add(message);
 	}
 	public List<E> getMessages() {
 		return this.messages;
 	}
 
-	public void addAll(Errors errors) {
-		this.errors.addAll(errors.errors);
-		this.warnings.addAll(errors.warnings);
-		this.messages.addAll(errors.messages);
+	public void addAll(Errors<E> errors) {
+		for (E error : errors.errors) {
+			this.addError(error);
+		}
+		for (E warning : errors.warnings) {
+			this.addWarning(warning);
+		}
+		for (E message : errors.messages) {
+			this.addMessage(message);
+		}
 	}
 
 	/**
@@ -152,5 +176,6 @@ public class Errors<E extends Errors.Error> {
 
 	public static abstract class Error {
 		public abstract JSONObject toJSON() throws JSONException;
+		public abstract boolean equals(Error error);
 	}
 }

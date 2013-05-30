@@ -75,8 +75,8 @@ public class SecureFilter implements Filter {
 		if (request == null || !(request instanceof HttpServletRequest) ||
 				response == null || !(response instanceof HttpServletResponse)) {
 
-			LOGGER.log(Level.SEVERE, "A page was requested using an unsupported protocol.");
-			throw new IllegalArgumentException("A page was requested using an unsupported protocol.");
+			LOGGER.log(Level.SEVERE, "BLOCKED: A page was requested using an unsupported protocol.");
+			throw new IllegalArgumentException("BLOCKED: A page was requested using an unsupported protocol.");
 		}
 		HttpServletRequest httpRequest = (HttpServletRequest) request;
 		HttpServletResponse httpResponse = (HttpServletResponse) response;
@@ -99,7 +99,7 @@ public class SecureFilter implements Filter {
 		String uri = request.getRequestURI();
 		String userIP = request.getRemoteAddr();
 		if (loggedUser == null) {
-			LOGGER.log(Level.FINE, "An anonymous user [{0}] has tried to access the protected resource [{1}].", new Object[]{
+			LOGGER.log(Level.FINE, "BLOCKED: An anonymous user [{0}] has tried to access the protected resource [{1}].", new Object[]{
 				userIP,
 				uri
 			});
@@ -109,14 +109,14 @@ public class SecureFilter implements Filter {
 				this.sendRedirection(response);
 			}
 		} else if (!this.isServerStateValid()) {
-			LOGGER.log(Level.WARNING, "The server state is not valid. Redirect to the login page.");
+			LOGGER.log(Level.WARNING, "BLOCKED: The server state is not valid. Redirect to the login page.");
 			if (this.expectJSON(request)) {
 				this.sendJSONInvalidServerState(response);
 			} else {
 				this.sendRedirection(response);
 			}
 		} else {
-			LOGGER.log(Level.FINE, "User [{0}] [{1}] is accessing the protected resource [{2}].", new Object[]{
+			LOGGER.log(Level.FINE, "ALLOWED: User [{0}] [{1}] is accessing the protected resource [{2}].", new Object[]{
 				loggedUser.getLoginName(),
 				userIP,
 				uri

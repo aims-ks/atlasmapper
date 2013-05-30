@@ -27,6 +27,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.http.HttpServletRequest;
@@ -114,5 +116,38 @@ public class ServletUtils {
 				}
 			}
 		}
+	}
+
+	public static String[] getComaSeparatedParameters(HttpServletRequest request, String parameter) throws UnsupportedEncodingException {
+		String rawValue = ServletUtils.getRawParameter(request, parameter);
+		if (rawValue == null) {
+			return null;
+		}
+
+		String[] rawValueParts = rawValue.split("\\s*,\\s*");
+		String[] valueParts = new String[rawValueParts.length];
+		for (int i=0; i<rawValueParts.length; i++) {
+			valueParts[i] = URLDecoder.decode(rawValueParts[i], "UTF-8");
+		}
+
+		return valueParts;
+	}
+
+	public static String getRawParameter(HttpServletRequest request, String parameter) throws UnsupportedEncodingException {
+		if (Utils.isBlank(parameter)) {
+			return null;
+		}
+
+		// query = the query string; <key>=<value>&<key>=<value>...
+		String query = request.getQueryString();
+		String[] queryParts = query.split("&");
+		for (String queryPart : queryParts) {
+			String[] queryPair = queryPart.split("=");
+			String key = URLDecoder.decode(queryPair[0], "UTF-8");
+			if (parameter.equals(key)) {
+				return queryPair[1];
+			}
+		}
+		return null;
 	}
 }

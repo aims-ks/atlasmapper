@@ -69,7 +69,7 @@ body {
 	font-style: italic;
 	color: #555555 !important;
 }
-.infoTab {
+.infoTab, .iframeTab {
 	padding: 0.2em;
 	font: 10pt tahoma,arial,helvetica,sans-serif;
 }
@@ -77,6 +77,21 @@ body {
 	font-style: italic;
 }
 .layerNameLabel {
+	font-weight: bold;
+}
+
+.downloadLinksButton .x-btn-mc {
+	background-image: url('../images/btn-green.gif');
+}
+.downloadLinksButton button {
+	font-size: 2em;
+	height: 1.5em !important;
+}
+
+.downloadLinks {
+	margin: 1em 0.5em 1.5em 0.5em;
+}
+.downloadLinks .title {
 	font-weight: bold;
 }
 
@@ -185,26 +200,31 @@ div.olFramedCloudPopupContent {
 	(some browser (IE) are really bad at following standards)
 	This class Reset bullet for chosen lists */
 .description ul,
+.downloadLinks ul,
 ul.bullet-list {
 	padding-left: 2em;
 	list-style-type: disc;
 }
 .description ol,
+.downloadLinks ol,
 ol.bullet-list {
 	padding-left: 2em;
 	list-style-type: decimal;
 }
 /* ExtJS remove the bullets on li instead of ul. It has to be reset in both. */
 .description ul > li,
+.downloadLinks ul > li,
 ul.bullet-list > li {
 	list-style-type: disc;
 	margin: 0.2em 0;
 }
 .description ol > li,
+.downloadLinks ol > li,
 ol.bullet-list > li {
 	list-style-type: decimal;
 	margin: 0.2em 0;
 }
+.downloadLinks p,
 .description p {
 	margin: 1em 0;
 }

@@ -23,6 +23,7 @@ package au.gov.aims.atlasmapperserver;
 import au.gov.aims.atlasmapperserver.collection.MultiKeyHashMap;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.DataSourceConfigHelper;
+import au.gov.aims.atlasmapperserver.dataSourceConfig.GoogleDataSourceConfig;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.WMSDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
@@ -48,9 +49,11 @@ import java.io.Writer;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -74,6 +77,9 @@ public class ConfigManager {
 	private static final Logger LOGGER = Logger.getLogger(ConfigManager.class.getName());
 	private static final String SERVER_DEFAULT_CONFIG_FILENAME = "defaultServer.json";
 	private static final String USERS_DEFAULT_CONFIG_FILENAME = "defaultUsers.json";
+
+	// Date in big endian format, so the alphabetic order is chronological: 2013 / 10 / 30 - 23:31
+	public static final SimpleDateFormat DATE_FORMATER = new SimpleDateFormat("yyyy / MM / dd - HH:mm");
 
 	public static final String CONFIG_VERSION_KEY = "version";
 
@@ -783,7 +789,7 @@ public class ConfigManager {
 							}
 						}
 
-						this.parsePreviewTemplate(clientConfig, clientConfig.useGoogle(this));
+						this.parsePreviewTemplate(clientConfig, clientConfig.getFirstGoogleDataSource(this));
 					}
 				}
 			}
@@ -1244,7 +1250,7 @@ public class ConfigManager {
 		// harvest = false: Let the data source manage when to download the document (refresh the cache)
 		LayerCatalog layerCatalog = clientConfig.getLayerCatalog(false);
 
-		boolean useGoogle = clientConfig.useGoogle(this);
+		GoogleDataSourceConfig googleDataSource = clientConfig.getFirstGoogleDataSource(this);
 
 		this.copyClientFilesIfNeeded(clientConfig, complete);
 		JSONObject generatedMainConfig = this.getClientConfigFileJSon(layerCatalog, clientConfig, ConfigType.MAIN, false, true);
@@ -1274,7 +1280,8 @@ public class ConfigManager {
 		}
 
 		if (!hasError) {
-			this.generateTemplateFiles(layerCatalog, generatedMainConfig, clientConfig, useGoogle);
+			clientConfig.setLastGeneratedDate(new Date());
+			this.generateTemplateFiles(layerCatalog, generatedMainConfig, clientConfig, googleDataSource);
 			this.saveGeneratedConfigs(clientConfig, generatedMainConfig, generatedEmbeddedConfig, generatedLayers);
 
 			// Flush the proxy cache for both the preview and the generated clients
@@ -1314,7 +1321,7 @@ public class ConfigManager {
 	}
 
 	// Create all files that required a template processing
-	private void generateTemplateFiles(LayerCatalog layerCatalog, JSONObject generatedMainConfig, ClientConfig clientConfig, boolean useGoogle) throws IOException, TemplateException {
+	private void generateTemplateFiles(LayerCatalog layerCatalog, JSONObject generatedMainConfig, ClientConfig clientConfig, GoogleDataSourceConfig googleDataSource) throws IOException, TemplateException {
 		if (clientConfig == null) { return; }
 
 		File atlasMapperClientFolder =
@@ -1343,7 +1350,7 @@ public class ConfigManager {
 			indexValues.put("pageHeader", Utils.safeJsStr(clientConfig.getPageHeader()));
 			indexValues.put("pageFooter", Utils.safeJsStr(clientConfig.getPageFooter()));
 			indexValues.put("timestamp", ""+Utils.getCurrentTimestamp());
-			indexValues.put("useGoogle", useGoogle);
+			indexValues.put("useGoogle", googleDataSource != null);
 			indexValues.put("welcomeMsg", clientConfig.getWelcomeMsg());
 			indexValues.put("headExtra", clientConfig.getHeadExtra());
 			Utils.processTemplate(templatesConfig, "index.html", indexValues, atlasMapperClientFolder);
@@ -1358,7 +1365,7 @@ public class ConfigManager {
 			embeddedValues.put("pageHeader", Utils.safeJsStr(clientConfig.getPageHeader()));
 			embeddedValues.put("pageFooter", Utils.safeJsStr(clientConfig.getPageFooter()));
 			embeddedValues.put("timestamp", ""+Utils.getCurrentTimestamp());
-			embeddedValues.put("useGoogle", useGoogle);
+			embeddedValues.put("useGoogle", googleDataSource != null);
 			// No welcome message
 			Utils.processTemplate(templatesConfig, "embedded.html", embeddedValues, atlasMapperClientFolder);
 
@@ -1381,13 +1388,13 @@ public class ConfigManager {
 			listValues.put("listPageFooter", clientConfig.getListPageFooter());
 			Utils.processTemplate(templatesConfig, "list.html", listValues, atlasMapperClientFolder);
 
-			this.parsePreviewTemplate(clientConfig, useGoogle);
+			this.parsePreviewTemplate(clientConfig, googleDataSource);
 		} catch (URISyntaxException ex) {
 			throw new IOException("Can not get a File reference to the AtlasMapperClient", ex);
 		}
 	}
 
-	private void parsePreviewTemplate(ClientConfig clientConfig, boolean useGoogle) throws IOException, TemplateException {
+	private void parsePreviewTemplate(ClientConfig clientConfig, GoogleDataSourceConfig googleDataSource) throws IOException, TemplateException {
 		if (clientConfig == null) { return; }
 
 		File atlasMapperClientFolder =
@@ -1410,7 +1417,7 @@ public class ConfigManager {
 				previewValues.put("theme", clientConfig.getTheme());
 				previewValues.put("pageHeader", Utils.safeJsStr(clientConfig.getPageHeader()));
 				previewValues.put("pageFooter", Utils.safeJsStr(clientConfig.getPageFooter()));
-				previewValues.put("useGoogle", useGoogle);
+				previewValues.put("useGoogle", googleDataSource != null);
 				previewValues.put("welcomeMsg", clientConfig.getWelcomeMsg());
 				previewValues.put("headExtra", clientConfig.getHeadExtra());
 				Utils.processTemplate(templatesConfig, "preview.html", previewValues, atlasMapperClientFolder);
@@ -1859,33 +1866,28 @@ public class ConfigManager {
 					AbstractDataSourceConfig dataSourceConfig =
 							configs.get2(dataSourceName);
 					if (dataSourceConfig != null) {
-						try {
-							AbstractDataSourceConfig overriddenDataSourceConfig = dataSourceConfig;
+						AbstractDataSourceConfig overriddenDataSourceConfig = dataSourceConfig;
 
-							// Apply overrides from the capabilities document
-							AbstractLayerGenerator layersGenerator = dataSourceConfig.getLayerGenerator();
-							if (layersGenerator != null) {
-								overriddenDataSourceConfig = layersGenerator.applyOverrides(
-										dataSourceConfig);
+						// Apply overrides from the capabilities document
+						AbstractLayerGenerator layerGenerator = dataSourceConfig.getLayerGenerator(false);
+						if (layerGenerator != null) {
+							overriddenDataSourceConfig = layerGenerator.applyOverrides(
+									dataSourceConfig);
+						}
+
+
+						if (overriddenDataSourceConfig != null) {
+							// Apply overrides from the data source
+							overriddenDataSourceConfig =
+									overriddenDataSourceConfig.applyOverrides();
+						}
+
+						if (overriddenDataSourceConfig != null) {
+							JSONObject dataSource =
+									overriddenDataSourceConfig.generateDataSource(clientConfig);
+							if (dataSource != null) {
+								dataSources.put(overriddenDataSourceConfig.getDataSourceId(), dataSource);
 							}
-
-
-							if (overriddenDataSourceConfig != null) {
-								// Apply overrides from the data source
-								overriddenDataSourceConfig =
-										overriddenDataSourceConfig.applyOverrides();
-							}
-
-							if (overriddenDataSourceConfig != null) {
-								JSONObject dataSource =
-										overriddenDataSourceConfig.generateDataSource(clientConfig);
-								if (dataSource != null) {
-									dataSources.put(overriddenDataSourceConfig.getDataSourceId(), dataSource);
-								}
-							}
-						} catch(IOException ex) {
-							LOGGER.log(Level.WARNING, "Exception occur generating the client: {0}", Utils.getExceptionMessage(ex));
-							LOGGER.log(Level.FINE, "Stack trace: ", ex);
 						}
 					}
 				}

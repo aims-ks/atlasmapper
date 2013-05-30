@@ -50,14 +50,15 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 	CLASS_NAME: "OpenLayers.Layer.ux.PrintFrame",
 
 	// Default values
-	DEFAULT_DPI: 90,
-	strokeWidth: 2, // in pixel
+	DEFAULT_DPI: 90, // DPI (Dots Per Inch) used by GeoServer when no DPI value is specified
+	strokeWidth: 1, // in pixel
 	labelsFontSize: 12, // in pixel
 	attributionsFontSize: 10, // in pixel
-	scaleFontSize: 9, // in pixel (font size used by OpenLayers: 9px)
+	scaleFontSize: 10, // in pixel (font size used by OpenLayers: 9px)
 	frameWidth: 100, // in pixel
 	coordLinesWidth: 8, // in pixel
 
+	// Real value, in ratio with DPI - For internal usage
 	_dpiRatio: null, // >1 to increase the the strokes width, font size, etc.
 	_strokeWidth: null,
 	_labelsFontSize: null,
@@ -1052,7 +1053,7 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 
 		// Customizable values
 		var height = 30 * this._dpiRatio;
-		var maxWidth = 100 * this._dpiRatio;
+		var maxWidth = 120 * this._dpiRatio;
 
 		// Method copied from OpenLayers
 		var widthAndLabels = this._getScaleLineWidthAndLabels(maxWidth);
