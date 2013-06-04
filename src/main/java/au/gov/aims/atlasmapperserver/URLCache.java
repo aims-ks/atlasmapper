@@ -556,14 +556,14 @@ public class URLCache {
 	}
 
 
-	public static Map<String, Errors> getDataSourceErrors(AbstractDataSourceConfig dataSourceConfig, File applicationFolder) throws IOException, JSONException {
+	public static Errors getDataSourceErrors(AbstractDataSourceConfig dataSourceConfig, File applicationFolder) throws IOException, JSONException {
 		File diskCacheFolder = FileFinder.getDiskCacheFolder(applicationFolder);
 		if (diskCacheMap == null) {
 			loadDiskCacheMap(applicationFolder);
 		}
 
 		// Collect warnings
-		Map<String, Errors> errors = new HashMap<String, Errors>();
+		Errors errors = new Errors();
 
 		// Add errors reported by the disk cache utility (filter by specified data source)
 		if (diskCacheMap != null && diskCacheMap.length() > 0) {
@@ -578,17 +578,10 @@ public class URLCache {
 					if (Utils.isNotBlank(errorMsg)) {
 						for (String dataSourceId : cachedFile.getDataSourceIds()) {
 							if (dataSourceConfig.getDataSourceId().equals(dataSourceId)) {
-								URLErrors urlErrors = null;
-								if (!errors.containsKey(dataSourceId)) {
-									urlErrors = new URLErrors();
-									errors.put(dataSourceId, urlErrors);
-								} else {
-									urlErrors = (URLErrors)errors.get(dataSourceId);
-								}
 								if (cachedFile.isMandatory()) {
-									urlErrors.addError(url, errorMsg);
+									errors.addError(url, errorMsg);
 								} else {
-									urlErrors.addWarning(url, errorMsg);
+									errors.addWarning(url, errorMsg);
 								}
 							}
 						}
@@ -626,12 +619,12 @@ public class URLCache {
 							// Check if the client is using the data source.
 							AbstractDataSourceConfig dataSource = clientConfig.getDataSourceConfig(dataSourceId);
 							if (dataSource != null) {
-								URLErrors urlErrors = null;
+								Errors urlErrors = null;
 								if (!errors.containsKey(dataSourceId)) {
-									urlErrors = new URLErrors();
+									urlErrors = new Errors();
 									errors.put(dataSourceId, urlErrors);
 								} else {
-									urlErrors = (URLErrors)errors.get(dataSourceId);
+									urlErrors = errors.get(dataSourceId);
 								}
 								if (cachedFile.isMandatory()) {
 									urlErrors.addError(url, errorMsg);
@@ -1017,66 +1010,6 @@ public class URLCache {
 			this.timestamp = Utils.getCurrentTimestamp();
 		}
 	}
-
-
-	public static class URLError extends Errors.Error {
-		private String url;
-		private String msg;
-
-		public URLError(String url, String msg) {
-			this.url = url;
-			this.msg = msg;
-		}
-
-		public String getUrl() { return this.url; }
-
-		public String getMsg() { return this.msg; }
-
-		@Override
-		public JSONObject toJSON() throws JSONException {
-			JSONObject json = new JSONObject();
-			json.put(this.url, this.msg);
-			return json;
-		}
-
-		@Override
-		public boolean equals(Errors.Error error) {
-			// Same instance
-			if (this == error) {
-				return true;
-			}
-			// Instance of the wrong class
-			if (!(error instanceof URLError)) {
-				return false;
-			}
-			URLError urlError = (URLError)error;
-			// Not same URL
-			if ((this.url == null && urlError.url != null) ||
-					(this.url != null && !this.url.equals(urlError.url))) {
-				return false;
-			}
-			// Same URL, same msg instance or both null
-			if (this.msg == urlError.msg) {
-				return true;
-			}
-			// Same URL, only one msg is null
-			if (this.msg == null || urlError.msg == null) {
-				return false;
-			}
-			return this.msg.equals(urlError.msg);
-		}
-	}
-
-	public static class URLErrors extends Errors<URLError> {
-		public void addError(String url, String err) {
-			this.addError(new URLError(url, err));
-		}
-
-		public void addWarning(String url, String warn) {
-			this.addWarning(new URLError(url, warn));
-		}
-	}
-
 
 	private static class ResponseStatus {
 		private Integer statusCode;

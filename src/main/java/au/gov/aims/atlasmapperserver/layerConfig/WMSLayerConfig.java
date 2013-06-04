@@ -151,8 +151,8 @@ public class WMSLayerConfig extends AbstractLayerConfig implements WMSDataSource
 	}
 
 	@Override
-	public JSONObject generateLayer(AbstractLayerConfig cachedLayer) throws JSONException {
-		JSONObject jsonLayer = super.generateLayer(cachedLayer);
+	public JSONObject generateLayer() throws JSONException {
+		JSONObject jsonLayer = super.generateLayer();
 
 		if (Utils.isNotBlank(this.getWebCacheUrl())) {
 			jsonLayer.put("webCacheUrl", this.getWebCacheUrl().trim());
@@ -206,7 +206,7 @@ public class WMSLayerConfig extends AbstractLayerConfig implements WMSDataSource
 				(Utils.isBlank(this.getLegendGroup()) ? "" :   "	legendGroup=" + this.getLegendGroup() + "\n") +
 				(Utils.isBlank(this.getLegendTitle()) ? "" :   "	legendTitle=" + this.getLegendTitle() + "\n") +
 				(wmsQueryable==null ? "" :                     "	wmsQueryable=" + wmsQueryable + "\n") +
-				(Utils.isBlank(this.getWmsPath()) ? "" :       "	wmsPath=" + this.getWmsPath() + "\n") +
+				(Utils.isBlank(this.getTreePath()) ? "" :      "	treePath=" + this.getTreePath() + "\n") +
 				(wmsFeatureRequestLayers==null ? "" :          "	wmsFeatureRequestLayers=" + Arrays.toString(wmsFeatureRequestLayers) + "\n") +
 				(this.getStyles()==null ? "" :                 "	styles=" + this.getStyles() + "\n") +
 				(this.getOptions()==null ? "" :                "	options=" + this.getOptions() + "\n") +

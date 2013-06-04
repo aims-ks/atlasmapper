@@ -30,10 +30,16 @@ import au.gov.aims.atlasmapperserver.collection.BlackAndWhiteListFilter;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Reader;
+import java.io.Writer;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -41,9 +47,11 @@ import java.util.logging.Logger;
 import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
+import au.gov.aims.atlasmapperserver.servlet.FileFinder;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONSortedObject;
+import org.json.JSONTokener;
 
 /**
  *
@@ -111,10 +119,6 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 	@ConfigField
 	private String comment;
 
-	// TODO This variable is temporary used in wait for the refactorisation of the data source save state (saving what have been parsing from the Capabilities document, into a file that is than used to generate the layers and client data source info)
-	@Deprecated
-	private AbstractLayerGenerator layerGenerator;
-
 	protected AbstractDataSourceConfig(ConfigManager configManager) {
 		super(configManager);
 	}
@@ -130,30 +134,92 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 		return layer;
 	}
 
-	public Map<String, Errors> process() throws Exception {
-		this.layerGenerator = null;
-		LayerCatalog layerCatalog = this.getLayerCatalog(true);
+	public void save(LayerCatalog layerCatalog) throws JSONException, IOException {
+		File applicationFolder = this.getConfigManager().getApplicationFolder();
+		File dataSourceCatalogFile = FileFinder.getDataSourcesCatalogFile(applicationFolder, this.dataSourceId);
+
+		JSONObject jsonCatalog = this.toJSonObject();
+
+		JSONObject jsonLayers = new JSONObject();
+		for (AbstractLayerConfig layer : layerCatalog.getLayers()) {
+			jsonLayers.put(layer.getLayerId(), layer.generateLayer());
+		}
+		jsonCatalog.put("layers", jsonLayers);
+		if (layerCatalog.getErrors() != null) {
+			JSONObject jsonErrors = layerCatalog.getErrors().toJSON();
+			jsonCatalog.put("errors", jsonErrors.optJSONArray("errors"));
+			jsonCatalog.put("warnings", jsonErrors.optJSONArray("warnings"));
+			jsonCatalog.put("messages", jsonErrors.optJSONArray("messages"));
+		}
+
+		Writer writer = null;
+		BufferedWriter bw = null;
+		try {
+			writer = new FileWriter(dataSourceCatalogFile);
+			bw = new BufferedWriter(writer);
+			String jsonStr = Utils.jsonToStr(jsonCatalog);
+			if (Utils.isNotBlank(jsonStr)) {
+				bw.write(jsonStr);
+			}
+		} finally {
+			if (bw != null) {
+				try {
+					bw.close();
+				} catch (Exception e) {
+					LOGGER.log(Level.SEVERE, "Can not close the data source catalog buffered writer: {0}", Utils.getExceptionMessage(e));
+					LOGGER.log(Level.FINE, "Stack trace:", e);
+				}
+			}
+			if (writer != null) {
+				try {
+					writer.close();
+				} catch (Exception e) {
+					LOGGER.log(Level.SEVERE, "Can not close the data source catalog writer: {0}", Utils.getExceptionMessage(e));
+					LOGGER.log(Level.FINE, "Stack trace:", e);
+				}
+			}
+		}
+	}
+
+	public static JSONObject load(File applicationFolder, String dataSourceID) {
+		File dataSourceCatalogFile = FileFinder.getDataSourcesCatalogFile(applicationFolder, dataSourceID);
+
+		if (!dataSourceCatalogFile.exists()) {
+			throw new IllegalStateException("The data source " + dataSourceID + " need to be harvested.");
+		}
+
+		JSONObject jsonCatalog = null;
+		Reader reader = null;
+		try {
+			reader = new FileReader(dataSourceCatalogFile);
+			jsonCatalog = new JSONObject(new JSONTokener(reader));
+		} catch(Exception ex) {
+			jsonCatalog = null;
+			LOGGER.log(Level.SEVERE, "Can not load the data source catalog: {0}", Utils.getExceptionMessage(ex));
+			LOGGER.log(Level.FINE, "Stack trace:", ex);
+		} finally {
+			if (reader != null) {
+				try {
+					reader.close();
+				} catch (Exception ex) {
+					LOGGER.log(Level.SEVERE, "Can not close the data source catalog reader: {0}", Utils.getExceptionMessage(ex));
+					LOGGER.log(Level.FINE, "Stack trace:", ex);
+				}
+			}
+		}
+
+		return jsonCatalog;
+	}
+
+	public Errors process(boolean harvest) throws Exception {
+		// Harvest the layers
+		LayerCatalog layerCatalog = this.getLayerCatalog(harvest);
 
 		// Collect error messages
-		Map<String, LayerCatalog.LayerErrors> layerErrors = layerCatalog.getErrors();
-
-		Map<String, Errors> errorMessages = URLCache.getDataSourceErrors(this, this.getConfigManager().getApplicationFolder());
-		for (Map.Entry<String, LayerCatalog.LayerErrors> errors: layerErrors.entrySet()) {
-			if (!errorMessages.containsKey(errors.getKey())) {
-				errorMessages.put(errors.getKey(), errors.getValue());
-			} else {
-				errorMessages.get(errors.getKey()).addAll(errors.getValue());
-			}
-		}
+		Errors layerErrors = layerCatalog.getErrors();
 
 		// Verify if there is error (it may contains only warnings)
-		boolean hasError = false;
-		for (Errors errors : errorMessages.values()) {
-			if (!errors.getErrors().isEmpty()) {
-				hasError = true;
-				break;
-			}
-		}
+		boolean hasError = !layerErrors.getErrors().isEmpty();
 
 		if (!hasError) {
 			// Do not change it if the last download fail, the previous one may still be usable.
@@ -165,18 +231,23 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 		// Write the changes to disk
 		this.getConfigManager().saveServerConfig();
 
-		return errorMessages;
+		// Save the data source state
+		this.save(layerCatalog);
+
+		return layerErrors;
 	}
 
 	// LayerCatalog - Before data source overrides
 	private LayerCatalog getRawLayerCatalog(boolean harvest) throws Exception {
 		LayerCatalog rawLayerCatalog = new LayerCatalog();
 
-		AbstractLayerGenerator layerGenerator = this.getLayerGenerator(true);
+		AbstractLayerGenerator layerGenerator = this.createLayerGenerator();
 		if (layerGenerator != null) {
 			rawLayerCatalog.addLayers(layerGenerator.generateLayerConfigs(this, harvest));
-			rawLayerCatalog.addCachedLayers(layerGenerator.generateCachedLayerConfigs(this, harvest));
 			rawLayerCatalog.addAllErrors(layerGenerator.getErrors());
+
+			Errors errorMessages = URLCache.getDataSourceErrors(this, this.getConfigManager().getApplicationFolder());
+			rawLayerCatalog.addAllErrors(errorMessages);
 		}
 
 		return rawLayerCatalog;
@@ -235,7 +306,7 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 									manualLayer.getLayerId(),
 									manualLayer);
 						} catch(Exception ex) {
-							rawLayerCatalog.addWarning(this.getDataSourceId(), "Invalid layer override for layer id: " + layerId);
+							rawLayerCatalog.addWarning("Invalid layer override for layer id: " + layerId);
 							LOGGER.log(Level.SEVERE, "Unexpected error occurred while parsing the following layer override for the data source [{0}], layer id [{1}]: {2}\n{3}",
 									new String[]{this.getDataSourceName(), layerId, Utils.getExceptionMessage(ex), jsonGlobalOverride.toString(4)});
 							LOGGER.log(Level.FINE, "Stack trace: ", ex);
@@ -259,7 +330,7 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 					layerConfig.setIsBaseLayer(true);
 				} else if (this.isBaseLayer(layerConfig.getLayerName())) {
 					// Backward compatibility for AtlasMapper client ver. 1.2
-					rawLayerCatalog.addWarning(this.getDataSourceId(), "Deprecated layer ID used for base layers: " +
+					rawLayerCatalog.addWarning("Deprecated layer ID used for base layers: " +
 							"layer id [" + layerConfig.getLayerName() + "] should be [" + layerConfig.getLayerId() + "]");
 					LOGGER.log(Level.WARNING, "DEPRECATED LAYER ID USED FOR BASE LAYERS: Layer id [{0}] should be [{1}].",
 							new String[]{ layerConfig.getLayerName(), layerConfig.getLayerId() });
@@ -274,20 +345,20 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 		layersMap = blackAndWhiteFilter.filter(layersMap);
 
 		if (layersMap.isEmpty()) {
-			rawLayerCatalog.addError(this.getDataSourceId(), "The data source contains no layer.");
+			rawLayerCatalog.addError("The data source contains no layer.");
 		}
 
 		// LayerCatalog after overrides
 		LayerCatalog layerCatalog = new LayerCatalog();
 		layerCatalog.addLayers(layersMap.values());
-		layerCatalog.addCachedLayers(rawLayerCatalog.getCachedLayers());
 		layerCatalog.addAllErrors(rawLayerCatalog.getErrors());
 
 		int nbLayers = layerCatalog.getLayers().size();
-		int nbCachedLayers = layerCatalog.getCachedLayers().size();
 
-		layerCatalog.addMessage(this.getDataSourceId(), "The data source contains " + nbLayers + " layer" + (nbLayers > 1 ? "s" : "") +
-				" and " + nbCachedLayers + " cached layer" + (nbCachedLayers > 1 ? "s" : ""));
+		// TODO
+		//layerCatalog.addMessage(this.getDataSourceId(), "The data source contains " + nbLayers + " layer" + (nbLayers > 1 ? "s" : "") +
+		//		" and " + nbCachedLayers + " cached layer" + (nbCachedLayers > 1 ? "s" : ""));
+		layerCatalog.addMessage("The data source contains " + nbLayers + " layer" + (nbLayers > 1 ? "s" : ""));
 
 		return layerCatalog;
 	}
@@ -506,14 +577,6 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 	}
 
 	public abstract AbstractLayerGenerator createLayerGenerator() throws Exception;
-
-	@Deprecated
-	public AbstractLayerGenerator getLayerGenerator(boolean createNew) throws Exception {
-		if (createNew || this.layerGenerator == null) {
-			this.layerGenerator = this.createLayerGenerator();
-		}
-		return this.layerGenerator;
-	}
 
 	@Override
 	// Order data sources by data source name

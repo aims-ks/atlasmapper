@@ -26,12 +26,14 @@ import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.Module;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -53,7 +55,7 @@ public class Tree extends AbstractModule {
 	}
 
 	@Override
-	public JSONObject getJSONConfiguration(ClientConfig clientConfig, LayerCatalog layerCatalog) throws JSONException {
+	public JSONObject getJSONConfiguration(ClientConfig clientConfig, JSONObject layerCatalog) throws JSONException {
 		try {
 			List<AbstractDataSourceConfig> dataSourcesList = clientConfig.getDataSourceConfigs();
 			if (dataSourcesList != null) {
@@ -64,9 +66,22 @@ public class Tree extends AbstractModule {
 
 				JSONObject treeConfig = new JSONObject();
 				if (layerCatalog != null) {
-					for (AbstractLayerConfig layerConfig : layerCatalog.getLayers()) {
-						if (layerConfig.isShownOnlyInLayerGroup() == null || !layerConfig.isShownOnlyInLayerGroup()) {
-							this.addLayer(treeConfig, clientConfig, dataSourcesMap.get(layerConfig.getDataSourceId()), layerConfig);
+					JSONObject layers = layerCatalog.optJSONObject("layers");
+					if (layers != null) {
+						Iterator<String> layerIds = layers.keys();
+						while (layerIds.hasNext()) {
+							String layerId = layerIds.next();
+							if (!layers.isNull(layerId)) {
+								JSONObject layer = layers.optJSONObject(layerId);
+								if (!layer.optBoolean("shownOnlyInLayerGroup", false)) {
+									this.addLayer(
+											treeConfig,
+											clientConfig,
+											dataSourcesMap.get(layer.optString("dataSourceId", null)),
+											layerId,
+											layer);
+								}
+							}
 						}
 					}
 				}
@@ -84,12 +99,14 @@ public class Tree extends AbstractModule {
 			JSONObject treeRoot,
 			ClientConfig clientConfig,
 			AbstractDataSourceConfig dataSourceConfig,
-			AbstractLayerConfig layerConfig) throws JSONException {
+			String layerId,
+			JSONObject layer) throws JSONException {
 
 		JSONObject currentBranch = treeRoot;
 
 		// Find the data source tab OR Base Layer tab
-		if (clientConfig.isBaseLayersInTab() && layerConfig.isIsBaseLayer() != null && layerConfig.isIsBaseLayer()) {
+		boolean isBaseLayer = layer.optBoolean("isBaseLayer", false);
+		if (clientConfig.isBaseLayersInTab() && isBaseLayer) {
 			currentBranch = this.getTreeBranch(currentBranch, BASE_LAYERS_TAB_LABEL);
 		} else {
 			currentBranch = this.getTreeBranch(currentBranch, OVERLAY_LAYERS_TAB_LABEL);
@@ -99,19 +116,17 @@ public class Tree extends AbstractModule {
 		}
 
 		// Find the right folder in the tab
-		String wmsPath = layerConfig.getWmsPath();
-		if (Utils.isNotBlank(wmsPath)) {
-			String[] wmsPathParts = wmsPath.split("/");
-			if (wmsPathParts != null) {
-				for (int i=0; i<wmsPathParts.length; i++) {
-					currentBranch = this.getTreeBranch(currentBranch, wmsPathParts[i]);
+		String treePath = layer.optString("treePath");
+		if (Utils.isNotBlank(treePath)) {
+			String[] treePathParts = treePath.split("/");
+			if (treePathParts != null) {
+				for (int i=0; i<treePathParts.length; i++) {
+					currentBranch = this.getTreeBranch(currentBranch, treePathParts[i]);
 				}
 			}
 		}
 
-		currentBranch.put(
-				layerConfig.getLayerId(),
-				this.getTreeLeaf(layerConfig));
+		currentBranch.put(layerId, this.getTreeLeaf(layer));
 	}
 
 	private JSONObject getTreeBranch(JSONObject currentBranch, String branchName) throws JSONException {
@@ -127,13 +142,15 @@ public class Tree extends AbstractModule {
 		return currentBranch;
 	}
 
-	private JSONObject getTreeLeaf(AbstractLayerConfig layerConfig) throws JSONException {
+	private JSONObject getTreeLeaf(JSONObject layer) throws JSONException {
 		JSONObject leaf = new JSONObject();
-		if (Utils.isNotBlank(layerConfig.getTitle())) {
-			leaf.put("title", layerConfig.getTitle());
+		String title = layer.optString("title", null);
+		if (Utils.isNotBlank(title)) {
+			leaf.put("title", title);
 		}
-		if (layerConfig.getLayerBoundingBox() != null) {
-			leaf.put("bbox", layerConfig.getLayerBoundingBox());
+		JSONArray bbox = layer.optJSONArray("layerBoundingBox");
+		if (bbox != null) {
+			leaf.put("bbox", bbox);
 		}
 
 		return leaf;

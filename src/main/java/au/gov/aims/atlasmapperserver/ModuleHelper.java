@@ -48,7 +48,7 @@ public class ModuleHelper {
 	 * @return
 	 * @throws JSONException
 	 */
-	public static JSONObject generateModuleConfiguration(String moduleName, ClientConfig clientConfig, LayerCatalog layerCatalog) throws JSONException {
+	public static JSONObject generateModuleConfiguration(String moduleName, ClientConfig clientConfig, JSONObject layerCatalog) throws JSONException {
 		AbstractModule moduleObj = getModules().get(moduleName);
 		if (moduleObj != null) {
 			JSONObject moduleJSon = new JSONObject();

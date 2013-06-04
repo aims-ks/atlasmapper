@@ -21,41 +21,24 @@
 
 package au.gov.aims.atlasmapperserver.layerGenerator;
 
+import au.gov.aims.atlasmapperserver.Errors;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 
 public abstract class AbstractLayerGenerator<L extends AbstractLayerConfig, D extends AbstractDataSourceConfig> {
 	protected long instanceTimestamp = -1;
 
-	private Map<String, LayerCatalog.LayerErrors> errors;
+	private Errors errors;
 
 	public AbstractLayerGenerator(D dataSourceConfig) {
-		this.errors = new HashMap<String, LayerCatalog.LayerErrors>();
+		this.errors = null;
 	}
 
 	protected abstract String getUniqueLayerId(L layer, D dataSourceConfig);
 	public abstract Collection<L> generateLayerConfigs(D dataSourceConfig, boolean harvest) throws Exception;
-
-	//
-
-	/**
-	 * Override this method on specific layer generators (see AbstractWMSLayerGenerator for example).
-	 * By default, this method return NULL since most data source do not support caching.
-	 * IE: That would be overkill to have an abstract method and having every layer generator
-	 *     to override it.
-	 * @param dataSource
-	 * @param harvest
-	 * @return
-	 * @throws Exception
-	 */
-	public Collection<L> generateCachedLayerConfigs(D dataSource, boolean harvest) throws Exception {
-		return null;
-	}
 
 	// The layer name used to request the layer. Usually, the layerName is
 	// the same as the layerId, so this field is let blank. This attribute
@@ -69,26 +52,17 @@ public abstract class AbstractLayerGenerator<L extends AbstractLayerConfig, D ex
 		layer.setLayerId(uniqueLayerId);
 	}
 
-	public Map<String, LayerCatalog.LayerErrors> getErrors() {
+	public Errors getErrors() {
 		return this.errors;
 	}
-	public void addError(String dataSourceId, String err) {
-		this.getErrors(dataSourceId).addError(err);
+	public void addError(String err) {
+		this.getErrors().addError(err);
 	}
-	public void addWarning(String dataSourceId, String warn) {
-		this.getErrors(dataSourceId).addWarning(warn);
+	public void addWarning(String warn) {
+		this.getErrors().addWarning(warn);
 	}
-	public void addMessage(String dataSourceId, String msg) {
-		this.getErrors(dataSourceId).addMessage(msg);
-	}
-	private LayerCatalog.LayerErrors getErrors(String dataSourceId) {
-		LayerCatalog.LayerErrors errors = this.errors.get(dataSourceId);
-		if (errors == null) {
-			errors = new LayerCatalog.LayerErrors();
-			this.errors.put(dataSourceId, errors);
-		}
-
-		return errors;
+	public void addMessage(String msg) {
+		this.getErrors().addMessage(msg);
 	}
 
 	public abstract D applyOverrides(D dataSourceConfig);

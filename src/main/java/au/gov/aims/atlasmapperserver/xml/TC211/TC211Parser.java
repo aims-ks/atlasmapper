@@ -351,9 +351,9 @@ public class TC211Parser {
 
 		// The path found in the MEST link description override the WMS path in the layer.
 		if (parsedDescription.containsKey(TC211Parser.PATH_KEY) && parsedDescription.get(TC211Parser.PATH_KEY) != null) {
-			String pathStr = parsedDescription.get(TC211Parser.PATH_KEY).toString().trim();
-			if (!pathStr.isEmpty()) {
-				layer.setWmsPath(pathStr);
+			String treePathStr = parsedDescription.get(TC211Parser.PATH_KEY).toString().trim();
+			if (!treePathStr.isEmpty()) {
+				layer.setTreePath(treePathStr);
 			}
 		}
 

@@ -233,7 +233,7 @@
 									jsonObj.put("errors", new JSONArray().put("Client number ["+id+"] not found."));
 								} else {
 									Map<String, Errors> warnings = configManager.generateClient(foundClientConfig, complete);
-									JSONObject errors = Errors.toJSON(warnings);
+									JSONObject errors = null;//Errors.toJSON(warnings); TODO
 									response.setStatus(HttpServletResponse.SC_OK);
 									jsonObj.put("message", "Config Generated");
 									if (errors != null) {
@@ -259,7 +259,7 @@
 						boolean complete = Boolean.parseBoolean(completeStr);
 
 						Map<String, Errors> warnings = configManager.generateAllClients(complete);
-						JSONObject errors = Errors.toJSON(warnings);
+						JSONObject errors = null;//Errors.toJSON(warnings); TODO
 						response.setStatus(HttpServletResponse.SC_OK);
 						jsonObj.put("message", "Config saved for all clients");
 						if (errors != null) {

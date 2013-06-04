@@ -32,5 +32,5 @@ import org.json.JSONObject;
  */
 public abstract class AbstractModule {
 	public abstract double getVersion();
-	public abstract JSONObject getJSONConfiguration(ClientConfig clientConfig, LayerCatalog layerCatalog) throws JSONException;
+	public abstract JSONObject getJSONConfiguration(ClientConfig clientConfig, JSONObject layerCatalog) throws JSONException;
 }

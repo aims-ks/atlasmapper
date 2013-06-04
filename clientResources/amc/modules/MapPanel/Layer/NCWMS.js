@@ -44,7 +44,7 @@ Atlas.Layer.NCWMS = OpenLayers.Class(Atlas.Layer.WMS, {
 			this.getTitle(),
 			this.getServiceUrl(layerParams),
 			layerParams,
-			this.getWMSLayerOptions()
+			this.getNCWMSLayerOptions()
 		));
 	},
 
@@ -102,6 +102,26 @@ Atlas.Layer.NCWMS = OpenLayers.Class(Atlas.Layer.WMS, {
 			url: url,
 			params: OpenLayers.Util.upperCaseObject(params)
 		};
+	},
+
+	getNCWMSLayerOptions: function() {
+		var layerOptions = this.getWMSLayerOptions();
+
+		if (layerOptions != null && typeof(layerOptions.projection) !== 'undefined') {
+			var projectionCode = null;
+			if (typeof(layerOptions.projection) === 'string') {
+				projectionCode = layerOptions.projection;
+			} else if (typeof(layerOptions.projection) === 'object') {
+				projectionCode = layerOptions.projection.projCode;
+			}
+
+			if (projectionCode !== null && projectionCode === 'EPSG:900913') {
+				// ncWMS do not support EPSG:900913, but it support EPSG:3857 which is the same thing.
+				layerOptions.projection = 'EPSG:3857';
+			}
+		}
+
+		return layerOptions;
 	},
 
 	// Override

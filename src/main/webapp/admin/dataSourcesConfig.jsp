@@ -45,6 +45,7 @@
 	String actionStr = request.getParameter("action");
 	String dataSourceId = request.getParameter("dataSourceId");
 	String idStr = request.getParameter("id");
+	String harvestStr = request.getParameter("harvest");
 
 	JSONObject jsonObj = new JSONObject();
 
@@ -172,12 +173,23 @@
 							jsonObj.put("errors", new JSONArray().put("Missing parameter [id]."));
 						} else {
 							Integer id = null;
+							boolean harvest = false;
+
 							try {
 								id = Integer.valueOf(idStr);
 							} catch(Exception e) {
 								response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 								jsonObj.put("success", false);
-								jsonObj.put("errors", new JSONArray().put("Invalid id format."));
+								jsonObj.put("errors", new JSONArray().put("Invalid id format. Expected integer."));
+							}
+							if (harvestStr != null) {
+								try {
+									harvest = Boolean.parseBoolean(harvestStr);
+								} catch(Exception e) {
+									response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+									jsonObj.put("success", false);
+									jsonObj.put("errors", new JSONArray().put("Invalid harvest format. Expected boolean."));
+								}
 							}
 
 							if (id == null) {
@@ -186,14 +198,14 @@
 								jsonObj.put("errors", new JSONArray().put("Invalid id."));
 							} else {
 								AbstractDataSourceConfig foundDataSourceConfig = configManager.getDataSourceConfig(id);
-								Map<String, Errors> warnings = foundDataSourceConfig.process();
-								JSONObject errors = Errors.toJSON(warnings);
+								Errors warnings = foundDataSourceConfig.process(harvest);
+								JSONObject jsonWarnings = warnings.toJSON();
 								response.setStatus(HttpServletResponse.SC_OK);
 								jsonObj.put("message", "Config Generated");
-								if (errors != null) {
-									jsonObj.put("errors", errors.optJSONObject("errors"));
-									jsonObj.put("warnings", errors.optJSONObject("warnings"));
-									jsonObj.put("messages", errors.optJSONObject("messages"));
+								if (jsonWarnings != null) {
+									jsonObj.put("errors", jsonWarnings.optJSONArray("errors"));
+									jsonObj.put("warnings", jsonWarnings.optJSONArray("warnings"));
+									jsonObj.put("messages", jsonWarnings.optJSONArray("messages"));
 								}
 								jsonObj.put("success", !jsonObj.has("errors"));
 							}

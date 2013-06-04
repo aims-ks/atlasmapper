@@ -208,8 +208,10 @@ Ext.define('Frameset', {
 		if (response && response.messages) {
 			errorMessages += '<div><b>Information:</b>';
 			errorMessages += '<ul class="bullet-list">\n';
-			if (response.messages[""]) {
-				Ext.each(response.messages[""], function(message) {
+			Ext.each(response.messages, function(message) {
+				if (typeof(message) === 'string') {
+					errorMessages += '<li>' + Ext.String.htmlEncode(message) + '</li>\n';
+				} else {
 					Ext.iterate(message, function(url, messageStr) {
 						errorMessages += '<li>';
 						if (typeof(messageStr) === 'string') {
@@ -226,32 +228,6 @@ Ext.define('Frameset', {
 						}
 						errorMessages += '</li>\n';
 					}, this);
-				}, this);
-			}
-			Ext.iterate(response.messages, function(dataSourceId, messages) {
-				if (dataSourceId) {
-					errorMessages += '<li>' + dataSourceId;
-					errorMessages += '<ul class="bullet-list">\n';
-					Ext.each(messages, function(message) {
-						Ext.iterate(message, function(url, messageStr) {
-							errorMessages += '<li>';
-							if (typeof(messageStr) === 'string') {
-								errorMessages += Ext.String.htmlEncode(messageStr);
-							} else {
-								var first = true;
-								Ext.each(messageStr, function(messageElStr) {
-									if (first) { first = false; } else { errorMessages += '<br/>\n';}
-									errorMessages += Ext.String.htmlEncode(messageElStr);
-								}, this);
-							}
-							if (url) {
-								errorMessages += '<br/>\n' + this.urlToHtmlLink(url);
-							}
-							errorMessages += '</li>\n';
-						}, this);
-					}, this);
-					errorMessages += '</ul>\n';
-					errorMessages += '</li>\n';
 				}
 			}, this);
 			errorMessages += '</ul></div>\n';
@@ -260,8 +236,10 @@ Ext.define('Frameset', {
 		if (response && response.errors) {
 			errorMessages += '<div><b>Errors:</b>';
 			errorMessages += '<ul class="bullet-list">\n';
-			if (response.errors[""]) {
-				Ext.each(response.errors[""], function(error) {
+			Ext.each(response.errors, function(error) {
+				if (typeof(error) === 'string') {
+					errorMessages += '<li>' + Ext.String.htmlEncode(error) + '</li>\n';
+				} else {
 					Ext.iterate(error, function(url, errorStr) {
 						errorMessages += '<li>';
 						if (typeof(errorStr) === 'string') {
@@ -278,32 +256,6 @@ Ext.define('Frameset', {
 						}
 						errorMessages += '</li>\n';
 					}, this);
-				}, this);
-			}
-			Ext.iterate(response.errors, function(dataSourceId, errors) {
-				if (dataSourceId) {
-					errorMessages += '<li>' + dataSourceId;
-					errorMessages += '<ul class="bullet-list">\n';
-					Ext.each(errors, function(error) {
-						Ext.iterate(error, function(url, errorStr) {
-							errorMessages += '<li>';
-							if (typeof(errorStr) === 'string') {
-								errorMessages += Ext.String.htmlEncode(errorStr);
-							} else {
-								var first = true;
-								Ext.each(errorStr, function(errorElStr) {
-									if (first) { first = false; } else { errorMessages += '<br/>\n';}
-									errorMessages += Ext.String.htmlEncode(errorElStr);
-								}, this);
-							}
-							if (url) {
-								errorMessages += '<br/>\n' + this.urlToHtmlLink(url);
-							}
-							errorMessages += '</li>\n';
-						}, this);
-					}, this);
-					errorMessages += '</ul>\n';
-					errorMessages += '</li>\n';
 				}
 			}, this);
 			errorMessages += '</ul></div>\n';
@@ -312,8 +264,10 @@ Ext.define('Frameset', {
 		if (response && response.warnings) {
 			errorMessages += '<div><b>Warnings:</b>';
 			errorMessages += '<ul class="bullet-list">\n';
-			if (response.warnings[""]) {
-				Ext.each(response.warnings[""], function(warning) {
+			Ext.each(response.warnings, function(warning) {
+				if (typeof(warning) === 'string') {
+					errorMessages += '<li>' + Ext.String.htmlEncode(warning) + '</li>\n';
+				} else {
 					Ext.iterate(warning, function(url, warningStr) {
 						errorMessages += '<li>';
 						if (typeof(warningStr) === 'string') {
@@ -330,32 +284,6 @@ Ext.define('Frameset', {
 						}
 						errorMessages += '</li>\n';
 					}, this);
-				}, this);
-			}
-			Ext.iterate(response.warnings, function(dataSourceId, warnings) {
-				if (dataSourceId) {
-					errorMessages += '<li>' + dataSourceId;
-					errorMessages += '<ul class="bullet-list">\n';
-					Ext.each(warnings, function(warning) {
-						Ext.iterate(warning, function(url, warningStr) {
-							errorMessages += '<li>';
-							if (typeof(warningStr) === 'string') {
-								errorMessages += Ext.String.htmlEncode(warningStr);
-							} else {
-								var first = true;
-								Ext.each(warningStr, function(warningElStr) {
-									if (first) { first = false; } else { errorMessages += '<br/>\n';}
-									errorMessages += Ext.String.htmlEncode(warningElStr);
-								}, this);
-							}
-							if (url) {
-								errorMessages += '<br/>\n' + this.urlToHtmlLink(url);
-							}
-							errorMessages += '</li>\n';
-						}, this);
-					}, this);
-					errorMessages += '</ul>\n';
-					errorMessages += '</li>\n';
 				}
 			}, this);
 			errorMessages += '</ul></div>\n';

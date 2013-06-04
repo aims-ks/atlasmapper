@@ -96,8 +96,8 @@ public class ArcGISCacheLayerConfig extends ArcGISMapServerLayerConfig {
 	}
 
 	@Override
-	public JSONObject generateLayer(AbstractLayerConfig cachedLayer) throws JSONException {
-		JSONObject jsonLayer = super.generateLayer(cachedLayer);
+	public JSONObject generateLayer() throws JSONException {
+		JSONObject jsonLayer = super.generateLayer();
 
 		if (this.getTileCols() != null && this.getTileRows() != null) {
 			jsonLayer.put("arcGISCacheTileCols", this.getTileCols());

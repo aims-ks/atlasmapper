@@ -331,7 +331,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 			height: 100
 		};
 		var activeDownload = {
-			qtipHtml: 'Check this box to force the generation of the client to re-download the file on every generation. This is usually used with local servers, during development.<br/><b>WARNING</b> Disabling the cache slow down the client considerably. Caching should always be used on production servers.',
+			qtipHtml: 'Check this box to force the generation of the client to re-download the file on every generation. This is usually used with local servers, during development.<br/><b>WARNING</b> Active download slow down the generation of the client considerably.',
 			boxLabel: 'Active download',
 			name: 'activeDownload',
 			xtype: 'checkboxfield'
@@ -907,47 +907,6 @@ Ext.define('Writer.LayerServerConfigGrid', {
 								);
 								// Set "No" as default
 								confirm.defaultButton = 2;
-
-/*
-								frameset.setSavingMessage('Clearing all cache.');
-
-								Ext.Ajax.request({
-									url: 'dataSourcesConfig.jsp',
-									params: {
-										'action': 'CLEARALLCACHE'
-									},
-									success: function(response){
-										var responseObj = null;
-										var statusCode = response ? response.status : null;
-										if (response && response.responseText) {
-											try {
-												responseObj = Ext.decode(response.responseText);
-											} catch (err) {
-												responseObj = {errors: [err.toString()]};
-											}
-										}
-										if(responseObj && responseObj.success){
-											frameset.setSavedMessage('All cache cleared successfully.', 0, 'Clearing all cache.');
-										} else {
-											frameset.setErrors('An error occurred while clearing all cache.', responseObj, statusCode);
-										}
-										that.onReload();
-									},
-									failure: function(response) {
-										var responseObj = null;
-										var statusCode = response ? response.status : null;
-										if (response && response.responseText) {
-											try {
-												responseObj = Ext.decode(response.responseText);
-											} catch (err) {
-												responseObj = {errors: [err.toString()]};
-											}
-										}
-										frameset.setErrors('An error occurred while clearing all cache.', responseObj, statusCode);
-										that.onReload();
-									}
-								});
-*/
 							}
 						}
 					]
@@ -987,7 +946,7 @@ Ext.define('Writer.LayerServerConfigGrid', {
 					// http://docs.sencha.com/ext-js/4-0/#/api/Ext.grid.column.Action
 					header: 'Actions',
 					xtype: 'actioncolumn',
-					width: 65,
+					width: 90,
 					defaults: {
 						iconCls: 'grid-icon'
 					},
@@ -1024,7 +983,7 @@ Ext.define('Writer.LayerServerConfigGrid', {
 							// Bug: defaults is ignored (http://www.sencha.com/forum/showthread.php?138446-actioncolumn-ignore-defaults)
 							iconCls: 'grid-icon',
 
-							tooltip: 'Run harvest',
+							tooltip: 'Parse data source',
 							scope: this,
 							handler: function(grid, rowIndex, colIndex) {
 								var rec = grid.getStore().getAt(rowIndex);
@@ -1087,67 +1046,74 @@ Ext.define('Writer.LayerServerConfigGrid', {
 								}
 							}
 
-/*
 						}, {
-							icon: '../resources/icons/clear-cache.png',
-
+							icon: '../resources/icons/cog_go.png',
 							// Bug: defaults is ignored (http://www.sencha.com/forum/showthread.php?138446-actioncolumn-ignore-defaults)
 							iconCls: 'grid-icon',
 
-							tooltip: 'Clear downloaded cache',
+							tooltip: 'Run harvest',
 							scope: this,
 							handler: function(grid, rowIndex, colIndex) {
 								var rec = grid.getStore().getAt(rowIndex);
 								if (rec) {
 									var dataSource = rec.data;
 									if (dataSource) {
-										if (dataSource.activeDownload) {
-											frameset.setError('Can not clear the cache: The cache is disabled.');
-										} else {
-											frameset.setSavingMessage('Clearing ' + dataSource.dataSourceName + ' cache.');
+										frameset.setSavingMessage('Processing ' + dataSource.dataSourceName + '.');
 
-											Ext.Ajax.request({
-												url: 'dataSourcesConfig.jsp',
-												params: {
-													'action': 'CLEARCACHE',
-													'id': dataSource.id
-												},
-												success: function(response){
-													var responseObj = null;
-													var statusCode = response ? response.status : null;
-													if (response && response.responseText) {
-														try {
-															responseObj = Ext.decode(response.responseText);
-														} catch (err) {
-															responseObj = {errors: [err.toString()]};
-														}
+										Ext.Ajax.request({
+											url: 'dataSourcesConfig.jsp',
+											timeout: harvestTimeout,
+											params: {
+												'action': 'PROCESS',
+												'harvest': true,
+												'id': dataSource.id
+											},
+											success: function(response){
+												var responseObj = null;
+												var statusCode = response ? response.status : null;
+												if (response && response.responseText) {
+													try {
+														responseObj = Ext.decode(response.responseText);
+													} catch (err) {
+														responseObj = {errors: [err.toString()]};
 													}
-													if(responseObj && responseObj.success){
-														frameset.setSavedMessage('Cache cleared successfully.', 0, 'Clearing ' + dataSource.dataSourceName + ' cache.');
-													} else {
-														frameset.setErrors('An error occurred while clearing the data source cache.', responseObj, statusCode);
-													}
-												},
-												failure: function(response) {
-													var responseObj = null;
-													var statusCode = response ? response.status : null;
-													if (response && response.responseText) {
-														try {
-															responseObj = Ext.decode(response.responseText);
-														} catch (err) {
-															responseObj = {errors: [err.toString()]};
-														}
-													}
-													frameset.setErrors('An error occurred while clearing the data source cache.', responseObj, statusCode);
 												}
-											});
-										}
+												if(responseObj && responseObj.success){
+													if (responseObj.errors || responseObj.warnings) {
+														frameset.setErrorsAndWarnings('Data source process passed', 'Warning(s) occurred while processing the data source configuration.', responseObj, statusCode);
+													} else if (responseObj.messages) {
+														frameset.setErrorsAndWarnings('Data source process succeed', null, responseObj, statusCode);
+													} else {
+														frameset.setSavedMessage('Data source processed successfully.');
+													}
+												} else {
+													frameset.setErrorsAndWarnings('Process failed', 'Error(s) / warning(s) occurred while processing the data source configuration.', responseObj, statusCode);
+												}
+												that.onReload();
+											},
+											failure: function(response) {
+												if (response.timedout) {
+													frameset.setError('Request timed out.', 408);
+												} else {
+													var statusCode = response ? response.status : null;
+													var responseObj = null;
+													if (response && response.responseText) {
+														try {
+															responseObj = Ext.decode(response.responseText);
+														} catch (err) {
+															responseObj = {errors: [err.toString()]};
+														}
+													}
+													frameset.setErrors('An error occurred while processing the data source configuration.', responseObj, statusCode);
+												}
+												that.onReload();
+											}
+										});
 									}
 								} else {
 									frameset.setError('No record has been selected.');
 								}
 							}
-*/
 						}
 
 

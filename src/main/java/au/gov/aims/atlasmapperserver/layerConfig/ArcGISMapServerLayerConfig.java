@@ -61,8 +61,8 @@ public class ArcGISMapServerLayerConfig extends AbstractLayerConfig implements A
 	}
 
 	@Override
-	public JSONObject generateLayer(AbstractLayerConfig cachedLayer) throws JSONException {
-		JSONObject jsonLayer = super.generateLayer(cachedLayer);
+	public JSONObject generateLayer() throws JSONException {
+		JSONObject jsonLayer = super.generateLayer();
 
 		if (this.isForcePNG24() != null) {
 			jsonLayer.put("forcePNG24", this.isForcePNG24());

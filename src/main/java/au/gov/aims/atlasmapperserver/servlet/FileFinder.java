@@ -53,6 +53,9 @@ public class FileFinder {
 	// NOTE: Don't forget to restart tomcat after setting this variable.
 	private static final String DATA_DIR_PROPERTY = "{WEBAPP-NAME}_DATA_DIR";
 
+	private static final String DATASOURCES_FOLDER = "datasources";
+
+	private static final String CLIENTS_FOLDER = "clients";
 	private static final String CLIENT_CONFIG_FOLDER = "config";
 	public static final String PUBLIC_FOLDER = "www";
 	private static final String ATLASMAPPERCLIENT_FOLDER = "amc";
@@ -71,8 +74,8 @@ public class FileFinder {
 		printDataDirProperty(context);
 
 		boolean create = true;
-		File appFolder = getApplicationFolder(context, create);
-		getCommonFilesFolder(appFolder, create);
+		File appFolder = FileFinder.getApplicationFolder(context, create);
+		FileFinder.getCommonFilesFolder(appFolder, create);
 	}
 
 	public static String getDataDirProperty(ServletContext context) {
@@ -104,7 +107,9 @@ public class FileFinder {
 			return null;
 		}
 
-		return new File(getApplicationFolder(context, false), fileRelativePathWithClientPath);
+		return new File(
+				FileFinder.getClientsBaseFolder(FileFinder.getApplicationFolder(context, false)),
+				fileRelativePathWithClientPath);
 	}
 
 	public static String getClientId(String fileRelativePathWithClientPath) {
@@ -157,7 +162,7 @@ public class FileFinder {
 		}
 
 		// Check if the Welcome file exists on the file system
-		File clientFolder = getAtlasMapperClientFolder(getApplicationFolder(context, false), clientConfig);
+		File clientFolder = FileFinder.getAtlasMapperClientFolder(FileFinder.getApplicationFolder(context, false), clientConfig);
 		if (clientFolder == null || !clientFolder.isDirectory()) {
 			// The client has not been generated
 			return null;
@@ -188,7 +193,7 @@ public class FileFinder {
 		}
 
 		// Check if the listing file exists on the file system
-		File clientFolder = getAtlasMapperClientFolder(getApplicationFolder(context, false), clientConfig);
+		File clientFolder = FileFinder.getAtlasMapperClientFolder(FileFinder.getApplicationFolder(context, false), clientConfig);
 		if (clientFolder == null || !clientFolder.isDirectory()) {
 			// The client has not been generated
 			return null;
@@ -221,7 +226,7 @@ public class FileFinder {
 			return clientBaseUrlOverride;
 		}
 
-		String filename = safeClientFolderName(clientConfig.getClientId());
+		String filename = safeFileName(clientConfig.getClientId());
 		if (filename == null) {
 			return null;
 		}
@@ -285,7 +290,7 @@ public class FileFinder {
 	}
 
 	public static File getCommonFilesFolder(File applicationFolder) {
-		return getCommonFilesFolder(applicationFolder, true);
+		return FileFinder.getCommonFilesFolder(applicationFolder, true);
 	}
 	public static File getCommonFilesFolder(File applicationFolder, boolean create) {
 		if (applicationFolder == null) {
@@ -303,7 +308,7 @@ public class FileFinder {
 	}
 
 	public static File getClientFolder(File applicationFolder, ClientConfig clientConfig) {
-		return getClientFolder(applicationFolder, clientConfig, true);
+		return FileFinder.getClientFolder(applicationFolder, clientConfig, true);
 	}
 	public static File getClientFolder(File applicationFolder, ClientConfig clientConfig, boolean create) {
 		if (applicationFolder == null || clientConfig == null) {
@@ -315,9 +320,9 @@ public class FileFinder {
 		if (Utils.isNotBlank(clientFolderOverrideStr)) {
 			clientFolder = new File(clientFolderOverrideStr);
 		} else {
-			String filename = safeClientFolderName(clientConfig.getClientId());
+			String filename = FileFinder.safeFileName(clientConfig.getClientId());
 			if (filename != null) {
-				clientFolder = new File(applicationFolder, filename);
+				clientFolder = new File(FileFinder.getClientsBaseFolder(applicationFolder), filename);
 			}
 		}
 
@@ -329,17 +334,39 @@ public class FileFinder {
 		return clientFolder;
 	}
 
-	private static String safeClientFolderName(String clientId) {
-		if (Utils.isBlank(clientId)) {
+	private static File getClientsBaseFolder(File applicationFolder) {
+		File clientsFolder = CLIENTS_FOLDER == null ? applicationFolder : new File(applicationFolder, CLIENTS_FOLDER);
+		if (!clientsFolder.exists()) {
+			clientsFolder.mkdirs();
+		}
+		return clientsFolder;
+	}
+
+	private static File getDataSourcesFolder(File applicationFolder) {
+		File dataSourcesFolder = DATASOURCES_FOLDER == null ? applicationFolder : new File(applicationFolder, DATASOURCES_FOLDER);
+		if (!dataSourcesFolder.exists()) {
+			dataSourcesFolder.mkdirs();
+		}
+		return dataSourcesFolder;
+	}
+
+	public static File getDataSourcesCatalogFile(File applicationFolder, String dataSourceID) {
+		File dataSourceFolder = FileFinder.getDataSourcesFolder(applicationFolder);
+		return new File(dataSourceFolder, safeFileName(dataSourceID) + ".json");
+	}
+
+	public static String safeFileName(String rawFileName) {
+		if (Utils.isBlank(rawFileName)) {
 			return null;
 		}
 
-		// Only allow "-", "_" and alphanumeric
-		return clientId.replaceAll("\\s", "_").replaceAll("[^A-Za-z0-9-_]", "");
+		// Only allow "-", "_" and alphanumeric.
+		// IMPORTANT: Some file system are case-insensitive. It is safer to allow only lower case characters.
+		return rawFileName.toLowerCase().replaceAll("\\s", "_").replaceAll("[^a-z0-9-_]", "");
 	}
 
 	public static File getApplicationFolder(ServletContext context) {
-		return getApplicationFolder(context, true);
+		return FileFinder.getApplicationFolder(context, true);
 	}
 	public static File getApplicationFolder(ServletContext context, boolean create) {
 		if (context == null) {
@@ -347,7 +374,7 @@ public class FileFinder {
 		}
 
 		File applicationFolder = null;
-		String dataDir = getDataDirPropertyValue(context);
+		String dataDir = FileFinder.getDataDirPropertyValue(context);
 
 		if (dataDir != null) {
 			applicationFolder = new File(dataDir);
@@ -401,17 +428,17 @@ public class FileFinder {
 	 * @param context
 	 */
 	public static void printDataDirProperty(ServletContext context) {
-		String dataDirPropertyValue = getDataDirPropertyValue(context);
+		String dataDirPropertyValue = FileFinder.getDataDirPropertyValue(context);
 		String errorMsg = null;
 		if (dataDirPropertyValue == null || dataDirPropertyValue.isEmpty()) {
-			errorMsg = getDataDirProperty(context) + " HAS NOT BEEN SET";
+			errorMsg = FileFinder.getDataDirProperty(context) + " HAS NOT BEEN SET";
 		} else {
 			File appFolder = new File(dataDirPropertyValue);
 			if (!Utils.recursiveIsWritable(appFolder)) {
 				if (appFolder.exists()) {
-					errorMsg = getDataDirProperty(context) + ": THE FOLDER " + dataDirPropertyValue + " IS NOT WRITABLE";
+					errorMsg = FileFinder.getDataDirProperty(context) + ": THE FOLDER " + dataDirPropertyValue + " IS NOT WRITABLE";
 				} else {
-					errorMsg = getDataDirProperty(context) + ": THE FOLDER " + dataDirPropertyValue + " CAN NOT BE CREATED";
+					errorMsg = FileFinder.getDataDirProperty(context) + ": THE FOLDER " + dataDirPropertyValue + " CAN NOT BE CREATED";
 				}
 			}
 		}
@@ -422,7 +449,7 @@ public class FileFinder {
 			System.out.println("#######################################");
 		} else {
 			System.out.println("---------------------------------------");
-			System.out.println("- " + getDataDirProperty(context) + ": " + dataDirPropertyValue);
+			System.out.println("- " + FileFinder.getDataDirProperty(context) + ": " + dataDirPropertyValue);
 			System.out.println("---------------------------------------");
 		}
 	}

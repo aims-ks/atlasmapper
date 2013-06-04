@@ -27,6 +27,7 @@ import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -76,9 +77,8 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 	@ConfigField
 	private String systemDescription;
 
-	// TODO Rename to Path
 	@ConfigField
-	private String wmsPath;
+	private String treePath;
 
 	@ConfigField
 	private String projection;
@@ -338,12 +338,12 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 		this.systemDescription = systemDescription;
 	}
 
-	public String getWmsPath() {
-		return wmsPath;
+	public String getTreePath() {
+		return this.treePath;
 	}
 
-	public void setWmsPath(String wmsPath) {
-		this.wmsPath = wmsPath;
+	public void setTreePath(String treePath) {
+		this.treePath = treePath;
 	}
 
 	public String getProjection() {
@@ -543,15 +543,29 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 		return clone;
 	}
 
+	public static JSONObject applyGlobalOverrides(String layerId, JSONObject jsonLayer, JSONObject globalOverrides) throws JSONException {
+		if (globalOverrides != null && jsonLayer != null) {
+			JSONObject layerOverride = globalOverrides.optJSONObject(layerId);
+			if (layerOverride != null && layerOverride.length() > 0) {
+				Iterator<String> keys = layerOverride.keys();
+				while (keys.hasNext()) {
+					String key = keys.next();
+					if (!layerOverride.isNull(key)) {
+						jsonLayer.put(key, layerOverride.opt(key));
+					}
+				}
+			}
+		}
+		return jsonLayer;
+	}
+
 	// TODO Specific pieces into specific classes (example: WMSLayerConfig parts goes into WMSLayerConfig class)
-	public JSONObject generateLayer(AbstractLayerConfig cachedLayer) throws JSONException {
+	public JSONObject generateLayer() throws JSONException {
 		// AbstractLayerConfig implements AbstractDataSourceConfigInterface
 		JSONObject jsonLayer = AbstractDataSourceConfigInterfaceHelper.generateDataSourceInterface(this, null);
 
 		if (this.isCached() != null) {
 			jsonLayer.put("cached", this.isCached());
-		} else {
-			jsonLayer.put("cached", (cachedLayer != null));
 		}
 
 		if (this.getOlParams() != null) {
@@ -593,6 +607,11 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 		// serverId
 		if (Utils.isNotBlank(this.getDataSourceId())) {
 			jsonLayer.put("dataSourceId", this.getDataSourceId().trim());
+		}
+
+		// Needed for data source save state - then used by the client generation to create the tree.
+		if (Utils.isNotBlank(this.getTreePath())) {
+			jsonLayer.put("treePath", this.getTreePath().trim());
 		}
 
 		double[] boundingBox = this.getLayerBoundingBox();
@@ -645,11 +664,6 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 					String styleName = style.getName();
 					if (styleName != null) {
 						styleName = styleName.trim();
-
-						Boolean cached = null;
-						if (cachedLayer != null) {
-							cached = firstStyle || cachedLayer.getStyle(styleName) != null;
-						}
 
 						JSONObject jsonStyle = this.generateLayerStyle(style, cached);
 
@@ -784,7 +798,7 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 				(aliasIds==null ? "" :                 "	aliasIds=" + Arrays.toString(aliasIds) + "\n") +
 				(Utils.isBlank(title) ? "" :           "	title=" + title + "\n") +
 				(Utils.isBlank(description) ? "" :     "	description=" + description + "\n") +
-				(Utils.isBlank(wmsPath) ? "" :         "	wmsPath=" + wmsPath + "\n") +
+				(Utils.isBlank(treePath) ? "" :        "	treePath=" + treePath + "\n") +
 				(layerBoundingBox==null ? "" :         "	layerBoundingBox=" + Arrays.toString(layerBoundingBox) + "\n") +
 				(infoHtmlUrls==null ? "" :             "	infoHtmlUrls=" + Arrays.toString(infoHtmlUrls) + "\n") +
 				(isBaseLayer==null ? "" :              "	isBaseLayer=" + isBaseLayer + "\n") +

@@ -67,8 +67,6 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 
 		if (layer instanceof ArcGISMapServerLayerConfig) {
 			arcGISPath = ((ArcGISMapServerLayerConfig)layer).getArcGISPath();
-//		} else if (layer instanceof FolderLayerConfig) {
-//			arcGISPath = ((FolderLayerConfig)layer).getFolderPath();
 		} else if (layer instanceof GroupLayerConfig) {
 			arcGISPath = ((GroupLayerConfig)layer).getGroupPath();
 		}
@@ -138,7 +136,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 
 	private List<AbstractLayerConfig> parseJSON(
 			Map<String, AbstractLayerConfig> allLayers,
-			String wmsPath,
+			String treePath,
 			String arcGISPath,
 			String type,
 			ArcGISMapServerDataSourceConfig dataSourceConfig,
@@ -290,13 +288,13 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 						);
 					}
 
-					List<AbstractLayerConfig> subChildren = this.parseJSON(allLayers, wmsPath, childArcGISPath, childType, dataSourceConfig, harvest);
+					List<AbstractLayerConfig> subChildren = this.parseJSON(allLayers, treePath, childArcGISPath, childType, dataSourceConfig, harvest);
 					if (subChildren != null) {
 						AbstractLayerConfig layerService = this.getLayerServiceConfig(childArcGISPath, subChildren, jsonServiceExtra, dataSourceConfig);
 						this.ensureUniqueLayerId(layerService, dataSourceConfig);
 
-						if (Utils.isNotBlank(wmsPath)) {
-							layerService.setWmsPath(wmsPath);
+						if (Utils.isNotBlank(treePath)) {
+							layerService.setTreePath(treePath);
 						}
 
 						// Check the layer catalog for this data source to be sure that the layer ID do not already exists.

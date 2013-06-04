@@ -45,8 +45,10 @@ import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -78,6 +80,60 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 
 	@Override
 	public Collection<L> generateLayerConfigs(D dataSource, boolean harvest) throws Exception {
+		Map<String, L> layersMap = this.generateRawLayerConfigs(dataSource, harvest);
+		Collection<L> layers = null;
+
+		if (layersMap != null && !layersMap.isEmpty()) {
+			layers = new ArrayList<L>(layersMap.size());
+			Map<String, L> cachedLayers = this.generateRawCachedLayerConfigs(dataSource, harvest);
+
+			// Set cached flags
+			for (Map.Entry<String, L> layerEntry : layersMap.entrySet()) {
+				boolean cached = false;
+				L layer = layerEntry.getValue();
+				if (cachedLayers != null && cachedLayers.containsKey(layerEntry.getKey())) {
+					L cachedLayer = cachedLayers.get(layerEntry.getKey());
+					if (cachedLayer != null) {
+						cached = true;
+						this.setLayerStylesCacheFlag(layer.getStyles(), cachedLayer.getStyles());
+					}
+				}
+				layer.setCached(cached);
+
+				layers.add(layer);
+			}
+		}
+
+		return layers;
+	}
+
+	private void setLayerStylesCacheFlag(List<LayerStyleConfig> layerStyles, List<LayerStyleConfig> cachedStyles) {
+		if (layerStyles != null && !layerStyles.isEmpty()) {
+			boolean cachedStyleNotEmpty = cachedStyles != null && !cachedStyles.isEmpty();
+
+			for (LayerStyleConfig style : layerStyles) {
+				boolean cached = false;
+				boolean defaultStyle = style.isDefault() == null ? false : style.isDefault();
+
+				if (defaultStyle) {
+					cached = true;
+				} else if (cachedStyleNotEmpty) {
+					String styleName = style.getName();
+					if (styleName != null) {
+						for (LayerStyleConfig cachedStyle : cachedStyles) {
+							String cachedStyleName = cachedStyle.getName();
+							if (styleName.equals(cachedStyleName)) {
+								cached = true;
+							}
+						}
+					}
+				}
+				style.setCached(cached);
+			}
+		}
+	}
+
+	private Map<String, L> generateRawLayerConfigs(D dataSource, boolean harvest) throws Exception {
 		WMSCapabilities wmsCapabilities = URLCache.getWMSCapabilitiesResponse(dataSource.getConfigManager(), dataSource, dataSource.getServiceUrl(), true, harvest);
 		if (wmsCapabilities != null) {
 			WMSRequest wmsRequestCapabilities = wmsCapabilities.getRequest();
@@ -98,8 +154,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 		return null;
 	}
 
-	@Override
-	public Collection<L> generateCachedLayerConfigs(D dataSource, boolean harvest) throws Exception {
+	private Map<String, L> generateRawCachedLayerConfigs(D dataSource, boolean harvest) throws Exception {
 		// When the webCacheEnable checkbox is unchecked, no layers are cached.
 		if (dataSource.isWebCacheEnable() == null || dataSource.isWebCacheEnable() == false) {
 			return null;
@@ -107,7 +162,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 
 		WMTSDocument gwcCapabilities = this.getGWCDocument(dataSource.getConfigManager(), dataSource, harvest);
 
-		Collection<L> layerConfigs = new ArrayList<L>();
+		Map<String, L> layerConfigs = new HashMap<String, L>();
 
 		if (gwcCapabilities != null) {
 			// http://docs.geotools.org/stable/javadocs/org/geotools/data/wms/WebMapServer.html
@@ -115,7 +170,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 
 			if (rootLayer != null) {
 				// The boolean at the end is use to ignore the root from the capabilities document. It can be added (change to false) if some users think it's useful to see the root...
-				this._getLayersInfoFromGeoToolRootLayer(layerConfigs, rootLayer, new LinkedList<String>(), dataSource, true, harvest);
+				this._propagateLayersInfoMapFromGeoToolRootLayer(layerConfigs, rootLayer, new LinkedList<String>(), dataSource, true, harvest);
 			}
 		}
 
@@ -128,7 +183,9 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 	 *     Get GWC Capabilities Document URL  or  craft it from the WMS URL.
 	 *     Get GWC URL  or  craft it from the WMS URL.
 	 *         NOTE: This URL is used by the generated client only.
-	 *         TODO: Parse the GWC WMS Cap doc instead of the WMTS doc and get the GWC URL from it.
+	 *         IMPORTANT: Ideally, this method would parse the GWC WMS Cap doc instead of the WMTS doc and
+	 *             get the GWC URL from it. Unfortunately, the WMS Cap doc from GWC do not contains any info
+	 *             about cached styles.
 	 *     Try to parse it as a WMTS capabilities document.
 	 *     If that didn't work, try to rectify the WMTS capabilities document URL and try again.
 	 *     If that didn't work, return null and add an error.
@@ -256,9 +313,9 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 						"disable it in the data source config and report a bug." +
 						(exceptionMessage == null ? "" : "\nError: " + exceptionMessage);
 				if (gwcMandatory) {
-					this.addError(dataSource.getDataSourceId(), errorMsg);
+					this.addError(errorMsg);
 				} else {
-					this.addWarning(dataSource.getDataSourceId(), errorMsg);
+					this.addWarning(errorMsg);
 				}
 			}
 		} else if (gwcCapUrlStr == null || gwcCapUrlStr.isEmpty()) {
@@ -281,7 +338,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 	 * @param harvest True do download associated metadata documents (TC211), false to use the cached ones.
 	 * @return
 	 */
-	private Collection<L> getLayersInfoFromCaps(
+	private Map<String, L> getLayersInfoFromCaps(
 			WMSCapabilities wmsCapabilities,
 			D dataSourceConfig, // Data source of layers (to link the layer to its data source)
 			boolean harvest
@@ -293,9 +350,17 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 		// http://docs.geotools.org/stable/javadocs/org/geotools/data/wms/WebMapServer.html
 		Layer rootLayer = wmsCapabilities.getLayer();
 
-		Collection<L> layerConfigs = new ArrayList<L>();
+		Map<String, L> layerConfigs = new HashMap<String, L>();
 		// The boolean at the end is use to ignore the root from the capabilities document. It can be added (change to false) if some users think it's useful to see the root...
-		this._getLayersInfoFromGeoToolRootLayer(layerConfigs, rootLayer, new LinkedList<String>(), dataSourceConfig, true, harvest);
+		this._propagateLayersInfoMapFromGeoToolRootLayer(layerConfigs, rootLayer, new LinkedList<String>(), dataSourceConfig, true, harvest);
+
+		// Set default styles
+		for (L layer : layerConfigs.values()) {
+			List<LayerStyleConfig> styles = layer.getStyles();
+			if (styles != null && !styles.isEmpty()) {
+				styles.get(0).setDefault(true);
+			}
+		}
 
 		return layerConfigs;
 	}
@@ -341,14 +406,14 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 	// map receive as parameter. The other way would be inefficient.
 	// I.E.
 	// The line
-	//     xmlLayers = getXmlLayersFromGeoToolRootLayer(xmlLayers, childLayer, childrenWmsPath);
+	//     xmlLayers = getXmlLayersFromGeoToolRootLayer(xmlLayers, childLayer, childrenPath);
 	// give the same result as
-	//     getXmlLayersFromGeoToolRootLayer(xmlLayers, childLayer, childrenWmsPath);
+	//     getXmlLayersFromGeoToolRootLayer(xmlLayers, childLayer, childrenPath);
 	// The first one is just visualy more easy to understand.
-	private void _getLayersInfoFromGeoToolRootLayer(
-			Collection<L> layerConfigs,
+	private void _propagateLayersInfoMapFromGeoToolRootLayer(
+			Map<String, L> layerConfigs,
 			Layer layer,
-			List<String> wmsPath,
+			List<String> treePath,
 			D dataSourceConfig,
 			boolean isRoot,
 			boolean harvest) {
@@ -364,38 +429,38 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 		if (children != null && !children.isEmpty()) {
 			// The layer has children, so it is a Container;
 			// If it's not the root, it's a part of the WMS Path, represented as a folder in the GUI.
-			List<String> childrenWmsPath = new LinkedList<String>(wmsPath);
+			List<String> childrenTreePath = new LinkedList<String>(treePath);
 			if (!isRoot) {
-				String newWmsPart = layer.getTitle();
-				if (Utils.isBlank(newWmsPart)) {
-					newWmsPart = layer.getName();
+				String newTreePathPart = layer.getTitle();
+				if (Utils.isBlank(newTreePathPart)) {
+					newTreePathPart = layer.getName();
 				}
 
-				if (Utils.isNotBlank(newWmsPart)) {
-					childrenWmsPath.add(newWmsPart);
+				if (Utils.isNotBlank(newTreePathPart)) {
+					childrenTreePath.add(newTreePathPart);
 				}
 			}
 
 			for (Layer childLayer : children) {
-				this._getLayersInfoFromGeoToolRootLayer(layerConfigs, childLayer, childrenWmsPath, dataSourceConfig, false, harvest);
+				this._propagateLayersInfoMapFromGeoToolRootLayer(layerConfigs, childLayer, childrenTreePath, dataSourceConfig, false, harvest);
 			}
 		} else {
 			// The layer do not have any children, so it is a real layer
 
-			// Create a string representing the wmsPath
-			StringBuilder wmsPathBuf = new StringBuilder();
-			for (String wmsPathPart : wmsPath) {
-				if (Utils.isNotBlank(wmsPathPart)) {
-					if (wmsPathBuf.length() > 0) {
-						wmsPathBuf.append("/");
+			// Create a string representing the path
+			StringBuilder treePathBuf = new StringBuilder();
+			for (String treePathPart : treePath) {
+				if (Utils.isNotBlank(treePathPart)) {
+					if (treePathBuf.length() > 0) {
+						treePathBuf.append("/");
 					}
-					wmsPathBuf.append(wmsPathPart);
+					treePathBuf.append(treePathPart);
 				}
 			}
 
-			L layerConfig = this.layerToLayerConfig(layer, wmsPathBuf.toString(), dataSourceConfig, harvest);
+			L layerConfig = this.layerToLayerConfig(layer, treePathBuf.toString(), dataSourceConfig, harvest);
 			if (layerConfig != null) {
-				layerConfigs.add(layerConfig);
+				layerConfigs.put(layerConfig.getLayerId(), layerConfig);
 			}
 		}
 	}
@@ -403,13 +468,13 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 	/**
 	 * Convert a GeoTool Layer into a AtlasMapper Layer
 	 * @param layer
-	 * @param wmsPath
+	 * @param treePath
 	 * @param dataSourceConfig
 	 * @return
 	 */
 	private L layerToLayerConfig(
 			Layer layer,
-			String wmsPath,
+			String treePath,
 			D dataSourceConfig,
 			boolean harvest) {
 
@@ -539,99 +604,6 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 			descriptionSb.append(metadataLinksWikiFormat);
 		}
 
-		// Get the description from the metadata document, if available
-/*
-		if (tc211Document != null) {
-			description += tc211Document.getAbstract();
-
-			// Add links found in the metadata document and layer description (if any)
-			List<TC211Document.Link> links = tc211Document.getLinks();
-			if (links != null && !links.isEmpty()) {
-				// Set the Online Resources, using wiki format
-				StringBuilder onlineResources = new StringBuilder("\n\n*Online Resources*\n");
-				for (TC211Document.Link link : links) {
-					// Only display links with none null URL.
-					if (Utils.isNotBlank(link.getUrl())) {
-						TC211Document.Protocol linkProtocol = link.getProtocol();
-						if (linkProtocol != null) {
-							if (linkProtocol.isOGC()) {
-								// If the link is a OGC url (most likely WMS GetMap) and the url match the layer url, parse its description.
-								if (layerName.equalsIgnoreCase(link.getName())) {
-									String applicationProfileStr = link.getApplicationProfile();
-									if (applicationProfileStr != null && !applicationProfileStr.isEmpty()) {
-										mestOverrides = TC211Parser.parseMestApplicationProfile(applicationProfileStr);
-									}
-
-									String layerDescription = link.getDescription();
-									// The layer description found in the MEST is added to the description of the AtlasMapper layer.
-									// The description may also specified a title for the layer, and other attributes,
-									// using the following format:
-									//     Title: Coral sea Plateau
-									//     Description: Plateau is a flat or nearly flat area...
-									//     Subcategory: 2. GBRMPA features
-									Map<String, StringBuilder> parsedDescription = TC211Parser.parseMestDescription(layerDescription);
-
-									// The layer title is replace with the title from the MEST link description.
-									if (parsedDescription.containsKey(TC211Parser.TITLE_KEY) && parsedDescription.get(TC211Parser.TITLE_KEY) != null) {
-										String titleStr = parsedDescription.get(TC211Parser.TITLE_KEY).toString().trim();
-										if (!titleStr.isEmpty()) {
-											title = titleStr;
-										}
-									}
-
-									// The description found in the MEST link description (i.e. Layer description) is added
-									// at the beginning of the layer description (with a "Dataset description" label to
-									//     divide the layer description from the rest).
-									if (parsedDescription.containsKey(TC211Parser.DESCRIPTION_KEY) && parsedDescription.get(TC211Parser.DESCRIPTION_KEY) != null) {
-										StringBuilder descriptionSb = parsedDescription.get(TC211Parser.DESCRIPTION_KEY);
-										if (descriptionSb.length() > 0) {
-											if (description != null && !description.isEmpty()) {
-												descriptionSb.append(TC211Parser.NL); descriptionSb.append(TC211Parser.NL);
-												descriptionSb.append("*Dataset description*"); descriptionSb.append(TC211Parser.NL);
-												descriptionSb.append(description);
-											}
-											description = descriptionSb.toString().trim();
-										}
-									}
-
-									// The path found in the MEST link description override the WMS path in the layer.
-									if (parsedDescription.containsKey(TC211Parser.PATH_KEY) && parsedDescription.get(TC211Parser.PATH_KEY) != null) {
-										String pathStr = parsedDescription.get(TC211Parser.PATH_KEY).toString().trim();
-										if (pathStr.isEmpty()) {
-											pathStr = null;
-										}
-										wmsPath = pathStr;
-									}
-								}
-							} else if (linkProtocol.isWWW()) {
-								// Dataset links such as point of truth, data download, etc.
-								String linkTitle = link.getDescription();
-								if (Utils.isBlank(linkTitle)) {
-									linkTitle = link.getName();
-								}
-								if (Utils.isBlank(linkTitle)) {
-									linkTitle = link.getUrl();
-								}
-
-								// Bullet list of URLs, in Wiki format:
-								// * [[url|title]]
-								// * [[url|title]]
-								// * [[url|title]]
-								// ...
-								onlineResources.append("* [[");
-								onlineResources.append(link.getUrl());
-								onlineResources.append("|");
-								onlineResources.append(linkTitle);
-								onlineResources.append("]]\n");
-							}
-						}
-					}
-				}
-
-				description += onlineResources.toString();
-			}
-		}
-*/
 		if (Utils.isNotBlank(title)) {
 			layerConfig.setTitle(title);
 		}
@@ -647,16 +619,15 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 
 		layerConfig.setWmsQueryable(layer.isQueryable());
 
-		if (Utils.isNotBlank(wmsPath)) {
-			layerConfig.setWmsPath(wmsPath);
+		if (Utils.isNotBlank(treePath)) {
+			layerConfig.setTreePath(treePath);
 		}
 
 		List<StyleImpl> styleImpls = layer.getStyles();
 		if (styleImpls != null && !styleImpls.isEmpty()) {
 			List<LayerStyleConfig> styles = new ArrayList<LayerStyleConfig>(styleImpls.size());
 			for (StyleImpl styleImpl : styleImpls) {
-				LayerStyleConfig styleConfig = styleToLayerStyleConfig(dataSourceConfig.getConfigManager(), styleImpl);
-
+				LayerStyleConfig styleConfig = this.styleToLayerStyleConfig(dataSourceConfig.getConfigManager(), styleImpl);
 				if (styleConfig != null) {
 					styles.add(styleConfig);
 				}

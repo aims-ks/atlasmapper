@@ -45,7 +45,7 @@ public class Info extends AbstractModule {
 	}
 
 	@Override
-	public JSONObject getJSONConfiguration(ClientConfig clientConfig, LayerCatalog layerCatalog) throws JSONException {
+	public JSONObject getJSONConfiguration(ClientConfig clientConfig, JSONObject layerCatalog) throws JSONException {
 		JSONObject layerTabConfig = new JSONObject();
 		layerTabConfig.put("type", "description");
 		layerTabConfig.put("startingTab", true);

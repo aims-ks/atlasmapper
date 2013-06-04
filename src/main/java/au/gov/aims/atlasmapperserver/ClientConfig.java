@@ -240,47 +240,69 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	// LayerCatalog - Before data source overrides
-	private LayerCatalog getRawLayerCatalog(boolean harvest) throws IOException, JSONException {
-		LayerCatalog rawLayerCatalog = new LayerCatalog();
+	private JSONObject getRawLayerCatalog() throws IOException, JSONException {
+		JSONObject jsonClientCatalog = new JSONObject();
+		JSONArray jsonErrors = new JSONArray();
+		JSONObject jsonClientCatalogLayers = new JSONObject();
 
 		for (AbstractDataSourceConfig dataSource : this.getDataSourceConfigs()) {
 			String dataSourceId = null;
 			try {
 				if (dataSource != null) {
+					// Get data source saved catalog
 					dataSourceId = dataSource.getDataSourceId();
-					LayerCatalog layerCatalog = dataSource.getLayerCatalog(harvest);
-					if (layerCatalog != null && !layerCatalog.isEmpty()) {
-						rawLayerCatalog.addCatalog(layerCatalog);
+					JSONObject jsonDataSourceCatalog = AbstractDataSourceConfig.load(this.getConfigManager().getApplicationFolder(), dataSourceId);
+					JSONObject jsonDataSourceCatalogLayers = jsonDataSourceCatalog.optJSONObject("layers");
+
+					// Add each layers from the catalog to the client catalog
+					if (jsonDataSourceCatalogLayers != null && jsonDataSourceCatalogLayers.length() > 0) {
+						Iterator<String> layerIDsItr = jsonDataSourceCatalogLayers.keys();
+						while(layerIDsItr.hasNext()) {
+							String layerID = layerIDsItr.next();
+							if (!jsonDataSourceCatalogLayers.isNull(layerID)) {
+								jsonClientCatalogLayers.put(layerID, jsonDataSourceCatalogLayers.optJSONObject(layerID));
+							}
+						}
 					}
 				}
 			} catch(Exception ex) {
-				rawLayerCatalog.addError(dataSourceId, "Exception occurred while retrieving layers: " + Utils.getExceptionMessage(ex));
+				jsonErrors.put("Exception occurred while retrieving layers: " + Utils.getExceptionMessage(ex));
 				LOGGER.log(Level.WARNING, "Exception occurred while retrieving layers: {0}", Utils.getExceptionMessage(ex));
 				LOGGER.log(Level.FINE, "Stack trace: ", ex);
 			}
 		}
 
-		return rawLayerCatalog;
+		if (jsonErrors.length() > 0) {
+			jsonClientCatalog.put("errors", jsonErrors);
+		}
+		if (jsonClientCatalogLayers.length() > 0) {
+			jsonClientCatalog.put("layers", jsonClientCatalogLayers);
+		}
+
+		return jsonClientCatalog;
 	}
 
 	// LayerCatalog - After data source overrides
-	public LayerCatalog getLayerCatalog(boolean harvest) throws IOException, JSONException {
-		LayerCatalog rawLayerCatalog = this.getRawLayerCatalog(harvest);
+	public JSONObject getLayerCatalog() throws IOException, JSONException {
+		JSONObject rawLayerCatalog = this.getRawLayerCatalog();
 
-		// Map of layers, after overrides, used to create the final layer catalog
-		HashMap<String, AbstractLayerConfig> layersMap = new HashMap<String, AbstractLayerConfig>();
+		JSONObject layers = new JSONObject();
+		JSONArray errors = new JSONArray();
+		JSONArray warnings = new JSONArray();
 
 		JSONObject clientOverrides = this.manualOverride;
 
 		// Apply manual overrides, if needed
-		if (!rawLayerCatalog.isEmpty()) {
-			for (AbstractLayerConfig layerConfig : rawLayerCatalog.getLayers()) {
-				if (layerConfig != null) {
-					AbstractLayerConfig overriddenLayerConfig =
-							layerConfig.applyGlobalOverrides(clientOverrides);
-					layersMap.put(
-							overriddenLayerConfig.getLayerId(),
-							overriddenLayerConfig);
+		if (rawLayerCatalog.length() > 0) {
+			JSONObject rawLayers = rawLayerCatalog.optJSONObject("layers");
+			if (rawLayers != null && rawLayers.length() > 0) {
+				Iterator<String> rawLayerIds = rawLayers.keys();
+
+				while (rawLayerIds.hasNext()) {
+					String rawLayerId = rawLayerIds.next();
+					JSONObject rawLayer = rawLayers.optJSONObject(rawLayerId);
+
+					layers.put(rawLayerId, AbstractLayerConfig.applyGlobalOverrides(rawLayerId, rawLayer, clientOverrides));
 				}
 			}
 		}
@@ -290,7 +312,7 @@ public class ClientConfig extends AbstractConfig {
 			Iterator<String> layerIds = clientOverrides.keys();
 			while (layerIds.hasNext()) {
 				String layerId = layerIds.next();
-				if (!layersMap.containsKey(layerId)) {
+				if (!layers.isNull(layerId)) {
 					JSONObject jsonClientOverride = clientOverrides.optJSONObject(layerId);
 					if (jsonClientOverride != null && jsonClientOverride.length() > 0) {
 						try {
@@ -302,7 +324,7 @@ public class ClientConfig extends AbstractConfig {
 								dataSource = this.getDataSourceConfig(dataSourceId);
 
 								if (dataSource == null) {
-									rawLayerCatalog.addWarning(dataSourceId, "Invalid manual override for layer " + layerId + " of client: " + this.getClientName());
+									warnings.put("Invalid manual override for layer " + layerId + " of client: " + this.getClientName());
 									LOGGER.log(Level.WARNING, "The manual override for the layer {0} of the client {1} is defining an invalid data source {2}.",
 											new String[]{layerId, this.getClientName(), dataSourceId});
 									continue;
@@ -313,7 +335,7 @@ public class ClientConfig extends AbstractConfig {
 								if (dataSource != null) {
 									dataSourceType = dataSource.getDataSourceType();
 								} else {
-									rawLayerCatalog.addWarning(dataSourceId, "Invalid manual override for layer " + layerId + " of client: " + this.getClientName());
+									warnings.put("Invalid manual override for layer " + layerId + " of client: " + this.getClientName());
 									LOGGER.log(Level.WARNING, "The manual override for the layer {0} of the client {1} define a layer override for a layer that do not exists and can not be created because it do not define its data source type.",
 											new String[]{layerId, this.getClientName()});
 									continue;
@@ -329,11 +351,11 @@ public class ClientConfig extends AbstractConfig {
 								dataSource.bindLayer(manualLayer);
 							}
 
-							layersMap.put(
+							layers.put(
 									manualLayer.getLayerId(),
-									manualLayer);
+									manualLayer.generateLayer());
 						} catch(Exception ex) {
-							rawLayerCatalog.addError(null, "Unexpected error occurred while parsing the layer override for the client "+this.getClientName()+".");
+							errors.put("Unexpected error occurred while parsing the layer override for the client "+this.getClientName()+".");
 							LOGGER.log(Level.SEVERE, "Unexpected error occurred while parsing the following layer override for the client [{0}]: {1}\n{2}",
 									new String[]{this.getClientName(), Utils.getExceptionMessage(ex), jsonClientOverride.toString(4)});
 							LOGGER.log(Level.FINE, "Stack trace: ", ex);
@@ -343,47 +365,60 @@ public class ClientConfig extends AbstractConfig {
 			}
 		}
 
-		// Add layer group content in the description, and hide children layers from the catalog (the add layer tree).
+		// Add layer group content in the description, and set flag to hide children layers in the layer tree (Add layer window).
 		// I.E. Layers that are present in a layer group are not shown in the tree. This can be overridden by
 		//     setting "shownOnlyInLayerGroup" to true in the layers overrides.
-		for (AbstractLayerConfig layer : layersMap.values()) {
-			String[] layers = null;
-			if (layer instanceof GroupLayerConfig) {
-				layers = ((GroupLayerConfig)layer).getLayers();
-			}
+		Iterator<String> layerIds = layers.keys();
+		while (layerIds.hasNext()) {
+			String layerId = layerIds.next();
+			if (!layers.isNull(layerId)) {
+				JSONObject jsonLayer = layers.optJSONObject(layerId);
+				if ("GROUP".equals(jsonLayer.optString("dataSourceType", null))) {
+					JSONArray childrenLayers = jsonLayer.optJSONArray("layers");
+					if (childrenLayers != null && childrenLayers.length() > 0) {
+						String layerGroupHTMLList = this.getHTMLListAndHideChildrenLayers(layers, childrenLayers);
 
-			if (layers != null && layers.length > 0) {
-				String layerGroupHTMLList = this.getHTMLListAndHideChildrenLayers(layersMap, layers);
-				if (Utils.isNotBlank(layerGroupHTMLList)) {
-					StringBuilder groupHtmlDescription = new StringBuilder();
-					groupHtmlDescription.append("This layer regroup the following list of layers:");
-					groupHtmlDescription.append(layerGroupHTMLList);
+						if (Utils.isNotBlank(layerGroupHTMLList)) {
+							StringBuilder groupHtmlDescription = new StringBuilder();
+							groupHtmlDescription.append("This layer regroup the following list of layers:");
+							groupHtmlDescription.append(layerGroupHTMLList);
 
-					layer.setSystemDescription(groupHtmlDescription.toString());
+							jsonLayer.put("systemDescription", groupHtmlDescription.toString());
+						}
+					}
 				}
 			}
 		}
 
 		// Set base layer attribute
-		for (AbstractLayerConfig layerConfig : layersMap.values()) {
-			// Set Baselayer flag if the layer is defined as a base layer in the client OR the client do not define any base layers and the layer is defined as a baselayer is the global config
-			if (this.isBaseLayer(layerConfig.getLayerId())) {
-				layerConfig.setIsBaseLayer(true);
-			} else if (this.isBaseLayer(layerConfig.getLayerName())) {
-				// Backward compatibility
-				rawLayerCatalog.addError(null, "Deprecated layer ID used for base layers of client "+this.getClientName()+": " +
-							"layer id [" + layerConfig.getLayerName() + "] should be [" + layerConfig.getLayerId() + "]");
-				LOGGER.log(Level.WARNING, "DEPRECATED LAYER ID USED FOR BASE LAYERS OF CLIENT {0}: Layer id [{1}] should be [{2}].",
-						new String[]{this.getClientName(), layerConfig.getLayerName(), layerConfig.getLayerId()});
-				layerConfig.setIsBaseLayer(true);
+		layerIds = layers.keys(); // Reset the iterator
+		while (layerIds.hasNext()) {
+			String layerId = layerIds.next();
+			if (!layers.isNull(layerId)) {
+				JSONObject jsonLayer = layers.optJSONObject(layerId);
+				if (jsonLayer != null) {
+					if (this.isBaseLayer(layerId)) {
+						jsonLayer.put("isBaseLayer", true);
+					} else {
+						String layerName = jsonLayer.optString("layerName", null);
+						if (this.isBaseLayer(layerName)) {
+							// Backward compatibility
+							errors.put("Deprecated layer ID used for base layers of client "+this.getClientName()+": " +
+										"layer id [" + layerName + "] should be [" + layerId + "]");
+							LOGGER.log(Level.WARNING, "DEPRECATED LAYER ID USED FOR BASE LAYERS OF CLIENT {0}: Layer id [{1}] should be [{2}].",
+									new String[]{this.getClientName(), layerName, layerId});
+							jsonLayer.put("isBaseLayer", true);
+						}
+					}
+				}
 			}
 		}
 
 		// LayerCatalog after overrides
-		LayerCatalog layerCatalog = new LayerCatalog();
-		layerCatalog.addLayers(layersMap.values());
-		layerCatalog.addCachedLayers(rawLayerCatalog.getCachedLayers());
-		layerCatalog.addAllErrors(rawLayerCatalog.getErrors());
+		JSONObject layerCatalog = new JSONObject();
+		layerCatalog.put("layers", layers);
+		layerCatalog.put("errors", errors);
+		layerCatalog.put("warnings", warnings);
 
 		return layerCatalog;
 	}
@@ -902,14 +937,14 @@ public class ClientConfig extends AbstractConfig {
 
 	// Helper
 	public boolean isBaseLayer(String layerId) {
-		String baselayersStr = this.getBaseLayers();
-		if (Utils.isBlank(layerId) || Utils.isBlank(baselayersStr)) {
+		String baseLayersStr = this.getBaseLayers();
+		if (Utils.isBlank(layerId) || Utils.isBlank(baseLayersStr)) {
 			return false;
 		}
 
 		if (this.baseLayersSet == null) {
 			this.baseLayersSet = new HashSet<String>();
-			String[] baselayers = baselayersStr.split(SPLIT_PATTERN);
+			String[] baselayers = baseLayersStr.split(SPLIT_PATTERN);
 			if (baselayers != null) {
 				for (int i=0; i<baselayers.length; i++) {
 					String baselayer = baselayers[i];
@@ -1032,39 +1067,41 @@ public class ClientConfig extends AbstractConfig {
 		return dataSourceConfig;
 	}
 
-	private String getHTMLListAndHideChildrenLayers(Map<String, AbstractLayerConfig> completeLayerMap, String[] layersIds) {
-		if (layersIds == null || layersIds.length <= 0) {
+	private String getHTMLListAndHideChildrenLayers(JSONObject layers, JSONArray childrenLayersIds) throws JSONException {
+		if (childrenLayersIds == null || childrenLayersIds.length() <= 0) {
 			return "";
 		}
 		StringBuilder htmlList = new StringBuilder();
 		htmlList.append("<ul class=\"bullet-list\">");
-		for (String childId : layersIds) {
-			AbstractLayerConfig child = completeLayerMap.get(childId);
-			if (child != null) {
-				htmlList.append("<li>");
-				String title = child.getTitle();
-				if (title != null) {
-					title = title.trim();
-				}
-				if (Utils.isBlank(title)) {
-					title = "NO NAME";
-				}
-				title = Utils.safeHTMLStr(title);
-				htmlList.append(title);
+		for (int i=0, len=childrenLayersIds.length(); i<len; i++) {
+			String childId = childrenLayersIds.optString(i, null);
+			if (childId != null) {
+				JSONObject child = layers.optJSONObject(childId);
+				if (child != null) {
+					htmlList.append("<li>");
+					String title = child.optString("title", child.optString("layerName", null));
+					if (title != null) {
+						title = title.trim();
+					}
+					if (Utils.isBlank(title)) {
+						title = "NO NAME";
+					}
+					title = Utils.safeHTMLStr(title);
+					htmlList.append(title);
 
-				String[] childLayers = null;
-				if (child instanceof GroupLayerConfig) {
-					childLayers = ((GroupLayerConfig)child).getLayers();
-				}
+					String[] childLayers = null;
+					if ("GROUP".equals(child.optString("dataSourceType", null))) {
+						JSONArray childrenLayers = child.optJSONArray("layers");
+						if (childrenLayers != null && childrenLayers.length() > 0) {
+							htmlList.append(this.getHTMLListAndHideChildrenLayers(layers, childrenLayers));
+						}
+					}
+					htmlList.append("</li>");
 
-				if (childLayers != null && childLayers.length > 0) {
-					htmlList.append(this.getHTMLListAndHideChildrenLayers(completeLayerMap, childLayers));
-				}
-				htmlList.append("</li>");
-
-				// Hide the children layer from the Catalog
-				if (child.isShownOnlyInLayerGroup() == null) {
-					child.setShownOnlyInLayerGroup(true);
+					// Hide the children layer from the Catalog
+					if (child.isNull("shownOnlyInLayerGroup")) {
+						child.put("shownOnlyInLayerGroup", true);
+					}
 				}
 			}
 		}

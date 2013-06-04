@@ -213,6 +213,25 @@ public abstract class AbstractConfig implements Cloneable {
 			} else {
 				return null;
 			}
+		} else if (rawValue instanceof Collection) {
+			Collection rawCollection = (Collection) rawValue;
+			JSONArray jsonArray = new JSONArray();
+			// Remove null entries
+			for (Object object : rawCollection) {
+				if (object != null) {
+					Object value = cleanValue(object);
+					if (value != null) {
+						jsonArray.put(value);
+					}
+				}
+			}
+			if (jsonArray.length() > 0) {
+				return jsonArray;
+			} else {
+				return null;
+			}
+		} else if (rawValue instanceof AbstractConfig) {
+			return ((AbstractConfig)rawValue).toJSonObject();
 		}
 
 		return rawValue;

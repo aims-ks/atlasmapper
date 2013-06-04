@@ -44,8 +44,8 @@ public class KMLLayerConfig extends AbstractLayerConfig {
 	}
 
 	@Override
-	public JSONObject generateLayer(AbstractLayerConfig cachedLayer) throws JSONException {
-		JSONObject jsonLayer = super.generateLayer(cachedLayer);
+	public JSONObject generateLayer() throws JSONException {
+		JSONObject jsonLayer = super.generateLayer();
 
 		if (Utils.isNotBlank(this.getKmlUrl())) {
 			jsonLayer.put("kmlUrl", this.getKmlUrl().trim());
