@@ -23,6 +23,7 @@ package au.gov.aims.atlasmapperserver.layerConfig;
 
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
+import au.gov.aims.atlasmapperserver.jsonWrappers.client.LayerWrapper;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -96,21 +97,21 @@ public class ArcGISCacheLayerConfig extends ArcGISMapServerLayerConfig {
 	}
 
 	@Override
-	public JSONObject generateLayer() throws JSONException {
-		JSONObject jsonLayer = super.generateLayer();
+	public LayerWrapper generateLayer() throws JSONException {
+		LayerWrapper layerWrapper = super.generateLayer();
 
 		if (this.getTileCols() != null && this.getTileRows() != null) {
-			jsonLayer.put("arcGISCacheTileCols", this.getTileCols());
-			jsonLayer.put("arcGISCacheTileRows", this.getTileRows());
+			layerWrapper.setArcGISCacheTileCols(this.getTileCols());
+			layerWrapper.setArcGISCacheTileRows(this.getTileRows());
 		}
 		if (this.getTileOriginX() != null && this.getTileOriginY() != null) {
-			jsonLayer.put("arcGISCacheTileOriginX", this.getTileOriginX());
-			jsonLayer.put("arcGISCacheTileOriginY", this.getTileOriginY());
+			layerWrapper.setArcGISCacheTileOriginX(this.getTileOriginX());
+			layerWrapper.setArcGISCacheTileOriginY(this.getTileOriginY());
 		}
 		if (this.getTileResolutions() != null) {
-			jsonLayer.put("arcGISCacheTileResolutions", this.getTileResolutions());
+			layerWrapper.setArcGISCacheTileResolutions(this.getTileResolutions());
 		}
 
-		return jsonLayer;
+		return layerWrapper;
 	}
 }

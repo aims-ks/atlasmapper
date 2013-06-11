@@ -22,7 +22,6 @@
 package au.gov.aims.atlasmapperserver.dataSourceConfig;
 
 import au.gov.aims.atlasmapperserver.AbstractConfig;
-import au.gov.aims.atlasmapperserver.ClientConfig;
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.Errors;
 import au.gov.aims.atlasmapperserver.URLCache;
@@ -32,22 +31,25 @@ import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
-import java.util.Date;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import au.gov.aims.atlasmapperserver.jsonWrappers.client.DataSourceWrapper;
 import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
 import au.gov.aims.atlasmapperserver.servlet.FileFinder;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONSortedObject;
@@ -73,13 +75,8 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 	@ConfigField
 	private String dataSourceType;
 
-	@ConfigField
-	private String lastHarvested;
-
-	@ConfigField
-	private boolean valid;
-
-	@ConfigField
+	// Used to be called "wmsServiceUrl", renamed to "serviceUrl" since it apply many type of layers, not just WMS.
+	@ConfigField(alias="wmsServiceUrl")
 	private String serviceUrl;
 
 	@ConfigField
@@ -138,26 +135,41 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 		File applicationFolder = this.getConfigManager().getApplicationFolder();
 		File dataSourceCatalogFile = FileFinder.getDataSourcesCatalogFile(applicationFolder, this.dataSourceId);
 
-		JSONObject jsonCatalog = this.toJSonObject();
+		DataSourceWrapper dataSourceWrapper = new DataSourceWrapper(this.toJSonObject(true));
 
 		JSONObject jsonLayers = new JSONObject();
 		for (AbstractLayerConfig layer : layerCatalog.getLayers()) {
-			jsonLayers.put(layer.getLayerId(), layer.generateLayer());
+			jsonLayers.put(layer.getLayerId(), layer.toJSonObject());
 		}
-		jsonCatalog.put("layers", jsonLayers);
+		dataSourceWrapper.setLayers(jsonLayers);
+		boolean valid = true;
 		if (layerCatalog.getErrors() != null) {
 			JSONObject jsonErrors = layerCatalog.getErrors().toJSON();
-			jsonCatalog.put("errors", jsonErrors.optJSONArray("errors"));
-			jsonCatalog.put("warnings", jsonErrors.optJSONArray("warnings"));
-			jsonCatalog.put("messages", jsonErrors.optJSONArray("messages"));
+
+			JSONArray errors = jsonErrors.optJSONArray("errors");
+			if (errors != null && errors.length() > 0) {
+				dataSourceWrapper.setErrors(errors);
+				valid = false;
+			}
+
+			JSONArray warnings = jsonErrors.optJSONArray("warnings");
+			if (warnings != null && warnings.length() > 0) {
+				dataSourceWrapper.setWarnings(warnings);
+			}
+
+			JSONArray messages = jsonErrors.optJSONArray("messages");
+			if (messages != null && messages.length() > 0) {
+				dataSourceWrapper.setMessages(messages);
+			}
 		}
+		dataSourceWrapper.setValid(valid);
 
 		Writer writer = null;
 		BufferedWriter bw = null;
 		try {
 			writer = new FileWriter(dataSourceCatalogFile);
 			bw = new BufferedWriter(writer);
-			String jsonStr = Utils.jsonToStr(jsonCatalog);
+			String jsonStr = Utils.jsonToStr(dataSourceWrapper.getJSON());
 			if (Utils.isNotBlank(jsonStr)) {
 				bw.write(jsonStr);
 			}
@@ -181,22 +193,20 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 		}
 	}
 
-	public static JSONObject load(File applicationFolder, String dataSourceID) {
-		File dataSourceCatalogFile = FileFinder.getDataSourcesCatalogFile(applicationFolder, dataSourceID);
+	public static DataSourceWrapper load(File applicationFolder, String dataSourceId) throws FileNotFoundException, JSONException {
+		return AbstractDataSourceConfig.load(FileFinder.getDataSourcesCatalogFile(applicationFolder, dataSourceId));
+	}
 
-		if (!dataSourceCatalogFile.exists()) {
-			throw new IllegalStateException("The data source " + dataSourceID + " need to be harvested.");
+	public static DataSourceWrapper load(File dataSourceSavedStateFile) throws FileNotFoundException, JSONException {
+		if (!dataSourceSavedStateFile.exists()) {
+			return null;
 		}
 
-		JSONObject jsonCatalog = null;
+		DataSourceWrapper dataSourceWrapper = null;
 		Reader reader = null;
 		try {
-			reader = new FileReader(dataSourceCatalogFile);
-			jsonCatalog = new JSONObject(new JSONTokener(reader));
-		} catch(Exception ex) {
-			jsonCatalog = null;
-			LOGGER.log(Level.SEVERE, "Can not load the data source catalog: {0}", Utils.getExceptionMessage(ex));
-			LOGGER.log(Level.FINE, "Stack trace:", ex);
+			reader = new FileReader(dataSourceSavedStateFile);
+			dataSourceWrapper = new DataSourceWrapper(new JSONObject(new JSONTokener(reader)));
 		} finally {
 			if (reader != null) {
 				try {
@@ -208,44 +218,50 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 			}
 		}
 
-		return jsonCatalog;
+		return dataSourceWrapper;
 	}
 
-	public Errors process(boolean harvest) throws Exception {
-		// Harvest the layers
-		LayerCatalog layerCatalog = this.getLayerCatalog(harvest);
+	public void deleteCachedState() {
+		File applicationFolder = this.getConfigManager().getApplicationFolder();
+		File dataSourceCatalogFile = FileFinder.getDataSourcesCatalogFile(applicationFolder, this.dataSourceId);
 
-		// Collect error messages
-		Errors layerErrors = layerCatalog.getErrors();
-
-		// Verify if there is error (it may contains only warnings)
-		boolean hasError = !layerErrors.getErrors().isEmpty();
-
-		if (!hasError) {
-			// Do not change it if the last download fail, the previous one may still be usable.
-			this.setValid(true);
+		if (dataSourceCatalogFile.exists()) {
+			dataSourceCatalogFile.delete();
 		}
+	}
 
-		// Change last update date
-		this.setLastHarvestedDate(new Date());
-		// Write the changes to disk
-		this.getConfigManager().saveServerConfig();
+	/**
+	 * 1. Clone myself
+	 * 2. Download / parse the capabilities doc
+	 * 3. Set the layers and capabilities overrides into the clone
+	 * 4. Save the state into a file
+	 * 5*. Modify myself (change harvested date) - TODO Discover that info from the saved state file.
+	 * @return
+	 * @throws Exception
+	 */
+	public Errors process(boolean clearCapabilitiesCache, boolean clearMetadataCache) throws Exception {
+		// 1. Clone myself
+		AbstractDataSourceConfig clone = (AbstractDataSourceConfig) this.clone();
 
-		// Save the data source state
-		this.save(layerCatalog);
+		// 2. Download / parse the capabilities doc
+		// 3. Set the layers and capabilities overrides into the clone
+		LayerCatalog layerCatalog = clone.getLayerCatalog(clearCapabilitiesCache, clearMetadataCache);
 
-		return layerErrors;
+		// 4. Save the data source state into a file
+		clone.save(layerCatalog);
+
+		return layerCatalog.getErrors();
 	}
 
 	// LayerCatalog - Before data source overrides
-	private LayerCatalog getRawLayerCatalog(boolean harvest) throws Exception {
-		LayerCatalog rawLayerCatalog = new LayerCatalog();
+	private LayerCatalog getRawLayerCatalog(boolean clearCapabilitiesCache, boolean clearMetadataCache) throws Exception {
+		LayerCatalog rawLayerCatalog = null;
 
 		AbstractLayerGenerator layerGenerator = this.createLayerGenerator();
 		if (layerGenerator != null) {
-			rawLayerCatalog.addLayers(layerGenerator.generateLayerConfigs(this, harvest));
-			rawLayerCatalog.addAllErrors(layerGenerator.getErrors());
+			rawLayerCatalog = layerGenerator.generateLayerCatalog(this, clearCapabilitiesCache, clearMetadataCache);
 
+			// TODO Do this in the layer generator
 			Errors errorMessages = URLCache.getDataSourceErrors(this, this.getConfigManager().getApplicationFolder());
 			rawLayerCatalog.addAllErrors(errorMessages);
 		}
@@ -255,16 +271,9 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 
 	// LayerCatalog - After data source overrides
 
-	/**
-	 *
-	 * @param harvest True to download the associated documents (like the capabilities documents),
-	 *     false to use the cached documents.
-	 * @return
-	 * @throws Exception
-	 */
-	public LayerCatalog getLayerCatalog(boolean harvest) throws Exception {
+	public LayerCatalog getLayerCatalog(boolean clearCapabilitiesCache, boolean clearMetadataCache) throws Exception {
 		// LayerCatalog before overrides
-		LayerCatalog rawLayerCatalog = this.getRawLayerCatalog(harvest);
+		LayerCatalog rawLayerCatalog = this.getRawLayerCatalog(clearCapabilitiesCache, clearMetadataCache);
 
 		// Map of layers, after overrides, used to create the final layer catalog
 		HashMap<String, AbstractLayerConfig> layersMap = new HashMap<String, AbstractLayerConfig>();
@@ -355,7 +364,7 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 
 		int nbLayers = layerCatalog.getLayers().size();
 
-		// TODO
+		// TODO Add nb cached layers
 		//layerCatalog.addMessage(this.getDataSourceId(), "The data source contains " + nbLayers + " layer" + (nbLayers > 1 ? "s" : "") +
 		//		" and " + nbCachedLayers + " cached layer" + (nbCachedLayers > 1 ? "s" : ""));
 		layerCatalog.addMessage("The data source contains " + nbLayers + " layer" + (nbLayers > 1 ? "s" : ""));
@@ -425,50 +434,32 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 		this.dataSourceType = dataSourceType;
 	}
 
-	public String getLastHarvested() {
-		if (this.lastHarvested == null || this.lastHarvested.isEmpty()) {
-			return "Unknown";
-		}
-		return this.lastHarvested;
-	}
-
-	public void setLastHarvested(String lastHarvested) {
-		this.lastHarvested = lastHarvested;
-	}
-
-	public void setLastHarvestedDate(Date lastHarvestedDate) {
-		this.setLastHarvested(
-				lastHarvestedDate == null ? null : ConfigManager.DATE_FORMATER.format(lastHarvestedDate));
-	}
-
-	public boolean isValid() {
-		return this.valid;
-	}
-
-	public void setValid(boolean valid) {
-		this.valid = valid;
-	}
-
 	public String getFeatureRequestsUrl() {
-		return featureRequestsUrl;
+		return this.featureRequestsUrl;
 	}
-
+	public void setFeatureRequestsUrl(URL featureRequestsUrl) {
+		this.setFeatureRequestsUrl(featureRequestsUrl == null ? null : featureRequestsUrl.toString());
+	}
 	public void setFeatureRequestsUrl(String featureRequestsUrl) {
 		this.featureRequestsUrl = featureRequestsUrl;
 	}
 
 	public String getServiceUrl() {
-		return serviceUrl;
+		return this.serviceUrl;
 	}
-
+	public void setServiceUrl(URL serviceUrl) {
+		this.setServiceUrl(serviceUrl == null ? null : serviceUrl.toString());
+	}
 	public void setServiceUrl(String serviceUrl) {
 		this.serviceUrl = serviceUrl;
 	}
 
 	public String getLegendUrl() {
-		return legendUrl;
+		return this.legendUrl;
 	}
-
+	public void setLegendUrl(URL legendUrl) {
+		this.setLegendUrl(legendUrl == null ? null : legendUrl.toString());
+	}
 	public void setLegendUrl(String legendUrl) {
 		this.legendUrl = legendUrl;
 	}
@@ -595,26 +586,62 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 		return srvName.toLowerCase().compareTo(othName.toLowerCase());
 	}
 
-	// Nothing to do here
-	public AbstractDataSourceConfig applyOverrides() {
-		return this;
-	}
-
-	// Generate the config to be sent to the clients
-	// TODO Remove clientConfig parameter!!
-	public JSONObject generateDataSource(ClientConfig clientConfig) throws JSONException {
-		JSONObject dataSource = AbstractDataSourceConfigInterfaceHelper.generateDataSourceInterface(this, clientConfig);
-
-		return dataSource;
-	}
-
+	// Generate the config to be display in the admin page
 	@Override
 	public JSONObject toJSonObject() throws JSONException {
-		JSONObject json = super.toJSonObject();
-		if (this.globalManualOverride != null) {
-			json.put("globalManualOverride", this.globalManualOverride.toString(4));
+		return this.toJSonObject(false);
+	}
+
+	// Generate the config to be display in the admin page, or saved as a data source saved state
+	public JSONObject toJSonObject(boolean forSavedState) throws JSONException {
+		DataSourceWrapper dataSourceWrapper = new DataSourceWrapper(super.toJSonObject());
+
+		if (forSavedState) {
+			// Remove attributes that are not needed for the saved state
+
+			// Overrides are not needed; they have already been processed at this point
+			dataSourceWrapper.setGlobalManualOverride(null);
+
+			// Black and white list is not needed, the layers has already been filtered at this point
+			dataSourceWrapper.setBlackAndWhiteListedLayers(null);
+
+			// Comments are only useful for the admin interface.
+			dataSourceWrapper.setComment(null);
+
+			// Save the legend parameters as a JSONObject (the wrapper do the conversion from String to JSON)
+			dataSourceWrapper.setLegendParameters(this.getLegendParameters());
+		} else {
+			if (this.globalManualOverride != null) {
+				dataSourceWrapper.setGlobalManualOverride(this.globalManualOverride.toString(4));
+			}
+
+			// Add lastHarvested date and the valid flag to the JSON object.
+			boolean valid = false;
+			File applicationFolder = this.getConfigManager().getApplicationFolder();
+			File dataSourceCatalogFile = FileFinder.getDataSourcesCatalogFile(applicationFolder, this.dataSourceId);
+			if (dataSourceCatalogFile.exists()) {
+				try {
+					DataSourceWrapper dataSourceSavedState = AbstractDataSourceConfig.load(dataSourceCatalogFile);
+
+					if (dataSourceSavedState != null) {
+						Boolean validObj = dataSourceSavedState.getValid();
+						valid = validObj != null && validObj;
+
+						// lastModified() returns 0L if the file do not exists of an exception occurred.
+						long timestamp = dataSourceCatalogFile.lastModified();
+						if (timestamp > 0) {
+							dataSourceWrapper.setLastHarvested(ConfigManager.DATE_FORMATER.format(timestamp));
+						}
+					}
+				} catch (FileNotFoundException ex) {
+					// This should not happen, there is already a check to see if the file exists.
+					LOGGER.log(Level.FINE, "Can not load the data source [" + this.dataSourceId + "] saved state");
+				}
+			}
+			dataSourceWrapper.setValid(valid);
 		}
-		return json;
+
+		return dataSourceWrapper.getJSON();
 	}
 
 	@Override

@@ -23,6 +23,7 @@ package au.gov.aims.atlasmapperserver.layerGenerator;
 
 import au.gov.aims.atlasmapperserver.dataSourceConfig.GoogleDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.GoogleLayerConfig;
+import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -32,10 +33,6 @@ import java.util.Collection;
  * @author glafond
  */
 public class GoogleLayerGenerator extends AbstractLayerGenerator<GoogleLayerConfig, GoogleDataSourceConfig> {
-	public GoogleLayerGenerator(GoogleDataSourceConfig dataSource) {
-		super(dataSource);
-	}
-
 	/**
 	 * The number of Google Layers is fix and they already have unique IDs. Nothing to do here.
 	 * @param layer
@@ -57,26 +54,21 @@ public class GoogleLayerGenerator extends AbstractLayerGenerator<GoogleLayerConf
 	 * NOTE: Harvest is ignored since there is nothing to harvest.
 	 */
 	@Override
-	public Collection<GoogleLayerConfig> generateLayerConfigs(GoogleDataSourceConfig dataSourceConfig, boolean harvest) {
-		Collection<GoogleLayerConfig> googleLayers = new ArrayList<GoogleLayerConfig>();
+	public LayerCatalog generateLayerCatalog(GoogleDataSourceConfig dataSourceConfig, boolean clearCapabilitiesCache, boolean clearMetadataCache) {
+		LayerCatalog layerCatalog = new LayerCatalog();
 
-		googleLayers.add(this.createGoogleLayer(dataSourceConfig, "TERRAIN", "Google Physical", null, 16));
+		layerCatalog.addLayer(this.createGoogleLayer(dataSourceConfig, "TERRAIN", "Google Physical", null, 16));
 
 		// This layer goes up to 22, but it's pointless to go that close... 20 is good enough
-		googleLayers.add(this.createGoogleLayer(dataSourceConfig, "ROADMAP", "Google Streets", null, 20));
+		layerCatalog.addLayer(this.createGoogleLayer(dataSourceConfig, "ROADMAP", "Google Streets", null, 20));
 
 		// The number of zoom level is a mix of 20 - 22, depending on the location, OpenLayers do not support that very well...
-		googleLayers.add(this.createGoogleLayer(dataSourceConfig, "HYBRID", "Google Hybrid", null, 20));
+		layerCatalog.addLayer(this.createGoogleLayer(dataSourceConfig, "HYBRID", "Google Hybrid", null, 20));
 
 		// The number of zoom level is a mix of 20 - 22, depending on the location, OpenLayers do not support that very well...
-		googleLayers.add(this.createGoogleLayer(dataSourceConfig, "SATELLITE", "Google Satellite", null, 20));
+		layerCatalog.addLayer(this.createGoogleLayer(dataSourceConfig, "SATELLITE", "Google Satellite", null, 20));
 
-		return googleLayers;
-	}
-
-	@Override
-	public GoogleDataSourceConfig applyOverrides(GoogleDataSourceConfig dataSourceConfig) {
-		return dataSourceConfig;
+		return layerCatalog;
 	}
 
 	private GoogleLayerConfig createGoogleLayer(GoogleDataSourceConfig dataSourceConfig, String googleLayerType, String name, String description, Integer numZoomLevels) {

@@ -126,7 +126,7 @@ Atlas.Layer.NCWMS = OpenLayers.Class(Atlas.Layer.WMS, {
 
 	// Override
 	setOptions: function(optionsPanel) {
-		var serviceUrl = this.json['wmsServiceUrl'];
+		var serviceUrl = this.json['serviceUrl'];
 
 		// TODO Remove ExtJS dependency!!
 		var url = serviceUrl + '?' + Ext.urlEncode({

@@ -118,14 +118,22 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 			return null;
 		}
 
-		var serviceUrl = this.json['wmsServiceUrl'];
+		var serviceUrl = this.json['serviceUrl'];
 		if (this.json['webCacheUrl'] &&
 				this._canUseWebCache(layerParams, newParams)) {
 
 			serviceUrl = this.json['webCacheUrl'];
+			this.setWebCacheParameters(newParams ? newParams : layerParams);
+		} else {
+			this.setDirectParameters(newParams ? newParams : layerParams);
 		}
 		return serviceUrl;
 	},
+
+	// Override to set specific parameter according to the service used.
+	// See: WMS.js
+	setWebCacheParameters: function(params) {},
+	setDirectParameters: function(params) {},
 
 	_canUseWebCache: function(layerParams, newParams) {
 		if (!this.useCache || this.json == null || (typeof(this.json['cached']) !== 'undefined' && !this.json['cached'])) {
@@ -178,18 +186,27 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 			return true;
 		}
 
-		for (var i=0; i < supportedParams.length; i++) {
+		for (var i=0, leni=supportedParams.length; i < leni; i++) {
 			var supportedParam = supportedParams[i];
 			if (supportedParam.toUpperCase() === paramName.toUpperCase()) {
 				// Exception for STYLES
 				if (paramName.toUpperCase() === 'STYLES') {
-					if (typeof(this.json['styles']) === 'undefined' ||
-							typeof(this.json['styles'][value]) === 'undefined' ||
-							typeof(this.json['styles'][value]['cached']) === 'undefined' ||
-							this.json['styles'][value]['cached'] === null) {
+					if (typeof(this.json['styles']) === 'undefined') {
 						return false;
 					}
-					return !!this.json['styles'][value]['cached'];
+					var foundStyle = null;
+					for (var j=0, lenj=this.json['styles'].length; j < lenj; j++) {
+						if (typeof(this.json['styles']['name']) !== 'undefined' && this.json['styles']['name'] === value) {
+							foundStyle = this.json['styles'];
+						}
+					}
+
+					if (foundStyle === null ||
+							typeof(foundStyle['cached']) === 'undefined' ||
+							foundStyle['cached'] === null) {
+						return false;
+					}
+					return !!foundStyle['cached'];
 				}
 				return true;
 			}

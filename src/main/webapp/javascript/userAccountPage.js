@@ -161,26 +161,22 @@ Ext.onReady(function() {
 	function loadFailed(form, action) {
 		var failureMessage = "An error occurred while trying to retrieve the data.";
 
-		// Failure type returned when a communication error happens when
-		// attempting to send a request to the remote server.
-		if (action.failureType == Ext.form.Action.CONNECT_FAILURE) {
+		if (action && action.response) {
+			if (action.response.responseText) {
+				var responseObj = Ext.JSON.decode(action.response.responseText);
+				frameset.setErrors(failureMessage, responseObj, action.response.status);
+			} else {
+				// The XMLHttpRequest object containing the
+				// response data. See http://www.w3.org/TR/XMLHttpRequest/ for
+				// details about accessing elements of the response.
+				failureMessage = "Please contact support with the following:<br/>" +
+					"Error (" + action.response.status + "): " +
+					action.response.statusText;
 
-			// The XMLHttpRequest object containing the
-			// response data. See http://www.w3.org/TR/XMLHttpRequest/ for
-			// details about accessing elements of the response.
-			failureMessage = "Please contact support with the following:<br/>" +
-				"Error (" + action.response.status + "): " +
-				action.response.statusText;
-
-			frameset.setError(failureMessage, action.response.status);
-		} else {
-			var responseObj = null;
-			var statusCode = null;
-			if (action && action.response) {
-				responseObj = Ext.JSON.decode(action.response.responseText);
-				statusCode = action.response.status;
+				frameset.setError(failureMessage, action.response.status);
 			}
-			frameset.setErrors(failureMessage, responseObj, statusCode);
+		} else {
+			frameset.setError(failureMessage, 500);
 		}
 	}
 

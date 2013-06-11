@@ -1,4 +1,4 @@
-package au.gov.aims.atlasmapperserver.layerConfig;/*
+/*
  *  This file is part of AtlasMapper server and clients.
  *
  *  Copyright (C) 2012 Australian Institute of Marine Science
@@ -18,6 +18,7 @@ package au.gov.aims.atlasmapperserver.layerConfig;/*
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+package au.gov.aims.atlasmapperserver.layerConfig;
 
 import java.util.Comparator;
 

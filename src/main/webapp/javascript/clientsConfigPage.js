@@ -876,7 +876,7 @@ Ext.define('Writer.ClientConfigGrid', {
 								// Show the "Edit" window.
 								var rec = grid.getStore().getAt(rowIndex);
 								if (rec) {
-									var clientConfigFormWindow = this.getClientConfigFormWindow('save');
+									var clientConfigFormWindow = this.getClientConfigFormWindow('save', rec);
 									clientConfigFormWindow.show();
 									clientConfigFormWindow.child('.form').setActiveRecord(rec);
 								}
@@ -890,18 +890,9 @@ Ext.define('Writer.ClientConfigGrid', {
 							tooltip: 'Generate<br/>Push the modifications to the live client',
 							handler: function(grid, rowIndex, colIndex) {
 								var rec = grid.getStore().getAt(rowIndex);
-								var isGenerated = !!rec.get('clientUrl');
-								var clientName = 'UNKNOWN';
-								if (rec) {
-									if (rec.get('clientName')) {
-										clientName = rec.get('clientName');
-									} else {
-										clientName = rec.get('clientId');
-									}
-								}
-								that.confirmRegenerate(rec.get('id'), clientName, isGenerated);
+								that.confirmRegenerate(rec);
 							}
-						}, {
+						}/*, {
 							icon: '../resources/icons/cog-error.png',
 
 							// Bug: defaults are ignored (http://www.sencha.com/forum/showthread.php?138446-actioncolumn-ignore-defaults)
@@ -956,7 +947,7 @@ Ext.define('Writer.ClientConfigGrid', {
 									}
 								});
 							}
-						}
+						}*/
 					]
 				}
 			]
@@ -1240,6 +1231,8 @@ Ext.define('Writer.ClientConfigGrid', {
 		};
 		debugWindow.setEditAreasData = function(jsonData, clientId) {
 			if (jsonData && jsonData.mainClient && jsonData.embeddedClient && jsonData.layers) {
+				// TODO Delete this feature of do it differently
+				/*
 				debugWindow.setEditAreaData(
 						Ext.getCmp(jsonEditAreaCurrentMainConfId),
 						Ext.getCmp(displayLinkCurrentMainConfId),
@@ -1272,6 +1265,7 @@ Ext.define('Writer.ClientConfigGrid', {
 						Ext.getCmp(displayLinkNewLayersId),
 						'getClientConfigFile.jsp?configType=layers&live=true&clientId='+clientId,
 						jsonData.layers.generated);
+				*/
 			} else {
 				frameset.setError('Can not request the configuration files. Try reloading the page.');
 			}
@@ -1320,8 +1314,9 @@ Ext.define('Writer.ClientConfigGrid', {
 		return debugWindow;
 	},
 
-	getClientConfigFormWindow: function(action) {
+	getClientConfigFormWindow: function(action, rec) {
 		var actionButton = null;
+		var that = this;
 		if (action == 'add') {
 			actionButton = Ext.create('Ext.button.Button', {
 				iconCls: 'icon-add',
@@ -1343,13 +1338,22 @@ Ext.define('Writer.ClientConfigGrid', {
 					var form = window.child('.form');
 					if (form.onSave()) {
 						window.close();
+						// The store auto-reload is only triggered when the server returns a success=true.
+						// Sometime, the failure is not due to not been able to save the data, but because of an IO.
+						// In those case (example; moving the client to a folder with no write access),
+						// we want the store to be reloaded so we can display the updated values.
+						that.store.load();
 					}
 				}
 			});
 		}
 
+		var title = 'Client configuration';
+		if (rec) {
+			title += ' for <i>' + rec.get('clientName') + ' ('+ rec.get('clientId') +')</i>';
+		}
 		return Ext.create('Ext.window.Window', {
-			title: 'Client configuration',
+			title: title,
 			width: 700,
 			height: 500,
 			maxHeight: Ext.getBody().getViewSize().height,
@@ -1392,7 +1396,16 @@ Ext.define('Writer.ClientConfigGrid', {
 	 * id: Numerical is of the client (used in the Grid)
 	 * clientName: Display name of the client, for user friendly messages
 	 */
-	confirmRegenerate: function(id, clientName, isGenerated) {
+	confirmRegenerate: function(rec) {
+		var id = -1;
+		var isGenerated = false;
+		var clientName = "UNKNOWN";
+		if (rec) {
+			id = rec.get('id')
+			isGenerated = !!rec.get('clientUrl');
+			clientName = rec.get('clientName') + ' (' + rec.get('clientId') + ')';
+		}
+
 		var that = this;
 		Ext.create('Ext.window.Window', {
 			layout:'fit',
@@ -1456,8 +1469,8 @@ Ext.define('Writer.ClientConfigGrid', {
 		var that = this;
 		frameset.setSavingMessage(
 				complete ?
-					'Regenerating all '+clientName+' files...' :
-					'Regenerating '+clientName+' configuration files...');
+					'Complete regeneration of <i>'+clientName+'</i>...' :
+					'Regenerating <i>'+clientName+'</i> configuration files and index pages...');
 
 		// Request the data and update the window when we receive it
 		Ext.Ajax.request({
@@ -1472,27 +1485,30 @@ Ext.define('Writer.ClientConfigGrid', {
 			success: function(response){
 				var responseObj = null;
 				var statusCode = response ? response.status : null;
+				var clientName = 'UNKNOWN';
 				if (response && response.responseText) {
 					try {
 						responseObj = Ext.decode(response.responseText);
+						clientName = responseObj.clientName + ' (' + responseObj.clientId + ')';
 					} catch (err) {
 						responseObj = {errors: [err.toString()]};
 					}
 				}
 				if(responseObj && responseObj.success){
 					if (responseObj.errors || responseObj.warnings) {
-						frameset.setErrorsAndWarnings('Generation passed', 'Warning(s) occurred while generating the client configuration.', responseObj, statusCode);
+						frameset.setErrorsAndWarnings('Generation of <i>'+clientName+'</i> passed', 'Warning(s) occurred while generating the client configuration.', responseObj, statusCode);
 					} else if (responseObj.messages) {
-						frameset.setErrorsAndWarnings('Generation succeed', null, responseObj, statusCode);
+						frameset.setErrorsAndWarnings('Generation of <i>'+clientName+'</i> succeed', null, responseObj, statusCode);
 					} else {
-						frameset.setSavedMessage('client configuration generated successfully.');
+						frameset.setSavedMessage('Generation of <i>'+clientName+'</i> succeed');
 					}
 					that.onReload();
 				} else {
-					frameset.setErrorsAndWarnings('Generation failed', 'Error(s) / warning(s) occurred while generating the client configuration.', responseObj, statusCode);
+					frameset.setErrorsAndWarnings('Generation of <i>'+clientName+'</i> failed', 'Error(s) / warning(s) occurred while generating the client configuration.', responseObj, statusCode);
 				}
 			},
 			failure: function(response) {
+				var clientName = 'UNKNOWN';
 				if (response.timedout) {
 					frameset.setError('Request timed out.', 408);
 				} else {
@@ -1501,11 +1517,12 @@ Ext.define('Writer.ClientConfigGrid', {
 					if (response && response.responseText) {
 						try {
 							responseObj = Ext.decode(response.responseText);
+							clientName = responseObj.clientName + ' (' + responseObj.clientId + ')';
 						} catch (err) {
 							responseObj = {errors: [err.toString()]};
 						}
 					}
-					frameset.setErrors('An error occurred while generating the client configuration.', responseObj, statusCode);
+					frameset.setErrors('An error occurred while generating the client '+clientName+'.', responseObj, statusCode);
 				}
 			}
 		});

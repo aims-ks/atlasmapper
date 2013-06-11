@@ -151,7 +151,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 			'showInLegend': true,
 			'forcePNG24': true,
 			'legendParameters': 'FORMAT=image/png\nHEIGHT=10\nWIDTH=20',
-			'webCacheParameters': 'LAYERS, TRANSPARENT, SERVICE, VERSION, REQUEST, EXCEPTIONS, FORMAT, SRS, BBOX, WIDTH, HEIGHT, STYLES'
+			'webCacheSupportedParameters': 'LAYERS, TRANSPARENT, SERVICE, VERSION, REQUEST, EXCEPTIONS, FORMAT, SRS, BBOX, WIDTH, HEIGHT, STYLES'
 		});
 		this.addEvents('create');
 
@@ -405,20 +405,11 @@ Ext.define('Writer.LayerServerConfigForm', {
 			qtipHtml: 'URL to the Web Cache server. This URL will be used to get the tiles for the layers. If the Web Cache server do not support all URL parameters, you have to provide a list of supported parameters in the next field.',
 			name: 'webCacheUrl'
 		};
-		var webCacheParameters = {
+		var webCacheSupportedParameters = {
 			fieldLabel: 'Web Cache supported URL parameters',
 			qtipHtml: 'Coma separated list of URL parameter supported by the Web Cache server. Leave this field blank if the Web Cache server support all parameters. The list of supported URL parameters for GeoWebCache is listed bellow as an example.',
-			name: 'webCacheParameters'
+			name: 'webCacheSupportedParameters'
 		};
-		/*
-		var webCacheParametersExample = {
-			fieldLabel: 'Example: GeoWebCache supported URL parameters',
-			labelStyle: 'font-style:italic',
-			qtipHtml: 'This is an example of "Web Cache supported URL parameters" for GeoWebCache server.',
-			xtype: 'displayfield',
-			value: '<em>LAYERS, TRANSPARENT, SERVICE, VERSION, REQUEST, EXCEPTIONS, FORMAT, SRS, BBOX, WIDTH, HEIGHT</em>'
-		};
-		*/
 		var getMapUrl = {
 			fieldLabel: 'GetMap URL',
 			qtipHtml: 'This field override the GetMap URL provided by the GetCapabilities document.',
@@ -490,7 +481,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 				advancedItems.push(webCacheEnable);
 				advancedItems.push(webCacheCapabilitiesUrl);
 				advancedItems.push(webCacheUrl);
-				advancedItems.push(webCacheParameters);
+				advancedItems.push(webCacheSupportedParameters);
 				advancedItems.push(getMapUrl);
 				advancedItems.push(featureRequestsUrl);
 				break;
@@ -982,134 +973,12 @@ Ext.define('Writer.LayerServerConfigGrid', {
 							icon: '../resources/icons/cog_go.png',
 							// Bug: defaults is ignored (http://www.sencha.com/forum/showthread.php?138446-actioncolumn-ignore-defaults)
 							iconCls: 'grid-icon',
-
-							tooltip: 'Parse data source',
-							scope: this,
-							handler: function(grid, rowIndex, colIndex) {
-								var rec = grid.getStore().getAt(rowIndex);
-								if (rec) {
-									var dataSource = rec.data;
-									if (dataSource) {
-										frameset.setSavingMessage('Processing ' + dataSource.dataSourceName + '.');
-
-										Ext.Ajax.request({
-											url: 'dataSourcesConfig.jsp',
-											timeout: harvestTimeout,
-											params: {
-												'action': 'PROCESS',
-												'id': dataSource.id
-											},
-											success: function(response){
-												var responseObj = null;
-												var statusCode = response ? response.status : null;
-												if (response && response.responseText) {
-													try {
-														responseObj = Ext.decode(response.responseText);
-													} catch (err) {
-														responseObj = {errors: [err.toString()]};
-													}
-												}
-												if(responseObj && responseObj.success){
-													if (responseObj.errors || responseObj.warnings) {
-														frameset.setErrorsAndWarnings('Data source process passed', 'Warning(s) occurred while processing the data source configuration.', responseObj, statusCode);
-													} else if (responseObj.messages) {
-														frameset.setErrorsAndWarnings('Data source process succeed', null, responseObj, statusCode);
-													} else {
-														frameset.setSavedMessage('Data source processed successfully.');
-													}
-												} else {
-													frameset.setErrorsAndWarnings('Process failed', 'Error(s) / warning(s) occurred while processing the data source configuration.', responseObj, statusCode);
-												}
-												that.onReload();
-											},
-											failure: function(response) {
-												if (response.timedout) {
-													frameset.setError('Request timed out.', 408);
-												} else {
-													var statusCode = response ? response.status : null;
-													var responseObj = null;
-													if (response && response.responseText) {
-														try {
-															responseObj = Ext.decode(response.responseText);
-														} catch (err) {
-															responseObj = {errors: [err.toString()]};
-														}
-													}
-													frameset.setErrors('An error occurred while processing the data source configuration.', responseObj, statusCode);
-												}
-												that.onReload();
-											}
-										});
-									}
-								} else {
-									frameset.setError('No record has been selected.');
-								}
-							}
-
-						}, {
-							icon: '../resources/icons/cog_go.png',
-							// Bug: defaults is ignored (http://www.sencha.com/forum/showthread.php?138446-actioncolumn-ignore-defaults)
-							iconCls: 'grid-icon',
-
 							tooltip: 'Run harvest',
 							scope: this,
 							handler: function(grid, rowIndex, colIndex) {
 								var rec = grid.getStore().getAt(rowIndex);
 								if (rec) {
-									var dataSource = rec.data;
-									if (dataSource) {
-										frameset.setSavingMessage('Processing ' + dataSource.dataSourceName + '.');
-
-										Ext.Ajax.request({
-											url: 'dataSourcesConfig.jsp',
-											timeout: harvestTimeout,
-											params: {
-												'action': 'PROCESS',
-												'harvest': true,
-												'id': dataSource.id
-											},
-											success: function(response){
-												var responseObj = null;
-												var statusCode = response ? response.status : null;
-												if (response && response.responseText) {
-													try {
-														responseObj = Ext.decode(response.responseText);
-													} catch (err) {
-														responseObj = {errors: [err.toString()]};
-													}
-												}
-												if(responseObj && responseObj.success){
-													if (responseObj.errors || responseObj.warnings) {
-														frameset.setErrorsAndWarnings('Data source process passed', 'Warning(s) occurred while processing the data source configuration.', responseObj, statusCode);
-													} else if (responseObj.messages) {
-														frameset.setErrorsAndWarnings('Data source process succeed', null, responseObj, statusCode);
-													} else {
-														frameset.setSavedMessage('Data source processed successfully.');
-													}
-												} else {
-													frameset.setErrorsAndWarnings('Process failed', 'Error(s) / warning(s) occurred while processing the data source configuration.', responseObj, statusCode);
-												}
-												that.onReload();
-											},
-											failure: function(response) {
-												if (response.timedout) {
-													frameset.setError('Request timed out.', 408);
-												} else {
-													var statusCode = response ? response.status : null;
-													var responseObj = null;
-													if (response && response.responseText) {
-														try {
-															responseObj = Ext.decode(response.responseText);
-														} catch (err) {
-															responseObj = {errors: [err.toString()]};
-														}
-													}
-													frameset.setErrors('An error occurred while processing the data source configuration.', responseObj, statusCode);
-												}
-												that.onReload();
-											}
-										});
-									}
+									this.getRunHarvestWindowWindow(rec).show();
 								} else {
 									frameset.setError('No record has been selected.');
 								}
@@ -1123,6 +992,124 @@ Ext.define('Writer.LayerServerConfigGrid', {
 		});
 		this.callParent();
 		this.getSelectionModel().on('selectionchange', this.onSelectChange, this);
+	},
+
+	getRunHarvestWindowWindow: function(rec) {
+		var that = this;
+		var dataSourceName = rec.get('dataSourceName') + ' (' + rec.get('dataSourceId') + ')';
+
+		return Ext.create('Ext.window.Window', {
+			title: 'Run harvest for <i>' + dataSourceName + '</i>',
+			width: 300,
+			layout: 'fit',
+			constrainHeader: true,
+			closeAction: 'destroy',
+
+			items: [
+				{
+					xtype: 'form',
+					border: false,
+					bodyPadding: 5,
+					fieldDefaults: {
+						anchor: '100%',
+						labelAlign: 'right',
+						labelWidth: 100
+					},
+					items: [
+						{
+							xtype: 'displayfield',
+							value: 'This action will parse all documents associated with the data source and generate a data source file, which is used by the client generation. Because the download process can takes a lot of time, downloaded documents are cached indefinitely. If you simply want to apply a modification you made to the data source configuration, simply process without checking any of the boxes. If the server holding the layers has changed, added or removed layers, you will need to check the "Clear capabilities document cache" box. If the MEST record of a layer has changed, you will need to check the "Clear MEST records cache".'
+						}, {
+							xtype: 'checkboxfield',
+							qtipHtml: 'TODO',
+							boxLabel: 'Clear capabilities document cache',
+							name: 'clearCapCache'
+						}, {
+							xtype: 'checkboxfield',
+							qtipHtml: 'TODO',
+							boxLabel: 'Clear MEST records cache',
+							name: 'clearMestCache'
+						}
+					]
+				}
+			],
+			buttons: [
+				{
+					text: 'Run harvest',
+					handler: function() {
+						var window = this.ownerCt.ownerCt;
+						var form = window.child('form').getForm();
+						if (form.isValid()) {
+							var values = form.getFieldValues();
+
+							frameset.setSavingMessage('Processing <i>' + dataSourceName + '</i>.');
+
+							Ext.Ajax.request({
+								url: 'dataSourcesConfig.jsp',
+								timeout: harvestTimeout,
+								params: {
+									'action': 'PROCESS',
+									'clearCapCache': !!values['clearCapCache'],
+									'clearMestCache': !!values['clearMestCache'],
+									'id': rec.get('id')
+								},
+								success: function(response){
+									var responseObj = null;
+									var statusCode = response ? response.status : null;
+									if (response && response.responseText) {
+										try {
+											responseObj = Ext.decode(response.responseText);
+										} catch (err) {
+											responseObj = {errors: [err.toString()]};
+										}
+									}
+									if(responseObj && responseObj.success){
+										if (responseObj.errors || responseObj.warnings) {
+											frameset.setErrorsAndWarnings('Data source process passed for <i>'+dataSourceName+'</i>', 'Warning(s) occurred while processing the data source configuration.', responseObj, statusCode);
+										} else if (responseObj.messages) {
+											frameset.setErrorsAndWarnings('Data source process succeed for <i>'+dataSourceName+'</i>', null, responseObj, statusCode);
+										} else {
+											frameset.setSavedMessage('Data source processed successfully for <i>'+dataSourceName+'</i>.');
+										}
+									} else {
+										frameset.setErrorsAndWarnings('Process failed for <i>'+dataSourceName+'</i>', 'Error(s) / warning(s) occurred while processing the data source configuration.', responseObj, statusCode);
+									}
+									that.onReload();
+								},
+								failure: function(response) {
+									if (response.timedout) {
+										frameset.setError('Request timed out for <i>'+dataSourceName+'</i>.', 408);
+									} else {
+										var statusCode = response ? response.status : null;
+										var responseObj = null;
+										if (response && response.responseText) {
+											try {
+												responseObj = Ext.decode(response.responseText);
+											} catch (err) {
+												responseObj = {errors: [err.toString()]};
+											}
+										}
+										frameset.setErrors('An error occurred while processing the data source configuration for <i>'+dataSourceName+'</i>.', responseObj, statusCode);
+									}
+									that.onReload();
+								}
+							});
+
+							window.close();
+						} else {
+							frameset.setError('Some fields contains errors.');
+						}
+					}
+				}, {
+					iconCls: 'icon-cancel',
+					text: 'Cancel',
+					handler: function() {
+						var window = this.ownerCt.ownerCt;
+						window.close();
+					}
+				}
+			]
+		});
 	},
 
 	getDataSourceTypeFormWindow: function() {
@@ -1414,7 +1401,7 @@ Ext.define('Writer.LayerServerConfig', {
 		{name: 'webCacheEnable', type: 'boolean', defaultValue: false},
 		'webCacheCapabilitiesUrl',
 		'webCacheUrl',
-		'webCacheParameters',
+		'webCacheSupportedParameters',
 		'featureRequestsUrl',
 		'legendUrl',
 		'legendParameters',

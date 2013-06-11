@@ -196,10 +196,6 @@ Atlas.Layer.WMS = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 		var layerParams = {
 			layers: this.json['layerName'] || this.json['layerId']
 		};
-		// The WMS version is also used in the WMS requests and the legend graphics.
-		if (this.json['wmsVersion']) {
-			layerParams.version = this.json['wmsVersion'];
-		}
 
 		if (this.json['wmsRequestMimeType']) {
 			layerParams.format = this.json['wmsRequestMimeType'];
@@ -207,10 +203,10 @@ Atlas.Layer.WMS = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 
 		// Select default style if needed
 		if (this.json['styles']) {
-			for (var styleName in this.json['styles']) {
-				var jsonStyle = this.json['styles'][styleName];
-				if (styleName && jsonStyle["default"]) {
-					layerParams.styles = styleName;
+			for (var i=0, len=this.json['styles'].length; i<len; i++) {
+				var jsonStyle = this.json['styles'][i];
+				if (jsonStyle["selected"]) {
+					layerParams.styles = jsonStyle["name"];
 					break;
 				}
 			}
@@ -223,6 +219,15 @@ Atlas.Layer.WMS = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 		}
 
 		return layerParams;
+	},
+
+	setWebCacheParameters: function(params) {
+		// The WMS version is also used in the WMS requests and the legend graphics.
+		params['version'] = this.json['cacheWmsVersion'] ? this.json['cacheWmsVersion'] : null;
+	},
+	setDirectParameters: function(params) {
+		// The WMS version is also used in the WMS requests and the legend graphics.
+		params['version'] = this.json['wmsVersion'] ? this.json['wmsVersion'] : null;
 	},
 
 	// TODO Use this method

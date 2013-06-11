@@ -24,8 +24,8 @@ package au.gov.aims.atlasmapperserver.layerConfig;
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
+import au.gov.aims.atlasmapperserver.jsonWrappers.client.LayerWrapper;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 public class KMLLayerConfig extends AbstractLayerConfig {
 	@ConfigField
@@ -44,11 +44,11 @@ public class KMLLayerConfig extends AbstractLayerConfig {
 	}
 
 	@Override
-	public JSONObject generateLayer() throws JSONException {
-		JSONObject jsonLayer = super.generateLayer();
+	public LayerWrapper generateLayer() throws JSONException {
+		LayerWrapper jsonLayer = super.generateLayer();
 
 		if (Utils.isNotBlank(this.getKmlUrl())) {
-			jsonLayer.put("kmlUrl", this.getKmlUrl().trim());
+			jsonLayer.setKmlUrl(this.getKmlUrl().trim());
 		}
 
 		return jsonLayer;

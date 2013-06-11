@@ -1,7 +1,7 @@
 /*
  *  This file is part of AtlasMapper server and clients.
  *
- *  Copyright (C) 2013 Australian Institute of Marine Science
+ *  Copyright (C) 2012 Australian Institute of Marine Science
  *
  *  Contact: Gael Lafond <g.lafond@aims.org.au>
  *
@@ -18,15 +18,30 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package au.gov.aims.atlasmapperserver.dataSourceConfig;
+package au.gov.aims.atlasmapperserver.jsonWrappers.client;
 
-/**
- * The only use of this interface is to ensure that the data source fields are "overridable" in layer manual overrides.
- */
-public interface ArcGISMapServerDataSourceConfigInterface {
-	public Boolean isForcePNG24();
-	public void setForcePNG24(Boolean forcePNG24);
+import au.gov.aims.atlasmapperserver.jsonWrappers.AbstractWrapper;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
-	public String getIgnoredArcGISPath();
-	public void setIgnoredArcGISPath(String ignoredArcGISPath);
+public class URLSaveState extends AbstractWrapper {
+	public URLSaveState(JSONObject json) {
+		super(json);
+	}
+
+	public JSONArray getLayers() {
+		return this.json.optJSONArray("layers");
+	}
+	public void setLayers(JSONArray layers) throws JSONException {
+		this.json.put("layers", layers);
+	}
+
+	public JSONArray getBounds() {
+		return this.json.optJSONArray("bounds");
+	}
+	public void setBounds(JSONArray bounds) throws JSONException {
+		this.json.put("bounds", bounds);
+	}
+
 }

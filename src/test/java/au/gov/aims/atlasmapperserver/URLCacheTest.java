@@ -1488,7 +1488,7 @@ public class URLCacheTest extends TestCase {
 
 	//     [testSucceedTwiceWithSameResult]
 	//         Get XML GetCapabilities document, parse, commit - timeout - receive same doc after timeout, parse, commit
-	public void testSucceedTwiceWithSameResult() throws IOException, JSONException, URISyntaxException, ServiceException {
+	public void testSucceedTwiceWithSameResult() throws IOException, JSONException, URISyntaxException, SAXException {
 		if (this.serviceExists()) {
 			ConfigManager configManager = getConfigManager();
 			URLCache.clearCache(configManager, false);
@@ -1528,7 +1528,7 @@ public class URLCacheTest extends TestCase {
 
 	//     [testParseFailThenSucceed]
 	//         Get XML GetCapabilities document with stacktrace, unable to parse, rollback - timeout - receive valid document, parse, commit
-	public void testParseFailThenSucceed() throws IOException, JSONException, URISyntaxException, ServiceException {
+	public void testParseFailThenSucceed() throws IOException, JSONException, URISyntaxException, SAXException {
 		if (this.serviceExists()) {
 			ConfigManager configManager = getConfigManager();
 			URLCache.clearCache(configManager, false);
@@ -1570,7 +1570,7 @@ public class URLCacheTest extends TestCase {
 
 	//     [testSucceedThenParseFail]
 	//         Get XML GetCapabilities document, parse, commit - timeout - receive document with stacktrace, unable to parse, rollback
-	public void testSucceedThenParseFail() throws IOException, JSONException, URISyntaxException, ServiceException {
+	public void testSucceedThenParseFail() throws IOException, JSONException, URISyntaxException, SAXException {
 		if (this.serviceExists()) {
 			ConfigManager configManager = getConfigManager();
 			URLCache.clearCache(configManager, false);

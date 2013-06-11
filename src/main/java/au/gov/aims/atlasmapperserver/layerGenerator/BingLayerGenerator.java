@@ -23,18 +23,12 @@ package au.gov.aims.atlasmapperserver.layerGenerator;
 
 import au.gov.aims.atlasmapperserver.dataSourceConfig.BingDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.BingLayerConfig;
+import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
 
 import java.util.ArrayList;
 import java.util.Collection;
 
 public class BingLayerGenerator extends AbstractLayerGenerator<BingLayerConfig, BingDataSourceConfig> {
-	// The layers do not changes often enough to develop some sort of parser.
-	private static Collection<BingLayerConfig> bingLayersCache = null;
-
-	public BingLayerGenerator(BingDataSourceConfig dataSource) {
-		super(dataSource);
-	}
-
 	/**
 	 * The number of Bing Layers is fix and they already have unique IDs. Nothing to do here.
 	 * @param layer
@@ -55,20 +49,14 @@ public class BingLayerGenerator extends AbstractLayerGenerator<BingLayerConfig, 
 	 * NOTE: Harvest is ignored since there is nothing to harvest.
 	 */
 	@Override
-	public Collection<BingLayerConfig> generateLayerConfigs(BingDataSourceConfig dataSourceConfig, boolean harvest) {
-		if (bingLayersCache == null) {
-			bingLayersCache = new ArrayList<BingLayerConfig>();
+	public LayerCatalog generateLayerCatalog(BingDataSourceConfig dataSourceConfig, boolean clearCapabilitiesCache, boolean clearMetadataCache) {
+		LayerCatalog layerCatalog = new LayerCatalog();
 
-			bingLayersCache.add(this.createBingLayer(dataSourceConfig, "Road", "Bing Road", null));
-			bingLayersCache.add(this.createBingLayer(dataSourceConfig, "AerialWithLabels", "Bing Hybrid", null));
-			bingLayersCache.add(this.createBingLayer(dataSourceConfig, "Aerial", "Bing Aerial", null));
-		}
-		return bingLayersCache;
-	}
+		layerCatalog.addLayer(this.createBingLayer(dataSourceConfig, "Road", "Bing Road", null));
+		layerCatalog.addLayer(this.createBingLayer(dataSourceConfig, "AerialWithLabels", "Bing Hybrid", null));
+		layerCatalog.addLayer(this.createBingLayer(dataSourceConfig, "Aerial", "Bing Aerial", null));
 
-	@Override
-	public BingDataSourceConfig applyOverrides(BingDataSourceConfig dataSourceConfig) {
-		return dataSourceConfig;
+		return layerCatalog;
 	}
 
 	private BingLayerConfig createBingLayer(BingDataSourceConfig dataSourceConfig, String bingLayerType, String name, String description) {

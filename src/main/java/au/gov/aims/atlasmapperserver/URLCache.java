@@ -441,12 +441,12 @@ public class URLCache {
 		purgeCache(applicationFolder);
 	}
 
-	public static JSONObject getJSONResponse(ConfigManager configManager, AbstractDataSourceConfig dataSource, String urlStr, boolean mandatory, boolean harvest) throws IOException, JSONException {
+	public static JSONObject getJSONResponse(ConfigManager configManager, AbstractDataSourceConfig dataSource, String urlStr, boolean mandatory, boolean clearCache) throws IOException, JSONException {
 		File jsonFile = null;
 
 		JSONObject jsonResponse = null;
 		try {
-			jsonFile = getURLFile(configManager, dataSource, urlStr, mandatory, harvest);
+			jsonFile = getURLFile(configManager, dataSource, urlStr, mandatory, clearCache);
 			jsonResponse = parseFile(jsonFile, urlStr);
 			commitURLFile(configManager, jsonFile, urlStr);
 		} catch(Exception ex) {
@@ -482,7 +482,7 @@ public class URLCache {
 		return jsonResponse;
 	}
 
-	public static JSONObject getSearchJSONResponse(String urlStr) throws IOException, JSONException {
+	public static JSONObject getSearchJSONResponse(String urlStr) throws IOException, JSONException, URISyntaxException {
 		ResponseWrapper response = getSearchCachedResponse(urlStr);
 
 		if (response == null) {
@@ -501,7 +501,7 @@ public class URLCache {
 		return response.jsonResponse;
 	}
 
-	public static JSONArray getSearchJSONArrayResponse(String urlStr) throws IOException, JSONException {
+	public static JSONArray getSearchJSONArrayResponse(String urlStr) throws IOException, JSONException, URISyntaxException {
 		ResponseWrapper response = getSearchCachedResponse(urlStr);
 
 		if (response == null) {
@@ -520,8 +520,8 @@ public class URLCache {
 		return response.jsonArrayResponse;
 	}
 
-	public static String getUncachedResponse(String urlStr) throws IOException, JSONException {
-		URL url = new URL(urlStr);
+	public static String getUncachedResponse(String urlStr) throws IOException, JSONException, URISyntaxException {
+		URL url = Utils.toURL(urlStr);
 
 		URLConnection connection = url.openConnection();
 		InputStream in = null;
@@ -593,63 +593,20 @@ public class URLCache {
 		return errors;
 	}
 
+	public static WMSCapabilities getWMSCapabilitiesResponse(
+			ConfigManager configManager,
+			AbstractDataSourceConfig dataSource,
+			String urlStr,
+			boolean mandatory,
+			boolean clearCapabilitiesCache) throws IOException, SAXException, JSONException, URISyntaxException {
 
-	// DatasourceID, Errors
-	public static Map<String, Errors> getClientErrors(ClientConfig clientConfig, File applicationFolder) throws IOException, JSONException {
-		File diskCacheFolder = FileFinder.getDiskCacheFolder(applicationFolder);
-		if (diskCacheMap == null) {
-			loadDiskCacheMap(applicationFolder);
-		}
-
-		// Collect warnings
-		Map<String, Errors> errors = new HashMap<String, Errors>();
-
-		// Add errors reported by the disk cache utility (filter with data sources used by the specified client)
-		if (diskCacheMap != null && diskCacheMap.length() > 0) {
-			Iterator<String> urls = diskCacheMap.keys();
-			String url;
-			boolean hasChanged = false;
-			while (urls.hasNext()) {
-				url = urls.next();
-				CachedFile cachedFile = getCachedFile(applicationFolder, url);
-				if (!cachedFile.isEmpty()) {
-					String errorMsg = cachedFile.getLatestErrorMessage();
-					if (Utils.isNotBlank(errorMsg)) {
-						for (String dataSourceId : cachedFile.getDataSourceIds()) {
-							// Check if the client is using the data source.
-							AbstractDataSourceConfig dataSource = clientConfig.getDataSourceConfig(dataSourceId);
-							if (dataSource != null) {
-								Errors urlErrors = null;
-								if (!errors.containsKey(dataSourceId)) {
-									urlErrors = new Errors();
-									errors.put(dataSourceId, urlErrors);
-								} else {
-									urlErrors = errors.get(dataSourceId);
-								}
-								if (cachedFile.isMandatory()) {
-									urlErrors.addError(url, errorMsg);
-								} else {
-									urlErrors.addWarning(url, errorMsg);
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-
-		return errors;
-	}
-
-
-	public static WMSCapabilities getWMSCapabilitiesResponse(ConfigManager configManager, AbstractDataSourceConfig dataSource, String urlStr, boolean mandatory, boolean harvest) throws IOException, ServiceException, JSONException, URISyntaxException {
 		File capabilitiesFile = null;
 		WMSCapabilities wmsCapabilities;
 
 		if (urlStr.startsWith("file://")) {
 			// Local file URL
 			capabilitiesFile = new File(new URI(urlStr));
-			wmsCapabilities = getCapabilities(capabilitiesFile);
+			wmsCapabilities = URLCache.getCapabilities(capabilitiesFile);
 
 		} else {
 			// TODO Find a nicer way to detect if the URL is a complete URL to a GetCapabilities document
@@ -661,12 +618,12 @@ public class URLCache {
 			}
 
 			try {
-				capabilitiesFile = getURLFile(configManager, dataSource, urlStr, mandatory, harvest);
-				wmsCapabilities = getCapabilities(capabilitiesFile);
-				commitURLFile(configManager, capabilitiesFile, urlStr);
+				capabilitiesFile = URLCache.getURLFile(configManager, dataSource, urlStr, mandatory, clearCapabilitiesCache);
+				wmsCapabilities = URLCache.getCapabilities(capabilitiesFile);
+				URLCache.commitURLFile(configManager, capabilitiesFile, urlStr);
 			} catch (Exception ex) {
-				File rollbackFile = rollbackURLFile(configManager, capabilitiesFile, urlStr, ex);
-				wmsCapabilities = getCapabilities(rollbackFile);
+				File rollbackFile = URLCache.rollbackURLFile(configManager, capabilitiesFile, urlStr, ex);
+				wmsCapabilities = URLCache.getCapabilities(rollbackFile);
 			}
 		}
 
@@ -683,7 +640,7 @@ public class URLCache {
 	 * @throws IOException
 	 * @throws ServiceException
 	 */
-	private static WMSCapabilities getCapabilities(File file) throws IOException, ServiceException {
+	private static WMSCapabilities getCapabilities(File file) throws IOException, SAXException {
 		if (file == null || !file.exists()) {
 			return null;
 		}
@@ -696,16 +653,11 @@ public class URLCache {
 			hints.put(DocumentHandler.DEFAULT_NAMESPACE_HINT_KEY, WMSSchema.getInstance());
 			hints.put(DocumentFactory.VALIDATION_HINT, Boolean.FALSE);
 
-			Object object;
-			try {
-				inputStream = new FileInputStream(file);
-				object = DocumentFactory.getInstance(inputStream, hints, Level.WARNING);
-			} catch (SAXException e) {
-				throw (ServiceException) new ServiceException("Error while parsing XML.").initCause(e);
-			}
+			inputStream = new FileInputStream(file);
+			Object object = DocumentFactory.getInstance(inputStream, hints, Level.WARNING);
 
 			if (object instanceof ServiceException) {
-				throw (ServiceException) object;
+				throw (ServiceException)object;
 			}
 
 			capabilities = (WMSCapabilities)object;
@@ -761,16 +713,13 @@ public class URLCache {
 		}
 
 		if (updateDataSources) {
-			// Set data sources harvested date to null
+			// Delete data source cached files
 			MultiKeyHashMap<Integer, String, AbstractDataSourceConfig> dataSources = configManager.getDataSourceConfigs();
 			AbstractDataSourceConfig dataSource = null;
 			for (Map.Entry<Integer, AbstractDataSourceConfig> dataSourceEntry : dataSources.entrySet()) {
 				dataSource = dataSourceEntry.getValue();
-				dataSource.setLastHarvestedDate(null);
-				dataSource.setValid(false);
+				dataSource.deleteCachedState();
 			}
-			// Write the changes to disk
-			configManager.saveServerConfig();
 		}
 	}
 
@@ -1106,7 +1055,7 @@ public class URLCache {
 
 			String host = null;
 			try {
-				URL url = new URL(urlStr);
+				URL url = Utils.toURL(urlStr);
 				host = url.getHost();
 			} catch (Exception ex) {
 				LOGGER.log(Level.WARNING, "Malformed URL: " + urlStr);

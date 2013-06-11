@@ -45,7 +45,6 @@ public class KMLDataSourceConfig extends AbstractDataSourceConfig {
 	@ConfigField
 	private String kmlUrls;
 
-
 	public KMLDataSourceConfig(ConfigManager configManager) {
 		super(configManager);
 	}
@@ -107,11 +106,9 @@ public class KMLDataSourceConfig extends AbstractDataSourceConfig {
 		this.kmlData = kmlData;
 	}
 
-
-
 	@Override
 	public AbstractLayerGenerator createLayerGenerator() {
-		return new KMLLayerGenerator(this);
+		return new KMLLayerGenerator();
 	}
 
 	@Override

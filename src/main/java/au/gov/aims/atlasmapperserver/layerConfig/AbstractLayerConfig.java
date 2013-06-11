@@ -33,7 +33,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfigInterface;
-import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfigInterfaceHelper;
+import au.gov.aims.atlasmapperserver.jsonWrappers.client.LayerOptionWrapper;
+import au.gov.aims.atlasmapperserver.jsonWrappers.client.LayerStyleWrapper;
+import au.gov.aims.atlasmapperserver.jsonWrappers.client.LayerWrapper;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -560,98 +562,98 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 	}
 
 	// TODO Specific pieces into specific classes (example: WMSLayerConfig parts goes into WMSLayerConfig class)
-	public JSONObject generateLayer() throws JSONException {
+	public LayerWrapper generateLayer() throws JSONException {
 		// AbstractLayerConfig implements AbstractDataSourceConfigInterface
-		JSONObject jsonLayer = AbstractDataSourceConfigInterfaceHelper.generateDataSourceInterface(this, null);
+		LayerWrapper layerWrapper = new LayerWrapper(this.toJSonObject());
 
 		if (this.isCached() != null) {
-			jsonLayer.put("cached", this.isCached());
+			layerWrapper.setCached(this.isCached());
 		}
 
 		if (this.getOlParams() != null) {
-			jsonLayer.put("olParams", this.getOlParams());
+			layerWrapper.setOlParams(this.getOlParams());
 		}
 		if (this.getOlOptions() != null) {
-			jsonLayer.put("olOptions", this.getOlOptions());
+			layerWrapper.setOlOptions(this.getOlOptions());
 		}
 
-		jsonLayer.put(ConfigManager.CONFIG_VERSION_KEY, ConfigManager.CURRENT_LAYER_CONFIG_VERSION);
+		layerWrapper.setVersion(ConfigManager.CURRENT_LAYER_CONFIG_VERSION);
 
 		String layerName = this.getLayerName();
 		if (Utils.isNotBlank(layerName) && !layerName.equals(this.getLayerId())) {
-			jsonLayer.put("layerName", layerName.trim());
+			layerWrapper.setLayerName(layerName.trim());
 		}
 
 		if (Utils.isNotBlank(this.getTitle())) {
-			jsonLayer.put("title", this.getTitle().trim());
+			layerWrapper.setTitle(this.getTitle().trim());
 		}
 
 		if (Utils.isNotBlank(this.getDescription())) {
-			jsonLayer.put("description", this.getDescription().trim());
+			layerWrapper.setDescription(this.getDescription().trim());
 		}
 		if (Utils.isNotBlank(this.getDescriptionFormat())) {
-			jsonLayer.put("descriptionFormat", this.getDescriptionFormat().trim());
+			layerWrapper.setDescriptionFormat(this.getDescriptionFormat().trim());
 		}
 		if (Utils.isNotBlank(this.getSystemDescription())) {
-			jsonLayer.put("systemDescription", this.getSystemDescription().trim());
+			layerWrapper.setSystemDescription(this.getSystemDescription().trim());
 		}
 
 		if (Utils.isNotBlank(this.getDownloadLinks())) {
-			jsonLayer.put("downloadLinks", this.getDownloadLinks().trim());
+			layerWrapper.setDownloadLinks(this.getDownloadLinks().trim());
 		}
 
 		if (Utils.isNotBlank(this.getProjection())) {
-			jsonLayer.put("projection", this.getProjection().trim());
+			layerWrapper.setProjection(this.getProjection().trim());
 		}
 
 		// serverId
 		if (Utils.isNotBlank(this.getDataSourceId())) {
-			jsonLayer.put("dataSourceId", this.getDataSourceId().trim());
+			layerWrapper.setDataSourceId(this.getDataSourceId().trim());
 		}
 
 		// Needed for data source save state - then used by the client generation to create the tree.
 		if (Utils.isNotBlank(this.getTreePath())) {
-			jsonLayer.put("treePath", this.getTreePath().trim());
+			layerWrapper.setTreePath(this.getTreePath().trim());
 		}
 
 		double[] boundingBox = this.getLayerBoundingBox();
 		if (boundingBox != null && boundingBox.length > 0) {
-			jsonLayer.put("layerBoundingBox", boundingBox);
+			layerWrapper.setLayerBoundingBox(boundingBox);
 		}
 
 		if (this.isIsBaseLayer() != null) {
-			jsonLayer.put("isBaseLayer", this.isIsBaseLayer());
+			layerWrapper.setIsBaseLayer(this.isIsBaseLayer());
 		}
 
 		if (this.isHasLegend() != null) {
-			jsonLayer.put("hasLegend", this.isHasLegend());
+			layerWrapper.setHasLegend(this.isHasLegend());
 		}
 
 		// No need for a legend URL + Filename since there is no more Layer Groups
 		if (Utils.isNotBlank(this.getLegendUrl())) {
-			jsonLayer.put("legendUrl", this.getLegendUrl().trim());
+			layerWrapper.setLegendUrl(this.getLegendUrl().trim());
 		}
 
 		if (Utils.isNotBlank(this.getStylesUrl())) {
-			jsonLayer.put("stylesUrl", this.getStylesUrl().trim());
+			layerWrapper.setStylesUrl(this.getStylesUrl().trim());
 		}
 
 		if(Utils.isNotBlank(this.getLegendGroup())) {
-			jsonLayer.put("legendGroup", this.getLegendGroup().trim());
+			layerWrapper.setLegendGroup(this.getLegendGroup().trim());
 		}
 
 		if(Utils.isNotBlank(this.getLegendTitle())) {
-			jsonLayer.put("legendTitle", this.getLegendTitle().trim());
+			layerWrapper.setLegendTitle(this.getLegendTitle().trim());
 		}
 
 		String[] infoHtmlUrls = this.getInfoHtmlUrls();
 		if(infoHtmlUrls != null && infoHtmlUrls.length > 0) {
-			jsonLayer.put("infoHtmlUrls", infoHtmlUrls);
+			layerWrapper.setInfoHtmlUrls(infoHtmlUrls);
 		}
 
 		String[] aliasIds = this.getAliasIds();
 		if (aliasIds != null && aliasIds.length > 0) {
-			jsonLayer.put("aliasIds", aliasIds);
+			layerWrapper.setAliasIds(aliasIds);
 		}
 
 		List<LayerStyleConfig> styles = this.getStyles();
@@ -665,20 +667,20 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 					if (styleName != null) {
 						styleName = styleName.trim();
 
-						JSONObject jsonStyle = this.generateLayerStyle(style, cached);
+						LayerStyleWrapper jsonStyle = this.generateLayerStyle(style, cached);
 
 						if (firstStyle) {
 							firstStyle = false;
 							styleName = "";
 						}
-						if (jsonStyle != null && jsonStyle.length() > 0) {
-							jsonStyles.put(styleName, jsonStyle);
+						if (jsonStyle != null) {
+							jsonStyles.put(styleName, jsonStyle.getJSON());
 						}
 					}
 				}
 			}
 			if (jsonStyles.length() > 0) {
-				jsonLayer.put("styles", jsonStyles);
+				layerWrapper.setStyles(jsonStyles);
 			}
 		}
 
@@ -687,32 +689,32 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 			JSONArray optionsArray = new JSONArray();
 
 			for (LayerOptionConfig option : options) {
-				JSONObject jsonOption = this.generateLayerOption(option);
-				if (jsonOption != null && jsonOption.length() > 0) {
-					optionsArray.put(jsonOption);
+				LayerOptionWrapper optionWrapper = this.generateLayerOption(option);
+				if (optionWrapper != null) {
+					optionsArray.put(optionWrapper.getJSON());
 				}
 			}
 
 			if (optionsArray.length() > 0) {
-				jsonLayer.put("layerOptions", optionsArray);
+				layerWrapper.setLayerOptions(optionsArray);
 			}
 		}
 
 		// Initial state is related to the Client saved state
 		// TODO delete after implementing Save State
 		if(this.isSelected() != null) {
-			jsonLayer.put("selected", this.isSelected());
+			layerWrapper.setSelected(this.isSelected());
 		}
 
-		return jsonLayer;
+		return layerWrapper;
 	}
 
-	private JSONObject generateLayerStyle(LayerStyleConfig style, Boolean cached) throws JSONException {
+	private LayerStyleWrapper generateLayerStyle(LayerStyleConfig style, Boolean cached) throws JSONException {
 		if (style == null) {
 			return null;
 		}
 
-		JSONObject jsonStyle = new JSONObject();
+		LayerStyleWrapper styleWrapper = new LayerStyleWrapper(new JSONObject());
 
 		// The title fallback to the style name, which should never be null, so no
 		// style should have the title "Untitled" (this is just an extra security).
@@ -722,31 +724,31 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 		} else if (Utils.isNotBlank(style.getName())) {
 			title = style.getName().trim();
 		}
-		jsonStyle.put("title", title);
+		styleWrapper.setTitle(title);
 
 		if (style.isDefault() != null) {
-			jsonStyle.put("default", style.isDefault());
+			styleWrapper.setDefault(style.isDefault());
 		}
 
 		if (style.isCached() != null) {
-			jsonStyle.put("cached", style.isCached());
+			styleWrapper.setCached(style.isCached());
 		} else if (cached != null) {
-			jsonStyle.put("cached", cached);
+			styleWrapper.setCached(cached);
 		}
 
 		if (Utils.isNotBlank(style.getDescription())) {
-			jsonStyle.put("description", style.getDescription().trim());
+			styleWrapper.setDescription(style.getDescription().trim());
 		}
 
 		//if (Utils.isNotBlank(style.getLegendUrl())) {
-		//	jsonStyle.put("legendUrl", style.getLegendUrl().trim());
+		//	styleWrapper.setLegendUrl(style.getLegendUrl().trim());
 		//}
 
 		//if (Utils.isNotBlank(style.getLegendFilename())) {
-		//	jsonStyle.put("legendFilename", style.getLegendFilename().trim());
+		//	styleWrapper.setLegendFilename(style.getLegendFilename().trim());
 		//}
 
-		return jsonStyle;
+		return styleWrapper;
 	}
 
 	/**
@@ -761,30 +763,30 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 	 *     ...
 	 * ]
 	 */
-	private JSONObject generateLayerOption(LayerOptionConfig option) throws JSONException {
+	private LayerOptionWrapper generateLayerOption(LayerOptionConfig option) throws JSONException {
 		if (option == null) {
 			return null;
 		}
 
-		JSONObject jsonOption = new JSONObject();
+		LayerOptionWrapper jsonOption = new LayerOptionWrapper(new JSONObject());
 		if (Utils.isNotBlank(option.getName())) {
-			jsonOption.put("name", option.getName().trim());
+			jsonOption.setName(option.getName().trim());
 		}
 
 		if (Utils.isNotBlank(option.getTitle())) {
-			jsonOption.put("title", option.getTitle().trim());
+			jsonOption.setTitle(option.getTitle().trim());
 		}
 
 		if (Utils.isNotBlank(option.getType())) {
-			jsonOption.put("type", option.getType().trim());
+			jsonOption.setType(option.getType().trim());
 		}
 
 		if (option.isMandatory() != null) {
-			jsonOption.put("mandatory", option.isMandatory());
+			jsonOption.setMandatory(option.isMandatory());
 		}
 
 		if (Utils.isNotBlank(option.getDefaultValue())) {
-			jsonOption.put("defaultValue", option.getDefaultValue().trim());
+			jsonOption.setDefaultValue(option.getDefaultValue().trim());
 		}
 
 		return jsonOption;

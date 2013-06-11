@@ -22,40 +22,39 @@
 package au.gov.aims.atlasmapperserver.dataSourceConfig;
 
 import au.gov.aims.atlasmapperserver.ConfigManager;
-import org.json.JSONObject;
+import au.gov.aims.atlasmapperserver.jsonWrappers.client.DataSourceWrapper;
 
 import java.util.logging.Logger;
 
 public class DataSourceConfigHelper {
 	private static final Logger LOGGER = Logger.getLogger(DataSourceConfigHelper.class.getName());
 
-	public static AbstractDataSourceConfig createDataSourceConfig(JSONObject dataSourceConfigJSON, ConfigManager configManager) {
+	public static AbstractDataSourceConfig createDataSourceConfig(DataSourceWrapper dataSourceWrapper, ConfigManager configManager) {
 		AbstractDataSourceConfig dataSourceConfig = null;
-		String dataSourceType = dataSourceConfigJSON.optString("dataSourceType");
-		if ("ARCGIS_MAPSERVER".equals(dataSourceType)) {
+		if (dataSourceWrapper.isArcGISMapServer()) {
 			dataSourceConfig = new ArcGISMapServerDataSourceConfig(configManager);
-		} else if ("GOOGLE".equals(dataSourceType)) {
+		} else if (dataSourceWrapper.isGoogle()) {
 			dataSourceConfig = new GoogleDataSourceConfig(configManager);
-		} else if ("BING".equals(dataSourceType)) {
+		} else if (dataSourceWrapper.isBing()) {
 			dataSourceConfig = new BingDataSourceConfig(configManager);
-		} else if ("KML".equals(dataSourceType)) {
+		} else if (dataSourceWrapper.isKML()) {
 			dataSourceConfig = new KMLDataSourceConfig(configManager);
-		} else if ("NCWMS".equals(dataSourceType)) {
+		} else if (dataSourceWrapper.isNCWMS()) {
 			dataSourceConfig = new NcWMSDataSourceConfig(configManager);
-		} else if ("TILES".equals(dataSourceType)) {
+		} else if (dataSourceWrapper.isTiles()) {
 			dataSourceConfig = new TilesDataSourceConfig(configManager);
-		} else if ("XYZ".equals(dataSourceType)) {
+		} else if (dataSourceWrapper.isXYZ()) {
 			dataSourceConfig = new XYZDataSourceConfig(configManager);
-		} else if ("WMS".equals(dataSourceType)) {
+		} else if (dataSourceWrapper.isWMS()) {
 			dataSourceConfig = new WMSDataSourceConfig(configManager);
 		} else {
 			// Unsupported
-			throw new IllegalArgumentException("Unsupported data source type [" + dataSourceType + "]");
+			throw new IllegalArgumentException("Unsupported data source type [" + dataSourceWrapper.getDataSourceType() + "]");
 		}
 
 		// Set all data source values into the data source bean
 		if (dataSourceConfig != null) {
-			dataSourceConfig.update(dataSourceConfigJSON);
+			dataSourceConfig.update(dataSourceWrapper.getJSON());
 		}
 
 		return dataSourceConfig;

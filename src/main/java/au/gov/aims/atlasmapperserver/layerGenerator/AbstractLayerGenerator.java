@@ -21,24 +21,16 @@
 
 package au.gov.aims.atlasmapperserver.layerGenerator;
 
-import au.gov.aims.atlasmapperserver.Errors;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
 
-import java.util.Collection;
-
 public abstract class AbstractLayerGenerator<L extends AbstractLayerConfig, D extends AbstractDataSourceConfig> {
 	protected long instanceTimestamp = -1;
 
-	private Errors errors;
-
-	public AbstractLayerGenerator(D dataSourceConfig) {
-		this.errors = null;
-	}
-
 	protected abstract String getUniqueLayerId(L layer, D dataSourceConfig);
-	public abstract Collection<L> generateLayerConfigs(D dataSourceConfig, boolean harvest) throws Exception;
+
+	public abstract LayerCatalog generateLayerCatalog(D dataSourceConfig, boolean clearCapabilitiesCache, boolean clearMetadataCache) throws Exception;
 
 	// The layer name used to request the layer. Usually, the layerName is
 	// the same as the layerId, so this field is let blank. This attribute
@@ -51,19 +43,4 @@ public abstract class AbstractLayerGenerator<L extends AbstractLayerConfig, D ex
 		layer.setLayerName(layer.getLayerId());
 		layer.setLayerId(uniqueLayerId);
 	}
-
-	public Errors getErrors() {
-		return this.errors;
-	}
-	public void addError(String err) {
-		this.getErrors().addError(err);
-	}
-	public void addWarning(String warn) {
-		this.getErrors().addWarning(warn);
-	}
-	public void addMessage(String msg) {
-		this.getErrors().addMessage(msg);
-	}
-
-	public abstract D applyOverrides(D dataSourceConfig);
 }

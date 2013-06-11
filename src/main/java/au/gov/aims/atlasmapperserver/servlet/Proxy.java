@@ -21,7 +21,6 @@
 
 package au.gov.aims.atlasmapperserver.servlet;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -49,6 +48,9 @@ import au.gov.aims.atlasmapperserver.ServletUtils;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.WMSDataSourceConfig;
+import au.gov.aims.atlasmapperserver.jsonWrappers.client.LayerWrapper;
+import au.gov.aims.atlasmapperserver.jsonWrappers.client.ClientWrapper;
+import au.gov.aims.atlasmapperserver.jsonWrappers.client.DataSourceWrapper;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -108,9 +110,9 @@ public class Proxy extends HttpServlet {
 			} else {
 				ClientConfig clientConfig = configManager.getClientConfig(clientId);
 				// The main config may be incomplete without the list of layers (for the preview), but it will contains enough info to configure the proxy.
-				JSONObject jsonMainConfig = configManager.getClientConfigFileJSon(null, clientConfig, ConfigType.MAIN, preview, preview);
+				ClientWrapper jsonMainConfig = new ClientWrapper(configManager.getClientConfigFileJSon(clientConfig, ConfigType.MAIN, preview, preview));
 				JSONObject jsonLayersConfig = configManager.getClientConfigFileJSon(clientConfig, ConfigType.LAYERS, preview, preview);
-				reloadConfig(jsonMainConfig, jsonLayersConfig, clientConfig, preview);
+				Proxy.reloadConfig(jsonMainConfig, jsonLayersConfig, clientConfig, preview);
 			}
 		} catch (Throwable ex) {
 			LOGGER.log(Level.SEVERE, "Error occurred while reloading the proxy configuration: {0}", Utils.getExceptionMessage(ex));
@@ -118,7 +120,7 @@ public class Proxy extends HttpServlet {
 		}
 	}
 
-	public static synchronized void reloadConfig(JSONObject jsonMainConfig, JSONObject jsonLayersConfig, ClientConfig clientConfig, boolean preview) {
+	public static synchronized void reloadConfig(ClientWrapper jsonMainConfig, JSONObject jsonLayersConfig, ClientConfig clientConfig, boolean preview) {
 		if (previewClientsAllowedHostCache == null) {
 			previewClientsAllowedHostCache = new HashMap<String, Set<String>>();
 		}
@@ -177,21 +179,21 @@ public class Proxy extends HttpServlet {
 		return allowedHosts;
 	}
 
-	private static Set<String> getProxyAllowedHosts(JSONObject mainConfig, JSONObject layersConfig, ClientConfig clientConfig)
+	private static Set<String> getProxyAllowedHosts(ClientWrapper mainConfig, JSONObject layersConfig, ClientConfig clientConfig)
 			throws Exception {
 
 		Set<String> allowedHosts = new HashSet<String>();
 
 		// The config manager apply all the overrides during the generation of the config.
-		if (mainConfig != null && mainConfig.has("dataSources")) {
-			JSONObject dataSources = mainConfig.optJSONObject("dataSources");
+		if (mainConfig != null && mainConfig.getDataSources() != null) {
+			JSONObject dataSources = mainConfig.getDataSources();
 			Iterator<String> keys = dataSources.keys();
 			if (keys != null) {
 				while (keys.hasNext()) {
-					JSONObject dataSource = dataSources.optJSONObject(keys.next());
+					DataSourceWrapper dataSource = new DataSourceWrapper(dataSources.optJSONObject(keys.next()));
 
-					addProxyAllowedHost(allowedHosts, dataSource.optString("featureRequestsUrl"));
-					addProxyAllowedHost(allowedHosts, dataSource.optString("wmsServiceUrl")); // TODO change wmsServiceUrl to serviceUrl
+					addProxyAllowedHost(allowedHosts, dataSource.getFeatureRequestsUrl());
+					addProxyAllowedHost(allowedHosts, dataSource.getServiceUrl());
 				}
 			}
 		}
@@ -200,11 +202,11 @@ public class Proxy extends HttpServlet {
 			Iterator<String> layerIds = layersConfig.keys();
 			if (layerIds != null) {
 				while (layerIds.hasNext()) {
-					JSONObject layer = layersConfig.optJSONObject(layerIds.next());
+					LayerWrapper layer = new LayerWrapper(layersConfig.optJSONObject(layerIds.next()));
 
-					addProxyAllowedHost(allowedHosts, layer.optString("kmlUrl"));
-					addProxyAllowedHost(allowedHosts, layer.optString("featureRequestsUrl"));
-					addProxyAllowedHost(allowedHosts, layer.optString("wmsServiceUrl")); // TODO change wmsServiceUrl to serviceUrl
+					addProxyAllowedHost(allowedHosts, layer.getKmlUrl());
+					addProxyAllowedHost(allowedHosts, layer.getFeatureRequestsUrl());
+					addProxyAllowedHost(allowedHosts, layer.getServiceUrl());
 				}
 			}
 		}
@@ -220,8 +222,8 @@ public class Proxy extends HttpServlet {
 	private static boolean addProxyAllowedHost(Set<String> allowedHosts, String urlStr) {
 		URL url = null;
 		try {
-			url = new URL(urlStr);
-		} catch (MalformedURLException ex) {
+			url = Utils.toURL(urlStr);
+		} catch (Exception ex) {
 			return false;
 		}
 		// It should not be null if it succeed, but better not taking chance.
@@ -296,7 +298,7 @@ public class Proxy extends HttpServlet {
 	}
 
 	private void performTask(HttpServletRequest request, HttpServletResponse response) throws IOException {
-		String previewStr = request.getParameter("live");
+		String previewStr = request.getParameter("preview");
 		boolean preview = previewStr != null && Boolean.parseBoolean(previewStr);
 
 		String clientId = request.getParameter("client");
@@ -308,7 +310,7 @@ public class Proxy extends HttpServlet {
 				String decodedUrl = URLDecoder.decode(urlStr, "UTF-8");
 				if (decodedUrl != null) { decodedUrl = decodedUrl.trim(); }
 
-				URL url = new URL(decodedUrl);
+				URL url = Utils.toURL(decodedUrl);
 				if (url != null) {
 					String protocol = url.getProtocol();
 					String host = url.getHost();

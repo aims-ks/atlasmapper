@@ -25,6 +25,7 @@ import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.URLCache;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.WMSDataSourceConfig;
+import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerStyleConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.WMSLayerConfig;
 import au.gov.aims.atlasmapperserver.xml.TC211.TC211Document;
@@ -55,16 +56,6 @@ import java.util.logging.Logger;
 public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D extends WMSDataSourceConfig> extends AbstractLayerGenerator<L, D> {
 	private static final Logger LOGGER = Logger.getLogger(AbstractWMSLayerGenerator.class.getName());
 
-	private String wmsVersion = null;
-	private URL featureRequestsUrl = null;
-	private URL wmsServiceUrl = null;
-	private URL legendUrl = null;
-	private URL stylesUrl = null;
-
-	public AbstractWMSLayerGenerator(D dataSource) {
-		super(dataSource);
-	}
-
 	protected abstract L createLayerConfig(ConfigManager configManager);
 
 	/**
@@ -79,13 +70,41 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 	}
 
 	@Override
-	public Collection<L> generateLayerConfigs(D dataSource, boolean harvest) throws Exception {
-		Map<String, L> layersMap = this.generateRawLayerConfigs(dataSource, harvest);
-		Collection<L> layers = null;
+	public LayerCatalog generateLayerCatalog(D dataSourceClone, boolean clearCapabilitiesCache, boolean clearMetadataCache) throws Exception {
+		LayerCatalog layerCatalog = new LayerCatalog();
+		Map<String, L> layersMap = null;
+		URL wmsServiceUrl = null;
+		String dataSourceServiceUrlStr = dataSourceClone.getServiceUrl();
 
+		WMSCapabilities wmsCapabilities = URLCache.getWMSCapabilitiesResponse(dataSourceClone.getConfigManager(), dataSourceClone, dataSourceServiceUrlStr, true, clearCapabilitiesCache);
+		if (wmsCapabilities != null) {
+			WMSRequest wmsRequestCapabilities = wmsCapabilities.getRequest();
+			if (wmsRequestCapabilities != null) {
+				dataSourceClone.setFeatureRequestsUrl(this.getOperationUrl(wmsRequestCapabilities.getGetFeatureInfo()));
+				wmsServiceUrl = this.getOperationUrl(wmsRequestCapabilities.getGetMap());
+				dataSourceClone.setServiceUrl(wmsServiceUrl);
+				dataSourceClone.setLegendUrl(this.getOperationUrl(wmsRequestCapabilities.getGetLegendGraphic()));
+				dataSourceClone.setWmsVersion(wmsCapabilities.getVersion());
+
+				// GetStyles URL is in GeoTools API but not in the Capabilities document.
+				//     GeoTools probably craft the URL. It's not very useful.
+				//this.stylesUrl = this.getOperationUrl(wmsRequestCapabilities.getGetStyles());
+			}
+
+			layersMap = this.getLayersInfoFromCaps(wmsCapabilities, dataSourceClone, clearMetadataCache);
+		}
+		if (wmsServiceUrl == null && dataSourceServiceUrlStr != null) {
+			wmsServiceUrl = Utils.toURL(dataSourceServiceUrlStr);
+		}
+
+		Collection<L> layers = null;
 		if (layersMap != null && !layersMap.isEmpty()) {
 			layers = new ArrayList<L>(layersMap.size());
-			Map<String, L> cachedLayers = this.generateRawCachedLayerConfigs(dataSource, harvest);
+			Map<String, L> cachedLayers = this.generateRawCachedLayerConfigs(dataSourceClone, wmsServiceUrl, layerCatalog, clearCapabilitiesCache, clearMetadataCache);
+
+			// Since we are not parsing the Cache server WMS capability document, we can not find which version of WMS it is using...
+			// Fallback to 1.1.1, it's very well supported.
+			dataSourceClone.setCacheWmsVersion("1.1.1");
 
 			// Set cached flags
 			for (Map.Entry<String, L> layerEntry : layersMap.entrySet()) {
@@ -104,7 +123,9 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 			}
 		}
 
-		return layers;
+		layerCatalog.addLayers(layers);
+
+		return layerCatalog;
 	}
 
 	private void setLayerStylesCacheFlag(List<LayerStyleConfig> layerStyles, List<LayerStyleConfig> cachedStyles) {
@@ -133,34 +154,13 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 		}
 	}
 
-	private Map<String, L> generateRawLayerConfigs(D dataSource, boolean harvest) throws Exception {
-		WMSCapabilities wmsCapabilities = URLCache.getWMSCapabilitiesResponse(dataSource.getConfigManager(), dataSource, dataSource.getServiceUrl(), true, harvest);
-		if (wmsCapabilities != null) {
-			WMSRequest wmsRequestCapabilities = wmsCapabilities.getRequest();
-			if (wmsRequestCapabilities != null) {
-				this.featureRequestsUrl = this.getOperationUrl(wmsRequestCapabilities.getGetFeatureInfo());
-				this.wmsServiceUrl = this.getOperationUrl(wmsRequestCapabilities.getGetMap());
-				this.legendUrl = this.getOperationUrl(wmsRequestCapabilities.getGetLegendGraphic());
-				this.wmsVersion = wmsCapabilities.getVersion();
-
-				// GetStyles URL is in GeoTools API but not in the Capabilities document.
-				//     GeoTools probably craft the URL. It's not very useful.
-				//this.stylesUrl = this.getOperationUrl(wmsRequestCapabilities.getGetStyles());
-			}
-
-			return this.getLayersInfoFromCaps(wmsCapabilities, dataSource, harvest);
-		}
-
-		return null;
-	}
-
-	private Map<String, L> generateRawCachedLayerConfigs(D dataSource, boolean harvest) throws Exception {
+	private Map<String, L> generateRawCachedLayerConfigs(D dataSourceClone, URL wmsServiceUrl, LayerCatalog layerCatalog, boolean clearCapabilitiesCache, boolean clearMetadataCache) throws Exception {
 		// When the webCacheEnable checkbox is unchecked, no layers are cached.
-		if (dataSource.isWebCacheEnable() == null || dataSource.isWebCacheEnable() == false) {
+		if (dataSourceClone.isWebCacheEnable() == null || dataSourceClone.isWebCacheEnable() == false) {
 			return null;
 		}
 
-		WMTSDocument gwcCapabilities = this.getGWCDocument(dataSource.getConfigManager(), dataSource, harvest);
+		WMTSDocument gwcCapabilities = this.getGWCDocument(dataSourceClone.getConfigManager(), wmsServiceUrl, layerCatalog, dataSourceClone, clearCapabilitiesCache);
 
 		Map<String, L> layerConfigs = new HashMap<String, L>();
 
@@ -170,7 +170,8 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 
 			if (rootLayer != null) {
 				// The boolean at the end is use to ignore the root from the capabilities document. It can be added (change to false) if some users think it's useful to see the root...
-				this._propagateLayersInfoMapFromGeoToolRootLayer(layerConfigs, rootLayer, new LinkedList<String>(), dataSource, true, harvest);
+				// NOTE: There should be no metadata document in GWC
+				this._propagateLayersInfoMapFromGeoToolRootLayer(layerConfigs, rootLayer, new LinkedList<String>(), dataSourceClone, true, clearMetadataCache);
 			}
 		}
 
@@ -190,12 +191,12 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 	 *     If that didn't work, try to rectify the WMTS capabilities document URL and try again.
 	 *     If that didn't work, return null and add an error.
 	 */
-	public WMTSDocument getGWCDocument(ConfigManager configManager, D dataSource, boolean harvest) {
+	public WMTSDocument getGWCDocument(ConfigManager configManager, URL wmsServiceUrl, LayerCatalog layerCatalog, D dataSourceClone, boolean clearCapabilitiesCache) {
 		// GWC service is not mandatory; failing to parse this won't cancel the generation of the client.
 		boolean gwcMandatory = false;
 
 		// No WMS service = no need to cache anything.
-		if (this.wmsServiceUrl == null) {
+		if (wmsServiceUrl == null) {
 			return null;
 		}
 
@@ -212,7 +213,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 		try {
 			// baseURL = http://domain.com:80/geoserver/
 			// From the WMS Service URL provided by the capabilities document
-			URL baseURL = new URL(this.wmsServiceUrl.getProtocol(), this.wmsServiceUrl.getHost(), this.wmsServiceUrl.getPort(), this.wmsServiceUrl.getPath());
+			URL baseURL = new URL(wmsServiceUrl.getProtocol(), wmsServiceUrl.getHost(), wmsServiceUrl.getPort(), wmsServiceUrl.getPath());
 
 			// gwcBaseURL = http://domain.com:80/geoserver/gwc/
 			gwcBaseURL = new URL(baseURL, gwcSubPath+"/");
@@ -223,12 +224,12 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 
 		// Get GWC URL or craft it from WMS URL
 		URL gwcUrl = null;
-		String gwcUrlStr = dataSource.getWebCacheUrl();
+		String gwcUrlStr = dataSourceClone.getWebCacheUrl();
 		try {
 			if (gwcUrlStr == null || gwcUrlStr.isEmpty()) {
 				if (gwcBaseURL != null) {
 					gwcUrl = new URL(gwcBaseURL, "service/wms");
-					dataSource.setWebCacheUrl(gwcUrl.toString());
+					dataSourceClone.setWebCacheUrl(gwcUrl.toString());
 				}
 			}
 		} catch (Exception ex) {
@@ -239,7 +240,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 		// Get GWC Capabilities Document URL or craft it from WMS URL
 		URL gwcCapUrl = null;
 		File gwcCapFile = null;
-		String gwcCapUrlStr = dataSource.getWebCacheCapabilitiesUrl();
+		String gwcCapUrlStr = dataSourceClone.getWebCacheCapabilitiesUrl();
 		try {
 			if (gwcCapUrlStr == null || gwcCapUrlStr.isEmpty()) {
 				if (gwcBaseURL != null) {
@@ -250,7 +251,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 					// Local file URL
 					gwcCapFile = new File(new URI(gwcCapUrlStr));
 				} else {
-					gwcCapUrl = new URL(gwcCapUrlStr);
+					gwcCapUrl = Utils.toURL(gwcCapUrlStr);
 				}
 			}
 		} catch (Exception ex) {
@@ -269,7 +270,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 				if (gwcCapFile != null) {
 					document = WMTSParser.parseFile(gwcCapFile, gwcCapUrlStr);
 				} else {
-					document = WMTSParser.parseURL(configManager, dataSource, gwcCapUrl, gwcMandatory, harvest);
+					document = WMTSParser.parseURL(configManager, dataSourceClone, gwcCapUrl, gwcMandatory, clearCapabilitiesCache);
 				}
 			} catch (Exception ex) {
 				// This happen every time the admin set a GWC base URL instead of a WMTS capabilities document.
@@ -291,7 +292,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 						// Add WMTS URL part
 						URL modifiedGwcCapUrl = new URL(modifiedGwcBaseURL, "service/wmts?REQUEST=getcapabilities");
 						// Try to download the doc again
-						document = WMTSParser.parseURL(configManager, dataSource, modifiedGwcCapUrl, gwcMandatory, harvest);
+						document = WMTSParser.parseURL(configManager, dataSourceClone, modifiedGwcCapUrl, gwcMandatory, clearCapabilitiesCache);
 
 						if (document != null) {
 							// If it works, save the crafted URL
@@ -313,13 +314,13 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 						"disable it in the data source config and report a bug." +
 						(exceptionMessage == null ? "" : "\nError: " + exceptionMessage);
 				if (gwcMandatory) {
-					this.addError(errorMsg);
+					layerCatalog.addError(errorMsg);
 				} else {
-					this.addWarning(errorMsg);
+					layerCatalog.addWarning(errorMsg);
 				}
 			}
 		} else if (gwcCapUrlStr == null || gwcCapUrlStr.isEmpty()) {
-			dataSource.setWebCacheCapabilitiesUrl(gwcCapUrl.toString());
+			dataSourceClone.setWebCacheCapabilitiesUrl(gwcCapUrl.toString());
 		}
 
 		return document;
@@ -334,14 +335,14 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 
 	/**
 	 * @param wmsCapabilities
-	 * @param dataSourceConfig
-	 * @param harvest True do download associated metadata documents (TC211), false to use the cached ones.
+	 * @param dataSourceClone
+	 * @param clearMetadataCache True do download associated metadata documents (TC211), false to use the cached ones.
 	 * @return
 	 */
 	private Map<String, L> getLayersInfoFromCaps(
 			WMSCapabilities wmsCapabilities,
-			D dataSourceConfig, // Data source of layers (to link the layer to its data source)
-			boolean harvest
+			D dataSourceClone, // Data source of layers (to link the layer to its data source)
+			boolean clearMetadataCache
 	) {
 		if (wmsCapabilities == null) {
 			return null;
@@ -352,7 +353,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 
 		Map<String, L> layerConfigs = new HashMap<String, L>();
 		// The boolean at the end is use to ignore the root from the capabilities document. It can be added (change to false) if some users think it's useful to see the root...
-		this._propagateLayersInfoMapFromGeoToolRootLayer(layerConfigs, rootLayer, new LinkedList<String>(), dataSourceConfig, true, harvest);
+		this._propagateLayersInfoMapFromGeoToolRootLayer(layerConfigs, rootLayer, new LinkedList<String>(), dataSourceClone, true, clearMetadataCache);
 
 		// Set default styles
 		for (L layer : layerConfigs.values()) {
@@ -363,41 +364,6 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 		}
 
 		return layerConfigs;
-	}
-
-	/**
-	 * Apply CapabilitiesDocuments overrides to the dataSourceConfig
-	 * @param dataSourceConfig
-	 * @return
-	 */
-	@Override
-	public D applyOverrides(D dataSourceConfig) {
-		D clone = (D) dataSourceConfig.clone();
-
-		if (this.featureRequestsUrl != null && Utils.isBlank(clone.getFeatureRequestsUrl())) {
-			clone.setFeatureRequestsUrl(this.featureRequestsUrl.toString());
-		}
-
-		// The wmsServiceUrl set in the AbstractDataSourceConfig is the one set in the
-		// AtlasMapper server GUI. It may contains the capabilities URL.
-		// The GetMap URL found in the capabilities document is always safer.
-		if (this.wmsServiceUrl != null) {
-			clone.setServiceUrl(this.wmsServiceUrl.toString());
-		}
-
-		if (this.legendUrl != null && Utils.isBlank(clone.getLegendUrl())) {
-			clone.setLegendUrl(this.legendUrl.toString());
-		}
-
-		if (this.stylesUrl != null && Utils.isBlank(clone.getStylesUrl())) {
-			clone.setStylesUrl(this.stylesUrl.toString());
-		}
-
-		if (Utils.isBlank(this.wmsVersion) && Utils.isBlank(clone.getWmsVersion())) {
-			clone.setWmsVersion(this.wmsVersion);
-		}
-
-		return clone;
 	}
 
 	// Internal recursive function that takes an actual map of layer and add more layers to it.
@@ -414,9 +380,9 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 			Map<String, L> layerConfigs,
 			Layer layer,
 			List<String> treePath,
-			D dataSourceConfig,
+			D dataSourceClone,
 			boolean isRoot,
-			boolean harvest) {
+			boolean clearMetadataCache) {
 
 		if (layer == null) {
 			return;
@@ -442,7 +408,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 			}
 
 			for (Layer childLayer : children) {
-				this._propagateLayersInfoMapFromGeoToolRootLayer(layerConfigs, childLayer, childrenTreePath, dataSourceConfig, false, harvest);
+				this._propagateLayersInfoMapFromGeoToolRootLayer(layerConfigs, childLayer, childrenTreePath, dataSourceClone, false, clearMetadataCache);
 			}
 		} else {
 			// The layer do not have any children, so it is a real layer
@@ -458,7 +424,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 				}
 			}
 
-			L layerConfig = this.layerToLayerConfig(layer, treePathBuf.toString(), dataSourceConfig, harvest);
+			L layerConfig = this.layerToLayerConfig(layer, treePathBuf.toString(), dataSourceClone, clearMetadataCache);
 			if (layerConfig != null) {
 				layerConfigs.put(layerConfig.getLayerId(), layerConfig);
 			}
@@ -469,20 +435,20 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 	 * Convert a GeoTool Layer into a AtlasMapper Layer
 	 * @param layer
 	 * @param treePath
-	 * @param dataSourceConfig
+	 * @param dataSourceClone
 	 * @return
 	 */
 	private L layerToLayerConfig(
 			Layer layer,
 			String treePath,
-			D dataSourceConfig,
-			boolean harvest) {
+			D dataSourceClone,
+			boolean clearMetadataCache) {
 
-		L layerConfig = this.createLayerConfig(dataSourceConfig.getConfigManager());
+		L layerConfig = this.createLayerConfig(dataSourceClone.getConfigManager());
 
 		String layerName = layer.getName();
 		if (Utils.isBlank(layerName)) {
-			LOGGER.log(Level.WARNING, "The Capabilities Document of the data source [{0}] contains layers without name (other than the root layer).", dataSourceConfig.getDataSourceName());
+			LOGGER.log(Level.WARNING, "The Capabilities Document of the data source [{0}] contains layers without name (other than the root layer).", dataSourceClone.getDataSourceName());
 			return null;
 		}
 
@@ -494,7 +460,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 					URL url = metadataUrl.getUrl();
 					if (url != null) {
 						try {
-							tc211Document = TC211Parser.parseURL(dataSourceConfig.getConfigManager(), dataSourceConfig, url, false, harvest);
+							tc211Document = TC211Parser.parseURL(dataSourceClone.getConfigManager(), dataSourceClone, url, false, clearMetadataCache);
 							if (tc211Document == null || tc211Document.isEmpty()) { tc211Document = null; }
 						} catch (Exception e) {
 							LOGGER.log(Level.SEVERE, "Unexpected exception while parsing the metadata document URL: {0}\n" +
@@ -512,14 +478,14 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 			// Brute force through all metadata URL and cross fingers to find one that will provide some usable info.
 			if (tc211Document == null) {
 				LOGGER.log(Level.FINE, "BRUTE FORCE: Could not find a valid TC211 text/xml metadata document for layer {0} of {1}. Try them all whatever their specified mime type.",
-						new String[]{ layerName, dataSourceConfig.getDataSourceName() });
+						new String[]{ layerName, dataSourceClone.getDataSourceName() });
 				MetadataURL validMetadataUrl = null;
 				for (MetadataURL metadataUrl : metadataUrls) {
 					if (tc211Document == null) {
 						URL url = metadataUrl.getUrl();
 						if (url != null) {
 							try {
-								tc211Document = TC211Parser.parseURL(dataSourceConfig.getConfigManager(), dataSourceConfig, url, false, harvest);
+								tc211Document = TC211Parser.parseURL(dataSourceClone.getConfigManager(), dataSourceClone, url, false, clearMetadataCache);
 								if (tc211Document != null && !tc211Document.isEmpty()) {
 									validMetadataUrl = metadataUrl;
 								} else {
@@ -552,7 +518,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 		}
 
 		layerConfig.setLayerId(layerName);
-		this.ensureUniqueLayerId(layerConfig, dataSourceConfig);
+		this.ensureUniqueLayerId(layerConfig, dataSourceClone);
 		layerName = layerConfig.getLayerName();
 
 		String title = layer.getTitle();
@@ -627,7 +593,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 		if (styleImpls != null && !styleImpls.isEmpty()) {
 			List<LayerStyleConfig> styles = new ArrayList<LayerStyleConfig>(styleImpls.size());
 			for (StyleImpl styleImpl : styleImpls) {
-				LayerStyleConfig styleConfig = this.styleToLayerStyleConfig(dataSourceConfig.getConfigManager(), styleImpl);
+				LayerStyleConfig styleConfig = this.styleToLayerStyleConfig(dataSourceClone.getConfigManager(), styleImpl);
 				if (styleConfig != null) {
 					styles.add(styleConfig);
 				}
@@ -647,7 +613,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 		}
 
 		// Link the layer to it's data source
-		dataSourceConfig.bindLayer(layerConfig);
+		dataSourceClone.bindLayer(layerConfig);
 
 		return layerConfig;
 	}

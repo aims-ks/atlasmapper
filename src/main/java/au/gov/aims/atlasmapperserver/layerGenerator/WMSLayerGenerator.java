@@ -34,10 +34,6 @@ import au.gov.aims.atlasmapperserver.layerConfig.WMSLayerConfig;
 public class WMSLayerGenerator extends AbstractWMSLayerGenerator<WMSLayerConfig, WMSDataSourceConfig> {
 	private static final Logger LOGGER = Logger.getLogger(WMSLayerGenerator.class.getName());
 
-	public WMSLayerGenerator(WMSDataSourceConfig dataSource) {
-		super(dataSource);
-	}
-
 	@Override
 	protected WMSLayerConfig createLayerConfig(ConfigManager configManager) {
 		return new WMSLayerConfig(configManager);

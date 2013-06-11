@@ -32,6 +32,6 @@ public class WMTSDataSourceConfig extends WMSDataSourceConfig {
 
 	@Override
 	public AbstractLayerGenerator createLayerGenerator() throws Exception {
-		return new WMTSLayerGenerator(this);
+		return new WMTSLayerGenerator();
 	}
 }

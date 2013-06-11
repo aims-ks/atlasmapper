@@ -38,7 +38,7 @@ Atlas.Core = OpenLayers.Class({
 	// The OpenLayers event object, set in initialize function
 	events: null,
 	configFileUrl: null,
-	live: false,
+	preview: false,
 
 	mapPanels: null,
 
@@ -54,14 +54,14 @@ Atlas.Core = OpenLayers.Class({
 
 	mapCounter: 0,
 
-	initialize: function(configUrl, layersFileUrl, version, live) {
+	initialize: function(configUrl, layersFileUrl, version, preview) {
 		this.events = new OpenLayers.Events(this, null,
 			this.EVENT_TYPES);
 
 		this.mapPanels = [];
 
-		if (live) {
-			this.live = true;
+		if (preview) {
+			this.preview = true;
 		}
 		if (version) {
 			this.version = version;
@@ -436,7 +436,7 @@ Atlas.Core = OpenLayers.Class({
 				url = this.layerInfoServiceUrl;
 				params = {
 					client: Atlas.conf['clientId'],
-					live: this.live,
+					preview: this.preview,
 					layerIds: missingLayerIds.concat(missingDependencies),
 					ver: this.version
 				};
@@ -515,7 +515,7 @@ Atlas.Core = OpenLayers.Class({
 			url = this.layerInfoServiceUrl;
 			params = {
 				client: Atlas.conf['clientId'],
-				live: this.live,
+				preview: this.preview,
 				iso19115_19139url: urlStr,
 				ver: this.version
 			};
@@ -705,7 +705,7 @@ Atlas.Core = OpenLayers.Class({
 		for (dataSourceId in dataSources) {
 			if (dataSources.hasOwnProperty(dataSourceId)) {
 				var dataSource = dataSources[dataSourceId];
-				var dataSourceURL = dataSource['wmsServiceUrl'];
+				var dataSourceURL = dataSource['serviceUrl'];
 
 				if (this._equalsUrl(serverURL, dataSourceURL)) {
 					return dataSourceId;
@@ -891,7 +891,7 @@ Atlas.Core = OpenLayers.Class({
 
 			var layerJSON = {
 				'dataSourceType': dataSourceType,
-				'wmsServiceUrl': serverUrl,
+				'serviceUrl': serverUrl,
 				'layerId': layerId
 			};
 			this.loadLayerCache(layerJSON, layerId);
@@ -1000,8 +1000,8 @@ Atlas.Core = OpenLayers.Class({
 				}
 
 				if (dataSourceData['dataSourceType'] == 'WMS' || dataSourceData['dataSourceType'] == 'NCWMS') {
-					if (!dataSourceData['featureRequestsUrl'] && dataSourceData['wmsServiceUrl']) {
-						dataSourceData['featureRequestsUrl'] = dataSourceData['wmsServiceUrl'];
+					if (!dataSourceData['featureRequestsUrl'] && dataSourceData['serviceUrl']) {
+						dataSourceData['featureRequestsUrl'] = dataSourceData['serviceUrl'];
 					}
 				}
 			}

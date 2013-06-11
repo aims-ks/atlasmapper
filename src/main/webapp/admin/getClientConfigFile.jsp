@@ -18,25 +18,24 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-	Document   : clientsConfig
+	Document   : getClientConfigFile.jsp
 	Created on : 28/06/2011, 4:08:39 PM
 	Author     : glafond
 
+	TODO This file is only used with the Debug Window and should be deleted after deleting the Debug Window feature
+
 	NOTE: This page return text/plain data, so the empty line at the beginning
-	of the file become visible to the client. Putting the new line in the ASP
-	tag fix that problem.
+	of the file are visible to the client. Putting the new line in the ASP
+	tag fix that problem (no more empty line).
 
 --%><%@page import="au.gov.aims.atlasmapperserver.ConfigType"
 %><%@page import="au.gov.aims.atlasmapperserver.Utils"
-%><%@page import="java.util.List"
-%><%@page import="org.json.JSONArray"
 %><%@page import="java.util.logging.Level"
 %><%@page import="java.util.logging.Logger"
 %><%@page import="au.gov.aims.atlasmapperserver.ClientConfig"
 %><%@page import="org.json.JSONObject"
 %><%@page import="au.gov.aims.atlasmapperserver.ConfigHelper"
 %><%@page import="au.gov.aims.atlasmapperserver.ConfigManager"
-%><%@page import="au.gov.aims.atlasmapperserver.ActionType"
 %><%@page contentType="text/plain" pageEncoding="UTF-8"
 %><%
 	Logger LOGGER = Logger.getLogger("getClientConfigFile.jsp");
@@ -46,7 +45,7 @@
 	String clientIdStr = request.getParameter("clientId");
 	String client = request.getParameter("client");
 	String configTypeStr = request.getParameter("configType");
-	boolean live = Boolean.parseBoolean(request.getParameter("live"));
+	boolean preview = Boolean.parseBoolean(request.getParameter("preview"));
 
 	String output = "";
 
@@ -88,7 +87,7 @@
 
 		if (foundClientConfig != null && configType != null) {
 			try {
-				JSONObject configs = configManager.getClientConfigFileJSon(foundClientConfig, configType, live, live);
+				JSONObject configs = configManager.getClientConfigFileJSon(foundClientConfig, configType, preview, preview);
 				if (configs == null) {
 					response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 					output = "An error occurred while retrieving/generating the Client configurations. Check your server log.";
@@ -98,7 +97,7 @@
 				}
 			} catch(Exception e) {
 				LOGGER.log(Level.SEVERE, "An error occurred while retrieving/generating the Client configurations: {0}", Utils.getExceptionMessage(e));
-				LOGGER.log(Level.FINE, "Stack trace: ", e);
+				LOGGER.log(Level.WARNING, "Stack trace: ", e);
 				response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 				output = "An error occurred while retrieving/generating the Client configurations. Check your server log.";
 			}

@@ -30,10 +30,6 @@ import java.util.logging.Logger;
 public class NcWMSLayerGenerator extends AbstractWMSLayerGenerator<NcWMSLayerConfig, NcWMSDataSourceConfig> {
 	private static final Logger LOGGER = Logger.getLogger(NcWMSLayerGenerator.class.getName());
 
-	public NcWMSLayerGenerator(NcWMSDataSourceConfig dataSource) throws Exception {
-		super(dataSource);
-	}
-
 	@Override
 	protected NcWMSLayerConfig createLayerConfig(ConfigManager configManager) {
 		return new NcWMSLayerConfig(configManager);

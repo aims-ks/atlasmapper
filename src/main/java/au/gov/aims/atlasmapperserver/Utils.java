@@ -53,6 +53,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.geotools.geometry.jts.JTS;
 import org.geotools.measure.Latitude;
@@ -65,6 +67,7 @@ import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.operation.MathTransform;
 import org.opengis.referencing.operation.TransformException;
+import org.xml.sax.SAXParseException;
 
 /**
  *
@@ -278,6 +281,25 @@ public class Utils {
 	public static URL toURL(String urlStr) throws URISyntaxException, MalformedURLException {
 		URI uri = null;
 
+		// Add protocol, if missing
+		int protocolSepIndex = urlStr.indexOf("://");
+		int firstNotAscii = -1;
+
+		Pattern pattern = Pattern.compile("[^a-zA-Z]");
+		Matcher matcher = pattern.matcher(urlStr);
+		if (matcher.find()) {
+			firstNotAscii = matcher.start();
+		}
+
+		// Add the default "http" protocol if we have one of the 2 cases:
+		// 1. Obvious case, no "://" found so there is not protocol.
+		//     Example: www.google.com
+		// 2. There is a "://", but it is after the first none ASCII char.
+		//     Example: www.google.com?search=://
+		if (protocolSepIndex < 0 || (firstNotAscii >= 0 && protocolSepIndex > firstNotAscii)) {
+			urlStr = "http://" + urlStr;
+		}
+
 		try {
 			// Try the URL as it is, it might be valid
 			uri = new URI(urlStr);
@@ -406,7 +428,18 @@ public class Utils {
 		String msg = null;
 		if (ex != null) {
 			msg = ex.getMessage();
-			if (msg == null || msg.isEmpty()) {
+
+			// SAXParseException has handy values that do not shows on getMessage.
+			if (ex instanceof SAXParseException) {
+				SAXParseException saxEx = (SAXParseException)ex;
+				if (Utils.isBlank(msg)) {
+					// That should not happen
+					msg = "Can not parse the XML document.";
+				}
+				msg += "\nline: " + saxEx.getLineNumber() + ", character: " + saxEx.getColumnNumber();
+			}
+
+			if (Utils.isBlank(msg)) {
 				msg = getExceptionMessage(ex.getCause(), defaultMsg);
 			}
 		}

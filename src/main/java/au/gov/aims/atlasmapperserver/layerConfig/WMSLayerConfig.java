@@ -25,9 +25,9 @@ import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.WMSDataSourceConfigInterface;
+import au.gov.aims.atlasmapperserver.jsonWrappers.client.LayerWrapper;
 import org.json.JSONArray;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.util.Arrays;
 
@@ -45,7 +45,7 @@ public class WMSLayerConfig extends AbstractLayerConfig implements WMSDataSource
 	private String webCacheUrl;
 
 	@ConfigField
-	private String webCacheParameters;
+	private String webCacheSupportedParameters;
 
 	@ConfigField
 	private String wmsRequestMimeType;
@@ -82,13 +82,13 @@ public class WMSLayerConfig extends AbstractLayerConfig implements WMSDataSource
 	}
 
 	@Override
-	public String getWebCacheParameters() {
-		return this.webCacheParameters;
+	public String getWebCacheSupportedParameters() {
+		return this.webCacheSupportedParameters;
 	}
 
 	@Override
-	public void setWebCacheParameters(String webCacheParameters) {
-		this.webCacheParameters = webCacheParameters;
+	public void setWebCacheSupportedParameters(String webCacheSupportedParameters) {
+		this.webCacheSupportedParameters = webCacheSupportedParameters;
 	}
 
 	@Override
@@ -97,12 +97,12 @@ public class WMSLayerConfig extends AbstractLayerConfig implements WMSDataSource
 	}
 
 	// Helper
-	public String[] getWebCacheParametersArray() {
-		if (this.webCacheParameters == null) {
+	public String[] getWebCacheSupportedParametersArray() {
+		if (this.webCacheSupportedParameters == null) {
 			return null;
 		}
 
-		String trimmedWebCacheParameters = this.webCacheParameters.trim();
+		String trimmedWebCacheParameters = this.webCacheSupportedParameters.trim();
 		if (trimmedWebCacheParameters.isEmpty()) {
 			return null;
 		}
@@ -151,42 +151,42 @@ public class WMSLayerConfig extends AbstractLayerConfig implements WMSDataSource
 	}
 
 	@Override
-	public JSONObject generateLayer() throws JSONException {
-		JSONObject jsonLayer = super.generateLayer();
+	public LayerWrapper generateLayer() throws JSONException {
+		LayerWrapper jsonLayer = super.generateLayer();
 
 		if (Utils.isNotBlank(this.getWebCacheUrl())) {
-			jsonLayer.put("webCacheUrl", this.getWebCacheUrl().trim());
+			jsonLayer.setWebCacheUrl(this.getWebCacheUrl().trim());
 		}
 
-		String[] webCacheParametersArray = this.getWebCacheParametersArray();
+		String[] webCacheParametersArray = this.getWebCacheSupportedParametersArray();
 		if (webCacheParametersArray != null && webCacheParametersArray.length > 0) {
 			JSONArray webCacheParameters = new JSONArray(webCacheParametersArray);
-			jsonLayer.put("webCacheSupportedParameters", webCacheParameters);
+			jsonLayer.setWebCacheSupportedParameters(webCacheParameters);
 		}
 
 		if (Utils.isNotBlank(this.getWmsVersion())) {
-			jsonLayer.put("wmsVersion", this.getWmsVersion().trim());
+			jsonLayer.setWmsVersion(this.getWmsVersion().trim());
 		}
 
 		if(this.isWmsQueryable() != null) {
-			jsonLayer.put("wmsQueryable", this.isWmsQueryable());
+			jsonLayer.setWmsQueryable(this.isWmsQueryable());
 		}
 
 		if (Utils.isNotBlank(this.getExtraWmsServiceUrls())) {
-			jsonLayer.put("extraWmsServiceUrls", this.getExtraWmsServiceUrls().trim());
+			jsonLayer.setExtraWmsServiceUrls(this.getExtraWmsServiceUrls().trim());
 		}
 
 		if (Utils.isNotBlank(this.getWmsRequestMimeType())) {
-			jsonLayer.put("wmsRequestMimeType", this.getWmsRequestMimeType().trim());
+			jsonLayer.setWmsRequestMimeType(this.getWmsRequestMimeType().trim());
 		}
 
 		String[] wmsFeatureRequestLayers = this.getWmsFeatureRequestLayers();
 		if (wmsFeatureRequestLayers != null && wmsFeatureRequestLayers.length > 0) {
-			jsonLayer.put("wmsFeatureRequestLayers", wmsFeatureRequestLayers);
+			jsonLayer.setWmsFeatureRequestLayers(wmsFeatureRequestLayers);
 		}
 
 		if (this.isWmsTransectable() != null) {
-			jsonLayer.put("wmsTransectable", this.isWmsTransectable());
+			jsonLayer.setWmsTransectable(this.isWmsTransectable());
 		}
 
 		return jsonLayer;

@@ -58,9 +58,15 @@ public class LayerCatalog {
 		this.addAllErrors(catalog.getErrors());
 	}
 
-	public void addLayers(Collection<? extends AbstractLayerConfig> layers) {
-		if (layers != null && !layers.isEmpty()) {
-			this.layers.addAll(layers);
+	public void addLayer(AbstractLayerConfig newLayer) {
+		if (newLayer != null) {
+			this.layers.add(newLayer);
+		}
+	}
+
+	public void addLayers(Collection<? extends AbstractLayerConfig> newLayers) {
+		if (newLayers != null && !newLayers.isEmpty()) {
+			this.layers.addAll(newLayers);
 		}
 	}
 

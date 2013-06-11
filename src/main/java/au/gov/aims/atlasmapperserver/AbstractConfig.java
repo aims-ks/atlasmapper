@@ -295,8 +295,22 @@ public abstract class AbstractConfig implements Cloneable {
 							configName = configName.trim();
 						}
 
+						String aliasStr = annotation.alias();
+						String[] aliases = null;
+						if (Utils.isNotBlank(aliasStr)) {
+							aliases = aliasStr.split("\\s*,\\s*");
+						}
+
 						try {
-							if (jsonObj.has(configName)) {
+							// If the config name is not found in the config file, try all aliases until we found one that is set.
+							String aliasName = configName;
+							if (aliases != null) {
+								for (int i=0; i<aliases.length && !jsonObj.has(aliasName); i++) {
+									aliasName = aliases[i];
+								}
+							}
+
+							if (jsonObj.has(aliasName)) {
 								Class fieldClass = field.getType();
 								Type[] collectionTypes = null;
 								if (Collection.class.isAssignableFrom(fieldClass)) {
@@ -304,12 +318,13 @@ public abstract class AbstractConfig implements Cloneable {
 										collectionTypes = ((ParameterizedType)setter.getGenericParameterTypes()[0]).getActualTypeArguments();
 									} catch(Exception e) {
 										LOGGER.log(Level.WARNING, "Can not find the types for the values in the collection [{0}]: {1}",
-												new String[] { configName, Utils.getExceptionMessage(e) });
+												new String[] { aliasName, Utils.getExceptionMessage(e) });
 										LOGGER.log(Level.FINE, "Stack trace: ", e);
 									}
 								}
 
-								Object value = getValue(this.configManager, jsonObj, configName, fieldClass, collectionTypes);
+
+								Object value = getValue(this.configManager, jsonObj, aliasName, fieldClass, collectionTypes);
 								setter.invoke(this, value);
 							}
 						} catch (Exception ex) {

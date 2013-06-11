@@ -91,26 +91,6 @@ public class XYZDataSourceConfig extends AbstractDataSourceConfig {
 
 	@Override
 	public AbstractLayerGenerator createLayerGenerator() {
-		return new XYZLayerGenerator(this);
-	}
-
-	@Override
-	// TODO Remove clientConfig parameter!!
-	public JSONObject generateDataSource(ClientConfig clientConfig) throws JSONException {
-		JSONObject dataSource = super.generateDataSource(clientConfig);
-
-		if (this.getServiceUrlsSet() != null) {
-			dataSource.put("serviceUrls", this.getServiceUrlsSet());
-		}
-
-		if (this.isOsm() != null) {
-			dataSource.put("osm", this.isOsm());
-		}
-
-		if (Utils.isNotBlank(this.getCrossOriginKeyword())) {
-			dataSource.put("crossOriginKeyword", this.getCrossOriginKeyword().trim());
-		}
-
-		return dataSource;
+		return new XYZLayerGenerator();
 	}
 }

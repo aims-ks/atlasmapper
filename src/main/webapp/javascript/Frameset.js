@@ -182,11 +182,7 @@ Ext.define('Frameset', {
 		if (!this.redirectIfNeeded(statusCode)) {
 			var errorMessages = '';
 			if (response && response.errors) {
-				errorMessages = '<ul class="bullet-list">\n';
-				Ext.each(response.errors, function(error) {
-					errorMessages += '<li>' + error + '</li>\n';
-				});
-				errorMessages += '</ul>\n';
+				errorMessages = this.errorsToHtml(response.errors);
 			}
 
 			var alertMsg = '<b>' + msg + '</b>';
@@ -207,86 +203,20 @@ Ext.define('Frameset', {
 
 		if (response && response.messages) {
 			errorMessages += '<div><b>Information:</b>';
-			errorMessages += '<ul class="bullet-list">\n';
-			Ext.each(response.messages, function(message) {
-				if (typeof(message) === 'string') {
-					errorMessages += '<li>' + Ext.String.htmlEncode(message) + '</li>\n';
-				} else {
-					Ext.iterate(message, function(url, messageStr) {
-						errorMessages += '<li>';
-						if (typeof(messageStr) === 'string') {
-							errorMessages += Ext.String.htmlEncode(messageStr);
-						} else {
-							var first = true;
-							Ext.each(messageStr, function(messageElStr) {
-								if (first) { first = false; } else { errorMessages += '<br/>\n';}
-								errorMessages += Ext.String.htmlEncode(messageElStr);
-							}, this);
-						}
-						if (url) {
-							errorMessages += '<br/>\n' + this.urlToHtmlLink(url);
-						}
-						errorMessages += '</li>\n';
-					}, this);
-				}
-			}, this);
-			errorMessages += '</ul></div>\n';
+			errorMessages += this.errorsToHtml(response.messages);
+			errorMessages += '</div>\n';
 		}
 
 		if (response && response.errors) {
 			errorMessages += '<div><b>Errors:</b>';
-			errorMessages += '<ul class="bullet-list">\n';
-			Ext.each(response.errors, function(error) {
-				if (typeof(error) === 'string') {
-					errorMessages += '<li>' + Ext.String.htmlEncode(error) + '</li>\n';
-				} else {
-					Ext.iterate(error, function(url, errorStr) {
-						errorMessages += '<li>';
-						if (typeof(errorStr) === 'string') {
-							errorMessages += Ext.String.htmlEncode(errorStr);
-						} else {
-							var first = true;
-							Ext.each(errorStr, function(errorElStr) {
-								if (first) { first = false; } else { errorMessages += '<br/>\n';}
-								errorMessages += Ext.String.htmlEncode(errorElStr);
-							}, this);
-						}
-						if (url) {
-							errorMessages += '<br/>\n' + this.urlToHtmlLink(url);
-						}
-						errorMessages += '</li>\n';
-					}, this);
-				}
-			}, this);
-			errorMessages += '</ul></div>\n';
+			errorMessages += this.errorsToHtml(response.errors);
+			errorMessages += '</div>\n';
 		}
 
 		if (response && response.warnings) {
 			errorMessages += '<div><b>Warnings:</b>';
-			errorMessages += '<ul class="bullet-list">\n';
-			Ext.each(response.warnings, function(warning) {
-				if (typeof(warning) === 'string') {
-					errorMessages += '<li>' + Ext.String.htmlEncode(warning) + '</li>\n';
-				} else {
-					Ext.iterate(warning, function(url, warningStr) {
-						errorMessages += '<li>';
-						if (typeof(warningStr) === 'string') {
-							errorMessages += Ext.String.htmlEncode(warningStr);
-						} else {
-							var first = true;
-							Ext.each(warningStr, function(warningElStr) {
-								if (first) { first = false; } else { errorMessages += '<br/>\n';}
-								errorMessages += Ext.String.htmlEncode(warningElStr);
-							}, this);
-						}
-						if (url) {
-							errorMessages += '<br/>\n' + this.urlToHtmlLink(url);
-						}
-						errorMessages += '</li>\n';
-					}, this);
-				}
-			}, this);
-			errorMessages += '</ul></div>\n';
+			errorMessages += this.errorsToHtml(response.warnings);
+			errorMessages += '</div>\n';
 		}
 
 		var alertMsg = '';
@@ -339,6 +269,45 @@ Ext.define('Frameset', {
 			iconCls: 'x-status-error',
 			clear: true // auto-clear after a set interval
 		});
+	},
+	errorsToHtml: function(errors) {
+		var errorMessages = '<ul class="bullet-list">\n';
+		if (Ext.isArray(errors)) {
+			Ext.each(errors, function(message) {
+				if (typeof(message) === 'string') {
+					errorMessages += '<li>' + this.errorMessageToHtml(message) + '</li>\n';
+				} else {
+					Ext.iterate(message, function(url, messageStr) {
+						errorMessages += '<li>';
+						if (typeof(messageStr) === 'string') {
+							errorMessages += this.errorMessageToHtml(messageStr);
+						} else {
+							var first = true;
+							Ext.each(messageStr, function(messageElStr) {
+								if (first) { first = false; } else { errorMessages += '<br/>\n';}
+								errorMessages += this.errorMessageToHtml(messageElStr);
+							}, this);
+						}
+						if (url) {
+							errorMessages += '<br/>\n' + this.urlToHtmlLink(url);
+						}
+						errorMessages += '</li>\n';
+					}, this);
+				}
+			}, this);
+		} else {
+			Ext.iterate(errors, function(clientName, messageArray) {
+				errorMessages += '<li>' + clientName;
+				errorMessages += this.errorsToHtml(messageArray);
+				errorMessages += '</li>';
+			}, this);
+		}
+		errorMessages += '</ul>\n';
+
+		return errorMessages;
+	},
+	errorMessageToHtml: function(str) {
+		return Ext.String.htmlEncode(str).replace(/\n/g, "<br/>\n");
 	},
 	urlToHtmlLink: function(url) {
 		var urlDisplay = url;

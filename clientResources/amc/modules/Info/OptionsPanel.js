@@ -259,12 +259,16 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 				if (layer.atlasLayer.json['styles']) {
 					var styleOptionName = 'STYLES';
 					var styleOptions = [];
-					Ext.iterate(layer.atlasLayer.json['styles'], function(styleName, jsonStyle) {
-						// BUG: Duplicate names can not be select with the ExtJS select option.
-						// Temporary(?) solution: Add a sequential number in front of it.
+					Ext.each(layer.atlasLayer.json['styles'], function(jsonStyle) {
+						var styleName = jsonStyle['name'];
 						var styleTitle = (jsonStyle['title'] ? jsonStyle['title'] : styleName);
 						// TODO Display de description on a box when a style is selected
 						var styleDescription = jsonStyle['description'];
+
+						// Remove the style name for the default style (that style need to be requested without Style parameter)
+						if (jsonStyle['default'] === true) {
+							styleName = '';
+						}
 
 						styleOptions[styleOptions.length] = [styleName, styleTitle];
 					});
@@ -274,6 +278,9 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 					if (styleOptions.length > 1) {
 						// Sort styles
 						styleOptions.sort(this._sortByName);
+
+						// BUG: Duplicate names can not be select with the ExtJS select option.
+						// Temporary(?) solution: Add a sequential number in front of it.
 
 						// Fancy style name formatting
 						Ext.each(styleOptions, function(style, index) {

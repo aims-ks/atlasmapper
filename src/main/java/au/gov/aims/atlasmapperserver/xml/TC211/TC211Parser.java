@@ -72,7 +72,7 @@ public class TC211Parser {
 	 * @throws IOException
 	 * @throws JSONException
 	 */
-	public static TC211Document parseURL(ConfigManager configManager, AbstractDataSourceConfig dataSource, URL url, boolean mandatory, boolean harvest)
+	public static TC211Document parseURL(ConfigManager configManager, AbstractDataSourceConfig dataSource, URL url, boolean mandatory, boolean clearMetadataCache)
 			throws SAXException, ParserConfigurationException, IOException, JSONException {
 
 		String urlStr = url.toString();
@@ -80,7 +80,7 @@ public class TC211Parser {
 
 		TC211Document tc211Document = null;
 		try {
-			cachedDocumentFile = URLCache.getURLFile(configManager, dataSource, urlStr, mandatory, harvest);
+			cachedDocumentFile = URLCache.getURLFile(configManager, dataSource, urlStr, mandatory, clearMetadataCache);
 			tc211Document = parseFile(cachedDocumentFile, urlStr);
 			URLCache.commitURLFile(configManager, cachedDocumentFile, urlStr);
 		} catch (Exception ex) {

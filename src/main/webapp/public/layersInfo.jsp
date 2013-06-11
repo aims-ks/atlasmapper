@@ -31,9 +31,9 @@
 <%@page import="au.gov.aims.atlasmapperserver.Utils"%>
 <%@page import="org.json.JSONArray"%>
 <%@page import="org.json.JSONObject"%>
-<%@page import="au.gov.aims.atlasmapperserver.ServletUtils"%>
+<%@page import="au.gov.aims.atlasmapperserver.ServletUtils"%><%@ page import="au.gov.aims.atlasmapperserver.jsonWrappers.client.URLSaveState"%>
 
-<%@page contentType="application/json" pageEncoding="UTF-8"%>
+		<%@page contentType="application/json" pageEncoding="UTF-8"%>
 <%
 	String actionStr = request.getParameter("action");
 	String[] layerIds = ServletUtils.getComaSeparatedParameters(request, "layerIds");
@@ -45,11 +45,11 @@
 	int indent = (request.getParameter("indent") != null ? Integer.parseInt(request.getParameter("indent")) : 0);
 	JSONObject jsonObj = new JSONObject();
 
-	// live:
+	// preview:
 	//     true: Get the config from the live server (slow)
 	//     false (default): Get the config from generated config files (fast)
-	// "live" is true only when it's value is the String "true", ignoring case.
-	boolean live = (request.getParameter("live") == null ? false : Boolean.parseBoolean(request.getParameter("live")));
+	// "preview" is true only when it's value is the String "true", ignoring case.
+	boolean preview = (request.getParameter("preview") == null ? false : Boolean.parseBoolean(request.getParameter("preview")));
 
 	if (Utils.isBlank(clientId)) {
 		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -89,9 +89,9 @@
 					jsonObj.put("errors", new JSONArray().put("Unknown action ["+actionStr+"]."));
 				}
 			} else if (Utils.isNotBlank(iso19115_19139url)) {
-				JSONObject mapState = configManager.getMapStateForDataset(clientConfig, iso19115_19139url, live);
+				URLSaveState mapState = configManager.getMapStateForDataset(clientConfig, iso19115_19139url, preview);
 
-				if (mapState == null || mapState.length() <= 0) {
+				if (mapState == null) {
 					response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 					jsonObj.put("success", false);
 					jsonObj.put("errors", new JSONArray().put("Layers not found."));
@@ -99,10 +99,10 @@
 					response.setStatus(HttpServletResponse.SC_OK);
 					jsonObj.put("success", true);
 					jsonObj.put("message", "Layers found");
-					jsonObj.put("data", mapState);
+					jsonObj.put("data", mapState.getJSON());
 				}
 			} else if (layerIds != null) {
-				JSONObject foundLayers = configManager.getClientLayers(clientConfig, layerIds, live);
+				JSONObject foundLayers = configManager.getClientLayers(clientConfig, layerIds, preview);
 
 				if (foundLayers == null || foundLayers.length() <= 0) {
 					response.setStatus(HttpServletResponse.SC_BAD_REQUEST);

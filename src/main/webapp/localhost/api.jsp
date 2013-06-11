@@ -57,7 +57,6 @@
 <%@ page import="java.util.Map" %>
 <%@ page import="au.gov.aims.atlasmapperserver.Errors" %>
 <%@ page import="java.util.HashMap" %>
-<%@ page import="au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog" %>
 
 <%@ page contentType="application/json" pageEncoding="UTF-8"%>
 <%
@@ -92,11 +91,11 @@
 							if (dataSource == null) {
 								// Invalid data source ID
 								Errors errors = new Errors();
-								errors.addError(new LayerCatalog.LayerError("Invalid data source ID: ["+dataSourceId+"]"));
+								errors.addError("Invalid data source ID: ["+dataSourceId+"]");
 								warnings.put(dataSourceId, errors);
 							} else {
 								// Refresh cache and merging error messages
-								warnings.putAll(dataSource.process());
+								warnings.put(dataSourceId, dataSource.process(true));
 							}
 						}
 					}
@@ -109,11 +108,11 @@
 							if (client == null) {
 								// Invalid client ID
 								Errors errors = new Errors();
-								errors.addError(new LayerCatalog.LayerError("Invalid client ID: ["+clientId+"]"));
+								errors.addError("Invalid client ID: ["+clientId+"]");
 								warnings.put(clientId, errors);
 							} else {
 								// Regenerate client and merging error messages
-								warnings.putAll(configManager.generateClient(client, false));
+								warnings.put(clientId, client.process(false));
 							}
 						}
 					}

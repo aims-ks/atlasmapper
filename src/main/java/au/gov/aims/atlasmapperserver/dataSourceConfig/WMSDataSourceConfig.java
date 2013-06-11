@@ -21,15 +21,11 @@
 
 package au.gov.aims.atlasmapperserver.dataSourceConfig;
 
-import au.gov.aims.atlasmapperserver.ClientConfig;
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
 import au.gov.aims.atlasmapperserver.layerGenerator.WMSLayerGenerator;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.util.Set;
 
@@ -51,8 +47,9 @@ public class WMSDataSourceConfig extends AbstractDataSourceConfig implements WMS
 	@ConfigField
 	private String webCacheUrl;
 
-	@ConfigField
-	private String webCacheParameters;
+	// This field used to be called "webCacheParameters"
+	@ConfigField(alias="webCacheParameters")
+	private String webCacheSupportedParameters;
 
 	@ConfigField
 	private String wmsRequestMimeType;
@@ -63,6 +60,8 @@ public class WMSDataSourceConfig extends AbstractDataSourceConfig implements WMS
 	@ConfigField
 	private String wmsVersion;
 
+	@ConfigField
+	private String cacheWmsVersion;
 
 	public WMSDataSourceConfig(ConfigManager configManager) {
 		super(configManager);
@@ -70,7 +69,7 @@ public class WMSDataSourceConfig extends AbstractDataSourceConfig implements WMS
 
 	@Override
 	public AbstractLayerGenerator createLayerGenerator() throws Exception {
-		return new WMSLayerGenerator(this);
+		return new WMSLayerGenerator();
 	}
 
 	public String getGetMapUrl() {
@@ -98,12 +97,12 @@ public class WMSDataSourceConfig extends AbstractDataSourceConfig implements WMS
 	}
 
 	// Helper
-	public String[] getWebCacheParametersArray() {
-		if (this.webCacheParameters == null) {
+	public String[] getWebCacheSupportedParametersArray() {
+		if (this.webCacheSupportedParameters == null) {
 			return null;
 		}
 
-		String trimedWebCacheParameters = this.webCacheParameters.trim();
+		String trimedWebCacheParameters = this.webCacheSupportedParameters.trim();
 		if (trimedWebCacheParameters.isEmpty()) {
 			return null;
 		}
@@ -111,12 +110,12 @@ public class WMSDataSourceConfig extends AbstractDataSourceConfig implements WMS
 		return trimedWebCacheParameters.split("\\s*,\\s*");
 	}
 
-	public String getWebCacheParameters() {
-		return this.webCacheParameters;
+	public String getWebCacheSupportedParameters() {
+		return this.webCacheSupportedParameters;
 	}
 
-	public void setWebCacheParameters(String webCacheParameters) {
-		this.webCacheParameters = webCacheParameters;
+	public void setWebCacheSupportedParameters(String webCacheSupportedParameters) {
+		this.webCacheSupportedParameters = webCacheSupportedParameters;
 	}
 
 	public String getWebCacheCapabilitiesUrl() {
@@ -167,44 +166,12 @@ public class WMSDataSourceConfig extends AbstractDataSourceConfig implements WMS
 		this.wmsVersion = wmsVersion;
 	}
 
-	@Override
-	// TODO Remove clientConfig parameter!!
-	public JSONObject generateDataSource(ClientConfig clientConfig) throws JSONException {
-		// This call fill common fields with AbstractDataSourceConfigInterfaceHelper.generateDataSourceInterface(...)
-		JSONObject dataSource = super.generateDataSource(clientConfig);
+	public String getCacheWmsVersion() {
+		return this.cacheWmsVersion;
+	}
 
-		if (Utils.isNotBlank(this.getGetMapUrl())) {
-			// TODO remove wms from the property name
-			dataSource.put("wmsServiceUrl", this.getGetMapUrl().trim());
-		}
-
-		if (Utils.isNotBlank(this.getExtraWmsServiceUrls())) {
-			dataSource.put("extraWmsServiceUrls", this.getExtraWmsServiceUrls().trim());
-		}
-
-		if (Utils.isNotBlank(this.getWebCacheCapabilitiesUrl())) {
-			dataSource.put("webCacheCapabilitiesUrl", this.getWebCacheCapabilitiesUrl().trim());
-		}
-
-		if (Utils.isNotBlank(this.getWebCacheUrl())) {
-			dataSource.put("webCacheUrl", this.getWebCacheUrl().trim());
-		}
-
-		String[] webCacheParametersArray = this.getWebCacheParametersArray();
-		if (webCacheParametersArray != null && webCacheParametersArray.length > 0) {
-			JSONArray webCacheParameters = new JSONArray(webCacheParametersArray);
-			dataSource.put("webCacheSupportedParameters", webCacheParameters);
-		}
-
-		if (this.isWebCacheEnable() != null) {
-			dataSource.put("webCacheEnable", this.isWebCacheEnable());
-		}
-
-		if (Utils.isNotBlank(this.getWmsVersion())) {
-			dataSource.put("wmsVersion", this.getWmsVersion().trim());
-		}
-
-		return dataSource;
+	public void setCacheWmsVersion(String cacheWmsVersion) {
+		this.cacheWmsVersion = cacheWmsVersion;
 	}
 
 	@Override
@@ -213,7 +180,7 @@ public class WMSDataSourceConfig extends AbstractDataSourceConfig implements WMS
 				(this.getId()==null ? "" :                             "	id=" + this.getId() + "\n") +
 				(Utils.isBlank(extraWmsServiceUrls) ? "" :             "	extraWmsServiceUrls=" + extraWmsServiceUrls + "\n") +
 				(Utils.isBlank(webCacheUrl) ? "" :                     "	webCacheUrl=" + webCacheUrl + "\n") +
-				(Utils.isBlank(webCacheParameters) ? "" :              "	webCacheUrl=" + webCacheParameters + "\n") +
+				(Utils.isBlank(webCacheSupportedParameters) ? "" :     "	webCacheSupportedParameters=" + webCacheSupportedParameters + "\n") +
 				(Utils.isBlank(wmsRequestMimeType) ? "" :              "	wmsRequestMimeType=" + wmsRequestMimeType + "\n") +
 				(wmsTransectable==null ? "" :                          "	wmsTransectable=" + wmsTransectable + "\n") +
 				(Utils.isBlank(wmsVersion) ? "" :                      "	wmsVersion=" + wmsVersion + "\n") +

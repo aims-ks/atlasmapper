@@ -23,6 +23,7 @@ package au.gov.aims.atlasmapperserver.layerGenerator;
 
 import au.gov.aims.atlasmapperserver.dataSourceConfig.KMLDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.KMLLayerConfig;
+import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -31,11 +32,6 @@ import java.util.Collection;
 import java.util.List;
 
 public class KMLLayerGenerator extends AbstractLayerGenerator<KMLLayerConfig, KMLDataSourceConfig> {
-
-	public KMLLayerGenerator(KMLDataSourceConfig dataSource) {
-		super(dataSource);
-	}
-
 	/**
 	 * We thrust the Admin to choose Unique IDs for all it's KMLs. Nothing to do here.
 	 * @param layer
@@ -55,8 +51,8 @@ public class KMLLayerGenerator extends AbstractLayerGenerator<KMLLayerConfig, KM
 	 * NOTE: Harvest is ignored since there is nothing to harvest.
 	 */
 	@Override
-	public Collection<KMLLayerConfig> generateLayerConfigs(KMLDataSourceConfig dataSourceConfig, boolean harvest) throws Exception {
-		List<KMLLayerConfig> layersConfig = null;
+	public LayerCatalog generateLayerCatalog(KMLDataSourceConfig dataSourceConfig, boolean clearCapabilitiesCache, boolean clearMetadataCache) throws Exception {
+		LayerCatalog layerCatalog = new LayerCatalog();
 
 		JSONArray kmlData = dataSourceConfig.getKmlData();
 		if (kmlData != null && kmlData.length() > 0) {
@@ -74,24 +70,15 @@ public class KMLLayerGenerator extends AbstractLayerGenerator<KMLLayerConfig, KM
 						layer.setDescriptionFormat("wiki");
 					}
 
-					if (layersConfig == null) {
-						layersConfig = new ArrayList<KMLLayerConfig>();
-					}
-
 					dataSourceConfig.bindLayer(layer);
 					// Do not call ensure unique layer ID, we thrust the admin to choose unique ID.
 					//this.ensureUniqueLayerId(layer, dataSourceConfig);
 
-					layersConfig.add(layer);
+					layerCatalog.addLayer(layer);
 				}
 			}
 		}
 
-		return layersConfig;
-	}
-
-	@Override
-	public KMLDataSourceConfig applyOverrides(KMLDataSourceConfig dataSourceConfig) {
-		return dataSourceConfig;
+		return layerCatalog;
 	}
 }

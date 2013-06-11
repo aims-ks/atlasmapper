@@ -94,7 +94,7 @@ Atlas.DescriptionPanel = Ext.extend(Ext.Panel, {
 			layerTitle = this.layer.getTitle();
 		}
 		var downloadWindow = new Ext.Window({
-			title: 'Downloads',
+			title: layerTitle + ' downloads',
 			closable: true,
 			width: 500,
 			height: 350,
@@ -104,8 +104,7 @@ Atlas.DescriptionPanel = Ext.extend(Ext.Panel, {
 			items: [{
 				autoScroll: true,
 				html: '<div class="downloadLinks">' +
-					'<div class="title">' + layerTitle + '</div>' +
-					'<p>Resources available for download:</p>' +
+					'<div class="title">Resources available for download:</div>' +
 					this.downloadLinks +
 					'</div>'
 			}]

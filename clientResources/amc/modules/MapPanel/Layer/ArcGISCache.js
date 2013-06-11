@@ -43,7 +43,7 @@ Atlas.Layer.ArcGISCache = OpenLayers.Class(/*Atlas.Layer.AbstractLayer*/ Atlas.L
 		Atlas.Layer.AbstractLayer.prototype.initialize.apply(this, arguments);
 		var layerOptions = this._getArcGISLayerOptions(layerJSon);
 
-		var url = layerJSon['wmsServiceUrl'];
+		var url = layerJSon['serviceUrl'];
 		if (layerJSon['arcGISPath']) {
 			url += '/' + layerJSon['arcGISPath'];
 		}

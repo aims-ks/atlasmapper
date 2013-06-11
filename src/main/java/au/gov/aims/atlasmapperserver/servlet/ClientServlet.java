@@ -139,6 +139,17 @@ public class ClientServlet extends HttpServlet {
 			response.setContentType(contentType);
 			response.setStatus(HttpServletResponse.SC_OK);
 
+			// TODO Set ttl according to the request (that could help the browser to know when to clear it's cache)
+			// Example: Request for the preview should have a very short ttl
+			/*
+			String RFC1123_PATTERN = "EEE, dd MMM yyyy HH:mm:ss z";
+			SimpleDateFormat rfc1123Format = new SimpleDateFormat(RFC1123_PATTERN, Locale.US);
+			rfc1123Format.setTimeZone(TimeZone.getTimeZone("GMT"));
+
+			Date expireDate = new Date((new Date().getTime()) + ttl);
+			response.setHeader("Expires", rfc1123Format.format(expireDate));
+			*/
+
 			ServletUtils.sendResponse(response, file);
 		} catch (FileNotFoundException e) {
 			response.setStatus(HttpServletResponse.SC_NOT_FOUND);

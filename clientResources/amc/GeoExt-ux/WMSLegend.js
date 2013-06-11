@@ -140,7 +140,7 @@ GeoExt.ux.WMSLegend = Ext.extend(GeoExt.WMSLegend, {
 			url = layer.getFullRequestString(
 				legendBaseParams,
 				// Never get the legend from GWC
-				layer.atlasLayer.json['wmsServiceUrl']
+				layer.atlasLayer.json['serviceUrl']
 			);
 		}
 

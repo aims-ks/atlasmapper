@@ -21,16 +21,11 @@
 
 package au.gov.aims.atlasmapperserver.dataSourceConfig;
 
-import au.gov.aims.atlasmapperserver.ClientConfig;
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
 import au.gov.aims.atlasmapperserver.layerGenerator.ArcGISMapServerLayerGenerator;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.IOException;
 
 public class ArcGISMapServerDataSourceConfig extends AbstractDataSourceConfig implements ArcGISMapServerDataSourceConfigInterface {
 	@ConfigField
@@ -62,19 +57,7 @@ public class ArcGISMapServerDataSourceConfig extends AbstractDataSourceConfig im
 
 	@Override
 	public AbstractLayerGenerator createLayerGenerator() {
-		return new ArcGISMapServerLayerGenerator(this);
-	}
-
-	@Override
-	// TODO Remove clientConfig parameter!!
-	public JSONObject generateDataSource(ClientConfig clientConfig) throws JSONException {
-		JSONObject dataSource = super.generateDataSource(clientConfig);
-
-		if (this.isForcePNG24() != null) {
-			dataSource.put("forcePNG24", this.isForcePNG24());
-		}
-
-		return dataSource;
+		return new ArcGISMapServerLayerGenerator();
 	}
 
 	@Override

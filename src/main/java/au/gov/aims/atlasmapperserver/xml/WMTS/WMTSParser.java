@@ -51,7 +51,7 @@ public class WMTSParser {
 	 * @throws IOException
 	 * @throws JSONException
 	 */
-	public static WMTSDocument parseURL(ConfigManager configManager, AbstractDataSourceConfig dataSource, URL url, boolean mandatory, boolean harvest)
+	public static WMTSDocument parseURL(ConfigManager configManager, AbstractDataSourceConfig dataSource, URL url, boolean mandatory, boolean clearCapabilitiesCache)
 			throws SAXException, ParserConfigurationException, IOException, JSONException {
 
 		String urlStr = url.toString();
@@ -59,7 +59,7 @@ public class WMTSParser {
 
 		WMTSDocument wmtsDocument = null;
 		try {
-			cachedDocumentFile = URLCache.getURLFile(configManager, dataSource, urlStr, mandatory, harvest);
+			cachedDocumentFile = URLCache.getURLFile(configManager, dataSource, urlStr, mandatory, clearCapabilitiesCache);
 			wmtsDocument = parseFile(cachedDocumentFile, urlStr);
 			URLCache.commitURLFile(configManager, cachedDocumentFile, urlStr);
 		} catch (Exception ex) {

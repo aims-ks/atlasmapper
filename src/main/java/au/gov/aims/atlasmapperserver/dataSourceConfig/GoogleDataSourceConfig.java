@@ -32,6 +32,6 @@ public class GoogleDataSourceConfig extends AbstractDataSourceConfig {
 
 	@Override
 	public AbstractLayerGenerator createLayerGenerator() {
-		return new GoogleLayerGenerator(this);
+		return new GoogleLayerGenerator();
 	}
 }

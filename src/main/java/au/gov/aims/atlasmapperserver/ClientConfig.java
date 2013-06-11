@@ -23,13 +23,18 @@ package au.gov.aims.atlasmapperserver;
 
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
-import au.gov.aims.atlasmapperserver.dataSourceConfig.GoogleDataSourceConfig;
+import au.gov.aims.atlasmapperserver.jsonWrappers.client.ClientWrapper;
+import au.gov.aims.atlasmapperserver.jsonWrappers.client.DataSourceWrapper;
+import au.gov.aims.atlasmapperserver.jsonWrappers.client.LayerWrapper;
 import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
-import au.gov.aims.atlasmapperserver.layerConfig.GroupLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
 import au.gov.aims.atlasmapperserver.servlet.FileFinder;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,6 +43,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -46,6 +52,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.ServletContext;
 
+import au.gov.aims.atlasmapperserver.servlet.Proxy;
+import freemarker.template.Configuration;
+import freemarker.template.TemplateException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -129,7 +138,7 @@ public class ClientConfig extends AbstractConfig {
 	private List<String> defaultLayersList = null;
 
 	@ConfigField
-	private String version;
+	private Double version = null;
 
 	@ConfigField
 	private boolean useLayerService;
@@ -239,70 +248,201 @@ public class ClientConfig extends AbstractConfig {
 		super(configManager);
 	}
 
-	// LayerCatalog - Before data source overrides
-	private JSONObject getRawLayerCatalog() throws IOException, JSONException {
-		JSONObject jsonClientCatalog = new JSONObject();
-		JSONArray jsonErrors = new JSONArray();
-		JSONObject jsonClientCatalogLayers = new JSONObject();
+	public Map<String, DataSourceWrapper> loadDataSources() throws FileNotFoundException, JSONException {
+		Map<String, DataSourceWrapper> dataSources = new HashMap<String, DataSourceWrapper>();
+		JSONArray dataSourcesArray = this.getDataSources();
+		if (dataSourcesArray != null) {
+			for (int i=0; i < dataSourcesArray.length(); i++) {
+				String clientDataSourceId = dataSourcesArray.optString(i, null);
+				if (Utils.isNotBlank(clientDataSourceId)) {
+					DataSourceWrapper dataSourceWrapper = AbstractDataSourceConfig.load(
+							this.getConfigManager().getApplicationFolder(),
+							clientDataSourceId);
 
-		for (AbstractDataSourceConfig dataSource : this.getDataSourceConfigs()) {
-			String dataSourceId = null;
-			try {
-				if (dataSource != null) {
-					// Get data source saved catalog
-					dataSourceId = dataSource.getDataSourceId();
-					JSONObject jsonDataSourceCatalog = AbstractDataSourceConfig.load(this.getConfigManager().getApplicationFolder(), dataSourceId);
-					JSONObject jsonDataSourceCatalogLayers = jsonDataSourceCatalog.optJSONObject("layers");
-
-					// Add each layers from the catalog to the client catalog
-					if (jsonDataSourceCatalogLayers != null && jsonDataSourceCatalogLayers.length() > 0) {
-						Iterator<String> layerIDsItr = jsonDataSourceCatalogLayers.keys();
-						while(layerIDsItr.hasNext()) {
-							String layerID = layerIDsItr.next();
-							if (!jsonDataSourceCatalogLayers.isNull(layerID)) {
-								jsonClientCatalogLayers.put(layerID, jsonDataSourceCatalogLayers.optJSONObject(layerID));
-							}
-						}
-					}
+					dataSources.put(dataSourceWrapper.getDataSourceId(), dataSourceWrapper);
 				}
-			} catch(Exception ex) {
-				jsonErrors.put("Exception occurred while retrieving layers: " + Utils.getExceptionMessage(ex));
-				LOGGER.log(Level.WARNING, "Exception occurred while retrieving layers: {0}", Utils.getExceptionMessage(ex));
-				LOGGER.log(Level.FINE, "Stack trace: ", ex);
 			}
 		}
 
-		if (jsonErrors.length() > 0) {
-			jsonClientCatalog.put("errors", jsonErrors);
+		return dataSources;
+	}
+	public DataSourceWrapper getFirstGoogleDataSource(Map<String, DataSourceWrapper> dataSources) {
+		if (dataSources != null) {
+			for (DataSourceWrapper dataSourceWrapper : dataSources.values()) {
+				if (dataSourceWrapper.isGoogle()) {
+					return dataSourceWrapper;
+				}
+			}
 		}
-		if (jsonClientCatalogLayers.length() > 0) {
-			jsonClientCatalog.put("layers", jsonClientCatalogLayers);
+		return null;
+	}
+
+	public Errors process(boolean complete) throws Exception {
+		// Collect error messages
+		Errors clientErrors = new Errors();
+
+		// Load data sources
+		Map<String, DataSourceWrapper> dataSources = this.loadDataSources();
+
+		// Find a google data source, if any
+		DataSourceWrapper googleDataSource = getFirstGoogleDataSource(dataSources);
+
+		// Check for write access before doing any processing,
+		File clientFolder = FileFinder.getClientFolder(this.getConfigManager().getApplicationFolder(), this);
+		String tomcatUser = System.getProperty("user.name");
+		if (clientFolder.exists()) {
+			// The client do exists, check if we have write access to it.
+			if (!clientFolder.canWrite()) {
+				clientErrors.addError("The client could not be generated; The AtlasMapper do not have write access to the client folder [" + clientFolder.getAbsolutePath() + "]. " +
+						"Give write access to the user \"" + tomcatUser + "\" to the client folder and try regenerating the client.");
+
+				// No write access. No need to continue.
+				return clientErrors;
+			}
+		} else {
+			// The client do not exists, check if it can be created.
+			if (!Utils.recursiveIsWritable(clientFolder)) {
+				clientErrors.addError("The client could not be generated; The AtlasMapper can not create the client folder [" + clientFolder.getAbsolutePath() + "]. " +
+						"Give write access to the user \"" + tomcatUser + "\" to the parent folder or " +
+						"create the client folder manually with write access to the user \"" + tomcatUser + "\" and try regenerating the client.");
+
+				// Inappropriate write access. No need to continue.
+				return clientErrors;
+			}
 		}
 
-		return jsonClientCatalog;
+		// Get the layer catalog from the data source save state and the client layer overrides.
+		DataSourceWrapper layerCatalog = null;
+		int nbLayers = 0;
+		try {
+			layerCatalog = this.getLayerCatalog(dataSources);
+			nbLayers = layerCatalog.getLayers() == null ? 0 : layerCatalog.getLayers().length();
+		} catch (IOException ex) {
+			clientErrors.addError("An IO exception occurred while generating the layer catalog: " + Utils.getExceptionMessage(ex) + "\nSee your server logs.");
+			LOGGER.log(Level.SEVERE, "An IO exception occurred while generating the layer catalog: {0}", Utils.getExceptionMessage(ex));
+			LOGGER.log(Level.WARNING, "Stack trace: ", ex);
+
+			// No catalog, no need to continue.
+			return clientErrors;
+		} catch (JSONException ex) {
+			clientErrors.addError("A JSON exception occurred while generating the layer catalog: " + Utils.getExceptionMessage(ex) + "\nSee your server logs.");
+			LOGGER.log(Level.SEVERE, "A JSON exception occurred while generating the layer catalog: {0}", Utils.getExceptionMessage(ex));
+			LOGGER.log(Level.WARNING, "Stack trace: ", ex);
+
+			// No catalog, no need to continue.
+			return clientErrors;
+		}
+
+		if (nbLayers <= 0) {
+			clientErrors.addWarning("The client has no available layers");
+		}
+
+		try {
+			this.copyClientFilesIfNeeded(complete);
+		} catch (IOException ex) {
+			// Those error are very unlikely to happen since we already checked the folder write access.
+			if (clientFolder.exists()) {
+				clientErrors.addError("An unexpected exception occurred while copying the client files to the folder [" + clientFolder.getAbsolutePath() + "]: " + Utils.getExceptionMessage(ex) + "\nSee your server logs.");
+				LOGGER.log(Level.SEVERE, "An unexpected exception occurred while copying the client files to the folder [" + clientFolder.getAbsolutePath() + "]: {0}", Utils.getExceptionMessage(ex));
+				LOGGER.log(Level.WARNING, "Stack trace: ", ex);
+			} else {
+				clientErrors.addError("The client could not be generated; The AtlasMapper were not able to create the client folder [" + clientFolder.getAbsolutePath() + "]. " +
+						"Give write access to the user \"" + tomcatUser + "\" to the parent folder or " +
+						"create the client folder manually with write access to the user \"" + tomcatUser + "\" and try regenerating the client.");
+			}
+
+			// There was an error while copying the client files. No need to continue.
+			return clientErrors;
+		}
+
+		ClientWrapper generatedMainConfig = null;
+		ClientWrapper generatedEmbeddedConfig = null;
+		JSONObject generatedLayers = null;
+		try {
+			generatedMainConfig = new ClientWrapper(this.getConfigManager().getClientConfigFileJSon(layerCatalog, dataSources, this, ConfigType.MAIN, false, true));
+			generatedEmbeddedConfig = new ClientWrapper(this.getConfigManager().getClientConfigFileJSon(layerCatalog, dataSources, this, ConfigType.EMBEDDED, false, true));
+			generatedLayers = this.getConfigManager().getClientConfigFileJSon(layerCatalog, dataSources, this, ConfigType.LAYERS, false, true);
+		} catch (IOException ex) {
+			// Very unlikely to happen
+			clientErrors.addError("An IO exception occurred while generating the client config: " + Utils.getExceptionMessage(ex) + "\nSee your server logs.");
+			LOGGER.log(Level.SEVERE, "An IO exception occurred while generating the client config: {0}", Utils.getExceptionMessage(ex));
+			LOGGER.log(Level.WARNING, "Stack trace: ", ex);
+
+			// No catalog, no need to continue.
+			return clientErrors;
+		} catch (JSONException ex) {
+			// Very unlikely to happen
+			clientErrors.addError("A JSON exception occurred while generating the client config: " + Utils.getExceptionMessage(ex) + "\nSee your server logs.");
+			LOGGER.log(Level.SEVERE, "A JSON exception occurred while generating the client config: {0}", Utils.getExceptionMessage(ex));
+			LOGGER.log(Level.WARNING, "Stack trace: ", ex);
+
+			// No catalog, no need to continue.
+			return clientErrors;
+		}
+
+		// Verify if there is error (it may contains only warnings)
+		if (clientErrors.getErrors().isEmpty()) {
+			try {
+				this.generateTemplateFiles(layerCatalog, generatedMainConfig, googleDataSource);
+				this.saveGeneratedConfigs(generatedMainConfig, generatedEmbeddedConfig, generatedLayers);
+
+				// Flush the proxy cache for both the preview and the generated clients
+				Proxy.reloadConfig(generatedMainConfig, generatedLayers, this, true);
+				Proxy.reloadConfig(generatedMainConfig, generatedLayers, this, false);
+
+				this.setLastGeneratedDate(new Date());
+				// Write the changes to disk
+				this.getConfigManager().saveServerConfig();
+			} catch (TemplateException ex) {
+				// May happen if a template is modified.
+				clientErrors.addError("Can not process the client templates: " + Utils.getExceptionMessage(ex) + "\nSee your server logs.");
+				LOGGER.log(Level.SEVERE, "Can not process the client templates: {0}", Utils.getExceptionMessage(ex));
+				LOGGER.log(Level.WARNING, "Stack trace: ", ex);
+			} catch (IOException ex) {
+				// May happen if a template is modified.
+				clientErrors.addError("An IO exception occurred while generating the client config: " + Utils.getExceptionMessage(ex) + "\nSee your server logs.");
+				LOGGER.log(Level.SEVERE, "An IO exception occurred while generating the client config: {0}", Utils.getExceptionMessage(ex));
+				LOGGER.log(Level.WARNING, "Stack trace: ", ex);
+			} catch (JSONException ex) {
+				// Very unlikely to happen
+				clientErrors.addError("A JSON exception occurred while generating the client config: " + Utils.getExceptionMessage(ex) + "\nSee your server logs.");
+				LOGGER.log(Level.SEVERE, "A JSON exception occurred while generating the client config: {0}", Utils.getExceptionMessage(ex));
+				LOGGER.log(Level.WARNING, "Stack trace: ", ex);
+			}
+		}
+
+		// Generation - Conclusion message
+		if (clientErrors.getErrors().isEmpty()) {
+			if (clientErrors.getWarnings().isEmpty()) {
+				clientErrors.addMessage("Client generated successfully.");
+			} else {
+				clientErrors.addMessage("Client generation passed.");
+			}
+			clientErrors.addMessage("The client has " + nbLayers + " layer" + (nbLayers > 1 ? "s" : "") + " available.");
+		} else {
+			clientErrors.addMessage("Client generation failed.");
+		}
+
+		return clientErrors;
+
 	}
 
 	// LayerCatalog - After data source overrides
-	public JSONObject getLayerCatalog() throws IOException, JSONException {
-		JSONObject rawLayerCatalog = this.getRawLayerCatalog();
-
-		JSONObject layers = new JSONObject();
-		JSONArray errors = new JSONArray();
-		JSONArray warnings = new JSONArray();
+	public DataSourceWrapper getLayerCatalog(Map<String, DataSourceWrapper> dataSources) throws IOException, JSONException {
+		DataSourceWrapper layerCatalog = new DataSourceWrapper(new JSONObject());
 
 		JSONObject clientOverrides = this.manualOverride;
 
 		// Apply manual overrides, if needed
-		if (rawLayerCatalog.length() > 0) {
-			JSONObject rawLayers = rawLayerCatalog.optJSONObject("layers");
-			if (rawLayers != null && rawLayers.length() > 0) {
+		if (dataSources != null && !dataSources.isEmpty()) {
+			for (DataSourceWrapper dataSourceWrapper : dataSources.values()) {
+				JSONObject rawLayers = dataSourceWrapper.getLayers();
 				Iterator<String> rawLayerIds = rawLayers.keys();
-
 				while (rawLayerIds.hasNext()) {
 					String rawLayerId = rawLayerIds.next();
 					JSONObject rawLayer = rawLayers.optJSONObject(rawLayerId);
 
-					layers.put(rawLayerId, AbstractLayerConfig.applyGlobalOverrides(rawLayerId, rawLayer, clientOverrides));
+					layerCatalog.addLayer(rawLayerId, AbstractLayerConfig.applyGlobalOverrides(rawLayerId, rawLayer, clientOverrides));
 				}
 			}
 		}
@@ -310,115 +450,105 @@ public class ClientConfig extends AbstractConfig {
 		// Create manual layers defined for this client
 		if (clientOverrides != null && clientOverrides.length() > 0) {
 			Iterator<String> layerIds = clientOverrides.keys();
+			JSONObject layers = layerCatalog.getLayers();
 			while (layerIds.hasNext()) {
 				String layerId = layerIds.next();
 				if (!layers.isNull(layerId)) {
-					JSONObject jsonClientOverride = clientOverrides.optJSONObject(layerId);
-					if (jsonClientOverride != null && jsonClientOverride.length() > 0) {
-						try {
-							String dataSourceId = jsonClientOverride.optString("dataSourceId");
-							String dataSourceType = jsonClientOverride.optString("dataSourceType");
+					LayerWrapper jsonClientLayerOverride = new LayerWrapper(clientOverrides.optJSONObject(layerId));
+					try {
+						DataSourceWrapper dataSource = null;
+						String dataSourceId = jsonClientLayerOverride.getDataSourceId();
+						String dataSourceType = jsonClientLayerOverride.getDataSourceType();
 
-							AbstractDataSourceConfig dataSource = null;
-							if (Utils.isNotBlank(dataSourceId)) {
-								dataSource = this.getDataSourceConfig(dataSourceId);
+						if (Utils.isNotBlank(dataSourceId)) {
+							dataSource = dataSources.get(dataSourceId);
 
-								if (dataSource == null) {
-									warnings.put("Invalid manual override for layer " + layerId + " of client: " + this.getClientName());
-									LOGGER.log(Level.WARNING, "The manual override for the layer {0} of the client {1} is defining an invalid data source {2}.",
-											new String[]{layerId, this.getClientName(), dataSourceId});
-									continue;
-								}
+							if (dataSource == null) {
+								layerCatalog.addWarning("Invalid manual override for layer " + layerId + " of client: " + this.getClientName());
+								LOGGER.log(Level.WARNING, "The manual override for the layer {0} of the client {1} is defining an invalid data source {2}.",
+										new String[]{layerId, this.getClientName(), dataSourceId});
+								continue;
 							}
+						}
 
-							if (Utils.isBlank(dataSourceType)) {
-								if (dataSource != null) {
-									dataSourceType = dataSource.getDataSourceType();
-								} else {
-									warnings.put("Invalid manual override for layer " + layerId + " of client: " + this.getClientName());
-									LOGGER.log(Level.WARNING, "The manual override for the layer {0} of the client {1} define a layer override for a layer that do not exists and can not be created because it do not define its data source type.",
-											new String[]{layerId, this.getClientName()});
-									continue;
-								}
-							}
-
-							AbstractLayerConfig manualLayer = LayerCatalog.createLayer(
-									dataSourceType, jsonClientOverride, this.getConfigManager());
-
-							manualLayer.setLayerId(layerId);
-
+						if (Utils.isBlank(dataSourceType)) {
 							if (dataSource != null) {
-								dataSource.bindLayer(manualLayer);
+								dataSourceType = dataSource.getDataSourceType();
+							} else {
+								layerCatalog.addWarning("Invalid manual override for layer " + layerId + " of client: " + this.getClientName());
+								LOGGER.log(Level.WARNING, "The manual override for the layer {0} of the client {1} define a layer override for a layer that do not exists and can not be created because it do not define its data source type.",
+										new String[]{layerId, this.getClientName()});
+								continue;
 							}
-
-							layers.put(
-									manualLayer.getLayerId(),
-									manualLayer.generateLayer());
-						} catch(Exception ex) {
-							errors.put("Unexpected error occurred while parsing the layer override for the client "+this.getClientName()+".");
-							LOGGER.log(Level.SEVERE, "Unexpected error occurred while parsing the following layer override for the client [{0}]: {1}\n{2}",
-									new String[]{this.getClientName(), Utils.getExceptionMessage(ex), jsonClientOverride.toString(4)});
-							LOGGER.log(Level.FINE, "Stack trace: ", ex);
 						}
+
+						AbstractLayerConfig manualLayer = LayerCatalog.createLayer(
+								dataSourceType, jsonClientLayerOverride.getJSON(), this.getConfigManager());
+
+						manualLayer.setLayerId(layerId);
+
+						if (dataSource != null) {
+							manualLayer.setDataSourceId(dataSource.getDataSourceId());
+							manualLayer.setDataSourceType(dataSource.getDataSourceType());
+						}
+
+						layers.put(
+								manualLayer.getLayerId(),
+								manualLayer.toJSonObject());
+					} catch(Exception ex) {
+						layerCatalog.addError("Unexpected error occurred while parsing the layer override for the client " + this.getClientName() + ".");
+						LOGGER.log(Level.SEVERE, "Unexpected error occurred while parsing the following layer override for the client [{0}]: {1}\n{2}",
+								new String[]{this.getClientName(), Utils.getExceptionMessage(ex), jsonClientLayerOverride.getJSON().toString(4)});
+						LOGGER.log(Level.FINE, "Stack trace: ", ex);
 					}
 				}
 			}
 		}
 
-		// Add layer group content in the description, and set flag to hide children layers in the layer tree (Add layer window).
-		// I.E. Layers that are present in a layer group are not shown in the tree. This can be overridden by
-		//     setting "shownOnlyInLayerGroup" to true in the layers overrides.
-		Iterator<String> layerIds = layers.keys();
-		while (layerIds.hasNext()) {
-			String layerId = layerIds.next();
-			if (!layers.isNull(layerId)) {
-				JSONObject jsonLayer = layers.optJSONObject(layerId);
-				if ("GROUP".equals(jsonLayer.optString("dataSourceType", null))) {
-					JSONArray childrenLayers = jsonLayer.optJSONArray("layers");
-					if (childrenLayers != null && childrenLayers.length() > 0) {
-						String layerGroupHTMLList = this.getHTMLListAndHideChildrenLayers(layers, childrenLayers);
+		// Set some layer attributes
+		JSONObject layers = layerCatalog.getLayers();
+		if (layers != null) {
+			Iterator<String> layerIds = layers.keys();
+			while (layerIds.hasNext()) {
+				String layerId = layerIds.next();
+				if (!layers.isNull(layerId)) {
+					LayerWrapper layerWrapper = new LayerWrapper(layers.optJSONObject(layerId));
 
-						if (Utils.isNotBlank(layerGroupHTMLList)) {
-							StringBuilder groupHtmlDescription = new StringBuilder();
-							groupHtmlDescription.append("This layer regroup the following list of layers:");
-							groupHtmlDescription.append(layerGroupHTMLList);
+					// Add layer group content in the description, and set flag to hide children layers in the layer tree (Add layer window).
+					// I.E. Layers that are present in a layer group are not shown in the tree. This can be overridden by
+					//     setting "shownOnlyInLayerGroup" to true in the layers overrides.
+					if (layerWrapper.isGroup()) {
+						JSONArray childrenLayers = layerWrapper.getLayers();
+						if (childrenLayers != null && childrenLayers.length() > 0) {
+							String layerGroupHTMLList = this.getHTMLListAndHideChildrenLayers(layers, childrenLayers);
 
-							jsonLayer.put("systemDescription", groupHtmlDescription.toString());
+							if (Utils.isNotBlank(layerGroupHTMLList)) {
+								StringBuilder groupHtmlDescription = new StringBuilder();
+								groupHtmlDescription.append("This layer regroup the following list of layers:");
+								groupHtmlDescription.append(layerGroupHTMLList);
+
+								layerWrapper.setSystemDescription(groupHtmlDescription.toString());
+							}
 						}
 					}
-				}
-			}
-		}
 
-		// Set base layer attribute
-		layerIds = layers.keys(); // Reset the iterator
-		while (layerIds.hasNext()) {
-			String layerId = layerIds.next();
-			if (!layers.isNull(layerId)) {
-				JSONObject jsonLayer = layers.optJSONObject(layerId);
-				if (jsonLayer != null) {
+					// Set base layer attribute
 					if (this.isBaseLayer(layerId)) {
-						jsonLayer.put("isBaseLayer", true);
+						layerWrapper.setIsBaseLayer(true);
 					} else {
-						String layerName = jsonLayer.optString("layerName", null);
+						String layerName = layerWrapper.getLayerName();
 						if (this.isBaseLayer(layerName)) {
 							// Backward compatibility
-							errors.put("Deprecated layer ID used for base layers of client "+this.getClientName()+": " +
-										"layer id [" + layerName + "] should be [" + layerId + "]");
+							layerCatalog.addError("Deprecated layer ID used for base layers of client " + this.getClientName() + ": " +
+									"layer id [" + layerName + "] should be [" + layerId + "]");
 							LOGGER.log(Level.WARNING, "DEPRECATED LAYER ID USED FOR BASE LAYERS OF CLIENT {0}: Layer id [{1}] should be [{2}].",
 									new String[]{this.getClientName(), layerName, layerId});
-							jsonLayer.put("isBaseLayer", true);
+							layerWrapper.setIsBaseLayer(true);
 						}
 					}
 				}
 			}
 		}
-
-		// LayerCatalog after overrides
-		JSONObject layerCatalog = new JSONObject();
-		layerCatalog.put("layers", layers);
-		layerCatalog.put("errors", errors);
-		layerCatalog.put("warnings", warnings);
 
 		return layerCatalog;
 	}
@@ -705,11 +835,11 @@ public class ClientConfig extends AbstractConfig {
 		this.mapConfigEnabled = mapConfigEnabled;
 	}
 
-	public String getVersion() {
+	public Double getVersion() {
 		return this.version;
 	}
 
-	public void setVersion(String version) {
+	public void setVersion(Double version) {
 		this.version = version;
 	}
 
@@ -906,18 +1036,18 @@ public class ClientConfig extends AbstractConfig {
 
 
 	public JSONObject toJSonObjectWithClientUrls(ServletContext context) throws JSONException {
-		JSONObject json = this.toJSonObject();
-		json.put("clientUrl", this.getClientUrl(context));
-		json.put("previewClientUrl", this.getPreviewClientUrl(context));
-		json.put("layerListUrl", this.getLayerListUrl(context));
-		return json;
+		ClientWrapper jsonClient = new ClientWrapper(this.toJSonObject());
+		jsonClient.setClientUrl(this.getClientUrl(context));
+		jsonClient.setPreviewClientUrl(this.getPreviewClientUrl(context));
+		jsonClient.setLayerListUrl(this.getLayerListUrl(context));
+		return jsonClient.getJSON();
 	}
 
 	@Override
 	public JSONObject toJSonObject() throws JSONException {
-		JSONObject json = super.toJSonObject();
-		json.put("manualOverride", Utils.jsonToStr(this.manualOverride));
-		return json;
+		ClientWrapper jsonClient = new ClientWrapper(super.toJSonObject());
+		jsonClient.setManualOverride(Utils.jsonToStr(this.manualOverride));
+		return jsonClient.getJSON();
 	}
 
 	// Helper
@@ -944,12 +1074,12 @@ public class ClientConfig extends AbstractConfig {
 
 		if (this.baseLayersSet == null) {
 			this.baseLayersSet = new HashSet<String>();
-			String[] baselayers = baseLayersStr.split(SPLIT_PATTERN);
-			if (baselayers != null) {
-				for (int i=0; i<baselayers.length; i++) {
-					String baselayer = baselayers[i];
-					if (Utils.isNotBlank(baselayer)) {
-						this.baseLayersSet.add(baselayer.trim());
+			String[] baseLayers = baseLayersStr.split(SPLIT_PATTERN);
+			if (baseLayers != null) {
+				for (int i=0; i<baseLayers.length; i++) {
+					String baseLayer = baseLayers[i];
+					if (Utils.isNotBlank(baseLayer)) {
+						this.baseLayersSet.add(baseLayer.trim());
 					}
 				}
 			}
@@ -985,14 +1115,14 @@ public class ClientConfig extends AbstractConfig {
 	public List<String> getDefaultLayersList() {
 		if (this.defaultLayersList == null) {
 			this.defaultLayersList = new ArrayList<String>();
-			String defaultlayersStr = this.getDefaultLayers();
-			if (Utils.isNotBlank(defaultlayersStr)) {
-				String[] defaultlayers = defaultlayersStr.split(SPLIT_PATTERN);
-				if (defaultlayers != null) {
-					for (int i=0; i<defaultlayers.length; i++) {
-						String defaultlayer = defaultlayers[i];
-						if (Utils.isNotBlank(defaultlayer)) {
-							this.defaultLayersList.add(defaultlayer.trim());
+			String defaultLayersStr = this.getDefaultLayers();
+			if (Utils.isNotBlank(defaultLayersStr)) {
+				String[] defaultLayers = defaultLayersStr.split(SPLIT_PATTERN);
+				if (defaultLayers != null) {
+					for (int i=0; i<defaultLayers.length; i++) {
+						String defaultLayer = defaultLayers[i];
+						if (Utils.isNotBlank(defaultLayer)) {
+							this.defaultLayersList.add(defaultLayer.trim());
 						}
 					}
 				}
@@ -1000,71 +1130,6 @@ public class ClientConfig extends AbstractConfig {
 		}
 
 		return this.defaultLayersList;
-	}
-
-	// Helper
-	// Return the first Google data source this client define. It should logically not have more than one.
-	public GoogleDataSourceConfig getFirstGoogleDataSource(ConfigManager configManager) throws JSONException, IOException {
-		JSONArray dataSourcesArray = this.getDataSources();
-		if (dataSourcesArray != null) {
-			for (int i=0; i < dataSourcesArray.length(); i++) {
-				String clientDataSourceId = dataSourcesArray.optString(i, null);
-				if (Utils.isNotBlank(clientDataSourceId)) {
-					AbstractDataSourceConfig dataSourceConfig =
-							configManager.getDataSourceConfigs().get2(clientDataSourceId);
-					if (dataSourceConfig != null && dataSourceConfig instanceof GoogleDataSourceConfig) {
-						return (GoogleDataSourceConfig)dataSourceConfig;
-					}
-				}
-			}
-		}
-		return null;
-	}
-
-	// Helper
-	public List<AbstractDataSourceConfig> getDataSourceConfigs() throws JSONException, IOException {
-		List<AbstractDataSourceConfig> dataSourceConfigs = new ArrayList<AbstractDataSourceConfig>();
-		JSONArray dataSourcesArray = this.getDataSources();
-		if (dataSourcesArray != null) {
-			for (int i=0; i < dataSourcesArray.length(); i++) {
-				String clientDataSourceId = dataSourcesArray.optString(i, null);
-				if (Utils.isNotBlank(clientDataSourceId)) {
-					AbstractDataSourceConfig dataSourceConfig =
-							this.getConfigManager().getDataSourceConfigs().get2(clientDataSourceId);
-					if (dataSourceConfig != null) {
-						dataSourceConfigs.add(dataSourceConfig);
-					}
-				}
-			}
-		}
-		return dataSourceConfigs;
-	}
-
-	public AbstractDataSourceConfig getDataSourceConfig(String dataSourceId) throws JSONException, IOException {
-		if (Utils.isBlank(dataSourceId)) {
-			return null;
-		}
-
-		// Ensure that the client has the requested data source
-		boolean valid = false;
-		JSONArray dataSourcesArray = this.getDataSources();
-		if (dataSourcesArray != null) {
-			for (int i=0; i < dataSourcesArray.length(); i++) {
-				String clientDataSourceId = dataSourcesArray.optString(i, null);
-				if (dataSourceId.equals(clientDataSourceId)) {
-					valid = true;
-				}
-			}
-		}
-		if (!valid) {
-			return null;
-		}
-
-		// Get the data source
-		AbstractDataSourceConfig dataSourceConfig =
-				this.getConfigManager().getDataSourceConfigs().get2(dataSourceId);
-
-		return dataSourceConfig;
 	}
 
 	private String getHTMLListAndHideChildrenLayers(JSONObject layers, JSONArray childrenLayersIds) throws JSONException {
@@ -1076,10 +1141,10 @@ public class ClientConfig extends AbstractConfig {
 		for (int i=0, len=childrenLayersIds.length(); i<len; i++) {
 			String childId = childrenLayersIds.optString(i, null);
 			if (childId != null) {
-				JSONObject child = layers.optJSONObject(childId);
+				LayerWrapper child = new LayerWrapper(layers.optJSONObject(childId));
 				if (child != null) {
 					htmlList.append("<li>");
-					String title = child.optString("title", child.optString("layerName", null));
+					String title = child.getTitle(child.getLayerName());
 					if (title != null) {
 						title = title.trim();
 					}
@@ -1090,8 +1155,8 @@ public class ClientConfig extends AbstractConfig {
 					htmlList.append(title);
 
 					String[] childLayers = null;
-					if ("GROUP".equals(child.optString("dataSourceType", null))) {
-						JSONArray childrenLayers = child.optJSONArray("layers");
+					if (child.isGroup()) {
+						JSONArray childrenLayers = child.getLayers();
 						if (childrenLayers != null && childrenLayers.length() > 0) {
 							htmlList.append(this.getHTMLListAndHideChildrenLayers(layers, childrenLayers));
 						}
@@ -1099,8 +1164,8 @@ public class ClientConfig extends AbstractConfig {
 					htmlList.append("</li>");
 
 					// Hide the children layer from the Catalog
-					if (child.isNull("shownOnlyInLayerGroup")) {
-						child.put("shownOnlyInLayerGroup", true);
+					if (child.isShownOnlyInLayerGroup() == null) {
+						child.setShownOnlyInLayerGroup(true);
 					}
 				}
 			}
@@ -1110,7 +1175,7 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 
-	public JSONObject locationSearch(String query, String mapBounds, int offset, int qty, boolean live) throws JSONException, IOException, TransformException, FactoryException {
+	public JSONObject locationSearch(String query, String mapBounds, int offset, int qty, boolean live) throws JSONException, IOException, TransformException, FactoryException, URISyntaxException {
 		if (Utils.isBlank(query) || qty <= 0) {
 			return null;
 		}
@@ -1194,5 +1259,340 @@ public class ClientConfig extends AbstractConfig {
 	//     we also have to keep all characters from chinese, japanese, arabic, korean, etc.)
 	private String getComparableTitle(String title) {
 		return title.replaceAll("[\\s\\-_,.'\":;!\\?\\(\\)\\[\\]\\{\\}/]", "");
+	}
+
+	/**
+	 * Copy the client files from clientResources/amc to the client location.
+	 * @param force Force file copy even if they are already there (used with complete regeneration)
+	 * @throws IOException
+	 */
+	private void copyClientFilesIfNeeded(boolean force) throws IOException {
+		File atlasMapperClientFolder =
+				FileFinder.getAtlasMapperClientFolder(this.getConfigManager().getApplicationFolder(), this);
+		if (atlasMapperClientFolder == null) { return; }
+
+		// Return if the folder is not empty
+		String[] folderContent = atlasMapperClientFolder.list();
+		if (!force && folderContent != null && folderContent.length > 0) {
+			return;
+		}
+
+		// The folder is Empty, copying the files
+		try {
+			File src = FileFinder.getAtlasMapperClientSourceFolder();
+			Utils.recursiveFileCopy(src, atlasMapperClientFolder, force);
+		} catch (URISyntaxException ex) {
+			throw new IOException("Can not get a File reference to the AtlasMapperClient", ex);
+		}
+	}
+
+	private void saveGeneratedConfigs(
+			ClientWrapper mainConfig,
+			ClientWrapper embeddedConfig,
+			JSONObject layers) throws JSONException, IOException {
+
+		File mainClientFile = this.getConfigManager().getClientMainConfigFile(this);
+		if (mainClientFile == null) {
+			throw new IllegalArgumentException("No file provided for the Main client configuration.");
+		} else {
+			this.getConfigManager().saveJSONConfig(mainConfig.getJSON(), mainClientFile);
+		}
+
+		File embeddedClientFile = this.getConfigManager().getClientEmbeddedConfigFile(this);
+		if (embeddedClientFile == null) {
+			throw new IllegalArgumentException("No file provided for the Embedded client configuration.");
+		} else {
+			this.getConfigManager().saveJSONConfig(embeddedConfig.getJSON(), embeddedClientFile);
+		}
+
+		File layersClientFile = this.getConfigManager().getClientLayersConfigFile(this);
+		if (layersClientFile == null) {
+			throw new IllegalArgumentException("No file provided for the layers configuration.");
+		} else {
+			this.getConfigManager().saveJSONConfig(layers, layersClientFile);
+		}
+	}
+
+	// Create all files that required a template processing
+	private void generateTemplateFiles(DataSourceWrapper layerCatalog, ClientWrapper generatedMainConfig, DataSourceWrapper googleDataSource) throws IOException, TemplateException {
+		File atlasMapperClientFolder =
+				FileFinder.getAtlasMapperClientFolder(this.getConfigManager().getApplicationFolder(), this);
+		if (atlasMapperClientFolder == null) { return; }
+
+		// Find template, process it and save it
+		try {
+			File templatesFolder = FileFinder.getAtlasMapperClientTemplatesFolder();
+			Configuration templatesConfig = Utils.getTemplatesConfig(templatesFolder);
+
+			// NOTE: To make a new template for the file "amc/x/y/z.ext",
+			// create the file "amcTemplates/x/y/z.ext.flt" and add an entry
+			// here for the template named "x/y/z.ext".
+			// WARNING: Don't forget to use System.getProperty("file.separator")
+			// instead of "/"!
+
+			// Process all templates, one by one, because they are all unique
+			Map<String, Object> indexValues = new HashMap<String, Object>();
+			indexValues.put("version", ProjectInfo.getVersion());
+			indexValues.put("mainConfig", this.getConfigManager().getClientMainConfigFile(this).getName());
+			indexValues.put("layersConfig", this.getConfigManager().getClientLayersConfigFile(this).getName());
+			indexValues.put("clientId", this.getClientId());
+			indexValues.put("clientName", this.getClientName() != null ? this.getClientName() : this.getClientId());
+			indexValues.put("theme", this.getTheme());
+			indexValues.put("pageHeader", Utils.safeJsStr(this.getPageHeader()));
+			indexValues.put("pageFooter", Utils.safeJsStr(this.getPageFooter()));
+			indexValues.put("timestamp", ""+Utils.getCurrentTimestamp());
+			indexValues.put("useGoogle", googleDataSource != null);
+			indexValues.put("welcomeMsg", this.getWelcomeMsg());
+			indexValues.put("headExtra", this.getHeadExtra());
+			Utils.processTemplate(templatesConfig, "index.html", indexValues, atlasMapperClientFolder);
+
+			Map<String, Object> embeddedValues = new HashMap<String, Object>();
+			embeddedValues.put("version", ProjectInfo.getVersion());
+			embeddedValues.put("mainConfig", this.getConfigManager().getClientMainConfigFile(this).getName());
+			embeddedValues.put("layersConfig", this.getConfigManager().getClientLayersConfigFile(this).getName());
+			embeddedValues.put("clientId", this.getClientId());
+			embeddedValues.put("clientName", this.getClientName() != null ? this.getClientName() : this.getClientId());
+			embeddedValues.put("theme", this.getTheme());
+			embeddedValues.put("pageHeader", Utils.safeJsStr(this.getPageHeader()));
+			embeddedValues.put("pageFooter", Utils.safeJsStr(this.getPageFooter()));
+			embeddedValues.put("timestamp", ""+Utils.getCurrentTimestamp());
+			embeddedValues.put("useGoogle", googleDataSource != null);
+			// No welcome message
+			Utils.processTemplate(templatesConfig, "embedded.html", embeddedValues, atlasMapperClientFolder);
+
+			int width = 200;
+			int height = 180;
+			if (Utils.isNotBlank(this.getListLayerImageWidth())) {
+				width = Integer.valueOf(this.getListLayerImageWidth());
+			}
+			if (Utils.isNotBlank(this.getListLayerImageHeight())) {
+				height = Integer.valueOf(this.getListLayerImageHeight());
+			}
+
+			Map<String, Object> listValues = new HashMap<String, Object>();
+			listValues.put("version", ProjectInfo.getVersion());
+			listValues.put("clientName", this.getClientName() != null ? this.getClientName() : this.getClientId());
+			listValues.put("layers", this.generateLayerList(layerCatalog, generatedMainConfig));
+			listValues.put("layerBoxWidth", width + 2); // +2 for the 1 px border - This value can be overridden using CSS
+			listValues.put("layerBoxHeight", height + 45); // +45 to let some room for the text bellow the layer - This value can be overridden using CSS
+			listValues.put("listPageHeader", this.getListPageHeader());
+			listValues.put("listPageFooter", this.getListPageFooter());
+			Utils.processTemplate(templatesConfig, "list.html", listValues, atlasMapperClientFolder);
+
+			this.getConfigManager().parsePreviewTemplate(this, googleDataSource);
+		} catch (URISyntaxException ex) {
+			throw new IOException("Can not get a File reference to the AtlasMapperClient", ex);
+		}
+	}
+
+	/**
+	 * Return a Map of info used to generate a list of layers (for the list.html page):
+	 * Map of
+	 *     Key: DataSource name
+	 *     Value: List of Map of
+	 *         id: Layer ID, as used in the AtlasMapper (with the data source ID)
+	 *         title: Displayed name of the layer
+	 *         description: Displayed name of the layer
+	 *         imageUrl: URL of the preview image for the layer
+	 *         baseLayerUrl: URL of the background image to display under the layer image
+	 *         imageWidth: Image width
+	 *         imageHeight: Image height
+	 *         mapUrl: URL of the AtlasMapper map that display that layer
+	 * @param layerCatalog LayerCatalog, after overrides
+	 * @param generatedMainConfig Client JSON config, to get the data sources (after overrides), the client projection and the default layers.
+	 * @return
+	 */
+	private Map<String, List<Map<String, String>>> generateLayerList(DataSourceWrapper layerCatalog, ClientWrapper generatedMainConfig)
+			throws UnsupportedEncodingException {
+		if (layerCatalog == null) {
+			return null;
+		}
+		JSONObject layers = layerCatalog.getLayers();
+		if (layers == null || layers.length() <= 0) {
+			return null;
+		}
+
+		Map<String, List<Map<String, String>>> layersMap = new LinkedHashMap<String, List<Map<String, String>>>();
+
+		JSONObject dataSources = generatedMainConfig.getDataSources();
+		String projection = "EPSG:4326";
+
+		// Maximum width x height
+		int defaultWidth = 200;
+		int defaultHeight = 180;
+		if (Utils.isNotBlank(this.getListLayerImageWidth())) {
+			defaultWidth = Integer.valueOf(this.getListLayerImageWidth());
+		}
+		if (Utils.isNotBlank(this.getListLayerImageHeight())) {
+			defaultHeight = Integer.valueOf(this.getListLayerImageHeight());
+		}
+
+		Iterator<String> layerIds = layers.keys();
+		while (layerIds.hasNext()) {
+			String layerId = layerIds.next();
+			if (!layers.isNull(layerId)) {
+				LayerWrapper layer = new LayerWrapper(layers.optJSONObject(layerId));
+				// Ignore layer groups
+				if (layer.getLayerName() != null) {
+					String dataSourceId = layer.getDataSourceId();
+					String layerName = layer.getLayerName();
+					String layerTitle = layer.getTitle(layerName);
+
+					String description = layer.getDescription();
+					String descriptionFormat = layer.getDescriptionFormat();
+					String systemDescription = layer.getSystemDescription();
+
+					String serviceUrl = layer.getServiceUrl();
+					JSONArray jsonBbox = layer.getLayerBoundingBox();
+
+					// Data source object containing overridden values
+					DataSourceWrapper dataSource = null;
+					// Raw data source object containing values before override
+
+					if (dataSources != null) {
+						dataSource = new DataSourceWrapper(dataSources.optJSONObject(dataSourceId));
+					}
+
+					if (dataSource == null) {
+						LOGGER.log(Level.WARNING, "The client [{0}] define a layer [{1}] using an invalid data source [{2}].",
+								new String[]{ this.getClientName(), layerName, dataSourceId });
+					} else {
+						String dataSourceName = dataSource.getDataSourceName();
+
+						// Find (or create) the layer list for this data source
+						List<Map<String, String>> dataSourceLayerList = layersMap.get(dataSourceName);
+						if (dataSourceLayerList == null) {
+							dataSourceLayerList = new ArrayList<Map<String, String>>();
+							layersMap.put(dataSourceName, dataSourceLayerList);
+						}
+
+						Map<String, String> layerMap = new HashMap<String, String>();
+
+						if (serviceUrl == null || serviceUrl.isEmpty()) {
+							serviceUrl = dataSource.getServiceUrl();
+						}
+
+						// http://e-atlas.localhost/maps/ea/wms
+						// LAYERS=ea%3AQLD_DEEDI_Coastal-wetlands
+						// FORMAT=image%2Fpng
+						// SERVICE=WMS
+						// VERSION=1.1.1
+						// REQUEST=GetMap
+						// EXCEPTIONS=application%2Fvnd.ogc.se_inimage
+						// SRS=EPSG%3A4326
+						// BBOX=130.20938085938,-37.1985,161.23261914062,-1.0165
+						// WIDTH=439
+						// HEIGHT=512
+						if (serviceUrl != null && !serviceUrl.isEmpty()) {
+							if (dataSource.isExtendWMS()) {
+								if (jsonBbox != null && jsonBbox.length() == 4) {
+									double[] bbox = new double[4];
+									// Left, Bottom, Right, Top
+									bbox[0] = jsonBbox.optDouble(0, -180);
+									bbox[1] = jsonBbox.optDouble(1, -90);
+									bbox[2] = jsonBbox.optDouble(2, 180);
+									bbox[3] = jsonBbox.optDouble(3, 90);
+
+									StringBuilder imageUrl = new StringBuilder(serviceUrl);
+									if (!serviceUrl.endsWith("&") && !serviceUrl.endsWith("?")) {
+										imageUrl.append(serviceUrl.contains("?") ? "&" : "?");
+									}
+									imageUrl.append("LAYERS="); imageUrl.append(URLEncoder.encode(layerName, "UTF-8"));
+									imageUrl.append("&STYLES="); // Some servers need this parameter, even set to nothing
+									imageUrl.append("&FORMAT="); imageUrl.append(URLEncoder.encode("image/png", "UTF-8"));
+									imageUrl.append("&TRANSPARENT=true");
+									imageUrl.append("&SERVICE=WMS");
+									imageUrl.append("&VERSION=1.1.1");
+									imageUrl.append("&REQUEST=GetMap");
+									imageUrl.append("&EXCEPTIONS="); imageUrl.append(URLEncoder.encode("application/vnd.ogc.se_inimage", "UTF-8"));
+									imageUrl.append("&SRS="); imageUrl.append(URLEncoder.encode(projection, "UTF-8")); // TODO Use client projection
+
+									imageUrl.append("&BBOX=");
+									imageUrl.append(bbox[0]); imageUrl.append(",");
+									imageUrl.append(bbox[1]); imageUrl.append(",");
+									imageUrl.append(bbox[2]); imageUrl.append(",");
+									imageUrl.append(bbox[3]);
+
+									// Lon x Lat ratio (width / height  or  lon / lat)
+									double ratio = (bbox[2] - bbox[0]) / (bbox[3] - bbox[1]);
+
+									int width = defaultWidth;
+									int height = defaultHeight;
+
+									if (ratio > (((double)width)/height)) {
+										// Reduce height
+										height = (int)Math.round(width / ratio);
+									} else {
+										// Reduce width
+										width = (int)Math.round(height * ratio);
+									}
+
+									imageUrl.append("&WIDTH=" + width);
+									imageUrl.append("&HEIGHT=" + height);
+
+									layerMap.put("imageUrl", imageUrl.toString());
+									layerMap.put("imageWidth", ""+width);
+									layerMap.put("imageHeight", ""+height);
+
+									String baseLayerServiceUrl = this.getListBaseLayerServiceUrl();
+									String baseLayerId = this.getListBaseLayerId();
+									if (Utils.isNotBlank(baseLayerServiceUrl) && Utils.isNotBlank(baseLayerId)) {
+										// Base layer - Hardcoded
+										// http://maps.e-atlas.org.au/maps/gwc/service/wms
+										// LAYERS=ea%3AWorld_NED_NE2
+										// TRANSPARENT=FALSE
+										// SERVICE=WMS
+										// VERSION=1.1.1
+										// REQUEST=GetMap
+										// FORMAT=image%2Fjpeg
+										// SRS=EPSG%3A4326
+										// BBOX=149.0625,-22.5,151.875,-19.6875
+										// WIDTH=256
+										// HEIGHT=256
+										StringBuilder baseLayerUrl = new StringBuilder(baseLayerServiceUrl);
+										if (!baseLayerServiceUrl.endsWith("&") && !baseLayerServiceUrl.endsWith("?")) {
+											baseLayerUrl.append(baseLayerServiceUrl.contains("?") ? "&" : "?");
+										}
+										baseLayerUrl.append("LAYERS="); baseLayerUrl.append(URLEncoder.encode(baseLayerId, "UTF-8"));
+										baseLayerUrl.append("&STYLES="); // Some servers need this parameter, even set to nothing
+										baseLayerUrl.append("&FORMAT="); baseLayerUrl.append(URLEncoder.encode("image/jpeg", "UTF-8"));
+										baseLayerUrl.append("&TRANSPARENT=false");
+										baseLayerUrl.append("&SERVICE=WMS");
+										baseLayerUrl.append("&VERSION=1.1.1");
+										baseLayerUrl.append("&REQUEST=GetMap");
+										baseLayerUrl.append("&EXCEPTIONS="); baseLayerUrl.append(URLEncoder.encode("application/vnd.ogc.se_inimage", "UTF-8"));
+										baseLayerUrl.append("&SRS="); baseLayerUrl.append(URLEncoder.encode(projection, "UTF-8")); // TODO Use client projection
+
+										baseLayerUrl.append("&BBOX=");
+										baseLayerUrl.append(bbox[0]); baseLayerUrl.append(",");
+										baseLayerUrl.append(bbox[1]); baseLayerUrl.append(",");
+										baseLayerUrl.append(bbox[2]); baseLayerUrl.append(",");
+										baseLayerUrl.append(bbox[3]);
+
+										baseLayerUrl.append("&WIDTH=" + width);
+										baseLayerUrl.append("&HEIGHT=" + height);
+
+										layerMap.put("baseLayerUrl", baseLayerUrl.toString());
+									}
+								}
+							}
+						}
+
+						layerMap.put("id", layerId);
+						layerMap.put("title", layerTitle);
+						layerMap.put("description", description);
+						layerMap.put("descriptionFormat", descriptionFormat);
+						layerMap.put("systemDescription", systemDescription);
+						String encodedLayerId = URLEncoder.encode(layerId, "UTF-8");
+						layerMap.put("mapUrl", "index.html?intro=f&dl=t&loc=" + encodedLayerId + "&l0=" + encodedLayerId);
+
+						dataSourceLayerList.add(layerMap);
+					}
+
+				}
+			}
+		}
+
+		return layersMap;
 	}
 }

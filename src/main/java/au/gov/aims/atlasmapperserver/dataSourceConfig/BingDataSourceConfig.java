@@ -21,13 +21,10 @@
 
 package au.gov.aims.atlasmapperserver.dataSourceConfig;
 
-import au.gov.aims.atlasmapperserver.ClientConfig;
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
 import au.gov.aims.atlasmapperserver.layerGenerator.BingLayerGenerator;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 public class BingDataSourceConfig extends AbstractDataSourceConfig {
 	@ConfigField
@@ -39,7 +36,7 @@ public class BingDataSourceConfig extends AbstractDataSourceConfig {
 
 	@Override
 	public AbstractLayerGenerator createLayerGenerator() {
-		return new BingLayerGenerator(this);
+		return new BingLayerGenerator();
 	}
 
 	public String getBingAPIKey() {
@@ -48,17 +45,5 @@ public class BingDataSourceConfig extends AbstractDataSourceConfig {
 
 	public void setBingAPIKey(String bingAPIKey) {
 		this.bingAPIKey = bingAPIKey;
-	}
-
-	@Override
-	// TODO Remove clientConfig parameter!!
-	public JSONObject generateDataSource(ClientConfig clientConfig) throws JSONException {
-		JSONObject dataSource = super.generateDataSource(clientConfig);
-
-		if (this.getBingAPIKey() != null) {
-			dataSource.put("bingAPIKey", this.getBingAPIKey());
-		}
-
-		return dataSource;
 	}
 }

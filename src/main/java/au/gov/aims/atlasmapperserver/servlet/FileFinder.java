@@ -168,6 +168,9 @@ public class FileFinder {
 			return null;
 		}
 		String[] content = clientFolder.list();
+		if (content == null) {
+			return null;
+		}
 		Arrays.sort(content);
 		if (Arrays.binarySearch(content, welcomePage) < 0) {
 			// The Welcome file do not exists
@@ -199,6 +202,9 @@ public class FileFinder {
 			return null;
 		}
 		String[] content = clientFolder.list();
+		if (content == null) {
+			return null;
+		}
 		Arrays.sort(content);
 		if (Arrays.binarySearch(content, CLIENT_LAYERLIST_PAGE) < 0) {
 			// The Welcome file do not exists

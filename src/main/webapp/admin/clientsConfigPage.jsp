@@ -23,20 +23,23 @@
 	Author     : glafond
 --%>
 
-<%@page import="au.gov.aims.atlasmapperserver.User"%>
-<%@page import="au.gov.aims.atlasmapperserver.module.AbstractModule"%>
-<%@page import="au.gov.aims.atlasmapperserver.Utils"%>
-<%@page import="au.gov.aims.atlasmapperserver.annotation.Module"%>
-<%@page import="au.gov.aims.atlasmapperserver.ModuleHelper"%>
-<%@page import="java.util.ArrayList"%>
-<%@page import="java.util.List"%>
-<%@page import="java.util.Collections"%>
-<%@page import="au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig"%>
-<%@page import="au.gov.aims.atlasmapperserver.ConfigManager"%>
-<%@page import="au.gov.aims.atlasmapperserver.ConfigHelper"%>
-<%@page contentType="text/html" pageEncoding="UTF-8"%>
+<%@ page import="au.gov.aims.atlasmapperserver.module.AbstractModule"%>
+<%@ page import="au.gov.aims.atlasmapperserver.Utils"%>
+<%@ page import="au.gov.aims.atlasmapperserver.annotation.Module"%>
+<%@ page import="au.gov.aims.atlasmapperserver.ModuleHelper"%>
+<%@ page import="java.util.ArrayList"%>
+<%@ page import="java.util.List"%>
+<%@ page import="java.util.Collections"%>
+<%@ page import="au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig"%>
+<%@ page import="au.gov.aims.atlasmapperserver.ConfigManager"%>
+<%@ page import="au.gov.aims.atlasmapperserver.ConfigHelper"%>
+<%@ page import="java.io.File" %>
+<%@ page import="au.gov.aims.atlasmapperserver.servlet.FileFinder" %>
+<%@ page import="au.gov.aims.atlasmapperserver.jsonWrappers.client.DataSourceWrapper" %>
+
+<%@ page contentType="text/html" pageEncoding="UTF-8"%>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
-   "http://www.w3.org/TR/html4/loose.dtd">
+		"http://www.w3.org/TR/html4/loose.dtd">
 
 <html>
 	<head>
@@ -68,10 +71,23 @@
 					boolean first = true;
 					for (AbstractDataSourceConfig cfg : dataSourceConfigs) {
 						if (cfg != null) {
+
+							boolean valid = false;
+							File applicationFolder = manager.getApplicationFolder();
+							File dataSourceCatalogFile = FileFinder.getDataSourcesCatalogFile(applicationFolder, cfg.getDataSourceId());
+							if (dataSourceCatalogFile.exists()) {
+								DataSourceWrapper dataSourceSavedState = AbstractDataSourceConfig.load(dataSourceCatalogFile);
+
+								if (dataSourceSavedState != null) {
+									Boolean validObj = dataSourceSavedState.getValid();
+									valid = validObj != null && validObj;
+								}
+							}
+
 							%><%=(first?"":",\n") +
 									"'" + Utils.safeJsStr(cfg.getDataSourceId()) + "': {" +
 										"name: '" + Utils.safeJsStr(cfg.getDataSourceName()) + "'," +
-										"valid: " + cfg.isValid() +
+										"valid: " + valid +
 									"}"
 							%><%
 							first = false;

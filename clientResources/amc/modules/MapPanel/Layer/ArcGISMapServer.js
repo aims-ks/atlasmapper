@@ -37,7 +37,7 @@ Atlas.Layer.ArcGISMapServer = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 	initialize: function(mapPanel, jsonLayer, parent) {
 		Atlas.Layer.AbstractLayer.prototype.initialize.apply(this, arguments);
 
-		var url = this.json['wmsServiceUrl'];
+		var url = this.json['serviceUrl'];
 		if (this.json['arcGISPath']) {
 			url += '/' + this.json['arcGISPath'];
 		}

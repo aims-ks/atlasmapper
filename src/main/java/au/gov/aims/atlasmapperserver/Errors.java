@@ -1,4 +1,4 @@
-package au.gov.aims.atlasmapperserver;/*
+/*
  *  This file is part of AtlasMapper server and clients.
  *
  *  Copyright (C) 2012 Australian Institute of Marine Science
@@ -18,6 +18,7 @@ package au.gov.aims.atlasmapperserver;/*
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+package au.gov.aims.atlasmapperserver;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -25,6 +26,7 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class Errors {
 	private List<Errors.Error> errors;
@@ -149,6 +151,91 @@ public class Errors {
 					jsonMessages.put(message.toJSON());
 				}
 				json.put("messages", jsonMessages);
+			}
+		}
+		return json.length() > 0 ? json : null;
+	}
+
+	/**
+	 * {
+	 *     "errors": {
+	 *         "client name 1 (id)": ["err1", "err2", ...],
+	 *         "client name 2 (id)": ["err1", "err2", ...]
+	 *     },
+	 *     "warnings": {
+	 *         "client name 1 (id)": ["warn1", "warn2", ...],
+	 *         "client name 2 (id)": ["warn1", "warn2", ...]
+	 *     },
+	 *     "messages": {
+	 *         "client name 1 (id)": ["msg1", "msg2", ...],
+	 *         "client name 2 (id)": ["msg1", "msg2", ...]
+	 *     }
+	 * }
+	 * @param errorsMap
+	 * @return
+	 */
+	public static JSONObject toJSON(Map<String, Errors> errorsMap) throws JSONException {
+		JSONObject json = new JSONObject();
+		if (!errorsMap.isEmpty()) {
+			for (Map.Entry<String, Errors> errorsEntry : errorsMap.entrySet()) {
+				String clientName = errorsEntry.getKey();
+				List<Error> errors = errorsEntry.getValue().getErrors();
+				List<Error> warnings = errorsEntry.getValue().getWarnings();
+				List<Error> messages = errorsEntry.getValue().getMessages();
+
+				if (errors != null && !errors.isEmpty()) {
+					if (!json.has("errors")) {
+						json.put("errors", new JSONObject());
+					}
+					JSONObject jsonErrors = json.optJSONObject("errors");
+					if (jsonErrors != null) {
+						if (!jsonErrors.has(clientName)) {
+							jsonErrors.put(clientName, new JSONArray());
+						}
+						JSONArray dataSourceJsonErrors = jsonErrors.optJSONArray(clientName);
+						if (dataSourceJsonErrors != null) {
+							for (Error error : errors) {
+								dataSourceJsonErrors.put(error.toJSON());
+							}
+						}
+					}
+				}
+
+				if (warnings != null && !warnings.isEmpty()) {
+					if (!json.has("warnings")) {
+						json.put("warnings", new JSONObject());
+					}
+					JSONObject jsonWarnings = json.optJSONObject("warnings");
+					if (jsonWarnings != null) {
+						if (!jsonWarnings.has(clientName)) {
+							jsonWarnings.put(clientName, new JSONArray());
+						}
+						JSONArray dataSourceJsonWarnings = jsonWarnings.optJSONArray(clientName);
+						if (dataSourceJsonWarnings != null) {
+							for (Error warning : warnings) {
+								dataSourceJsonWarnings.put(warning.toJSON());
+							}
+						}
+					}
+				}
+
+				if (messages != null && !messages.isEmpty()) {
+					if (!json.has("messages")) {
+						json.put("messages", new JSONObject());
+					}
+					JSONObject jsonMessages = json.optJSONObject("messages");
+					if (jsonMessages != null) {
+						if (!jsonMessages.has(clientName)) {
+							jsonMessages.put(clientName, new JSONArray());
+						}
+						JSONArray dataSourceJsonMessages = jsonMessages.optJSONArray(clientName);
+						if (dataSourceJsonMessages != null) {
+							for (Error message : messages) {
+								dataSourceJsonMessages.put(message.toJSON());
+							}
+						}
+					}
+				}
 			}
 		}
 		return json.length() > 0 ? json : null;

@@ -96,7 +96,7 @@ OpenLayers.Layer.ux.NCWMS = OpenLayers.Class(OpenLayers.Layer.WMS, {
 			return;
 		}
 
-		var serviceUrl = this.atlasLayer.json['wmsServiceUrl'];
+		var serviceUrl = this.atlasLayer.json['serviceUrl'];
 
 		var url = serviceUrl + '?' + Ext.urlEncode({
 			item: 'layerDetails',
@@ -211,7 +211,7 @@ OpenLayers.Layer.ux.NCWMS = OpenLayers.Class(OpenLayers.Layer.WMS, {
 			scope = this;
 		}
 
-		var serviceUrl = this.atlasLayer.json['wmsServiceUrl'];
+		var serviceUrl = this.atlasLayer.json['serviceUrl'];
 		var dateStr = date.format(this.dateRequestFormat).trim();
 
 		var url = serviceUrl + '?' + Ext.urlEncode({
