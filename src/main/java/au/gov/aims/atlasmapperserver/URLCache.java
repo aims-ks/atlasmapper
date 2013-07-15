@@ -37,13 +37,22 @@ import org.geotools.data.ows.WMSCapabilities;
 import org.geotools.data.wms.xml.WMSSchema;
 import org.geotools.ows.ServiceException;
 import org.geotools.xml.DocumentFactory;
+import org.geotools.xml.XMLHandlerHints;
+import org.geotools.xml.XMLSAXHandler;
 import org.geotools.xml.handlers.DocumentHandler;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
+import org.xml.sax.EntityResolver;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+import org.xml.sax.helpers.DefaultHandler;
 
+import javax.xml.XMLConstants;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -56,6 +65,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.StringReader;
 import java.io.Writer;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -79,18 +89,19 @@ public class URLCache {
 	private static final Logger LOGGER = Logger.getLogger(URLCache.class.getName());
 
 	protected static final long NB_MS_PER_MINUTE = 60000;
-	protected static final long NB_MS_PER_HOUR = 60 * NB_MS_PER_MINUTE;
 
 	// Cache timeout in millisecond
 	// The response will be re-requested if the application request
 	// information from it and its cached timestamp is older than this setting.
-	protected static final int CACHE_TIMEOUT = 7*24; // In hours
-	protected static final int INVALID_FILE_CACHE_TIMEOUT = 1; // In hours
+	protected static final int CACHE_TIMEOUT = -1; // In minutes; -1 = never times out (the application has to force harvest to re-download it)
+	protected static final int INVALID_FILE_CACHE_TIMEOUT = -1; // In minutes; Invalid files are re-downloaded by checking a checkbox on the re-building of the data source.
 	protected static final long SEARCH_CACHE_TIMEOUT = 60 * NB_MS_PER_MINUTE;
 	protected static final long SEARCH_CACHE_MAXSIZE = 10; // Maximum search responses
 
 	protected static final String CACHE_FILES_FOLDER = "files";
 	protected static final int MAX_CACHED_FILE_SIZE = 50; // in megabytes (Mb)
+
+	protected static final int MAX_FOLLOW_REDIRECTION = 50; // Maximum number of URL follow allowed. Over passing this amount will be considered as a cycle in the cache and will throw IOException.
 
 	// HashMap<String urlString, ResponseWrapper response>
 	private static HashMap<String, ResponseWrapper> searchResponseCache = new HashMap<String, ResponseWrapper>();
@@ -111,7 +122,14 @@ public class URLCache {
 	 *     }
 	 * }
  	 */
-	protected static JSONObject diskCacheMap = null;
+	private static JSONObject diskCacheMap = null;
+	/**
+	 * Reload the disk cache when the disk cache file is manually modified;
+	 *     Every time the disk cache is accessed, the last modified date of the disk cache map file is
+	 *     checked against this attribute. If the file is newer, that the file is reloaded.
+	 *     TODO: Do not reload while modifying the disk cache in memory. Use a DB for better handling & thread safe
+	 */
+ 	private static long loadedTime = -1;
 
 	private static HttpClient httpClient = null;
 	static {
@@ -147,13 +165,18 @@ public class URLCache {
 	 * @param configManager
 	 * @param dataSource
 	 * @param urlStr
-	 * @param mandatory True to cancel the client generation if the file cause problem
-	 * @param harvest True to force download, false to use cache
+	 * @param category Category used to clear the cache partially; Capabilities documents, MEST records...
+	 * @param mandatory True to generate an error if something goes wrong, False to generate a warning instead.
+	 *     The errors / warnings are recorded in the "CachedFile" object and saved in the cache data base.
+	 *     (the DB is a JSON file on disk).
 	 * @return
 	 * @throws IOException
 	 * @throws JSONException
 	 */
-	public static File getURLFile(ConfigManager configManager, AbstractDataSourceConfig dataSource, String urlStr, boolean mandatory, boolean harvest) throws IOException, JSONException {
+	public static File getURLFile(ConfigManager configManager, AbstractDataSourceConfig dataSource, String urlStr, Category category, boolean mandatory) throws IOException, JSONException {
+		return getURLFile(configManager, dataSource, urlStr, category, mandatory, 0);
+	}
+	private static File getURLFile(ConfigManager configManager, AbstractDataSourceConfig dataSource, String urlStr, Category category, boolean mandatory, int followRedirectionCount) throws IOException, JSONException {
 		File applicationFolder = getApplicationFolder(configManager);
 
 		String dataSourceId = null;
@@ -167,69 +190,91 @@ public class URLCache {
 			activeDownload = false;
 		}
 
-		if (diskCacheMap == null) {
-			loadDiskCacheMap(applicationFolder);
-		}
+		JSONObject jsonCache = getDiskCacheMap(applicationFolder);
 
 		File cacheFolder = FileFinder.getDiskCacheFolder(applicationFolder);
 		CachedFile cachedFile = getCachedFile(applicationFolder, urlStr);
 
-		boolean hasChanged = false;
+		// Check if the disk cache is valid (we might have to do a little clean-up of the text file if it has been left in a inconsistent state).
+		if (!cachedFile.isEmpty()) {
+			if (dataSourceId != null && !cachedFile.hasDataSourceId(dataSourceId)) {
+				cachedFile.addDataSourceId(dataSourceId);
+			}
 
-		// Check if the disk cache is valid
-		try {
-			if (!cachedFile.isEmpty()) {
-				if (dataSourceId != null && !cachedFile.hasDataSourceId(dataSourceId)) {
-					cachedFile.addDataSourceId(dataSourceId);
-					hasChanged = true;
-				}
-
-				if (harvest || activeDownload) {
-					String tmpFilename = CachedFile.generateFilename(cacheFolder, urlStr);
-					cachedFile.setTemporaryFilename(tmpFilename);
-					// Set the time of the last download tentative; which is now
-					cachedFile.setDownloadedTime(new Date());
-					hasChanged = true;
-
-					File tmpFile = new File(cachedFile.getCachedFileFolder(), tmpFilename);
-
-					LOGGER.log(Level.INFO, "\n### DOWNLOADING ### Re-download URL {0}\n", urlStr);
-
-					ResponseStatus responseStatus = loadURLToFile(urlStr, tmpFile);
-					cachedFile.setTemporaryHttpStatusCode(responseStatus.getStatusCode());
-					cachedFile.setLatestErrorMessage(responseStatus.getErrorMessage());
-					cachedFile.cleanUpFilenames();
+			// Follow redirection - WARNING: A maximum number of redirection is allowed to avoid infinite loops (this may occurred if there is a loop in the redirections).
+			String redirectionUrl = cachedFile.getRedirection();
+			if (Utils.isNotBlank(redirectionUrl)) {
+				if (followRedirectionCount < MAX_FOLLOW_REDIRECTION) {
+					// Touch the cache entry; set the last access date to "now"
+					cachedFile.setLastAccessDate();
+					return getURLFile(configManager, dataSource, redirectionUrl, category, mandatory, followRedirectionCount++);
+				} else {
+					// Hopefully this error will never occurred
+					LOGGER.log(Level.SEVERE, "Maximum URL follow reach. There is probably a cycle in the cache, which create potential infinite loops.");
+					throw new IOException("Cycle in the cache follow URLs");
 				}
 			}
 
-			// The URL is not present in the cache. Load it!
-			if (cachedFile.isEmpty()) {
-				String filename = CachedFile.generateFilename(cacheFolder, urlStr);
+			boolean timedOut = true;
+			int expiry = cachedFile.getExpiry();
+			if (expiry < 0) {
+				timedOut = false;
+			} else {
+				Date downloadTime = cachedFile.getDownloadedTime();
+				if (downloadTime != null) {
+					long ageInMs = new Date().getTime() - downloadTime.getTime();
+					// Expiry (in hour) * (60*60*1000) = Expiry in ms
+					if (ageInMs < expiry * NB_MS_PER_MINUTE) {
+						timedOut = false;
+					}
+				}
+			}
 
-				cachedFile = new CachedFile(cacheFolder, dataSourceId, filename, new Date(), CACHE_TIMEOUT, mandatory);
-				diskCacheMap.put(urlStr, cachedFile.toJSON());
-				hasChanged = true;
+			boolean markedForReDownload = cachedFile.isMarkedForReDownload();
 
-				File file = new File(cachedFile.getCachedFileFolder(), filename);
+			if (timedOut || markedForReDownload || activeDownload) {
+				String tmpFilename = CachedFile.generateFilename(cacheFolder, urlStr);
+				cachedFile.setTemporaryFilename(tmpFilename);
+				// Set the time of the last download tentative; which is now
+				cachedFile.setDownloadedTime(new Date());
 
-				LOGGER.log(Level.INFO, "\n### DOWNLOADING ### URL {0}\n", urlStr);
+				File tmpFile = new File(cachedFile.getCachedFileFolder(), tmpFilename);
 
-				ResponseStatus responseStatus = loadURLToFile(urlStr, file);
-				cachedFile.setHttpStatusCode(responseStatus.getStatusCode());
+				LOGGER.log(Level.INFO, "\n### DOWNLOADING ### Re-download URL {0}\n", urlStr);
+
+				ResponseStatus responseStatus = loadURLToFile(urlStr, tmpFile);
+				cachedFile.setMarkedForReDownload(false);
+				cachedFile.setTemporaryHttpStatusCode(responseStatus.getStatusCode());
 				cachedFile.setLatestErrorMessage(responseStatus.getErrorMessage());
 				cachedFile.cleanUpFilenames();
-				if (Utils.isNotBlank(responseStatus.getErrorMessage())) {
-					cachedFile.setApproved(false);
-				}
 			}
-		} finally {
-			if (hasChanged) {
-				saveDiskCacheMap(applicationFolder);
+		}
+
+		// The URL is not present in the cache. Load it!
+		if (cachedFile.isEmpty()) {
+			String filename = CachedFile.generateFilename(cacheFolder, urlStr);
+
+			cachedFile = new CachedFile(cacheFolder, dataSourceId, filename, category, new Date(), CACHE_TIMEOUT, mandatory);
+			jsonCache.put(urlStr, cachedFile.toJSON());
+
+			File file = new File(cachedFile.getCachedFileFolder(), filename);
+
+			LOGGER.log(Level.INFO, "\n### DOWNLOADING ### URL {0}\n", urlStr);
+
+			ResponseStatus responseStatus = loadURLToFile(urlStr, file);
+			cachedFile.setHttpStatusCode(responseStatus.getStatusCode());
+			cachedFile.setLatestErrorMessage(responseStatus.getErrorMessage());
+			cachedFile.cleanUpFilenames();
+			if (Utils.isNotBlank(responseStatus.getErrorMessage())) {
+				cachedFile.setApproved(false);
 			}
 		}
 
 		File file = null;
 		if (!cachedFile.isEmpty()) {
+			// Touch the cache entry; set the last access date to "now"
+			cachedFile.setLastAccessDate();
+
 			file = cachedFile.hasTemporaryData() ? cachedFile.getTemporaryFile() : cachedFile.getFile();
 
 			// If we already know that something went wrong, rollback.
@@ -239,6 +284,37 @@ public class URLCache {
 		}
 
 		return file;
+	}
+
+	/**
+	 * Follow redirections to find out if the entry at the end of the chain is approved.
+	 * @param applicationFolder
+	 * @param cachedFile
+	 * @return
+	 * @throws IOException
+	 * @throws JSONException
+	 */
+	public static boolean isRecursiveApproved(File applicationFolder, CachedFile cachedFile) throws IOException, JSONException {
+		return isRecursiveApproved(applicationFolder, cachedFile, 0);
+	}
+	private static boolean isRecursiveApproved(File applicationFolder, CachedFile cachedFile, int followRedirectionCount) throws IOException, JSONException {
+		String redirectionUrl = cachedFile.getRedirection();
+		if (Utils.isBlank(redirectionUrl)) {
+			return cachedFile.isApproved();
+		}
+
+		CachedFile redirectedCachedFile = getCachedFile(applicationFolder, redirectionUrl);
+		if (redirectedCachedFile == null) {
+			return false;
+		}
+
+		if (followRedirectionCount < MAX_FOLLOW_REDIRECTION) {
+			return isRecursiveApproved(applicationFolder, redirectedCachedFile, followRedirectionCount + 1);
+		} else {
+			// Hopefully this error will never occurred
+			LOGGER.log(Level.SEVERE, "Maximum URL follow reach. There is probably a cycle in the cache, which create potential infinite loops.");
+			throw new IOException("Cycle in the cache follow URLs");
+		}
 	}
 
 	private static String getErrorMessage(Throwable ex) {
@@ -255,6 +331,14 @@ public class URLCache {
 		return errorMsg;
 	}
 
+	public static void setRedirection(ConfigManager configManager, String invalidUrl, String craftedUrl) throws IOException, JSONException {
+		File applicationFolder = getApplicationFolder(configManager);
+		CachedFile cachedFile = getCachedFile(applicationFolder, invalidUrl);
+		if (!cachedFile.isEmpty()) {
+			cachedFile.setRedirection(craftedUrl);
+		}
+	}
+
 	/**
 	 * Approve the last file sent for this URL. This has the effect
 	 * of replacing the current cached file with the last sent file.
@@ -262,16 +346,10 @@ public class URLCache {
 	 */
 	public static void commitURLFile(ConfigManager configManager, File approvedFile, String urlStr) throws IOException, JSONException {
 		File applicationFolder = getApplicationFolder(configManager);
-
-		if (diskCacheMap == null) {
-			loadDiskCacheMap(applicationFolder);
-		}
-
 		CachedFile cachedFile = getCachedFile(applicationFolder, urlStr);
 
 		if (!cachedFile.isEmpty()) {
 			cachedFile.commit(approvedFile);
-			saveDiskCacheMap(applicationFolder);
 		}
 	}
 
@@ -288,17 +366,17 @@ public class URLCache {
 	public static File rollbackURLFile(ConfigManager configManager, File unapprovedFile, String urlStr, String reasonStr) throws IOException, JSONException {
 		File backupFile = unapprovedFile;
 		File applicationFolder = getApplicationFolder(configManager);
-
-		if (diskCacheMap == null) {
-			loadDiskCacheMap(applicationFolder);
-		}
-
-		File cacheFolder = FileFinder.getDiskCacheFolder(applicationFolder);
 		CachedFile cachedFile = getCachedFile(applicationFolder, urlStr);
 
 		if (!cachedFile.isEmpty()) {
 			backupFile = cachedFile.rollback(unapprovedFile, reasonStr);
-			saveDiskCacheMap(applicationFolder);
+			// NOTE: The logger use MessageText to parse its message;
+			//     Everything between "single quote" are interpreted as literal string.
+			//     To print a "single quote", you have to use two "single quote".
+			if (INVALID_FILE_CACHE_TIMEOUT >= 0) {
+				LOGGER.log(Level.INFO, "Invalid downloaded file: {0}\nThe application won''t try to re-download it for {1} minutes.",
+						new String[]{ urlStr, "" + INVALID_FILE_CACHE_TIMEOUT });
+			}
 		}
 
 		return backupFile;
@@ -384,16 +462,18 @@ public class URLCache {
 		return responseStatus;
 	}
 
-	private static void saveDiskCacheMap(File applicationFolder) throws JSONException, IOException {
+	public static void saveDiskCacheMap(File applicationFolder) throws JSONException, IOException {
 		File configFile = FileFinder.getDiskCacheFile(applicationFolder);
-		JSONObject jsonCache = diskCacheMap == null ? new JSONObject() : diskCacheMap;
+		if (diskCacheMap == null) {
+			diskCacheMap = new JSONObject();
+		}
 
 		Writer writer = null;
 		BufferedWriter bw = null;
 		try {
 			writer = new FileWriter(configFile);
 			bw = new BufferedWriter(writer);
-			String jsonStr = Utils.jsonToStr(jsonCache);
+			String jsonStr = Utils.jsonToStr(diskCacheMap);
 			if (Utils.isNotBlank(jsonStr)) {
 				bw.write(jsonStr);
 			}
@@ -415,8 +495,9 @@ public class URLCache {
 				}
 			}
 		}
-
+		loadedTime = new Date().getTime();
 	}
+
 	private static void loadDiskCacheMap(File applicationFolder) throws IOException, JSONException {
 		File configFile = FileFinder.getDiskCacheFile(applicationFolder);
 
@@ -438,15 +519,39 @@ public class URLCache {
 			}
 		}
 
+		loadedTime = new Date().getTime();
 		purgeCache(applicationFolder);
 	}
 
-	public static JSONObject getJSONResponse(ConfigManager configManager, AbstractDataSourceConfig dataSource, String urlStr, boolean mandatory, boolean clearCache) throws IOException, JSONException {
+	protected static JSONObject getDiskCacheMap(File applicationFolder) throws IOException, JSONException {
+		if (diskCacheMap == null || (isDiskCacheIsExpired(applicationFolder))) {
+			loadDiskCacheMap(applicationFolder);
+		}
+		return diskCacheMap;
+	}
+
+	public static void reloadDiskCacheMapIfNeeded(File applicationFolder) throws IOException, JSONException {
+		if (diskCacheMap == null || (isDiskCacheIsExpired(applicationFolder))) {
+			loadDiskCacheMap(applicationFolder);
+		}
+	}
+
+	private static boolean isDiskCacheIsExpired(File applicationFolder) throws IOException {
+		File configFile = FileFinder.getDiskCacheFile(applicationFolder);
+
+		if (!configFile.exists()) {
+			return true;
+		}
+
+		return loadedTime < configFile.lastModified();
+	}
+
+	public static JSONObject getJSONResponse(ConfigManager configManager, AbstractDataSourceConfig dataSource, String urlStr, Category category, boolean mandatory) throws IOException, JSONException {
 		File jsonFile = null;
 
 		JSONObject jsonResponse = null;
 		try {
-			jsonFile = getURLFile(configManager, dataSource, urlStr, mandatory, clearCache);
+			jsonFile = getURLFile(configManager, dataSource, urlStr, category, mandatory);
 			jsonResponse = parseFile(jsonFile, urlStr);
 			commitURLFile(configManager, jsonFile, urlStr);
 		} catch(Exception ex) {
@@ -558,22 +663,21 @@ public class URLCache {
 
 	public static Errors getDataSourceErrors(AbstractDataSourceConfig dataSourceConfig, File applicationFolder) throws IOException, JSONException {
 		File diskCacheFolder = FileFinder.getDiskCacheFolder(applicationFolder);
-		if (diskCacheMap == null) {
-			loadDiskCacheMap(applicationFolder);
-		}
+		JSONObject jsonCache = getDiskCacheMap(applicationFolder);
 
 		// Collect warnings
 		Errors errors = new Errors();
 
 		// Add errors reported by the disk cache utility (filter by specified data source)
-		if (diskCacheMap != null && diskCacheMap.length() > 0) {
-			Iterator<String> urls = diskCacheMap.keys();
+		if (jsonCache != null && jsonCache.length() > 0) {
+			Iterator<String> urls = jsonCache.keys();
 			String url;
 			boolean hasChanged = false;
 			while (urls.hasNext()) {
 				url = urls.next();
 				CachedFile cachedFile = getCachedFile(applicationFolder, url);
-				if (!cachedFile.isEmpty()) {
+				// Ignore empty entries (should not have any) or MEST entry concerning brute force records (these produce heaps of useless warnings)
+				if (!cachedFile.isEmpty() && !Category.BRUTEFORCE_MEST_RECORD.equals(cachedFile.getCategory())) {
 					String errorMsg = cachedFile.getLatestErrorMessage();
 					if (Utils.isNotBlank(errorMsg)) {
 						for (String dataSourceId : cachedFile.getDataSourceIds()) {
@@ -595,10 +699,11 @@ public class URLCache {
 
 	public static WMSCapabilities getWMSCapabilitiesResponse(
 			ConfigManager configManager,
+			String wmsVersion,
 			AbstractDataSourceConfig dataSource,
 			String urlStr,
-			boolean mandatory,
-			boolean clearCapabilitiesCache) throws IOException, SAXException, JSONException, URISyntaxException {
+			Category category,
+			boolean mandatory) throws IOException, SAXException, JSONException, URISyntaxException {
 
 		File capabilitiesFile = null;
 		WMSCapabilities wmsCapabilities;
@@ -611,14 +716,18 @@ public class URLCache {
 		} else {
 			// TODO Find a nicer way to detect if the URL is a complete URL to a GetCapabilities document
 			if (!urlStr.contains("?")) {
+				if (Utils.isBlank(wmsVersion)) {
+					wmsVersion = "1.3.0";
+				}
+
 				// URL pointing at a WMS service
 				urlStr = Utils.addUrlParameter(urlStr, "SERVICE", "WMS");
 				urlStr = Utils.addUrlParameter(urlStr, "REQUEST", "GetCapabilities");
-				urlStr = Utils.addUrlParameter(urlStr, "VERSION", "1.3.0");
+				urlStr = Utils.addUrlParameter(urlStr, "VERSION", wmsVersion);
 			}
 
 			try {
-				capabilitiesFile = URLCache.getURLFile(configManager, dataSource, urlStr, mandatory, clearCapabilitiesCache);
+				capabilitiesFile = URLCache.getURLFile(configManager, dataSource, urlStr, category, mandatory);
 				wmsCapabilities = URLCache.getCapabilities(capabilitiesFile);
 				URLCache.commitURLFile(configManager, capabilitiesFile, urlStr);
 			} catch (Exception ex) {
@@ -645,34 +754,29 @@ public class URLCache {
 			return null;
 		}
 
-		WMSCapabilities capabilities = null;
-
 		InputStream inputStream = null;
 		try {
-			Map<String, Object> hints = new HashMap<String, Object>();
-			hints.put(DocumentHandler.DEFAULT_NAMESPACE_HINT_KEY, WMSSchema.getInstance());
-			hints.put(DocumentFactory.VALIDATION_HINT, Boolean.FALSE);
-
 			inputStream = new FileInputStream(file);
-			Object object = DocumentFactory.getInstance(inputStream, hints, Level.WARNING);
-
-			if (object instanceof ServiceException) {
-				throw (ServiceException)object;
-			}
-
-			capabilities = (WMSCapabilities)object;
+			return URLCache.getCapabilities(inputStream);
 		} finally {
 			if (inputStream != null) {
 				inputStream.close();
 			}
 		}
-
-		return capabilities;
 	}
 
+	private static WMSCapabilities getCapabilities(InputStream inputStream) throws IOException, SAXException {
+		Map<String, Object> hints = new HashMap<String, Object>();
+		hints.put(DocumentHandler.DEFAULT_NAMESPACE_HINT_KEY, WMSSchema.getInstance());
+		hints.put(DocumentFactory.VALIDATION_HINT, Boolean.FALSE);
 
-	public static void clearCache(ConfigManager configManager) throws IOException, JSONException {
-		clearCache(configManager, true);
+		Object object = DocumentFactory.getInstance(inputStream, hints, Level.WARNING);
+
+		if (object instanceof ServiceException) {
+			throw (ServiceException)object;
+		}
+
+		return (WMSCapabilities)object;
 	}
 
 	/**
@@ -682,7 +786,7 @@ public class URLCache {
 	 * @throws IOException
 	 * @throws JSONException
 	 */
-	protected static void clearCache(ConfigManager configManager, boolean updateDataSources) throws IOException, JSONException {
+	protected static void deleteCache(ConfigManager configManager, boolean updateDataSources) throws IOException, JSONException {
 		searchResponseCache.clear();
 
 		File applicationFolder = configManager.getApplicationFolder();
@@ -691,7 +795,6 @@ public class URLCache {
 		if (applicationFolder == null) return;
 
 		diskCacheMap = new JSONObject();
-		saveDiskCacheMap(applicationFolder);
 		File diskCacheFolder = FileFinder.getDiskCacheFolder(applicationFolder);
 
 		File[] folders = diskCacheFolder.listFiles(new FileFilter() {
@@ -723,36 +826,28 @@ public class URLCache {
 		}
 	}
 
-	public static void clearSearchCache(String urlStr) {
-		searchResponseCache.remove(urlStr);
-	}
-
-	protected static void clearCache(ConfigManager configManager, AbstractDataSourceConfig dataSource) throws JSONException, IOException {
+	public static void deleteCache(ConfigManager configManager, AbstractDataSourceConfig dataSource) throws JSONException, IOException {
 		File applicationFolder = configManager.getApplicationFolder();
 
 		if (dataSource == null || applicationFolder == null) {
 			return;
 		}
-		File diskCacheFolder = FileFinder.getDiskCacheFolder(applicationFolder);
 		String dataSourceId = (dataSource == null ? null : dataSource.getDataSourceId());
 
-		if (diskCacheMap == null) {
-			loadDiskCacheMap(applicationFolder);
-		}
+		JSONObject jsonCache = getDiskCacheMap(applicationFolder);
 
-		if (diskCacheMap != null && diskCacheMap.length() > 0) {
+		if (jsonCache != null && jsonCache.length() > 0) {
 			List<String> urlsToDelete = new ArrayList<String>();
-			Iterator<String> urls = diskCacheMap.keys();
+			Iterator<String> urls = jsonCache.keys();
 			String url;
-			boolean hasChanged = false;
 			while (urls.hasNext()) {
 				url = urls.next();
 				CachedFile cachedFile = getCachedFile(applicationFolder, url);
 				if (cachedFile.isEmpty()) {
-					// Remove null entries
+					// Remove null entries - This should not happen
 					urlsToDelete.add(url);
-					hasChanged = true;
 				} else if (cachedFile.hasDataSourceId(dataSourceId)) {
+					// Flag entries associated with the data source to be deleted, if not associated with other data sources
 					File file = cachedFile.getFile();
 					if (file != null && file.exists()) {
 						file.delete();
@@ -762,23 +857,21 @@ public class URLCache {
 						tmpFile.delete();
 					}
 
-					urlsToDelete.add(url);
-					hasChanged = true;
+					if (cachedFile.removeDataSourceId(dataSourceId)) {
+						urlsToDelete.add(url);
+					}
 				}
 			}
 
 			if (!urlsToDelete.isEmpty()) {
 				for (String urlToDelete : urlsToDelete) {
-					diskCacheMap.remove(urlToDelete);
+					jsonCache.remove(urlToDelete);
 				}
-			}
-
-			if (hasChanged) {
-				saveDiskCacheMap(applicationFolder);
 			}
 		}
 
 		// Delete the reminding files
+		File diskCacheFolder = FileFinder.getDiskCacheFolder(applicationFolder);
 		File folder = new File(diskCacheFolder, dataSourceId);
 		if (folder.exists()) {
 			File[] files = folder.listFiles();
@@ -791,6 +884,46 @@ public class URLCache {
 		}
 	}
 
+	public static void markCacheForReDownload(ConfigManager configManager, AbstractDataSourceConfig dataSource, boolean removeBrokenEntry, Category category) throws JSONException, IOException {
+		File applicationFolder = configManager.getApplicationFolder();
+
+		if (dataSource == null || applicationFolder == null) {
+			return;
+		}
+		String dataSourceId = (dataSource == null ? null : dataSource.getDataSourceId());
+
+		JSONObject jsonCache = getDiskCacheMap(applicationFolder);
+
+		if (jsonCache != null && jsonCache.length() > 0) {
+			List<String> urlsToDelete = new ArrayList<String>();
+			Iterator<String> urls = jsonCache.keys();
+			String url;
+			while (urls.hasNext()) {
+				url = urls.next();
+				CachedFile cachedFile = getCachedFile(applicationFolder, url);
+				if (cachedFile.isEmpty()) {
+					// Remove null entries - This should not happen
+					urlsToDelete.add(url);
+				} else if (cachedFile.hasDataSourceId(dataSourceId)) {
+					if (removeBrokenEntry && !isRecursiveApproved(applicationFolder, cachedFile)) {
+						cachedFile.setMarkedForReDownload(true);
+					} else if (category != null && (category.equals(Category.ALL) || cachedFile.getCategory() == null || category.equals(cachedFile.getCategory()))) {
+						cachedFile.setMarkedForReDownload(true);
+					}
+				}
+			}
+
+			if (!urlsToDelete.isEmpty()) {
+				for (String urlToDelete : urlsToDelete) {
+					jsonCache.remove(urlToDelete);
+				}
+			}
+		}
+	}
+
+	public static void clearSearchCache(String urlStr) {
+		searchResponseCache.remove(urlStr);
+	}
 
 	/**
 	 * Delete cached files that are not in the map and
@@ -801,14 +934,12 @@ public class URLCache {
 		final File diskCacheFolder = FileFinder.getDiskCacheFolder(applicationFolder);
 		final File diskFileCacheFolder = CachedFile.getCachedFileFolder(diskCacheFolder);
 
-		if (diskCacheMap == null) {
-			loadDiskCacheMap(applicationFolder);
-		}
+		JSONObject jsonCache = getDiskCacheMap(applicationFolder);
 
 		// Remove the cache entry that are out of date
-		if (diskCacheMap != null && diskCacheMap.length() > 0) {
+		if (jsonCache != null && jsonCache.length() > 0) {
 			List<String> urlsToDelete = new ArrayList<String>();
-			Iterator<String> urls = diskCacheMap.keys();
+			Iterator<String> urls = jsonCache.keys();
 			String url;
 			boolean hasChanged = false;
 			while (urls.hasNext()) {
@@ -817,7 +948,6 @@ public class URLCache {
 				if (cachedFile.isEmpty()) {
 					// Remove null entries
 					urlsToDelete.add(url);
-					hasChanged = true;
 				} else {
 					// Check if the file reach its expiry
 					Date downloadedTime = cachedFile.getDownloadedTime();
@@ -825,7 +955,7 @@ public class URLCache {
 						long expiry = cachedFile.getExpiry();
 						if (expiry >= 0) {
 							long age = new Date().getTime() - downloadedTime.getTime();
-							if (age >= expiry * NB_MS_PER_HOUR) {
+							if (age >= expiry * NB_MS_PER_MINUTE) {
 								urlsToDelete.add(url);
 							}
 						}
@@ -835,8 +965,9 @@ public class URLCache {
 
 			if (!urlsToDelete.isEmpty()) {
 				for (String urlToDelete : urlsToDelete) {
-					diskCacheMap.remove(urlToDelete);
+					jsonCache.remove(urlToDelete);
 				}
+				hasChanged = true;
 			}
 
 			if (hasChanged) {
@@ -853,8 +984,8 @@ public class URLCache {
 
 				// Try to find the file in the cache
 				boolean found = false;
-				if (diskCacheMap != null && diskCacheMap.length() > 0) {
-					Iterator<String> urls = diskCacheMap.keys(); // reset the iterator
+				if (jsonCache != null && jsonCache.length() > 0) {
+					Iterator<String> urls = jsonCache.keys(); // reset the iterator
 					while (!found && urls.hasNext()) {
 						String url = urls.next();
 						CachedFile cachedFile = getCachedFile(applicationFolder, url);
@@ -877,6 +1008,54 @@ public class URLCache {
 		}
 	}
 
+	public static void deleteOldEntries(AbstractDataSourceConfig dataSourceConfig, Date thresholdDate, List<URLCache.Category> categories) throws IOException, JSONException {
+		if (thresholdDate != null && categories != null && !categories.isEmpty()) {
+			File applicationFolder = dataSourceConfig.getConfigManager().getApplicationFolder();
+			boolean allCategories = categories.contains(Category.ALL);
+			String dataSourceId = dataSourceConfig.getDataSourceId();
+
+			JSONObject jsonCache = getDiskCacheMap(applicationFolder);
+
+			// Remove the cache entry that are out of date
+			if (jsonCache != null && jsonCache.length() > 0) {
+				List<String> urlsToDelete = new ArrayList<String>();
+				Iterator<String> urls = jsonCache.keys();
+				String url;
+				while (urls.hasNext()) {
+					url = urls.next();
+					CachedFile cachedFile = getCachedFile(applicationFolder, url);
+					if (cachedFile.isEmpty()) {
+						// Remove null entries
+						urlsToDelete.add(url);
+					} else if (cachedFile.hasDataSourceId(dataSourceId)) {
+						// Check if the file has been access since the threshold date
+						// NOTE: There is more optimal ways to do this (all the condition in a if, without a boolean)
+						//     but I think it's easier to understand as it is.
+						Date accessDate = cachedFile.getLastAccessDate();
+						boolean hasBeenAccessed = false;
+						if (accessDate != null && accessDate.getTime() >= thresholdDate.getTime()) {
+							hasBeenAccessed = true;
+						}
+						if (!hasBeenAccessed) {
+							Category cachedFileCategory = cachedFile.getCategory();
+							if (allCategories || cachedFileCategory == null || categories.contains(cachedFileCategory)) {
+								if (cachedFile.removeDataSourceId(dataSourceId)) {
+									urlsToDelete.add(url);
+								}
+							}
+						}
+					}
+				}
+
+				if (!urlsToDelete.isEmpty()) {
+					for (String urlToDelete : urlsToDelete) {
+						jsonCache.remove(urlToDelete);
+					}
+				}
+			}
+		}
+	}
+
 	/**
 	 * Return the number of files contained by the cache folder.
 	 * This method is used by Unit Tests to ensure the URLCache do not leak.
@@ -893,12 +1072,10 @@ public class URLCache {
 	}
 
 	protected static CachedFile getCachedFile(File applicationFolder, String urlStr) throws JSONException, IOException {
-		if (diskCacheMap == null) {
-			loadDiskCacheMap(applicationFolder);
-		}
+		JSONObject jsonCache = getDiskCacheMap(applicationFolder);
 
 		final File diskCacheFolder = FileFinder.getDiskCacheFolder(applicationFolder);
-		return new CachedFile(diskCacheFolder, diskCacheMap.optJSONObject(urlStr));
+		return new CachedFile(diskCacheFolder, jsonCache.optJSONObject(urlStr));
 	}
 
 	private static ResponseWrapper getSearchCachedResponse(String urlStr) {
@@ -1005,6 +1182,8 @@ public class URLCache {
 	protected static class CachedFile {
 		// Date format: "2012-09-24 14:06:49"
 		private static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		// Precise to the millisecond "2012-09-24 14:06:49:125"
+		private static SimpleDateFormat lastAccessDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S");
 
 		JSONObject jsonCachedFile;
 		File cacheFolder;
@@ -1018,7 +1197,7 @@ public class URLCache {
 		 * @param mandatory True to cancel the client generation if the file cause problem
 		 * @throws JSONException
 		 */
-		public CachedFile(File cacheFolder, String dataSourceId, String filename, Date downloadedTime, int expiry, boolean mandatory) throws JSONException {
+		public CachedFile(File cacheFolder, String dataSourceId, String filename, Category category, Date downloadedTime, int expiry, boolean mandatory) throws JSONException {
 			this.cacheFolder = cacheFolder;
 
 			this.jsonCachedFile = new JSONObject();
@@ -1026,6 +1205,7 @@ public class URLCache {
 				this.addDataSourceId(dataSourceId);
 			}
 			this.setFilename(filename);
+			this.setCategory(category);
 			this.setDownloadedTime(downloadedTime);
 			this.setExpiry(expiry);
 			this.setMandatory(mandatory);
@@ -1047,7 +1227,12 @@ public class URLCache {
 		}
 
 		public boolean isEmpty() {
-			return this.jsonCachedFile.length() <= 0;
+			int nbIgnoredAttribute = 0;
+			if (this.jsonCachedFile.has("lastAccessDate")) {
+				nbIgnoredAttribute++;
+			}
+
+			return this.jsonCachedFile.length() <= nbIgnoredAttribute;
 		}
 
 		public static String generateFilename(File cacheFolder, String urlStr) {
@@ -1103,6 +1288,31 @@ public class URLCache {
 
 			dataSourceIds.put(dataSourceId);
 		}
+
+		/**
+		 *
+		 * @param dataSourceId
+		 * @return True if the list of data source is empty after the remove.
+		 */
+		public boolean removeDataSourceId(String dataSourceId) {
+			boolean isEmpty = true;
+			JSONArray dataSourceIds = this.jsonCachedFile.optJSONArray("dataSourceIds");
+			if (dataSourceIds != null) {
+				int len = dataSourceIds.length();
+				if (dataSourceId != null) {
+					for (int i=0; i<len; i++) {
+						if (dataSourceId.equals(dataSourceIds.optString(i, null))) {
+							dataSourceIds.remove(i);
+							i--;
+							len--;
+						}
+					}
+				}
+				isEmpty = len <= 0;
+			}
+
+			return isEmpty;
+		}
 		public boolean hasDataSourceId(String dataSourceId) {
 			if (dataSourceId == null) { return false; }
 
@@ -1135,6 +1345,14 @@ public class URLCache {
 			this.jsonCachedFile.put("file", file);
 		}
 
+		public Category getCategory() {
+			String categoryStr = this.jsonCachedFile.optString("category", null);
+			return categoryStr == null ? null : Category.valueOf(categoryStr);
+		}
+		public void setCategory(Category category) throws JSONException {
+			this.jsonCachedFile.put("category", category.name());
+		}
+
 		public File getFile() {
 			String filename = this.getFilename();
 			if (filename == null) {
@@ -1164,11 +1382,51 @@ public class URLCache {
 			this.jsonCachedFile.put("downloadedTime", dateFormat.format(downloadedTime));
 		}
 
+		public Date getLastAccessDate() {
+			String dateStr = this.jsonCachedFile.optString("lastAccessDate", null);
+			if (dateStr == null) {
+				return null;
+			}
+
+			Date date = null;
+			try {
+				date = lastAccessDateFormat.parse(dateStr);
+			} catch (ParseException e) {
+				LOGGER.log(Level.WARNING, "Can not parse the last access time \"{0}\": {1}",
+						new String[]{ dateStr, Utils.getExceptionMessage(e) });
+				LOGGER.log(Level.FINE, "Stack trace: ", e);
+			}
+			return date;
+		}
+
+		// Set last access date to "Now"
+		public void setLastAccessDate() throws JSONException {
+			this.setLastAccessDate(new Date());
+		}
+		public void setLastAccessDate(Date date) throws JSONException {
+			this.setLastAccessDate(lastAccessDateFormat.format(date));
+		}
+		public void setLastAccessDate(String date) throws JSONException {
+			this.jsonCachedFile.put("lastAccessDate", date);
+		}
+
 		public int getExpiry() {
 			return this.jsonCachedFile.optInt("expiry", CACHE_TIMEOUT);
 		}
 		public void setExpiry(int expiry) throws JSONException {
 			this.jsonCachedFile.put("expiry", expiry);
+		}
+
+		public boolean isMarkedForReDownload() {
+			return this.jsonCachedFile.optBoolean("markedForReDownload", false);
+		}
+		public void setMarkedForReDownload(boolean markedForReDownload) throws JSONException {
+			if (markedForReDownload) {
+				this.jsonCachedFile.put("markedForReDownload", true);
+			} else {
+				// Missing = false.
+				this.jsonCachedFile.remove("markedForReDownload");
+			}
 		}
 
 		public Integer getHttpStatusCode() {
@@ -1190,6 +1448,29 @@ public class URLCache {
 		}
 		public void setApproved(boolean approved) throws JSONException {
 			this.jsonCachedFile.put("approved", approved);
+		}
+
+		/**
+		 * Redirection do not refer to HTTP redirection, it refers to
+		 * URL that returns broken document, than are re-build (crafted)
+		 * to create a URL that provide a valid document.
+		 *
+		 * For example, GetCapabilities document often refers to MEST
+		 * records using TC211 mimetype, but actually refers to HTML pages.
+		 * When the file parsing fail (and it will fail since HTML can not
+		 * be parsed using a TC211 parser), the AtlasMapper try to craft a proper
+		 * TC211 MEST URL, than if the URL returns what we expect, it create
+		 * a redirection from the HTML URL to the valid MEST URL.
+		 * The next time the application sees the HTML URL, it will use the
+		 * file associated with the redirection URL instead of trying to
+		 * re-download unparsable the HTML file again.
+		 * @return
+		 */
+		public String getRedirection() {
+			return this.jsonCachedFile.optString("redirection", null);
+		}
+		public void setRedirection(String url) throws JSONException {
+			this.jsonCachedFile.put("redirection", url);
 		}
 
 		public boolean isMandatory() {
@@ -1366,5 +1647,12 @@ public class URLCache {
 				this.setTemporaryFilename(null);
 			}
 		}
+	}
+
+	public enum Category {
+		ALL, // Used to clear all cache of a data source
+		CAPABILITIES_DOCUMENT, // Capabilities document (WMS, ncWMS), JSON document (ARC Gis), ...
+		MEST_RECORD, // For WMS layer that have a valid TC211 file associated with it
+		BRUTEFORCE_MEST_RECORD // For WMS layers that have a TC211 file associated with a wrong mime type
 	}
 }

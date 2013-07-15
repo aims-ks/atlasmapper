@@ -20,9 +20,9 @@
  */
 
 /**
- * Configuration options:
- * topLeft: Print frame top-left coordinates (2d array of double; [x, y]). Default: if not specified, the layer will ask the user to draw a rectangle on the map.
- * bottomRight: Print frame bottom-right coordinates (2d array of double; [x, y]). Default: if not specified, the layer will ask the user to draw a rectangle on the map.
+ * Configuration frameOptions:
+ * topLeft: Print frame top-left coordinates (2D array of double; [x, y]). Default: if not specified, the layer will ask the user to draw a rectangle on the map.
+ * bottomRight: Print frame bottom-right coordinates (2D array of double; [x, y]). Default: if not specified, the layer will ask the user to draw a rectangle on the map.
  * dpi: Desired printed DPI, preferably matching a zoom level (90 * 2^x => for example: 90, 180, 360); everything is scaled up. Default: 90.
  *     Example:
  *         * 90: default resolution; no diferences.
@@ -41,8 +41,14 @@
  * coordLinesWidth: Length of the larger coordinate lines, in pixels. Default: 8.
  * scaleFontSize: Font size of the labels of the scale widget, in pixels. Default: 9.
  * controlsRadius: Size of the handle used to move / resize the print frame, in pixels. Default: 12.
+ *
+ * northArrowLocation: Coordinate (in lon/lat) of the center of the North arrow (not considering the label).
  * northArrowOffset: Offset of the north arrow (2d array of double; [x, y]), from the top left corner of the printed frame, in pixels (negative values allowed). Default: [20, 30].
+ *     NOTE: This attribute is ignored if northArrowLocation is specified.
+ *
+ * scaleLineLocation: Coordinate (in lon/lat) of the center of the left edge of the scale line.
  * scaleLineOffset: Offset of the scale line (2d array of double; [x, y]), from the bottom left corner of the printed frame, in pixels (negative values allowed). Default: [0, 50].
+ *     NOTE: This attribute is ignored if scaleLineLocation is specified.
  * 
  */
 OpenLayers.Layer.ux = OpenLayers.Layer.ux || {};
@@ -90,7 +96,7 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 
 	defaultLonLatProjection: new OpenLayers.Projection('EPSG:4326'),
 
-	// Reference to the inner frame, the printed area of the map, used to know where to draw the coordinate lines
+	// Reference to the inner frame, the printed area of the map, used to know where to draw the coordinate lines and to generate a saved state
 	/**
 	 * (+)-----------------
 	 *  |  (White frame)  |
@@ -102,6 +108,10 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 	 *  -----------------(>)
 	 */
 	printedFrame: null,
+
+	// Anchor point of the widgets, used to generate a saved state
+	northArrowAnchor: null, // North arrow anchor point
+	scaleLineAnchor: null, // Scale line anchor point
 
 	// private
 	_coordLinesLiveUpdate: true,
@@ -117,10 +127,10 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 		options.rendererOptions = options.rendererOptions || {};
 		options.rendererOptions.zIndexing = true;
 
-		OpenLayers.Layer.Vector.prototype.initialize.apply(this, arguments);
+		OpenLayers.Layer.Vector.prototype.initialize.apply(this, [name, options]);
 
-		this.options = this.options || {};
-		this._dpiRatio = (this.options.dpi || this.DEFAULT_DPI) / this.DEFAULT_DPI;
+		this.frameOptions = this.frameOptions || {};
+		this._dpiRatio = (this.dpi || this.DEFAULT_DPI) / this.DEFAULT_DPI;
 	},
 
 	setDPI: function(dpi) {
@@ -129,7 +139,7 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 			this._dpiRatio = newDPIRatio
 
 			// Find the actual frame bounds, in lon/lat
-			var printedFrameBounds = this._deproject(this.getPrintedExtent().clone());
+			var printedFrameBounds = this.getPrintedExtent();
 
 			this._redraw(
 				[printedFrameBounds.left, printedFrameBounds.top],
@@ -138,9 +148,33 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 		}
 	},
 
+	// Get the printed extent (the hole in the frame), in lon/lat projection
 	getPrintedExtent: function() {
+		var nativeExtent = this.getNativePrintedExtent();
+		if (nativeExtent) {
+			return this._deproject(this.getNativePrintedExtent().clone());
+		}
+		return null;
+	},
+
+	// Get the printed extent (the hole in the frame), in native projection
+	getNativePrintedExtent: function() {
 		if (this.printedFrame && this.printedFrame.geometry) {
 			return this.printedFrame.geometry.bounds;
+		}
+		return null;
+	},
+
+	getNorthArrowAnchor: function() {
+		if (this.northArrowAnchor) {
+			return this._deproject(this.northArrowAnchor.clone());
+		}
+		return null;
+	},
+
+	getScaleLineAnchor: function() {
+		if (this.scaleLineAnchor) {
+			return this._deproject(this.scaleLineAnchor.clone());
 		}
 		return null;
 	},
@@ -154,13 +188,41 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 		if (!this._initiated) {
 			this._initiated = true;
 			var that = this;
-			var frameHoleTopLeft = this.options.topLeft;
-			var frameHoleBottomRight = this.options.bottomRight;
+			var frameHoleTopLeft = this.frameOptions.topLeft;
+			var frameHoleBottomRight = this.frameOptions.bottomRight;
+			var northArrowLocation = this.frameOptions.northArrowLocation;
+			var scaleLineLocation = this.frameOptions.scaleLineLocation;
+
+			if (northArrowLocation) {
+				var reprojected = this._reproject(new OpenLayers.Geometry.Point(northArrowLocation[0], northArrowLocation[1]));
+				this.northArrowLocation = [reprojected.x, reprojected.y];
+			}
+			if (scaleLineLocation) {
+				var reprojected = this._reproject(new OpenLayers.Geometry.Point(scaleLineLocation[0], scaleLineLocation[1]));
+				this.scaleLineLocation = [reprojected.x, reprojected.y];
+			}
 
 			if (frameHoleTopLeft && frameHoleBottomRight) {
 				// Draw a print frame according to the given values
 
-				this._init(frameHoleTopLeft, frameHoleBottomRight);
+				// Do some corrections, in case there is confusion between left & right or top & bottom
+				var top, left, bottom, right;
+				if (frameHoleBottomRight[1] < frameHoleTopLeft[1]) {
+					top = frameHoleTopLeft[1];
+					bottom = frameHoleBottomRight[1];
+				} else {
+					top = frameHoleBottomRight[1];
+					bottom = frameHoleTopLeft[1];
+				}
+				if (frameHoleTopLeft[0] < frameHoleBottomRight[0]) {
+					left = frameHoleTopLeft[0];
+					right = frameHoleBottomRight[0];
+				} else {
+					left = frameHoleBottomRight[0];
+					right = frameHoleTopLeft[0];
+				}
+
+				this._init([left, top], [right, bottom]);
 			} else {
 				// Let the user draw a rectangle on the map, and use
 				// that rectangle as a base to create the print frame.
@@ -168,7 +230,7 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 				// process to cancel the addition of the print frame layer.
 
 				var cursorBackup = null;
-				if (this.map.div && this.map.div.style) {
+				if (this.map && this.map.div && this.map.div.style) {
 					cursorBackup = this.map.div.style.cursor;
 					this.map.div.style.cursor = 'crosshair';
 				}
@@ -226,8 +288,21 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 				this.map.addControl(drawBoxControl);
 				drawBoxControl.activate();
 
-				// Keyboard listener used to cancel the layer when the key ESC is pressed
+				// Keyboard listener used to cancel the box drawing and delete the PrintFrame layer when the key ESC is pressed
 				OpenLayers.Event.observe(document, "keydown", escListener);
+
+				// Listener to cancel the box drawing if the layer is deleted before the box has been drawn.
+				var map = this.map;
+				this.events.register('removed', this, function() {
+					OpenLayers.Event.stopObserving(document, "keydown", escListener);
+					if (drawBoxControl) {
+						drawBoxControl.deactivate();
+						// "this.map" can not be used here since the layer has already be removed from the map ("this.map" is null)
+						if (map && map.div && map.div.style) {
+							map.div.style.cursor = cursorBackup;
+						}
+					}
+				});
 			}
 		}
 	},
@@ -280,7 +355,7 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 					this._onZoomChange();
 
 					// Find the actual frame bounds, in lon/lat
-					var printedFrameBounds = this._deproject(this.getPrintedExtent().clone());
+					var printedFrameBounds = this.getPrintedExtent();
 
 					// Redraw the frame
 					this.removeFeatures(this._frameFeatures);
@@ -355,18 +430,18 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 			// Move the frame
 			for (var i = 0; i < that._frameFeatures.length; i++) {
 				if (feature != that._frameFeatures[i]) {
-					that._frameFeatures[i].geometry.move(res * (pixel.x - lastPixel.x), res * (lastPixel.y - pixel.y));
+					that._moveFeature(that._frameFeatures[i], res * (pixel.x - lastPixel.x), res * (lastPixel.y - pixel.y));
 					that.drawFeature(that._frameFeatures[i]);
 				}
 			}
 			// Move the arrow
 			for (var i = 0; i < that._scaleLineFeatures.length; i++) {
-				that._scaleLineFeatures[i].geometry.move(res * (pixel.x - lastPixel.x), res * (lastPixel.y - pixel.y));
+				that._moveFeature(that._scaleLineFeatures[i], res * (pixel.x - lastPixel.x), res * (lastPixel.y - pixel.y));
 				that.drawFeature(that._scaleLineFeatures[i]);
 			}
 			// Move the scale line (this feature is refreshed after move)
 			for (var i = 0; i < that._northArrowFeatures.length; i++) {
-				that._northArrowFeatures[i].geometry.move(res * (pixel.x - lastPixel.x), res * (lastPixel.y - pixel.y));
+				that._moveFeature(that._northArrowFeatures[i], res * (pixel.x - lastPixel.x), res * (lastPixel.y - pixel.y));
 				that.drawFeature(that._northArrowFeatures[i]);
 			}
 
@@ -397,7 +472,7 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 			for (var i = 0; i < that._scaleLineFeatures.length; i++) {
 				if (feature != that._scaleLineFeatures[i]) {
 					var res = that.map.getResolution();
-					that._scaleLineFeatures[i].geometry.move(res * (pixel.x - lastPixel.x), res * (lastPixel.y - pixel.y));
+					that._moveFeature(that._scaleLineFeatures[i], res * (pixel.x - lastPixel.x), res * (lastPixel.y - pixel.y));
 					that.drawFeature(that._scaleLineFeatures[i]);
 				}
 			}
@@ -408,12 +483,29 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 			for (var i = 0; i < that._northArrowFeatures.length; i++) {
 				if (feature != that._northArrowFeatures[i]) {
 					var res = that.map.getResolution();
-					that._northArrowFeatures[i].geometry.move(res * (pixel.x - lastPixel.x), res * (lastPixel.y - pixel.y));
+					that._moveFeature(that._northArrowFeatures[i], res * (pixel.x - lastPixel.x), res * (lastPixel.y - pixel.y));
 					that.drawFeature(that._northArrowFeatures[i]);
 				}
 			}
 
 			lastPixel = pixel;
+		}
+
+		// Update the save state URL, if needed
+		if (that.atlasLayer && that.atlasLayer.mapPanel && that.atlasLayer.mapPanel.pullState) {
+			that.atlasLayer.mapPanel.pushState();
+		}
+	},
+
+	_moveFeature: function(feature, x, y) {
+		var geometry = null;
+		if (typeof(feature.geometry) === 'object' && typeof(feature.geometry.move) === 'function') {
+			geometry = feature.geometry;
+		} else if (typeof(feature.move) === 'function') {
+			geometry = feature;
+		}
+		if (geometry) {
+			geometry.move(x, y);
 		}
 	},
 
@@ -519,12 +611,12 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 
 	// The method dans "redraw" is already defined in OpenLayers...
 	_redraw: function(frameHoleTopLeft, frameHoleBottomRight) {
-		this._strokeWidth = (this.options.strokeWidth || this.strokeWidth) * this._dpiRatio;
-		this._frameWidth = (this.options.frameWidth || this.frameWidth) * this._dpiRatio;
-		this._labelsFontSize = (this.options.labelsFontSize || this.labelsFontSize) * this._dpiRatio;
-		this._attributionsFontSize = (this.options.attributionsFontSize || this.attributionsFontSize) * this._dpiRatio;
-		this._coordLinesWidth = (this.options.coordLinesWidth || this.coordLinesWidth) * this._dpiRatio;
-		this._scaleFontSize = (this.options.scaleFontSize || this.scaleFontSize) * this._dpiRatio;
+		this._strokeWidth = (this.frameOptions.strokeWidth || this.strokeWidth) * this._dpiRatio;
+		this._frameWidth = (this.frameOptions.frameWidth || this.frameWidth) * this._dpiRatio;
+		this._labelsFontSize = (this.frameOptions.labelsFontSize || this.labelsFontSize) * this._dpiRatio;
+		this._attributionsFontSize = (this.frameOptions.attributionsFontSize || this.attributionsFontSize) * this._dpiRatio;
+		this._coordLinesWidth = (this.frameOptions.coordLinesWidth || this.coordLinesWidth) * this._dpiRatio;
+		this._scaleFontSize = (this.frameOptions.scaleFontSize || this.scaleFontSize) * this._dpiRatio;
 
 
 		this._onZoomChange();
@@ -552,12 +644,12 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 	},
 
 	_updateAttributions: function() {
-		// NOTE: Images (logos) can be added using externalGraphic (style attribute) on a point. It won't be easy, but it's a solution...
+		// NOTE: Images (logos) are currently unsupported. They could be added using externalGraphic (style attribute) on a point. It won't be easy, but it's a solution...
 		var attributionsStr = null;
-		if (typeof(this.options.attributions) === 'string') {
-			attributionsStr = this.options.attributions;
-		} else if (typeof(this.options.attributions) === 'function') {
-			attributionsStr = this.options.attributions();
+		if (typeof(this.frameOptions.attributions) === 'string') {
+			attributionsStr = this.frameOptions.attributions;
+		} else if (typeof(this.frameOptions.attributions) === 'function') {
+			attributionsStr = this.frameOptions.attributions();
 		}
 		if (this.attributionsFeature.style.label !== attributionsStr) {
 			this._attributionsLabel = attributionsStr;
@@ -570,7 +662,7 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 	// private
 	_resizeFrame: function(bottomRightPixel) {
 		// Find the actual frame bounds, in lon/lat
-		var printedFrameBounds = this._deproject(this.getPrintedExtent().clone());
+		var printedFrameBounds = this.getPrintedExtent();
 
 		// "pixel" represent the bottom-right corner of the frame, in pixels. We need the bottom-right corner of the hole of the frame.
 		var pixelHoleBottomRight = bottomRightPixel.clone();
@@ -612,7 +704,7 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 
 		// Frame styles
 		// See: http://dev.openlayers.org/docs/files/OpenLayers/Feature/Vector-js.html#OpenLayers.Feature.Vector.OpenLayers.Feature.Vector.style
-		var controlsRadius = this.options.controlsRadius || 20;
+		var controlsRadius = this.frameOptions.controlsRadius || 20;
 
 		var frameStyle = {
 			graphicZIndex: zIndex,
@@ -860,7 +952,7 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 		var MAX_STEP_PIXELS = 600 * this._dpiRatio,
 			MIN_STEP_PIXELS = 100 * this._dpiRatio;
 
-		var bounds = this.getPrintedExtent();
+		var bounds = this.getNativePrintedExtent();
 		if (!bounds) {
 			// The frame has not been drawn yet... This should not happen...
 			return [];
@@ -1029,21 +1121,24 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 	 * to do the calculation.
 	 *
 	 *
-	 * |        |  Bottom Left corner of the printed frame
-	 * |        |/
-	 * |        *---------------
-	 * |                           }  Scale offset
-	 * |        |_10_km_|_         <- Top unit        \
-	 * |        |  10 mi  |        <- Bottom unit     / Height
+	 * |          |  Bottom Left corner of the printed frame
+	 * |          |/
+	 * |          *--------------------
+	 * |                                 }  Scale offset
+	 * |          |  10 km  |            <- Top unit        \
+	 * |         (X)--------------       <- (X) = Anchor     > Height
+	 * |          |    10 mi     |       <- Bottom unit     / 
 	 * |
-	 * -------------------------
+	 * --------------------------------
 	 *
-	 *          \
-	 *           Start line
+	 *            \
+	 *             Start line (the left edge of the scale line)
 	 *
-	 *          \______ ______/
-	 *                 V
-	 *             Max Width
+	 *            \________ ________/
+	 *                     V
+	 *                 Max Width
+	 *
+	 * NOTE: The initial anchor location can be specified using: frameOptions.scaleLineLocation
 	 */
 	_drawScaleLine: function() {
 		var that = this;
@@ -1087,7 +1182,7 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 		var res = this.map.getResolution();
 
 		// Live reference to the bounds
-		var printedFrameBounds = this.getPrintedExtent();
+		var printedFrameBounds = this.getNativePrintedExtent();
 		if (!printedFrameBounds) {
 			// The frame has not been drawn yet... This should not happen...
 			return [];
@@ -1095,13 +1190,15 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 
 		// Calculate the initial location of the north arrow
 		if (this.scaleLineLocation === null) {
-			var scaleLineOffset = this.options.scaleLineOffset || [];
+			var scaleLineOffset = this.frameOptions.scaleLineOffset || [];
 			scaleLineOffset = [
 				(scaleLineOffset[X] || 0) * this._dpiRatio * res,
 				(scaleLineOffset[Y] || 50) * this._dpiRatio * res
 			];
 			this.scaleLineLocation = [printedFrameBounds.left + scaleLineOffset[X], printedFrameBounds.bottom - scaleLineOffset[Y]];
 		}
+
+		this.scaleLineAnchor = new OpenLayers.Geometry.Point(this.scaleLineLocation[X], this.scaleLineLocation[Y]);
 
 		var topLeft = new OpenLayers.Geometry.Point(this.scaleLineLocation[X], this.scaleLineLocation[Y] + height/2 * res);
 		var middleLeft = new OpenLayers.Geometry.Point(this.scaleLineLocation[X], this.scaleLineLocation[Y]);
@@ -1186,14 +1283,14 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 		bboxScale.isDragable = true;
 		bboxScale.isScaleHandle = true;
 
-		var scaleFeatures = [middleLine, startLine, topUnitLine, bottomUnitLine, topUnitLabel, bottomUnitLabel, bboxScale];
+		var scaleFeatures = [middleLine, startLine, topUnitLine, bottomUnitLine, topUnitLabel, bottomUnitLabel, bboxScale, this.scaleLineAnchor];
 
 		// Disable the drag control when the element is deleted
 		function beforeFeatureRemoved(e) {
 			var feature = e.feature;
 			if (feature === bboxScale) {
 				// Get a fresh copy of the bounds
-				printedFrameBounds = that.getPrintedExtent();
+				printedFrameBounds = that.getNativePrintedExtent();
 
 				// Recalculate the arrow location (centre)
 				that.scaleLineLocation = [
@@ -1228,20 +1325,25 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 	 * |
 	 * |         Top Left corner of the printed frame.
 	 * |        /
-	 * |       *---|----------
-	 * |       |  / \       \
-	 * |       | //| \       |
-	 * |       |//_|  \      | Arrow Height
-	 * |       /_______\    /
-	 * |       |            }  Label offset
-	 * |       | NN  N      \
-	 * |       | N N N       > Label
-	 * |       | N  NN      /
+	 * |       *-----|----------
+	 * |       |    / \          \
+	 * |       |   //| \          |
+	 * |       |  // |  \         | Arrow Height
+	 * |       | // (X)  \        | <- (X) = Anchor
+	 * |       |//___|    \       | 
+	 * |       /___________\     /
+	 * |       |                 }  Label offset
+	 * |       |  NN   NN        \
+	 * |       |  NNNN NN         | Label
+	 * |       |  NN NNNN         |
+	 * |       |  NN   NN        /
 	 * |       |
 	 *
-	 *         \__ ___/
-	 *            V
-	 *            Arrow Width
+	 *         \_____ _____/
+	 *               V
+	 *               Arrow Width
+	 *
+	 * NOTE: The initial anchor location can be specified using: frameOptions.northArrowLocation
 	 */
 	_drawNorthArrow: function() {
 		var that = this;
@@ -1250,11 +1352,11 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 		var X = 0, Y = 1;
 
 		// Customizable values
-		var arrowWidthPixels = 20 * this._dpiRatio;
-		var arrowHeightPixels = 40 * this._dpiRatio;
-		var arrowDitchPixels = 3 * this._dpiRatio;
-		var labelOffsetPixels = 10 * this._dpiRatio;
-		var labelFontSize = 20 * this._dpiRatio;
+		var arrowWidthPixels = 15 * this._dpiRatio;
+		var arrowHeightPixels = 30 * this._dpiRatio;
+		var arrowDitchPixels = 2 * this._dpiRatio;
+		var labelOffsetPixels = 7.5 * this._dpiRatio;
+		var labelFontSize = 15 * this._dpiRatio;
 
 		// The line thickness is the approximate space (in pixels) between
 		// the white triangle and the limit of the black arrow, giving
@@ -1299,21 +1401,23 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 		// Automatically calculated values, according to the parameters (in unit of the map; degree, meter, etc.)
 		var res = this.map.getResolution();
 
-		var printedFrameBounds = this.getPrintedExtent();
+		var printedFrameBounds = this.getNativePrintedExtent();
 		if (!printedFrameBounds) {
 			// The frame has not been drawn yet... This should not happen...
 			return [];
 		}
 
-		// Calculate the initial location of the north arrow
+		// Calculate the location of the north arrow
 		if (this.northArrowLocation === null) {
-			var northArrowOffset = this.options.northArrowOffset || [];
+			var northArrowOffset = this.frameOptions.northArrowOffset || [];
 			northArrowOffset = [
 				(northArrowOffset[X] || 20) * this._dpiRatio * res,
 				(northArrowOffset[Y] || 30) * this._dpiRatio * res
 			];
 			this.northArrowLocation = [printedFrameBounds.left + northArrowOffset[X], printedFrameBounds.top - northArrowOffset[Y]];
 		}
+
+		this.northArrowAnchor = new OpenLayers.Geometry.Point(this.northArrowLocation[X], this.northArrowLocation[Y]);
 
 		var arrowTopLeft = [
 			this.northArrowLocation[X] - (arrowWidthPixels/2 * res),
@@ -1398,14 +1502,14 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 		bboxArrow.isDragable = true;
 		bboxArrow.isNorthArrowHandle = true;
 
-		var arrowFeatures = [arrow, whiteArrow, label, bboxArrow];
+		var arrowFeatures = [arrow, whiteArrow, label, bboxArrow, this.northArrowAnchor];
 
 		// Disable the drag control when the element is deleted
 		function beforeFeatureRemoved(e) {
 			var feature = e.feature;
 			if (feature === bboxArrow) {
 				// Get a fresh copy of the bounds
-				printedFrameBounds = that.getPrintedExtent();
+				printedFrameBounds = that.getNativePrintedExtent();
 
 				// Recalculate the arrow location (centre)
 				that.northArrowLocation = [

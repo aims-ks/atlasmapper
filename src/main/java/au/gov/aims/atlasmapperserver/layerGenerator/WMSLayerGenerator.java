@@ -21,10 +21,13 @@
 
 package au.gov.aims.atlasmapperserver.layerGenerator;
 
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.WMSDataSourceConfig;
+import au.gov.aims.atlasmapperserver.layerConfig.LayerStyleConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.WMSLayerConfig;
 
 /**
@@ -37,5 +40,19 @@ public class WMSLayerGenerator extends AbstractWMSLayerGenerator<WMSLayerConfig,
 	@Override
 	protected WMSLayerConfig createLayerConfig(ConfigManager configManager) {
 		return new WMSLayerConfig(configManager);
+	}
+
+	/**
+	 * Set default styles
+	 * The default style is always the first one.
+	 * @param configManager
+	 * @param layer
+	 */
+	@Override
+	protected void setDefaultLayerStyle(ConfigManager configManager, WMSLayerConfig layer) {
+		List<LayerStyleConfig> styles = layer.getStyles();
+		if (styles != null && !styles.isEmpty()) {
+			styles.get(0).setDefault(true);
+		}
 	}
 }

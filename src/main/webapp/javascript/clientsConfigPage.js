@@ -138,9 +138,17 @@ Ext.define('Writer.ClientConfigForm', {
 		// NOTE: data sources variable is set in clientsConfigPage.jsp
 		// I don't want to do an Ajax query to get those...
 		Ext.iterate(dataSources, function(dataSourceId, dataSourceObj) {
+			var htmlStatus = '<span class="grid-false"><span class="text">Invalid</span></span>';
+			if (dataSourceObj.status !== null) {
+				if (dataSourceObj.status === 'OKAY') {
+					htmlStatus = '<span class="grid-true"><span class="text">Valid</span></span>';
+				} else if (dataSourceObj.status === 'PASSED') {
+					htmlStatus = '<span class="grid-warning"><span class="text">Usable</span></span>';
+				}
+			}
 			dataSourcesItems.push({
 				name: 'dataSources',
-				boxLabel: (dataSourceObj.valid ? '<span class="grid-true"><span class="text">Valid</span></span> ' : '<span class="grid-false"><span class="text">Valid</span></span> ') + dataSourceObj.name,
+				boxLabel: htmlStatus + ' ' + dataSourceObj.name + ' <span class="grid-ds-id">(' + dataSourceId + ')</span>',
 				inputValue: dataSourceId
 			});
 		});
@@ -201,8 +209,7 @@ Ext.define('Writer.ClientConfigForm', {
 				qtipMaxWidth: 200,
 				anchor: '100%',
 				labelAlign: 'right',
-				labelWidth: 150//,
-//				hideEmptyLabel: false // Align fields with no label
+				labelWidth: 150
 			},
 			items: [{
 				xtype: 'tabpanel',
@@ -239,7 +246,10 @@ Ext.define('Writer.ClientConfigForm', {
 								xtype: 'ajaxtextfield',
 								ajax: {
 									url: 'clientsConfig.jsp',
-									params: { action: 'validateId' },
+									params: {
+										action: 'validateId',
+										'jsonResponse': true
+									},
 									formValues: ['id'], formPanel: this
 								},
 								allowBlank: false
@@ -420,7 +430,7 @@ Ext.define('Writer.ClientConfigForm', {
 							}, {
 								boxLabel: 'Use layer service.',
 								qtipHtml: 'Uncheck this box to save the configuration of all layers in the configuration file. This allow the client to run without any AtlasMapper server support. It\'s useful for server that do not have tomcat installed.<br/>'+
-									'<b>Note:</b> Disabling the <i>layer service</i> also disable the <i>client preview</i> in the server and the <i>WMS Feature Requests</i> on the client, for layers that are from a different domain name to the client.',
+									'<b>Note:</b> Disabling the <i>layer service</i> also disable the <i>WMS Feature Requests</i> on the client, for layers that are from a different domain name to the client.',
 								margin: '0 0 15 0',
 								xtype: 'checkboxfield',
 								name: 'useLayerService'
@@ -469,7 +479,7 @@ Ext.define('Writer.ClientConfigForm', {
 						items: [
 							{
 								xtype: 'displayfield',
-								value: 'This tab allow you to customise the mapping page, both the preview and the live one.'
+								value: 'This tab allow you to customise the client map layout &amp; display.'
 							}, {
 								fieldLabel: 'Theme',
 								qtipHtml: 'ExtJS Theme',
@@ -827,15 +837,7 @@ Ext.define('Writer.ClientConfigGrid', {
 					sortable: true,
 					dataIndex: 'clientName'
 				}, {
-					header: 'Preview <i>(using the new config; this option is slower)</i>',
-					flex: 1,
-					sortable: true,
-					dataIndex: 'previewClientUrl',
-					renderer: function(val) {
-						return val ? '<a href="'+val+'" target="_blank">'+val+'</a>' : '';
-					}
-				}, {
-					header: 'Current client',
+					header: 'Generated client',
 					flex: 1,
 					sortable: true,
 					dataIndex: 'clientUrl',
@@ -858,8 +860,8 @@ Ext.define('Writer.ClientConfigGrid', {
 				}, {
 					// http://docs.sencha.com/ext-js/4-0/#/api/Ext.grid.column.Action
 					header: 'Actions',
-					xtype:'actioncolumn',
-					width:80,
+					xtype: 'actioncolumn',
+					width: 55,
 					defaults: {
 						iconCls: 'grid-icon'
 					},
@@ -882,7 +884,7 @@ Ext.define('Writer.ClientConfigGrid', {
 								}
 							}
 						}, {
-							icon: '../resources/icons/generate2.png',
+							icon: '../resources/icons/cog_go.png',
 
 							// Bug: defaults is ignored (http://www.sencha.com/forum/showthread.php?138446-actioncolumn-ignore-defaults)
 							iconCls: 'grid-icon',
@@ -892,426 +894,13 @@ Ext.define('Writer.ClientConfigGrid', {
 								var rec = grid.getStore().getAt(rowIndex);
 								that.confirmRegenerate(rec);
 							}
-						}/*, {
-							icon: '../resources/icons/cog-error.png',
-
-							// Bug: defaults are ignored (http://www.sencha.com/forum/showthread.php?138446-actioncolumn-ignore-defaults)
-							iconCls: 'grid-icon',
-
-							tooltip: 'Debug<br/>For advanced users',
-							handler: function(grid, rowIndex, colIndex) {
-								var rec = grid.getStore().getAt(rowIndex);
-
-								// Show the window now, with a loading message
-								frameset.showBusy();
-								var debugWindow = that.getClientConfigDebugWindow();
-								debugWindow.show();
-								debugWindow.setEditAreasLoading(true);
-								// Request the data and update the window when we receive it
-								Ext.Ajax.request({
-									url: 'clientsConfig.jsp',
-									params: {
-										'action': 'DEBUG',
-										'id': rec.get('id'),
-										'jsonResponse': true
-									},
-									success: function(response){
-										var responseObj = null;
-										var statusCode = response ? response.status : null;
-										if (response && response.responseText) {
-											try {
-												responseObj = Ext.decode(response.responseText);
-											} catch (err) {
-												responseObj = {errors: [err.toString()]};
-											}
-										}
-										if(responseObj && responseObj.success){
-											debugWindow.setEditAreasData(responseObj.data, rec.get('id'));
-											debugWindow.setEditAreasLoading(false);
-											frameset.clearStatus();
-										} else {
-											frameset.setErrors('An error occurred while loading the client configurations.', responseObj, statusCode);
-										}
-									},
-									failure: function(response) {
-										var responseObj = null;
-										var statusCode = response ? response.status : null;
-										if (response && response.responseText) {
-											try {
-												responseObj = Ext.decode(response.responseText);
-											} catch (err) {
-												responseObj = {errors: [err.toString()]};
-											}
-										}
-										frameset.setErrors('An error occurred while loading the client configurations.', responseObj, statusCode);
-									}
-								});
-							}
-						}*/
+						}
 					]
 				}
 			]
 		});
 		this.callParent();
 		this.getSelectionModel().on('selectionchange', this.onSelectChange, this);
-	},
-
-	getClientConfigDebugWindow: function() {
-		var browserSpecificEditAreaConfig = {
-			xtype: 'editareafield',
-			valueType: 'string',
-			syntax: 'atlasmapperconfig',
-			height: '100%'
-		};
-		// As usual, IE required specific workaround. This time, we simply disable the feature.
-		if (Ext.isIE) {
-			browserSpecificEditAreaConfig = {
-				xtype: 'textareafield', // IE takes ages to display the EditArea
-				height: '450' // IE do not understand 100%
-			}
-		}
-
-		var displayLinkCurrentMainConfId = Ext.id();
-		var jsonEditAreaCurrentMainConfId = Ext.id();
-		var displayLinkNewMainConfId = Ext.id();
-		var jsonEditAreaNewMainConfId = Ext.id();
-		var displayLinkCurrentEmbeddedConfId = Ext.id();
-		var jsonEditAreaCurrentEmbeddedConfId = Ext.id();
-		var displayLinkNewEmbeddedConfId = Ext.id();
-		var jsonEditAreaNewEmbeddedConfId = Ext.id();
-		var displayLinkCurrentLayersId = Ext.id();
-		var jsonEditAreaCurrentLayersId = Ext.id();
-		var displayLinkNewLayersId = Ext.id();
-		var jsonEditAreaNewLayersId = Ext.id();
-
-		var debugWindow = Ext.create('Ext.window.Window', {
-			title: 'Debug JSON Configuration',
-			maximizable: true,
-			width: 1000,
-			height: 570,
-			border: false,
-			modal: true,
-			layout: 'fit',
-			constrainHeader: true,
-			closeAction: 'destroy',
-
-			items: [
-				{
-					xtype: 'tabpanel',
-					items: [
-						{
-							// Layout that display items horizontally
-							title: 'Main client configuration',
-							xtype: 'fieldcontainer',
-							layout: {
-								type: 'hbox',
-								align: 'stretch'
-							},
-							defaults: {
-								flex: 1,
-								hideLabel: true
-							},
-							items: [
-								{
-									// Layout used to group the EditArea with its title
-									xtype: 'fieldcontainer',
-									margin: '2 2 12 5', // Large bottom margin for EditArea checkbox
-									layout: 'anchor',
-									defaults: {
-										anchor: '100%',
-										hideLabel: true
-									},
-									items: [
-										{
-											xtype: 'displayfield',
-											value: 'Current config'
-										}, {
-											xtype: 'displayfield',
-											id: displayLinkCurrentMainConfId,
-											style: { border: 'solid 1px #888888' },
-											height: '100%',
-											padding: 5,
-											hidden: true
-										}, Ext.apply(
-											{
-												id: jsonEditAreaCurrentMainConfId,
-												readOnly: true
-											}, browserSpecificEditAreaConfig
-										)
-									]
-								}, {
-									// Layout used to group the EditArea with its title
-									xtype: 'fieldcontainer',
-									margin: '2 5 12 2', // Large bottom margin for EditArea checkbox
-									layout: 'anchor',
-									defaults: {
-										anchor: '100%',
-										hideLabel: true
-									},
-									items: [
-										{
-											xtype: 'displayfield',
-											value: 'New config'
-										}, {
-											xtype: 'displayfield',
-											id: displayLinkNewMainConfId,
-											style: { border: 'solid 1px #888888' },
-											height: '100%',
-											padding: 5,
-											hidden: true
-										}, Ext.apply(
-											{
-												id: jsonEditAreaNewMainConfId,
-												readOnly: true
-											}, browserSpecificEditAreaConfig
-										)
-									]
-								}
-							]
-						}, {
-							// Layout that display items horizontally
-							title: 'Embedded client configuration',
-							xtype: 'fieldcontainer',
-							layout: {
-								type: 'hbox',
-								align: 'stretch'
-							},
-							defaults: {
-								flex: 1,
-								hideLabel: true
-							},
-							items: [
-								{
-									// Layout used to group the EditArea with its title
-									xtype: 'fieldcontainer',
-									margin: '2 2 12 5', // Large bottom margin for EditArea checkbox
-									layout: 'anchor',
-									defaults: {
-										anchor: '100%',
-										hideLabel: true
-									},
-									items: [
-										{
-											xtype: 'displayfield',
-											value: 'Current config'
-										}, {
-											xtype: 'displayfield',
-											id: displayLinkCurrentEmbeddedConfId,
-											style: { border: 'solid 1px #888888' },
-											height: '100%',
-											padding: 5,
-											hidden: true
-										}, Ext.apply(
-											{
-												id: jsonEditAreaCurrentEmbeddedConfId,
-												readOnly: true
-											}, browserSpecificEditAreaConfig
-										)
-									]
-								}, {
-									// Layout used to group the EditArea with its title
-									xtype: 'fieldcontainer',
-									margin: '2 5 12 2', // Large bottom margin for EditArea checkbox
-									layout: 'anchor',
-									defaults: {
-										anchor: '100%',
-										hideLabel: true
-									},
-									items: [
-										{
-											xtype: 'displayfield',
-											value: 'New config'
-										}, {
-											xtype: 'displayfield',
-											id: displayLinkNewEmbeddedConfId,
-											style: { border: 'solid 1px #888888' },
-											height: '100%',
-											padding: 5,
-											hidden: true
-										}, Ext.apply(
-											{
-												id: jsonEditAreaNewEmbeddedConfId,
-												readOnly: true
-											}, browserSpecificEditAreaConfig
-										)
-									]
-								}
-							]
-						}, {
-							title: 'Layers\' catalog',
-							xtype: 'fieldcontainer',
-							layout: {
-								type: 'hbox',
-								align: 'stretch'
-							},
-							defaults: {
-								flex: 1,
-								hideLabel: true
-							},
-							items: [
-								{
-									// Layout used to group the EditArea with its title
-									xtype: 'fieldcontainer',
-									margin: '2 2 12 5', // Large bottom margin for EditArea checkbox
-									layout: 'anchor',
-									defaults: {
-										anchor: '100%',
-										hideLabel: true
-									},
-									items: [
-										{
-											xtype: 'displayfield',
-											value: 'Current config'
-										}, {
-											xtype: 'displayfield',
-											id: displayLinkCurrentLayersId,
-											style: { border: 'solid 1px #888888' },
-											height: '100%',
-											padding: 5,
-											hidden: true
-										}, Ext.apply(
-											{
-												id: jsonEditAreaCurrentLayersId,
-												readOnly: true
-											}, browserSpecificEditAreaConfig
-										)
-									]
-								}, {
-									// Layout used to group the EditArea with its title
-									xtype: 'fieldcontainer',
-									margin: '2 5 12 2', // Large bottom margin for EditArea checkbox
-									layout: 'anchor',
-									defaults: {
-										anchor: '100%',
-										hideLabel: true
-									},
-									items: [
-										{
-											xtype: 'displayfield',
-											value: 'New config'
-										}, {
-											xtype: 'displayfield',
-											id: displayLinkNewLayersId,
-											style: { border: 'solid 1px #888888' },
-											height: '100%',
-											padding: 5,
-											hidden: true
-										}, Ext.apply(
-											{
-												id: jsonEditAreaNewLayersId,
-												readOnly: true
-											}, browserSpecificEditAreaConfig
-										)
-									]
-								}
-							]
-						}
-					]
-				} // Tab panel
-			],
-			buttons: [
-				{
-					text: 'Close',
-					handler: function() {
-						this.ownerCt.ownerCt.close();
-					}
-				}
-			]
-		});
-		debugWindow.setEditAreasLoading = function(load) {
-			function _setLoading(el, load) {
-				if (el) el.setLoading(load);
-			}
-			_setLoading(Ext.getCmp(jsonEditAreaCurrentMainConfId), load);
-			_setLoading(Ext.getCmp(jsonEditAreaNewMainConfId), load);
-			_setLoading(Ext.getCmp(jsonEditAreaCurrentEmbeddedConfId), load);
-			_setLoading(Ext.getCmp(jsonEditAreaNewEmbeddedConfId), load);
-			_setLoading(Ext.getCmp(jsonEditAreaCurrentLayersId), load);
-			_setLoading(Ext.getCmp(jsonEditAreaNewLayersId), load);
-		};
-		debugWindow.setEditAreasData = function(jsonData, clientId) {
-			if (jsonData && jsonData.mainClient && jsonData.embeddedClient && jsonData.layers) {
-				// TODO Delete this feature of do it differently
-				/*
-				debugWindow.setEditAreaData(
-						Ext.getCmp(jsonEditAreaCurrentMainConfId),
-						Ext.getCmp(displayLinkCurrentMainConfId),
-						'getClientConfigFile.jsp?configType=main&clientId='+clientId,
-						jsonData.mainClient.current);
-				debugWindow.setEditAreaData(
-						Ext.getCmp(jsonEditAreaNewMainConfId),
-						Ext.getCmp(displayLinkNewMainConfId),
-						'getClientConfigFile.jsp?configType=main&live=true&clientId='+clientId,
-						jsonData.mainClient.generated);
-
-				debugWindow.setEditAreaData(
-						Ext.getCmp(jsonEditAreaCurrentEmbeddedConfId),
-						Ext.getCmp(displayLinkCurrentEmbeddedConfId),
-						'getClientConfigFile.jsp?configType=embedded&clientId='+clientId,
-						jsonData.embeddedClient.current);
-				debugWindow.setEditAreaData(
-						Ext.getCmp(jsonEditAreaNewEmbeddedConfId),
-						Ext.getCmp(displayLinkNewEmbeddedConfId),
-						'getClientConfigFile.jsp?configType=embedded&live=true&clientId='+clientId,
-						jsonData.embeddedClient.generated);
-
-				debugWindow.setEditAreaData(
-						Ext.getCmp(jsonEditAreaCurrentLayersId),
-						Ext.getCmp(displayLinkCurrentLayersId),
-						'getClientConfigFile.jsp?configType=layers&clientId='+clientId,
-						jsonData.layers.current);
-				debugWindow.setEditAreaData(
-						Ext.getCmp(jsonEditAreaNewLayersId),
-						Ext.getCmp(displayLinkNewLayersId),
-						'getClientConfigFile.jsp?configType=layers&live=true&clientId='+clientId,
-						jsonData.layers.generated);
-				*/
-			} else {
-				frameset.setError('Can not request the configuration files. Try reloading the page.');
-			}
-		};
-		debugWindow.setEditAreaData = function(editArea, displayField, configLink, data) {
-			// If data > 200k
-			if (roughSizeOfObject(data) > 204800) {
-				//editArea.hide(); // Hiding the editArea cause exception later... Destroying it is an easy workaround
-				editArea.destroy();
-				displayField.show();
-
-				displayField.setValue('The configuration file is too large to be display in this window. Try to download the <a href="'+configLink+'" target="_blank">configuration file</a> instead.');
-			} else {
-				editArea.setValue(data);
-			}
-		};
-
-		function roughSizeOfObject(object) {
-			var objectList = [];
-			var recurse = function(value) {
-				var bytes = 0;
-
-				if (typeof(value) === 'boolean') {
-					bytes = 4;
-				} else if (typeof(value) === 'string') {
-					bytes = value.length * 2;
-				} else if (typeof(value) === 'number') {
-					bytes = 8;
-				} else if (typeof(value) === 'object' && objectList.indexOf(value) === -1) {
-					objectList[objectList.length] = value;
-
-					for (i in value) {
-						if (value.hasOwnProperty(i)) {
-							bytes += 8; // pointer overhead
-							bytes += i.length;
-							bytes += recurse(value[i]);
-						}
-					}
-				}
-				return bytes;
-			};
-			return recurse(object);
-		}
-
-
-		return debugWindow;
 	},
 
 	getClientConfigFormWindow: function(action, rec) {
@@ -1736,7 +1325,6 @@ Ext.define('Writer.ClientConfig', {
 		'lastGenerated',
 		'legendParameters',
 		'clientUrl',
-		'previewClientUrl',
 		'layerListUrl',
 		'generatedFileLocation',
 		'baseUrl',

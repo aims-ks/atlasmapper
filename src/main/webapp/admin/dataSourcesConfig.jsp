@@ -45,6 +45,7 @@
 	String actionStr = request.getParameter("action");
 	String dataSourceId = request.getParameter("dataSourceId");
 	String idStr = request.getParameter("id");
+	String redownloadBrokenFilesStr = request.getParameter("redownloadBrokenFiles");
 	String clearCapabilitiesCacheStr = request.getParameter("clearCapCache");
 	String clearMetadataCacheStr = request.getParameter("clearMestCache");
 
@@ -174,6 +175,7 @@
 							jsonObj.put("errors", new JSONArray().put("Missing parameter [id]."));
 						} else {
 							Integer id = null;
+							boolean redownloadBrokenFiles = false;
 							boolean clearCapabilitiesCache = false;
 							boolean clearMetadataCache = false;
 
@@ -183,6 +185,15 @@
 								response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 								jsonObj.put("success", false);
 								jsonObj.put("errors", new JSONArray().put("Invalid id format. Expected integer."));
+							}
+							if (redownloadBrokenFilesStr != null) {
+								try {
+									redownloadBrokenFiles = Boolean.parseBoolean(redownloadBrokenFilesStr);
+								} catch(Exception e) {
+									response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+									jsonObj.put("success", false);
+									jsonObj.put("errors", new JSONArray().put("Invalid redownloadBrokenFiles format. Expected boolean."));
+								}
 							}
 							if (clearCapabilitiesCacheStr != null) {
 								try {
@@ -209,79 +220,75 @@
 								jsonObj.put("errors", new JSONArray().put("Invalid id."));
 							} else {
 								AbstractDataSourceConfig foundDataSourceConfig = configManager.getDataSourceConfig(id);
-								Errors warnings = foundDataSourceConfig.process(clearCapabilitiesCache, clearMetadataCache);
-								JSONObject jsonWarnings = warnings.toJSON();
+								JSONObject jsonErrors = foundDataSourceConfig.process(redownloadBrokenFiles, clearCapabilitiesCache, clearMetadataCache);
 								response.setStatus(HttpServletResponse.SC_OK);
-								jsonObj.put("message", "Config Generated");
-								if (jsonWarnings != null) {
-									jsonObj.put("errors", jsonWarnings.opt("errors"));
-									jsonObj.put("warnings", jsonWarnings.opt("warnings"));
-									jsonObj.put("messages", jsonWarnings.opt("messages"));
+								jsonObj.put("message", "Data source rebuilded");
+								if (jsonErrors != null) {
+									jsonObj.put("errors", jsonErrors.opt("errors"));
+									jsonObj.put("warnings", jsonErrors.opt("warnings"));
+									jsonObj.put("messages", jsonErrors.opt("messages"));
 								}
 								jsonObj.put("success", !jsonObj.has("errors"));
 							}
 						}
 					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "An error occurred while downloading the data source document: {0}", Utils.getExceptionMessage(e));
+						LOGGER.log(Level.SEVERE, "An error occurred while rebuilding the data source: {0}", Utils.getExceptionMessage(e));
 						LOGGER.log(Level.WARNING, "Stack trace: ", e);
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						jsonObj.put("success", false);
-						jsonObj.put("errors", new JSONArray().put("An error occurred while downloading the data source document: " + Utils.getExceptionMessage(e) + "\nCheck your server log."));
+						jsonObj.put("errors", new JSONArray().put("An error occurred while rebuilding the data source: " + Utils.getExceptionMessage(e) + "\nCheck your server log."));
 					}
 					break;
 
-				/*
-				// DEPRECATED
-				case CLEARCACHE:
+				case PROCESSALL:
 					try {
-						if (Utils.isBlank(idStr)) {
-							response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-							jsonObj.put("success", false);
-							jsonObj.put("errors", new JSONArray().put("Missing parameter [id]."));
-						} else {
-							Integer id = null;
+						boolean redownloadBrokenFiles = false;
+						boolean clearCapabilitiesCache = false;
+						boolean clearMetadataCache = false;
+						if (redownloadBrokenFilesStr != null) {
 							try {
-								id = Integer.valueOf(idStr);
+								redownloadBrokenFiles = Boolean.parseBoolean(redownloadBrokenFilesStr);
 							} catch(Exception e) {
 								response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 								jsonObj.put("success", false);
-								jsonObj.put("errors", new JSONArray().put("Invalid id format."));
-							}
-
-							if (id == null) {
-								response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-								jsonObj.put("success", false);
-								jsonObj.put("errors", new JSONArray().put("Invalid id."));
-							} else {
-								AbstractDataSourceConfig foundDataSourceConfig = configManager.getDataSourceConfig(id);
-								URLCache.clearCache(configManager.getApplicationFolder(), foundDataSourceConfig);
-								response.setStatus(HttpServletResponse.SC_OK);
-								jsonObj.put("success", true);
-								jsonObj.put("message", "Cache cleared");
+								jsonObj.put("errors", new JSONArray().put("Invalid redownloadBrokenFiles format. Expected boolean."));
 							}
 						}
-					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "An error occurred while clearing the data source cache: {0}", Utils.getExceptionMessage(e));
-						LOGGER.log(Level.WARNING, "Stack trace: ", e);
-						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-						jsonObj.put("success", false);
-						jsonObj.put("errors", new JSONArray().put("An error occurred while clearing the data source cache: " + Utils.getExceptionMessage(e) + "\nCheck your server log."));
-					}
-					break;
-				*/
+						if (clearCapabilitiesCacheStr != null) {
+							try {
+								clearCapabilitiesCache = Boolean.parseBoolean(clearCapabilitiesCacheStr);
+							} catch(Exception e) {
+								response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+								jsonObj.put("success", false);
+								jsonObj.put("errors", new JSONArray().put("Invalid clearCapCache format. Expected boolean."));
+							}
+						}
+						if (clearMetadataCacheStr != null) {
+							try {
+								clearMetadataCache = Boolean.parseBoolean(clearMetadataCacheStr);
+							} catch(Exception e) {
+								response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+								jsonObj.put("success", false);
+								jsonObj.put("errors", new JSONArray().put("Invalid clearMestCache format. Expected boolean."));
+							}
+						}
 
-				case CLEARALLCACHE:
-					try {
-						URLCache.clearCache(configManager);
+						// TODO
+						JSONObject jsonErrors = AbstractDataSourceConfig.processAll(configManager, redownloadBrokenFiles, clearCapabilitiesCache, clearMetadataCache);
 						response.setStatus(HttpServletResponse.SC_OK);
-						jsonObj.put("success", true);
-						jsonObj.put("message", "Cache cleared");
+						jsonObj.put("message", "Data source rebuilded");
+						if (jsonErrors != null) {
+							jsonObj.put("errors", jsonErrors.opt("errors"));
+							jsonObj.put("warnings", jsonErrors.opt("warnings"));
+							jsonObj.put("messages", jsonErrors.opt("messages"));
+						}
+						jsonObj.put("success", !jsonObj.has("errors"));
 					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "An error occurred while clearing all data source cache: {0}", Utils.getExceptionMessage(e));
+						LOGGER.log(Level.SEVERE, "An error occurred while rebuilding a data source: {0}", Utils.getExceptionMessage(e));
 						LOGGER.log(Level.WARNING, "Stack trace: ", e);
 						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 						jsonObj.put("success", false);
-						jsonObj.put("errors", new JSONArray().put("An error occurred while clearing all data source cache: " + Utils.getExceptionMessage(e) + "\nCheck your server log."));
+						jsonObj.put("errors", new JSONArray().put("An error occurred while rebuilding a data source: " + Utils.getExceptionMessage(e) + "\nCheck your server log."));
 					}
 					break;
 

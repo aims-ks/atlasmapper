@@ -154,36 +154,7 @@ Atlas.MapToolsPanel = Ext.extend(Ext.form.FormPanel, {
 	},
 
 	addPrintFrame: function() {
-		var printFrameLayer = new Atlas.Layer.PrintFrame(this.mapPanel, {
-			title: 'Print frame',
-			description: '<p>\n' +
-				'	This layer is a tool to allow high quality maps to be created directly\n' +
-				'	from a screenshot. It adds a moveable frame with labelled latitude and\n' +
-				'	longitudes. It also includes a moveable north arrow and scale bar. A\n' +
-				'	quality looking map can made by using a screenshot then cropping the\n' +
-				'	image around the "Print frame".\n' +
-				'</p>\n' +
-				'<p>\n' +
-				'	In the options you can also increase the Dots Per Inch (DPI) of the map\n' +
-				'	to increase the size of the text and line rendering.\n' +
-				'</p>\n' +
-				'<div>\n' +
-				'	To use the tool:\n' +
-				'	<ol>\n' +
-				'		<li>After clicking the "Print frame" button draw a rectangle on the map to select the region of interest.</li>\n' +
-				'		<li>Adjust the "Print frame" to accurately frame desired location.</li>\n' +
-				'		<li>Expand your browser window as necessary (larger is better).</li>\n' +
-				'		<li>Use the "Locate" button in the "Print frame" Options to zoom as much as possible, without hiding the frame.</li>\n' +
-				'		<li>Adjust the position of the north arrow and the scale line, if necessary.</li>\n' +
-				'		<li>Adjust the styles of the layers to get the best map possible. Look in the Options tab of each layer to see available restyling options.</li>\n' +
-				'		<li>Take a screenshot using the "Print Screen" key from your keyboard. On windows you can also use the Accessories/Snipping Tool application.</li>\n' +
-				'		<li>Crop the image using an image editor software, to remove any part of the image exceeding the print frame. You can also directly paste the screenshot into Word or PowerPoint and use their crop tool.</li>\n' +
-				'		<li>In Word or PowerPoint you can add additional text, arrows and titles.</li>\n' +
-				'	</ol>\n' +
-				'</div>\n' +
-				'<br/>',
-			descriptionFormat: 'html'
-		});
+		var printFrameLayer = new Atlas.Layer.PrintFrame(this.mapPanel);
 		this.mapPanel.map.addLayer(printFrameLayer.layer);
 	},
 
@@ -191,7 +162,7 @@ Atlas.MapToolsPanel = Ext.extend(Ext.form.FormPanel, {
 		var items = [];
 
 		// DPI
-		var dpiOptions = [[90], [180], [240], [360]];
+		var dpiOptions = [[90], [150], [180], [240]];
 		var currentDpiValue = 90;
 		if (this.mapPanel) {
 			currentDpiValue = this.mapPanel.dpi || this.mapPanel.DEFAULT_DPI;
@@ -217,6 +188,16 @@ Atlas.MapToolsPanel = Ext.extend(Ext.form.FormPanel, {
 				listeners: {
 					select: this.changeDPI,
 					change: this.changeDPI, // Fired when manually edited
+					specialkey: function(field, event) {
+						if (event.getKey() == event.ENTER) {
+							if (field.validate()) {
+								// "assertValue" is not in the API doc (private), but I could not find anything
+								// better to set the value in the field.
+								field.assertValue();
+								this.changeDPI(field);
+							}
+						}
+					},
 					scope: this
 				}
 			};

@@ -24,19 +24,22 @@ package au.gov.aims.atlasmapperserver.dataSourceConfig;
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
+import au.gov.aims.atlasmapperserver.jsonWrappers.client.DataSourceWrapper;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
 import au.gov.aims.atlasmapperserver.layerGenerator.WMSLayerGenerator;
+import org.json.JSONException;
+import org.json.JSONObject;
 
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Pattern;
 
-public class WMSDataSourceConfig extends AbstractDataSourceConfig implements WMSDataSourceConfigInterface {
+public class WMSDataSourceConfig extends AbstractDataSourceConfig {
 	@ConfigField
 	private String getMapUrl;
 
 	@ConfigField
-	private String extraWmsServiceUrls;
-	// Cache - avoid parsing extraWmsServiceUrls string every times.
-	private Set<String> extraWmsServiceUrlsSet = null;
+	private String[] extraWmsServiceUrls;
 
 	@ConfigField
 	private String webCacheCapabilitiesUrl;
@@ -49,10 +52,13 @@ public class WMSDataSourceConfig extends AbstractDataSourceConfig implements WMS
 
 	// This field used to be called "webCacheParameters"
 	@ConfigField(alias="webCacheParameters")
-	private String webCacheSupportedParameters;
+	private String[] webCacheSupportedParameters;
 
 	@ConfigField
 	private String wmsRequestMimeType;
+
+	@ConfigField
+	private Boolean legendDpiSupport;
 
 	@ConfigField
 	private Boolean wmsTransectable;
@@ -80,42 +86,42 @@ public class WMSDataSourceConfig extends AbstractDataSourceConfig implements WMS
 		this.getMapUrl = getMapUrl;
 	}
 
-	public String getExtraWmsServiceUrls() {
+	public String[] getExtraWmsServiceUrls() {
 		return this.extraWmsServiceUrls;
 	}
-	public Set<String> getExtraWmsServiceUrlsSet() {
-		if (this.extraWmsServiceUrlsSet == null && Utils.isNotBlank(this.extraWmsServiceUrls)) {
-			this.extraWmsServiceUrlsSet = toSet(this.extraWmsServiceUrls);
+	public void setExtraWmsServiceUrls(String[] rawExtraWmsServiceUrls) {
+		List<String> extraWmsServiceUrls = new ArrayList<String>(rawExtraWmsServiceUrls.length);
+		for (String extraWmsServiceUrl : rawExtraWmsServiceUrls) {
+			// When the value come from the form (or an old config file), it's a coma separated String instead of an Array
+			Pattern regex = Pattern.compile(".*" + SPLIT_PATTERN + ".*", Pattern.DOTALL);
+			if (regex.matcher(extraWmsServiceUrl).matches()) {
+				for (String splitUrl : extraWmsServiceUrl.split(SPLIT_PATTERN)) {
+					extraWmsServiceUrls.add(splitUrl.trim());
+				}
+			} else {
+				extraWmsServiceUrls.add(extraWmsServiceUrl.trim());
+			}
 		}
-
-		return this.extraWmsServiceUrlsSet;
+		this.extraWmsServiceUrls = extraWmsServiceUrls.toArray(new String[extraWmsServiceUrls.size()]);
 	}
 
-	public void setExtraWmsServiceUrls(String extraWmsServiceUrls) {
-		this.extraWmsServiceUrls = extraWmsServiceUrls;
-		this.extraWmsServiceUrlsSet = null;
-	}
-
-	// Helper
-	public String[] getWebCacheSupportedParametersArray() {
-		if (this.webCacheSupportedParameters == null) {
-			return null;
-		}
-
-		String trimedWebCacheParameters = this.webCacheSupportedParameters.trim();
-		if (trimedWebCacheParameters.isEmpty()) {
-			return null;
-		}
-
-		return trimedWebCacheParameters.split("\\s*,\\s*");
-	}
-
-	public String getWebCacheSupportedParameters() {
+	public String[] getWebCacheSupportedParameters() {
 		return this.webCacheSupportedParameters;
 	}
 
-	public void setWebCacheSupportedParameters(String webCacheSupportedParameters) {
-		this.webCacheSupportedParameters = webCacheSupportedParameters;
+	public void setWebCacheSupportedParameters(String[] rawWebCacheSupportedParameters) {
+		List<String> webCacheSupportedParameters = new ArrayList<String>(rawWebCacheSupportedParameters.length);
+		for (String rawWebCacheSupportedParameter : rawWebCacheSupportedParameters) {
+			// When the value come from the form (or an old config file), it's a coma separated String instead of an Array
+			if (rawWebCacheSupportedParameter.contains(",")) {
+				for (String splitParameter : rawWebCacheSupportedParameter.split(",")) {
+					webCacheSupportedParameters.add(splitParameter.trim());
+				}
+			} else {
+				webCacheSupportedParameters.add(rawWebCacheSupportedParameter.trim());
+			}
+		}
+		this.webCacheSupportedParameters = webCacheSupportedParameters.toArray(new String[webCacheSupportedParameters.size()]);
 	}
 
 	public String getWebCacheCapabilitiesUrl() {
@@ -150,6 +156,14 @@ public class WMSDataSourceConfig extends AbstractDataSourceConfig implements WMS
 		this.wmsRequestMimeType = wmsRequestMimeType;
 	}
 
+	public Boolean isLegendDpiSupport() {
+		return this.legendDpiSupport;
+	}
+
+	public void setLegendDpiSupport(Boolean legendDpiSupport) {
+		this.legendDpiSupport = legendDpiSupport;
+	}
+
 	public Boolean isWmsTransectable() {
 		return this.wmsTransectable;
 	}
@@ -174,19 +188,29 @@ public class WMSDataSourceConfig extends AbstractDataSourceConfig implements WMS
 		this.cacheWmsVersion = cacheWmsVersion;
 	}
 
+	// Generate the config to be display in the admin page, or saved as a data source saved state
+	@Override
+	public JSONObject toJSonObject(boolean forSavedState) throws JSONException {
+		DataSourceWrapper dataSourceWrapper = new DataSourceWrapper(super.toJSonObject(forSavedState));
+		if (forSavedState) {
+			dataSourceWrapper.setGetMapUrl(null);
+		}
+		return dataSourceWrapper.getJSON();
+	}
+
 	@Override
 	public String toString() {
 		return "WMSDataSourceConfig {\n" +
 				(this.getId()==null ? "" :                             "	id=" + this.getId() + "\n") +
-				(Utils.isBlank(extraWmsServiceUrls) ? "" :             "	extraWmsServiceUrls=" + extraWmsServiceUrls + "\n") +
+				(extraWmsServiceUrls.length <= 0 ? "" :                "	extraWmsServiceUrls=" + extraWmsServiceUrls + "\n") +
 				(Utils.isBlank(webCacheUrl) ? "" :                     "	webCacheUrl=" + webCacheUrl + "\n") +
-				(Utils.isBlank(webCacheSupportedParameters) ? "" :     "	webCacheSupportedParameters=" + webCacheSupportedParameters + "\n") +
+				(webCacheSupportedParameters==null ? "" :              "	webCacheSupportedParameters=" + webCacheSupportedParameters + "\n") +
 				(Utils.isBlank(wmsRequestMimeType) ? "" :              "	wmsRequestMimeType=" + wmsRequestMimeType + "\n") +
 				(wmsTransectable==null ? "" :                          "	wmsTransectable=" + wmsTransectable + "\n") +
 				(Utils.isBlank(wmsVersion) ? "" :                      "	wmsVersion=" + wmsVersion + "\n") +
 				(Utils.isBlank(this.getDataSourceId()) ? "" :          "	dataSourceId=" + this.getDataSourceId() + "\n") +
 				(Utils.isBlank(this.getDataSourceName()) ? "" :        "	dataSourceName=" + this.getDataSourceName() + "\n") +
-				(Utils.isBlank(this.getDataSourceType()) ? "" :        "	dataSourceType=" + this.getDataSourceType() + "\n") +
+				(Utils.isBlank(this.getLayerType()) ? "" :             "	layerType=" + this.getLayerType() + "\n") +
 				(Utils.isBlank(this.getServiceUrl()) ? "" :            "	serviceUrl=" + this.getServiceUrl() + "\n") +
 				(Utils.isBlank(this.getFeatureRequestsUrl()) ? "" :    "	featureRequestsUrl=" + this.getFeatureRequestsUrl() + "\n") +
 				(Utils.isBlank(this.getLegendUrl()) ? "" :             "	legendUrl=" + this.getLegendUrl() + "\n") +

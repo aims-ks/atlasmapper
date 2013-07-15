@@ -150,15 +150,22 @@ div.ajaxLoading {
 	cursor: wait;
 }
 
-label .grid-true, label .grid-false {
-	margin-bottom: -2px;
+label .grid-true,
+label .grid-false,
+label .modified-true,
+label .grid-warning {
+	margin-bottom: -3px;
 }
 
-.grid-true, .grid-false {
+.grid-true,
+.grid-false,
+.modified-true,
+.grid-warning {
 	background-repeat: no-repeat;
+	background-position: center;
 	display: inline-block;
-	width: 14px;
-	height: 14px;
+	width: 16px;
+	height: 16px;
 }
 
 .grid-true {
@@ -169,6 +176,23 @@ label .grid-true, label .grid-false {
 	background-image: url("icons/cancel.png");
 }
 
-.grid-true .text, .grid-false .text {
+.modified-true {
+	background-image: url("icons/modified.png");
+}
+
+.grid-warning {
+	background-image: url("icons/error.png");
+}
+
+.grid-true .text,
+.grid-false .text,
+.modified-true .text,
+.modified-false .text,
+.grid-warning .text {
 	display: none;
+}
+
+.grid-ds-id {
+	font-size: 0.9em;
+	color: #999999;
 }

@@ -27,7 +27,7 @@ import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
 import au.gov.aims.atlasmapperserver.layerGenerator.ArcGISMapServerLayerGenerator;
 
-public class ArcGISMapServerDataSourceConfig extends AbstractDataSourceConfig implements ArcGISMapServerDataSourceConfigInterface {
+public class ArcGISMapServerDataSourceConfig extends AbstractDataSourceConfig {
 	@ConfigField
 	private Boolean forcePNG24;
 
@@ -67,7 +67,7 @@ public class ArcGISMapServerDataSourceConfig extends AbstractDataSourceConfig im
 				(Utils.isBlank(ignoredArcGISPath) ? "" :               "	ignoredArcGISPath=" + ignoredArcGISPath + "\n") +
 				(Utils.isBlank(this.getDataSourceId()) ? "" :          "	dataSourceId=" + this.getDataSourceId() + "\n") +
 				(Utils.isBlank(this.getDataSourceName()) ? "" :        "	dataSourceName=" + this.getDataSourceName() + "\n") +
-				(Utils.isBlank(this.getDataSourceType()) ? "" :        "	dataSourceType=" + this.getDataSourceType() + "\n") +
+				(Utils.isBlank(this.getLayerType()) ? "" :             "	layerType=" + this.getLayerType() + "\n") +
 				(Utils.isBlank(this.getServiceUrl()) ? "" :            "	serviceUrl=" + this.getServiceUrl() + "\n") +
 				(Utils.isBlank(this.getFeatureRequestsUrl()) ? "" :    "	featureRequestsUrl=" + this.getFeatureRequestsUrl() + "\n") +
 				(Utils.isBlank(this.getLegendUrl()) ? "" :             "	legendUrl=" + this.getLegendUrl() + "\n") +

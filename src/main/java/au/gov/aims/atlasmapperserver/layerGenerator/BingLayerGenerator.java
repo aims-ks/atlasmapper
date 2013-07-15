@@ -25,9 +25,6 @@ import au.gov.aims.atlasmapperserver.dataSourceConfig.BingDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.BingLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
 
-import java.util.ArrayList;
-import java.util.Collection;
-
 public class BingLayerGenerator extends AbstractLayerGenerator<BingLayerConfig, BingDataSourceConfig> {
 	/**
 	 * The number of Bing Layers is fix and they already have unique IDs. Nothing to do here.
@@ -49,7 +46,7 @@ public class BingLayerGenerator extends AbstractLayerGenerator<BingLayerConfig, 
 	 * NOTE: Harvest is ignored since there is nothing to harvest.
 	 */
 	@Override
-	public LayerCatalog generateLayerCatalog(BingDataSourceConfig dataSourceConfig, boolean clearCapabilitiesCache, boolean clearMetadataCache) {
+	public LayerCatalog generateRawLayerCatalog(BingDataSourceConfig dataSourceConfig, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles) {
 		LayerCatalog layerCatalog = new LayerCatalog();
 
 		layerCatalog.addLayer(this.createBingLayer(dataSourceConfig, "Road", "Bing Road", null));
@@ -68,7 +65,6 @@ public class BingLayerGenerator extends AbstractLayerGenerator<BingLayerConfig, 
 		layerConfig.setIsBaseLayer(true);
 		layerConfig.setLayerBoundingBox(new double[]{-180, -90, 180, 90});
 
-		dataSourceConfig.bindLayer(layerConfig);
 		this.ensureUniqueLayerId(layerConfig, dataSourceConfig);
 
 		return layerConfig;

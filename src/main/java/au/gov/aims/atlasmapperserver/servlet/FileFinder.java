@@ -39,17 +39,62 @@ import javax.servlet.ServletContext;
 /**
  * Library used to locate configuration files for the AtlasMapper server
  * and the AtlasMapper client.
+ *
+ * The folder structure:
+ * |
+ * |--- atlasmapper/ (the Application folder)
+ *    |    Private: The path and the name of this folder is set by the "ATLASMAPPER_DATA_DIR" variable.
+ *    |        NOTE: If the application is deployed under a different name, "am.war" for example, then the variable
+ *    |            name would be "AM_DATA_DIR:
+ *    |
+ *    |--- cache/
+ *    |  |    Private: Folder containing all the files downloaded by the AtlasMapper, while generating the
+ *    |  |        data sources.
+ *    |  |
+ *    |  |--- files/
+ *    |  |        Private: Folder containing the raw downloaded files.
+ *    |  |
+ *    |  |--- cacheMap.json
+ *    |           Private: JSON File representing the mapping between the raw downloaded files and their URL.
+ *    |               A few more extra info in added to the mapping, such as the HTTP response code, the status
+ *    |               of the file, error messages that occurred while downloading / parsing it, etc.
+ *    |
+ *    |--- clients/
+ *    |  |    Private: Folder containing all the generated clients. Each client is public,
+ *    |  |        but the folder containing all clients is not.
+ *    |  |
+ *    |  |--- demo/ (a client folder)
+ *    |           Public through the ClientServlet, as long as there is an active client with an ID matching the folder:
+ *    |               This is an example of a client ID "demo", accessible at the URL:
+ *    |               "http://www.domain.com/atlasmapper/client/demo/".
+ *    |               NOTE: There is no "s" in "client" here, since the URL is accessing only one client.
+ *    |
+ *    |--- datasources/
+ *    |        Private: Folder containing all generated data sources state; JSON files used to generate the clients.
+ *    |
+ *    |--- server.json
+ *    |        Private: JSON file containing all the configuration of the data sources & clients.
+ *    |
+ *    |--- users.json
+ *    |        Private: JSON file containing the admin users and their encrypted passwords (md5sum).
+ *    |
+ *    |--- www/
+ *             Public through the ClientServlet: Files placed here are publicly accessible and can be used with
+ *                 all clients. It's a good practice to keep public files there since they are not deleted
+ *                 when clients folder are deleted.
+ *
  * @author glafond
  */
 public class FileFinder {
 	private static final Logger LOGGER = Logger.getLogger(FileFinder.class.getName());
 
 	// DATA_DIR_PROPERTY can be set in many different ways (same as GeoServer)
-	// 1. Servlet context parameter (web.xml)
-	// 2. Java system property (tomcat/bin/setenv.sh)
+	// * Servlet context parameter (web.xml)
+	// * Java system property (tomcat/bin/setenv.sh)
 	//     Add this line to CATALINA_OPTS variable (replace <path to the config file> with the desired absolute path to the config folder)
 	//     -DATLASMAPPER_DATA_DIR=<path to the config file>
-	// 3. Global environment variable ()
+	//     NOTE: If the web app is deployed under a different name, the variable name will change subsequently.
+	// * Global environment variable (/etc/environment, /etc/profile, /etc/bash.bashrc or the user equivalent)
 	// NOTE: Don't forget to restart tomcat after setting this variable.
 	private static final String DATA_DIR_PROPERTY = "{WEBAPP-NAME}_DATA_DIR";
 
@@ -64,7 +109,6 @@ public class FileFinder {
 	// Must match web.xml, do not starts with a "/" nor ends with a "*" or "/".
 	private static final String CLIENT_BASE_URL = "client";
 	private static final String CLIENT_WELCOME_PAGE = "index.html";
-	private static final String CLIENT_PREVIEW_PAGE = "preview.html";
 	private static final String CLIENT_LAYERLIST_PAGE = "list.html";
 
 	private static final String DISK_CACHE_FOLDER = "cache";
@@ -99,7 +143,14 @@ public class FileFinder {
 	}
 
 	public static File getPublicFile(ServletContext context, String fileRelativePath) {
-		return getClientFile(context, fileRelativePath);
+		if (context == null || Utils.isBlank(fileRelativePath)) {
+			return null;
+		}
+
+		// The public folder is not in the Clients base folder
+		return new File(
+				FileFinder.getApplicationFolder(context, false),
+				fileRelativePath);
 	}
 
 	public static File getClientFile(ServletContext context, String fileRelativePathWithClientPath) {
@@ -146,20 +197,12 @@ public class FileFinder {
 		return configManager.getClientConfig(clientId);
 	}
 
-	public static String getAtlasMapperClientURL(ServletContext context, ClientConfig clientConfig, boolean preview) {
+	public static String getAtlasMapperClientURL(ServletContext context, ClientConfig clientConfig) {
 		if (clientConfig == null) {
 			return null;
 		}
 
 		String welcomePage = CLIENT_WELCOME_PAGE;
-		if (preview) {
-			if (!clientConfig.isUseLayerService()) {
-				// The preview need the layer info service to get live configuration.
-				return null;
-			}
-
-			welcomePage = CLIENT_PREVIEW_PAGE;
-		}
 
 		// Check if the Welcome file exists on the file system
 		File clientFolder = FileFinder.getAtlasMapperClientFolder(FileFinder.getApplicationFolder(context, false), clientConfig);

@@ -50,6 +50,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import javax.servlet.ServletContext;
 
 import au.gov.aims.atlasmapperserver.servlet.Proxy;
@@ -224,9 +225,7 @@ public class ClientConfig extends AbstractConfig {
 	private String listLayerImageHeight;
 
 	@ConfigField
-	private String extraAllowedHosts;
-	// Cache - avoid parsing baseLayers string every times.
-	private Set<String> extraAllowedHostsSet = null;
+	private String[] extraAllowedHosts;
 
 
 	// Read only values also need to be disabled in the form (clientsConfigPage.js)
@@ -284,7 +283,7 @@ public class ClientConfig extends AbstractConfig {
 		// Load data sources
 		Map<String, DataSourceWrapper> dataSources = this.loadDataSources();
 
-		// Find a google data source, if any
+		// Find a google data source, if any (to find out if we need to add google support)
 		DataSourceWrapper googleDataSource = getFirstGoogleDataSource(dataSources);
 
 		// Check for write access before doing any processing,
@@ -359,9 +358,9 @@ public class ClientConfig extends AbstractConfig {
 		ClientWrapper generatedEmbeddedConfig = null;
 		JSONObject generatedLayers = null;
 		try {
-			generatedMainConfig = new ClientWrapper(this.getConfigManager().getClientConfigFileJSon(layerCatalog, dataSources, this, ConfigType.MAIN, false, true));
-			generatedEmbeddedConfig = new ClientWrapper(this.getConfigManager().getClientConfigFileJSon(layerCatalog, dataSources, this, ConfigType.EMBEDDED, false, true));
-			generatedLayers = this.getConfigManager().getClientConfigFileJSon(layerCatalog, dataSources, this, ConfigType.LAYERS, false, true);
+			generatedMainConfig = new ClientWrapper(this.getConfigManager().getClientConfigFileJSon(layerCatalog, dataSources, this, ConfigType.MAIN, true));
+			generatedEmbeddedConfig = new ClientWrapper(this.getConfigManager().getClientConfigFileJSon(layerCatalog, dataSources, this, ConfigType.EMBEDDED, true));
+			generatedLayers = this.getConfigManager().getClientConfigFileJSon(layerCatalog, dataSources, this, ConfigType.LAYERS, true);
 		} catch (IOException ex) {
 			// Very unlikely to happen
 			clientErrors.addError("An IO exception occurred while generating the client config: " + Utils.getExceptionMessage(ex) + "\nSee your server logs.");
@@ -386,9 +385,8 @@ public class ClientConfig extends AbstractConfig {
 				this.generateTemplateFiles(layerCatalog, generatedMainConfig, googleDataSource);
 				this.saveGeneratedConfigs(generatedMainConfig, generatedEmbeddedConfig, generatedLayers);
 
-				// Flush the proxy cache for both the preview and the generated clients
-				Proxy.reloadConfig(generatedMainConfig, generatedLayers, this, true);
-				Proxy.reloadConfig(generatedMainConfig, generatedLayers, this, false);
+				// Flush the proxy cache
+				Proxy.reloadConfig(generatedMainConfig, generatedLayers, this);
 
 				this.setLastGeneratedDate(new Date());
 				// Write the changes to disk
@@ -424,25 +422,30 @@ public class ClientConfig extends AbstractConfig {
 		}
 
 		return clientErrors;
-
 	}
 
 	// LayerCatalog - After data source overrides
 	public DataSourceWrapper getLayerCatalog(Map<String, DataSourceWrapper> dataSources) throws IOException, JSONException {
-		DataSourceWrapper layerCatalog = new DataSourceWrapper(new JSONObject());
+		DataSourceWrapper layerCatalog = new DataSourceWrapper();
 
 		JSONObject clientOverrides = this.manualOverride;
 
 		// Apply manual overrides, if needed
 		if (dataSources != null && !dataSources.isEmpty()) {
 			for (DataSourceWrapper dataSourceWrapper : dataSources.values()) {
+				String dataSourceId = dataSourceWrapper.getDataSourceId();
 				JSONObject rawLayers = dataSourceWrapper.getLayers();
-				Iterator<String> rawLayerIds = rawLayers.keys();
-				while (rawLayerIds.hasNext()) {
-					String rawLayerId = rawLayerIds.next();
-					JSONObject rawLayer = rawLayers.optJSONObject(rawLayerId);
-
-					layerCatalog.addLayer(rawLayerId, AbstractLayerConfig.applyGlobalOverrides(rawLayerId, rawLayer, clientOverrides));
+				if (rawLayers != null && rawLayers.length() > 0) {
+					Iterator<String> rawLayerIds = rawLayers.keys();
+					while (rawLayerIds.hasNext()) {
+						String rawLayerId = rawLayerIds.next();
+						LayerWrapper layerWrapper = new LayerWrapper(rawLayers.optJSONObject(rawLayerId));
+						// Associate the layer to its data source (NOTE: This property may already been overridden)
+						if (layerWrapper.getDataSourceId() == null) {
+							layerWrapper.setDataSourceId(dataSourceId);
+						}
+						layerCatalog.addLayer(rawLayerId, AbstractLayerConfig.applyGlobalOverrides(rawLayerId, layerWrapper, clientOverrides));
+					}
 				}
 			}
 		}
@@ -451,6 +454,10 @@ public class ClientConfig extends AbstractConfig {
 		if (clientOverrides != null && clientOverrides.length() > 0) {
 			Iterator<String> layerIds = clientOverrides.keys();
 			JSONObject layers = layerCatalog.getLayers();
+			if (layers == null) {
+				layers = new JSONObject();
+				layerCatalog.setLayers(layers);
+			}
 			while (layerIds.hasNext()) {
 				String layerId = layerIds.next();
 				if (!layers.isNull(layerId)) {
@@ -458,7 +465,7 @@ public class ClientConfig extends AbstractConfig {
 					try {
 						DataSourceWrapper dataSource = null;
 						String dataSourceId = jsonClientLayerOverride.getDataSourceId();
-						String dataSourceType = jsonClientLayerOverride.getDataSourceType();
+						String layerType = jsonClientLayerOverride.getLayerType();
 
 						if (Utils.isNotBlank(dataSourceId)) {
 							dataSource = dataSources.get(dataSourceId);
@@ -471,9 +478,9 @@ public class ClientConfig extends AbstractConfig {
 							}
 						}
 
-						if (Utils.isBlank(dataSourceType)) {
+						if (Utils.isBlank(layerType)) {
 							if (dataSource != null) {
-								dataSourceType = dataSource.getDataSourceType();
+								layerType = dataSource.getLayerType();
 							} else {
 								layerCatalog.addWarning("Invalid manual override for layer " + layerId + " of client: " + this.getClientName());
 								LOGGER.log(Level.WARNING, "The manual override for the layer {0} of the client {1} define a layer override for a layer that do not exists and can not be created because it do not define its data source type.",
@@ -483,18 +490,17 @@ public class ClientConfig extends AbstractConfig {
 						}
 
 						AbstractLayerConfig manualLayer = LayerCatalog.createLayer(
-								dataSourceType, jsonClientLayerOverride.getJSON(), this.getConfigManager());
+								layerType, jsonClientLayerOverride, this.getConfigManager());
 
-						manualLayer.setLayerId(layerId);
+						LayerWrapper layerWrapper = new LayerWrapper(manualLayer.toJSonObject());
 
 						if (dataSource != null) {
-							manualLayer.setDataSourceId(dataSource.getDataSourceId());
-							manualLayer.setDataSourceType(dataSource.getDataSourceType());
+							layerWrapper.setDataSourceId(dataSource.getDataSourceId());
 						}
 
 						layers.put(
-								manualLayer.getLayerId(),
-								manualLayer.toJSonObject());
+								layerId,
+								layerWrapper);
 					} catch(Exception ex) {
 						layerCatalog.addError("Unexpected error occurred while parsing the layer override for the client " + this.getClientName() + ".");
 						LOGGER.log(Level.SEVERE, "Unexpected error occurred while parsing the following layer override for the client [{0}]: {1}\n{2}",
@@ -967,12 +973,23 @@ public class ClientConfig extends AbstractConfig {
 		this.listLayerImageHeight = listLayerImageHeight;
 	}
 
-	public String getExtraAllowedHosts() {
+	public String[] getExtraAllowedHosts() {
 		return this.extraAllowedHosts;
 	}
-	public void setExtraAllowedHosts(String extraAllowedHosts) {
-		this.extraAllowedHosts = extraAllowedHosts;
-		this.extraAllowedHostsSet = null;
+	public void setExtraAllowedHosts(String[] rawExtraAllowedHosts) {
+		List<String> extraAllowedHosts = new ArrayList<String>(rawExtraAllowedHosts.length);
+		for (String extraAllowedHost : rawExtraAllowedHosts) {
+			// When the value come from the form (or an old config file), it's a coma separated String instead of an Array
+			Pattern regex = Pattern.compile(".*" + SPLIT_PATTERN + ".*", Pattern.DOTALL);
+			if (regex.matcher(extraAllowedHost).matches()) {
+				for (String splitHost : extraAllowedHost.split(SPLIT_PATTERN)) {
+					extraAllowedHosts.add(splitHost.trim());
+				}
+			} else {
+				extraAllowedHosts.add(extraAllowedHost.trim());
+			}
+		}
+		this.extraAllowedHosts = extraAllowedHosts.toArray(new String[extraAllowedHosts.size()]);
 	}
 
 
@@ -1038,7 +1055,6 @@ public class ClientConfig extends AbstractConfig {
 	public JSONObject toJSonObjectWithClientUrls(ServletContext context) throws JSONException {
 		ClientWrapper jsonClient = new ClientWrapper(this.toJSonObject());
 		jsonClient.setClientUrl(this.getClientUrl(context));
-		jsonClient.setPreviewClientUrl(this.getPreviewClientUrl(context));
 		jsonClient.setLayerListUrl(this.getLayerListUrl(context));
 		return jsonClient.getJSON();
 	}
@@ -1052,12 +1068,7 @@ public class ClientConfig extends AbstractConfig {
 
 	// Helper
 	public String getClientUrl(ServletContext context) {
-		return FileFinder.getAtlasMapperClientURL(context, this, false);
-	}
-
-	// Helper
-	public String getPreviewClientUrl(ServletContext context) {
-		return FileFinder.getAtlasMapperClientURL(context, this, true);
+		return FileFinder.getAtlasMapperClientURL(context, this);
 	}
 
 	// Helper
@@ -1089,29 +1100,6 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 	// Helper
-	public Set<String> getExtraAllowedHostsSet() {
-		String extraAllowedHostsStr = this.getExtraAllowedHosts();
-		if (Utils.isBlank(extraAllowedHostsStr)) {
-			return null;
-		}
-
-		if (this.extraAllowedHostsSet == null) {
-			this.extraAllowedHostsSet = new HashSet<String>();
-			String[] extraAllowedHosts = extraAllowedHostsStr.split(SPLIT_PATTERN);
-			if (extraAllowedHosts != null) {
-				for (int i=0; i<extraAllowedHosts.length; i++) {
-					String extraAllowedHost = extraAllowedHosts[i];
-					if (Utils.isNotBlank(extraAllowedHost)) {
-						this.extraAllowedHostsSet.add(extraAllowedHost.trim());
-					}
-				}
-			}
-		}
-
-		return this.extraAllowedHostsSet;
-	}
-
-	// Helper
 	public List<String> getDefaultLayersList() {
 		if (this.defaultLayersList == null) {
 			this.defaultLayersList = new ArrayList<String>();
@@ -1119,8 +1107,7 @@ public class ClientConfig extends AbstractConfig {
 			if (Utils.isNotBlank(defaultLayersStr)) {
 				String[] defaultLayers = defaultLayersStr.split(SPLIT_PATTERN);
 				if (defaultLayers != null) {
-					for (int i=0; i<defaultLayers.length; i++) {
-						String defaultLayer = defaultLayers[i];
+					for (String defaultLayer : defaultLayers) {
 						if (Utils.isNotBlank(defaultLayer)) {
 							this.defaultLayersList.add(defaultLayer.trim());
 						}
@@ -1142,31 +1129,28 @@ public class ClientConfig extends AbstractConfig {
 			String childId = childrenLayersIds.optString(i, null);
 			if (childId != null) {
 				LayerWrapper child = new LayerWrapper(layers.optJSONObject(childId));
-				if (child != null) {
-					htmlList.append("<li>");
-					String title = child.getTitle(child.getLayerName());
-					if (title != null) {
-						title = title.trim();
-					}
-					if (Utils.isBlank(title)) {
-						title = "NO NAME";
-					}
-					title = Utils.safeHTMLStr(title);
-					htmlList.append(title);
+				htmlList.append("<li>");
+				String title = child.getTitle(child.getLayerName());
+				if (title != null) {
+					title = title.trim();
+				}
+				if (Utils.isBlank(title)) {
+					title = "NO NAME";
+				}
+				title = Utils.safeHTMLStr(title);
+				htmlList.append(title);
 
-					String[] childLayers = null;
-					if (child.isGroup()) {
-						JSONArray childrenLayers = child.getLayers();
-						if (childrenLayers != null && childrenLayers.length() > 0) {
-							htmlList.append(this.getHTMLListAndHideChildrenLayers(layers, childrenLayers));
-						}
+				if (child.isGroup()) {
+					JSONArray childrenLayers = child.getLayers();
+					if (childrenLayers != null && childrenLayers.length() > 0) {
+						htmlList.append(this.getHTMLListAndHideChildrenLayers(layers, childrenLayers));
 					}
-					htmlList.append("</li>");
+				}
+				htmlList.append("</li>");
 
-					// Hide the children layer from the Catalog
-					if (child.isShownOnlyInLayerGroup() == null) {
-						child.setShownOnlyInLayerGroup(true);
-					}
+				// Hide the children layer from the Catalog
+				if (child.isShownOnlyInLayerGroup() == null) {
+					child.setShownOnlyInLayerGroup(true);
 				}
 			}
 		}
@@ -1175,7 +1159,7 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 
-	public JSONObject locationSearch(String query, String mapBounds, int offset, int qty, boolean live) throws JSONException, IOException, TransformException, FactoryException, URISyntaxException {
+	public JSONObject locationSearch(String query, String mapBounds, int offset, int qty) throws JSONException, IOException, TransformException, FactoryException, URISyntaxException {
 		if (Utils.isBlank(query) || qty <= 0) {
 			return null;
 		}
@@ -1378,8 +1362,6 @@ public class ClientConfig extends AbstractConfig {
 			listValues.put("listPageHeader", this.getListPageHeader());
 			listValues.put("listPageFooter", this.getListPageFooter());
 			Utils.processTemplate(templatesConfig, "list.html", listValues, atlasMapperClientFolder);
-
-			this.getConfigManager().parsePreviewTemplate(this, googleDataSource);
 		} catch (URISyntaxException ex) {
 			throw new IOException("Can not get a File reference to the AtlasMapperClient", ex);
 		}
@@ -1502,7 +1484,7 @@ public class ClientConfig extends AbstractConfig {
 									imageUrl.append("&FORMAT="); imageUrl.append(URLEncoder.encode("image/png", "UTF-8"));
 									imageUrl.append("&TRANSPARENT=true");
 									imageUrl.append("&SERVICE=WMS");
-									imageUrl.append("&VERSION=1.1.1");
+									imageUrl.append("&VERSION=1.1.1"); // TODO Use version from config (and set the parameters properly; 1.3.0 needs CRS instead of SRS, inverted BBOX, etc.)
 									imageUrl.append("&REQUEST=GetMap");
 									imageUrl.append("&EXCEPTIONS="); imageUrl.append(URLEncoder.encode("application/vnd.ogc.se_inimage", "UTF-8"));
 									imageUrl.append("&SRS="); imageUrl.append(URLEncoder.encode(projection, "UTF-8")); // TODO Use client projection
@@ -1558,7 +1540,7 @@ public class ClientConfig extends AbstractConfig {
 										baseLayerUrl.append("&FORMAT="); baseLayerUrl.append(URLEncoder.encode("image/jpeg", "UTF-8"));
 										baseLayerUrl.append("&TRANSPARENT=false");
 										baseLayerUrl.append("&SERVICE=WMS");
-										baseLayerUrl.append("&VERSION=1.1.1");
+										baseLayerUrl.append("&VERSION=1.1.1"); // TODO Use version from config (and set the parameters properly; 1.3.0 needs CRS instead of SRS, inverted BBOX, etc.)
 										baseLayerUrl.append("&REQUEST=GetMap");
 										baseLayerUrl.append("&EXCEPTIONS="); baseLayerUrl.append(URLEncoder.encode("application/vnd.ogc.se_inimage", "UTF-8"));
 										baseLayerUrl.append("&SRS="); baseLayerUrl.append(URLEncoder.encode(projection, "UTF-8")); // TODO Use client projection

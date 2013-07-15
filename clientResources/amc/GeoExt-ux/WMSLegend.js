@@ -25,9 +25,26 @@ Ext.namespace("GeoExt.ux");
 GeoExt.ux.WMSLegend = Ext.extend(GeoExt.WMSLegend, {
 	defaultStyleIsFirst: false,
 	defaultStyle: null,
+	// legendDpiSupport: config options, stay untouched
+	// _legendDpiSupport: private flag used to force image stretching, without changing the config option.
+	legendDpiSupport: true, _legendDpiSupport: true,
 
 	initComponent: function() {
+		var mapPanel = this.layerRecord && this.layerRecord.getLayer() && this.layerRecord.getLayer().atlasLayer ? this.layerRecord.getLayer().atlasLayer.mapPanel : null;
+
+		// Set the initial legend graphic DPI (if needed)
+		// This has to be done before the image URL is generated.
+		if (mapPanel && mapPanel.dpi != mapPanel.DEFAULT_DPI) {
+			this.setDpiAttributes(mapPanel.dpi);
+		}
+
 		GeoExt.ux.WMSLegend.superclass.initComponent.call(this);
+
+		// Set the initial legend text size DPI (if needed)
+		// This has to be done after the object has been initialised.
+		if (mapPanel && mapPanel.dpi != mapPanel.DEFAULT_DPI) {
+			this.setItemsDpi(mapPanel.dpi);
+		}
 
 		var that = this;
 		var deleteButon = new Ext.form.Field({
@@ -50,8 +67,143 @@ GeoExt.ux.WMSLegend = Ext.extend(GeoExt.WMSLegend, {
 		// Something somewhere call setText on this button...
 		deleteButon.setText = function(val) {};
 		this.items.insert(0, deleteButon);
+
+		// Synchronised the legend graphic DPI with the map DPI
+		// The listener is removed when the legend is removed
+		if (mapPanel) {
+			mapPanel.ol_on('dpiChange', this.onDpiChange, this);
+			this.on('destroy', function() {
+				mapPanel.ol_un('dpiChange', this.onDpiChange, this);
+			}, that);
+		}
 	},
 
+	onDpiChange: function(evt) {
+		this.setDpi(evt.dpi);
+		this.update();
+	},
+
+	setDpi: function(dpi) {
+		this.setDpiAttributes(dpi);
+		this.setItemsDpi(dpi);
+	},
+
+	setDpiAttributes: function(dpi) {
+		// Change DPI value in LEGEND_OPTIONS
+		if (this._supportLegendDpi()) {
+			var legendOptions = this.baseParams['LEGEND_OPTIONS'] ? this.baseParams['LEGEND_OPTIONS'].split(';') : [];
+			var keyFound = false;
+			for (var i=0, len=legendOptions.length; i<len; i++) {
+				var legendOption = legendOptions[i].split(':');
+				if (legendOption[0] === 'dpi') {
+					legendOptions[i] = 'dpi:' + dpi;
+					keyFound = true;
+					break;
+				}
+			}
+			if (!keyFound) {
+				legendOptions.push('dpi:' + dpi);
+			}
+			this.baseParams['LEGEND_OPTIONS'] = legendOptions.join(';');
+		}
+	},
+
+	setItemsDpi: function(dpi) {
+		// Change DPI in text label
+		if (this.items) {
+			var mapPanel = this.layerRecord && this.layerRecord.getLayer() && this.layerRecord.getLayer().atlasLayer ? this.layerRecord.getLayer().atlasLayer.mapPanel : null;
+			var defaultDpi = mapPanel ? mapPanel.DEFAULT_DPI : 90;
+			if (defaultDpi <= 0) {
+				defaultDpi = 90;
+			}
+			var ratio = dpi / defaultDpi;
+			var that = this;
+			this.items.each(function(item) {
+				// Create a function to be able to set and unset event listeners.
+				var afterItemRender = function() {
+					this.un('afterrender', afterItemRender, this);
+					if (this.el) {
+						that.setItemDpi(this, dpi, ratio);
+					}
+				}
+				// Remove the even listener now, in case the DPI changes before the element has time to load.
+				item.un('afterrender', afterItemRender, item);
+
+				if (item.el) {
+					afterItemRender.call(item);
+				} else {
+					item.on('afterrender', afterItemRender, item);
+				}
+			}, this);
+		}
+	},
+
+	// Change DPI in text label
+	setItemDpi: function(item, dpi, ratio) {
+		if (item instanceof Ext.form.Label) {
+			// ExtJS default text size for label is 12px.
+			// If a different ExtJS template is used (like accessibility),
+			// the font ratio will be wrong. But since this only affect
+			// high DPI, we can ignore this issue.
+			// NOTE: zoom attribute is a lot easier to use but IE do not
+			//     support it properly. It change the displayed size but
+			//     not the real estate (everything overlap)
+			var fontSize = parseInt(12 * ratio);
+			item.el.applyStyles('font-size: '+fontSize+'px;');
+
+		} else if (item instanceof GeoExt.LegendImage) {
+			// Create a function to be able to set and unset event listeners.
+			var resizeImage = null;
+			if (!this._supportLegendDpi()) {
+				resizeImage = function() {
+					item.el.removeListener('load', resizeImage, this);
+					// Last attempt, if there is still no naturalWidth, just use the default of 110.
+					var originalSize = this.getImgNaturalSize(item.el.dom);
+					var originalWidth = originalSize[0];
+					var imageWidth = originalWidth * ratio;
+					item.el.applyStyles('width: '+imageWidth+'px;');
+				};
+			} else {
+				resizeImage = function() {
+					// Only called when a legend goes from a static image to a dynamic image...
+					item.el.applyStyles('width: auto;');
+				};
+			}
+
+			// Remove the even listener now, in case the DPI changes before the image has time to load.
+			item.el.removeListener('load', resizeImage, this);
+
+			// The "complete" attribute means "loaded". Works with many browsers, even IE6.
+			if (item.el.dom && item.el.dom.complete) {
+				resizeImage.call(this);
+			} else {
+				// There is no naturalWidth, the image might not be loaded yet.
+				item.el.on('load', resizeImage, this);
+			}
+		}
+	},
+
+	/**
+	 * Return the physical image width and height, rather than the dimensions of the image as it is
+	 * displayed in the browser.
+	 * Modern browsers can use the attributes "naturalWidth" and "naturalHeight", but some browsers(*)
+	 * need a hack; load the image in a java script object and read the properties from that object.
+	 * It is probably slower but it's better than having a small legend graphic.
+	 * (*) Mostly all IE, many old browsers don't support "naturalWidth" and "naturalHeight".
+	 *     Also some quite recent version of Firefox, for example, support the attribute but
+	 *     returns garbage (always returns 1px).
+	 * @param dom DOM element of a loaded image. If the image is not loaded, it should return [0, 0].
+	 * @returns {Array} [width, height]
+	 */
+	getImgNaturalSize: function(dom) {
+		if (typeof(dom.naturalWidth) !== 'undefined' && dom.naturalWidth > 1 &&
+				typeof(dom.naturalHeight) !== 'undefined' && dom.naturalHeight > 1) {
+			return [dom.naturalWidth, dom.naturalHeight];
+		}
+		var img = new Image();
+		img.src = dom.src;
+		return [img.width, img.height];
+	},
 
 	getLegendUrl: function(layerName, layerNames) {
 		var rec = this.layerRecord;
@@ -74,15 +226,16 @@ GeoExt.ux.WMSLegend = Ext.extend(GeoExt.WMSLegend, {
 			SRS: null,
 			FORMAT: null
 		});
+
 		return url;
 	},
-
 
 	/**
 	 * getLegendUrl using pre-processed parameter, to make it more generic.
 	 */
 	_getLegendUrl: function(layerName, layerNames, styleName, styleNames, legendBaseParams) {
 		this._setAtlasMapperLegendUrlInLayerStyles();
+		this._setLegendDpiSupport(true);
 
 		var rec = this.layerRecord;
 		var url;
@@ -125,6 +278,7 @@ GeoExt.ux.WMSLegend = Ext.extend(GeoExt.WMSLegend, {
 				url = layer.atlasLayer.json['legendUrl'];
 				if (layer.atlasLayer.json['legendFilename']) {
 					// Hardcoded URL (in config)
+					this._setLegendDpiSupport(false);
 					url += layer.atlasLayer.json['legendFilename'];
 					return url;
 				}
@@ -158,6 +312,13 @@ GeoExt.ux.WMSLegend = Ext.extend(GeoExt.WMSLegend, {
 		}
 
 		return url;
+	},
+
+	_setLegendDpiSupport: function(legendDpiSupport) {
+		this._legendDpiSupport = legendDpiSupport;
+	},
+	_supportLegendDpi: function() {
+		return this.legendDpiSupport && this._legendDpiSupport;
 	},
 
 	/**

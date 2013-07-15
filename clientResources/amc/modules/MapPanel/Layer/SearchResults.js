@@ -154,7 +154,6 @@ Atlas.Layer.SearchResults = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 			this.page = page;
 			var params = {
 				client: Atlas.conf['clientId'],
-				live: Atlas.core.live,
 				query: this.query,
 				bounds: null,
 				offset: this.page * this.NB_RESULTS_PER_PAGE,

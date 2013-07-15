@@ -49,7 +49,7 @@ public class DataSourceConfigHelper {
 			dataSourceConfig = new WMSDataSourceConfig(configManager);
 		} else {
 			// Unsupported
-			throw new IllegalArgumentException("Unsupported data source type [" + dataSourceWrapper.getDataSourceType() + "]");
+			throw new IllegalArgumentException("Unsupported layer type [" + dataSourceWrapper.getLayerType() + "]");
 		}
 
 		// Set all data source values into the data source bean

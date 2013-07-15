@@ -58,12 +58,15 @@ Atlas.AbstractMapPanel = {
 	maxZoom: null,
 
 	// Default DPI: DPI used by the layer server (WMS) when no DPI value is specified.
-	// The API doc specifically say that the default DPI is 90,
-	// but in fact, it's somewhere between 91 and 95.
+	// The API doc specifically says that the default DPI for tiles is 90,
+	// but in fact, it's somewhere between 91 and 95, and it says that the default
+	// DPI for legend graphics is 91 but in fact it's somewhere between 84 and 90.
 	// Since this setting do not make a big difference, I prefer
-	// to use the value specified in the API (that might be a bug
-	// that will be fix later on).
-	// http://docs.geoserver.org/latest/en/user/services/wms/vendor.html#format-options
+	// to use 90.
+	// Doc saying that tile default DPI is 90:
+	//     http://docs.geoserver.org/latest/en/user/services/wms/vendor.html#format-options
+	// Doc saying that legend graphics default DPI is 91:
+	//     http://docs.geoserver.org/latest/en/user/services/wms/get_legend_graphic/legendgraphic.html#controlling-legend-appearance-with-legend-options
 	DEFAULT_DPI: 90,
 	dpi: 90,
 
@@ -82,7 +85,7 @@ Atlas.AbstractMapPanel = {
 
 	urlState: null,
 	// This is used to pull the map state to the top frame when the map is embedded,
-	// useful to auto-update the URL in the embedded preview.
+	// useful to auto-update the URL in the embedded map of the "save map URL".
 	pullState: false,
 
 	defaultLonLatProjection: null,
@@ -131,6 +134,10 @@ Atlas.AbstractMapPanel = {
 		// Opacity: Real value of the interval [0-1[ to set the opacity, 1 or missing value for fully opaque
 		if (typeof(parameters['o'+this.mapId]) !== 'undefined' && parameters['o'+this.mapId] != null) {
 			this.urlState.opacities = (parameters['o'+this.mapId].constructor == Array) ? parameters['o'+this.mapId] : [parameters['o'+this.mapId]];
+		}
+		// Print frames: List of coordinate to be sent to Atlas.Layer.PrintFrame.loadSavedState()
+		if (typeof(parameters['pf'+this.mapId]) !== 'undefined' && parameters['pf'+this.mapId] != null) {
+			this.urlState.printFrames = (parameters['pf'+this.mapId].constructor == Array) ? parameters['pf'+this.mapId] : [parameters['pf'+this.mapId]];
 		}
 
 		// Longitude, Latitude of the center of the map: 2 coma separated real values representing respectively the longitude and the latitude.
@@ -378,16 +385,9 @@ Atlas.AbstractMapPanel = {
 
 		if (this.pullState) {
 			this.map.events.on({
-				"moveend": function(evt) {
-					if (top && top.Atlas && top.Atlas.core && top.Atlas.core.mapPanels[0]) {
-						top.Atlas.core.mapPanels[0].ol_fireEvent('saveStateChange', {urlSaveState: that._createUrlSaveState()});
-					}
-				},
-				"addlayer": function(evt) {
-					if (top && top.Atlas && top.Atlas.core && top.Atlas.core.mapPanels[0]) {
-						top.Atlas.core.mapPanels[0].ol_fireEvent('saveStateChange', {urlSaveState: that._createUrlSaveState()});
-					}
-				}
+				"moveend": this.pushState,
+				"addlayer": this.pushState,
+				"scope": this
 			});
 		}
 
@@ -494,7 +494,7 @@ Atlas.AbstractMapPanel = {
 		if (this.urlState != null && this.urlState.layerIds != null) {
 			Atlas.core.requestLayersJSon(this.urlState.layerIds, function(layersJSon) {
 				if (that.urlState.styles != null || that.urlState.visibilities != null || that.urlState.opacities != null) {
-					for (var i=0; i<layersJSon.length; i++) {
+					for (var i=0, leni=layersJSon.length; i<leni; i++) {
 						// Clone the object, to avoid modifying the original
 						layersJSon[i] = clone(layersJSon[i]);
 
@@ -502,22 +502,34 @@ Atlas.AbstractMapPanel = {
 						if (that.urlState.styles != null && typeof(that.urlState.styles[i]) != 'undefined' && that.urlState.styles[i] != null && that.urlState.styles[i].length > 0) {
 							if (typeof(layersJSon[i].styles) != 'undefined' && layersJSon[i].styles != null) {
 								var found = false;
-								// Remove previous default
-								for (style in layersJSon[i].styles) {
-									if (layersJSon[i].styles.hasOwnProperty(style)) {
-										if (layersJSon[i].styles[style]["default"] == true) {
-											delete(layersJSon[i].styles[style]["default"]);
+								var stylesClone = [];
+								// Clone styles and remove selected flag (if any) and set the new flag
+								for (var j=0, lenj=layersJSon[i].styles.length; j<lenj; j++) {
+									stylesClone[j] = clone(layersJSon[i].styles[j]);
+									if (stylesClone[j]['name'] === that.urlState.styles[i]) {
+										found = true;
+										stylesClone[j]['selected'] = true;
+									} else {
+										if (stylesClone[j]['selected']) {
+											delete(stylesClone[j]['selected']);
 										}
 									}
 								}
-								// Add new default
-								if (typeof(layersJSon[i].styles[that.urlState.styles[i]]) == 'undefined' || layersJSon[i].styles[that.urlState.styles[i]] == null) {
-									layersJSon[i].styles[that.urlState.styles[i]] = {};
+								// If the style is not in the list, create it. The AtlasMapper will try to load the style even if it do not know about it.
+								if (!found) {
+									stylesClone.push({
+										'name': that.urlState.styles[i],
+										'selected': true
+									});
 								}
-								layersJSon[i].styles[that.urlState.styles[i]]["default"] = true;
+								layersJSon[i].styles = stylesClone;
 							} else {
-								layersJSon[i].styles = {};
-								layersJSon[i].styles[that.urlState.styles[i]] = { "default": true };
+								// If there is no style defined, create a new style list. The AtlasMapper will try to load the style even if it do not know about it.
+								layersJSon[i].styles = [];
+								layersJSon[i].styles.push({
+									'name': that.urlState.styles[i],
+									"selected": true
+								});
 							}
 						}
 
@@ -536,6 +548,8 @@ Atlas.AbstractMapPanel = {
 					}
 				}
 				that.addLayers(layersJSon);
+			}, function(missingLayerIds) {
+				that.missingLayersCallback(missingLayerIds);
 			});
 		}
 
@@ -576,6 +590,14 @@ Atlas.AbstractMapPanel = {
 			});
 		}
 
+		// Load print frames
+		if (this.urlState != null && this.urlState.printFrames != null) {
+			for (var i=0, len=this.urlState.printFrames.length; i<len; i++) {
+				var printFrame = Atlas.Layer.PrintFrame.loadSavedState(this, this.urlState.printFrames[i]);
+				this.map.addLayer(printFrame.layer);
+			}
+		}
+
 		if (this.urlState == null || this.urlState.layerIds == null || this.urlState.loadDefaultLayers == null || this.urlState.loadDefaultLayers === true) {
 			// Add default layers to the map
 			var defaultLayers = Atlas.conf['defaultLayers'];
@@ -587,6 +609,16 @@ Atlas.AbstractMapPanel = {
 				// NOTE The layer from the core cache is normalized.
 				this.addLayerById(defaultLayers[i].layerId);
 			}
+		}
+	},
+
+	missingLayersCallback: function(missingLayerIds) {
+		alert('The application has failed to load the layers ['+missingLayerIds.join(', ')+']');
+	},
+
+	pushState: function() {
+		if (top && top.Atlas && top.Atlas.core && top.Atlas.core.mapPanels[0]) {
+			top.Atlas.core.mapPanels[0].ol_fireEvent('saveStateChange', {urlSaveState: this._createUrlSaveState()});
 		}
 	},
 
@@ -783,43 +815,59 @@ Atlas.AbstractMapPanel = {
 
 		// LAYERS - Note that the embedded map will have only one map, so the only needed parameters here are l0, s0, etc.
 		if (typeof(this.map.layers) !== 'undefined') {
-			var l0 = "";
-			var s0 = "";
-			var o0 = "";
-			var v0 = "";
+			var l0 = ""; // Layer ID
+			var s0 = ""; // Style name (default: AtlasMapper default style for the layer)
+			var o0 = ""; // Opacity (between 0 and 1, default: 1)
+			var v0 = ""; // Visibility (f for false, default: true)
+			var pf0 = ""; // Print frames
 			var first = true;
 			for (var i=this.map.layers.length; i>=0; i--) {
 				var layer = this.map.layers[i];
-				if (layer != null &&
-						typeof(layer.atlasLayer) !== 'undefined' && layer.atlasLayer != null &&
-						typeof(layer.atlasLayer.json) !== 'undefined' && layer.atlasLayer.json != null) {
+				if (layer != null) {
+					if (typeof(layer.atlasLayer) !== 'undefined' && layer.atlasLayer != null &&
+							typeof(layer.atlasLayer.json) !== 'undefined' && layer.atlasLayer.json != null) {
 
-					var jsonLayer = layer.atlasLayer.json;
-					if (this._isLayerNeededInUrl(jsonLayer)) {
-						if (!first) {
-							l0 += ',';
-							s0 += ',';
-							o0 += ',';
-							v0 += ',';
+						var jsonLayer = layer.atlasLayer.json;
+						if (this._isLayerNeededInUrl(jsonLayer)) {
+							if (!first) {
+								l0 += ',';
+								s0 += ',';
+								o0 += ',';
+								v0 += ',';
+							}
+							// Layers (l0)
+							// NOTE: encodeURIComponent() is a native JavaScript function, supported by all major browsers.
+							l0 += encodeURIComponent(jsonLayer['layerId']);
+							// Styles (s0)
+							if (typeof(layer.params) !== 'undefined' && layer.params != null &&
+									typeof(layer.params['STYLES']) !== 'undefined' && layer.params['STYLES'] != null &&
+									layer.params['STYLES'].length > 0) {
+								s0 += encodeURIComponent(layer.params['STYLES']);
+							}
+							// Opacities (o0)
+							if (typeof(layer.opacity) !== 'undefined' && layer.opacity != null && layer.opacity !== 1) {
+								o0 += layer.opacity
+							}
+							// Visibilities (v0)
+							if (typeof(layer.visibility) !== 'undefined' && layer.visibility === false) {
+								v0 += 'f'
+							}
+							first = false;
 						}
-						// Layers (l0)
-						// NOTE: encodeURIComponent() is a native JavaScript function, supported by all major browsers.
-						l0 += encodeURIComponent(jsonLayer['layerId']);
-						// Styles (s0)
-						if (typeof(layer.params) !== 'undefined' && layer.params != null &&
-								typeof(layer.params['STYLES']) !== 'undefined' && layer.params['STYLES'] != null &&
-								layer.params['STYLES'].length > 0) {
-							s0 += encodeURIComponent(layer.params['STYLES']);
+					} else {
+						if (layer instanceof OpenLayers.Layer.Vector.RootContainer) {
+							if (layer.layers) {
+								for (var j=0, lenj=layer.layers.length; j<lenj; j++) {
+									var printFrame = layer.layers[j];
+									if (printFrame != null && printFrame instanceof OpenLayers.Layer.ux.PrintFrame && printFrame.atlasLayer != null) {
+										var savedState = printFrame.atlasLayer.getSavedState();
+										if (savedState) {
+											pf0 += encodeURIComponent(savedState) + ',';
+										}
+									}
+								}
+							}
 						}
-						// Opacities (o0)
-						if (typeof(layer.opacity) !== 'undefined' && layer.opacity != null && layer.opacity !== 1) {
-							o0 += layer.opacity
-						}
-						// Visibilities (v0)
-						if (typeof(layer.visibility) !== 'undefined' && layer.visibility === false) {
-							v0 += 'f'
-						}
-						first = false;
 					}
 				}
 			}
@@ -828,11 +876,15 @@ Atlas.AbstractMapPanel = {
 			s0 = s0.replace(/,,*$/, '');
 			o0 = o0.replace(/,,*$/, '');
 			v0 = v0.replace(/,,*$/, '');
+			pf0 = pf0.replace(/,,*$/, '');
 			if (l0.length > 0) {
 				state['l0'] = l0;
 				if (s0.length > 0) { state['s0'] = s0; }
 				if (o0.length > 0) { state['o0'] = o0; }
 				if (v0.length > 0) { state['v0'] = v0; }
+			}
+			if (pf0.length > 0) {
+				state['pf0'] = pf0;
 			}
 		}
 
@@ -840,8 +892,8 @@ Atlas.AbstractMapPanel = {
 	},
 
 	_isLayerNeededInUrl: function(jsonLayer) {
-		// Layer group are not added to the URL (but not their layers)
-		if (jsonLayer['dataSourceType'] == 'SERVICE' || jsonLayer['dataSourceType'] == 'GROUP') {
+		// Layer group are not added to the URL (but their layers are)
+		if (jsonLayer['layerType'] == 'SERVICE' || jsonLayer['layerType'] == 'GROUP') {
 			return false;
 		}
 
@@ -933,8 +985,9 @@ Atlas.AbstractMapPanel = {
 			var dpiMin = 10, dpiMax = 1440;
 
 			if (dpi >= dpiMin && dpi <= dpiMax) {
+				var previousDpi = this.dpi;
 				this.dpi = dpi;
-				this.ol_fireEvent('dpiChange', {dpi: dpi});
+				this.ol_fireEvent('dpiChange', {dpi: dpi, previousDpi: previousDpi});
 			} else {
 				// TODO Error message on the page
 				alert('Invalid DPI value. Please, select a value between ' + dpiMin + ' and ' + dpiMax + '.');
@@ -971,7 +1024,7 @@ Atlas.AbstractMapPanel = {
 		var layerJSon = layer.atlasLayer.json;
 
 		// Add feature request listener for that layer, if needed
-		if (this.featureInfo && (layerJSon['wmsQueryable'] || layerJSon['dataSourceType'] == 'ARCGIS_MAPSERVER')) {
+		if (this.featureInfo && (layerJSon['wmsQueryable'] || layerJSon['layerType'] == 'ARCGIS_MAPSERVER')) {
 			this.featureInfo.addLayer(layer.atlasLayer);
 		}
 
@@ -1011,7 +1064,7 @@ Atlas.AbstractMapPanel = {
 	_beforeLayerRemove: function(layer) {
 		var layerJSon = layer.atlasLayer.json;
 
-		if (layerJSon && (layerJSon['wmsQueryable'] || layerJSon['dataSourceType'] == 'ARCGIS_MAPSERVER')) {
+		if (layerJSon && (layerJSon['wmsQueryable'] || layerJSon['layerType'] == 'ARCGIS_MAPSERVER')) {
 			this.featureInfo.removeLayer(layer.atlasLayer);
 		}
 	},

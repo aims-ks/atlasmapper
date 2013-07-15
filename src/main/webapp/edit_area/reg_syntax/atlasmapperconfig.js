@@ -30,16 +30,16 @@ editAreaLoader.load_syntax["atlasmapperconfig"] = {
 			'kmlUrl', 'title', 'path', 'description', 'olParams', 'olOptions',
 			'dataSourceId', 'layerBoundingBox', 'cached',
 			'wmsQueryable', 'wmsVersion', 'isBaseLayer', 'hasLegend',
-			'legendUrl', 'legendGroup', 'legendTitle', 'infoHtmlUrls',
-			'aliasIds', 'serverUrls', 'wmsRequestMimeType',
+			'legendUrl', 'legendGroup', 'legendTitle', 'legendDpiSupport',
+			'infoHtmlUrls', 'aliasIds', 'serviceUrl', 'serviceUrls', 'wmsRequestMimeType',
 			'wmsFeatureRequestLayers', 'wmsTransectable', 'default',
-			'styles', 'options', 'name', 'wmsPath',
+			'styles', 'options', 'name', 'treePath',
 			'type', 'mandatory', 'defaultValue', 'selected'
 		],
 		// Layers can override any data source entry
 		'dataSources': [
-			'featureRequestsUrl', 'serverUrls', 'webCacheUrl', 'legendUrl',
-			'dataSourceName', 'webCacheSupportedParameters', 'dataSourceType',
+			'featureRequestsUrl', 'serviceUrl', 'serviceUrls', 'webCacheUrl', 'legendUrl',
+			'dataSourceName', 'webCacheSupportedParameters', 'layerType',
 			'legendParameters', 'wmsVersion'
 		],
 		'modules': [

@@ -26,7 +26,7 @@ Atlas.AddLayersWindow = Ext.extend(Ext.Window, {
 	title: 'Add layers',
 	closable:true, closeAction: 'hide',
 	//modal: true,
-	width:700, height:500,
+	width:700, height:400,
 	boxMinWidth: 400, boxMinHeight: 200,
 	border:false,
 	plain:true,
@@ -75,8 +75,9 @@ Atlas.AddLayersWindow = Ext.extend(Ext.Window, {
 			getChecked: function(){}
 		});
 		*/
+
+		// Left panel
 		var nav = new Ext.Panel({
-			title: 'Navigation',
 			region: 'center',
 			layout: 'fit',
 			items: new Ext.TabPanel({
@@ -89,29 +90,26 @@ Atlas.AddLayersWindow = Ext.extend(Ext.Window, {
 
 		this.add(nav);
 
-		var infoObj = new Atlas.Info({mapPanel: this.mapPanel});
-
-		var tabPanel = new Ext.TabPanel({
-			activeTab: infoObj.startingTab,
-			defaults:{autoScroll:true},
-			items: infoObj.tabs
+		var infoObj = new Atlas.Info({
+			mapPanel: this.mapPanel,
+			config: Atlas.conf && Atlas.conf['modules'] ? Atlas.conf['modules']['Info'] : null,
+			header: false
 		});
 
+		var descriptionPanel = infoObj.tabs[infoObj.descriptionTab];
+
 		// Right panel
-		var tabs = new Ext.Panel({
-			title: 'Information',
+		var rightPanel = new Ext.Panel({
 			region: 'east',
 			hideBorders: true,
-			collapsible: true,
-			collapseMode: 'mini', // More stable
 			width: 250,
 			split: true,
 			layout: 'fit',
 
-			items: tabPanel
+			items: descriptionPanel
 		});
 
-		this.add(tabs);
+		this.add(rightPanel);
 
 		// Used to call event without loosing the "this" reference.
 		var that = this;

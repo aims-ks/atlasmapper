@@ -22,57 +22,14 @@
 package au.gov.aims.atlasmapperserver.layerConfig;
 
 import au.gov.aims.atlasmapperserver.ConfigManager;
-import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
-import au.gov.aims.atlasmapperserver.dataSourceConfig.ArcGISMapServerDataSourceConfigInterface;
-import au.gov.aims.atlasmapperserver.jsonWrappers.client.LayerWrapper;
-import org.json.JSONException;
 
-public class ArcGISMapServerLayerConfig extends AbstractLayerConfig implements ArcGISMapServerDataSourceConfigInterface {
-	@ConfigField
-	private Boolean forcePNG24;
-
+public class ArcGISMapServerLayerConfig extends AbstractLayerConfig {
 	@ConfigField
 	private String arcGISPath;
 
-	@ConfigField
-	private String ignoredArcGISPath;
-
 	public ArcGISMapServerLayerConfig(ConfigManager configManager) {
 		super(configManager);
-	}
-
-	public Boolean isForcePNG24() {
-		return this.forcePNG24;
-	}
-
-	public void setForcePNG24(Boolean forcePNG24) {
-		this.forcePNG24 = forcePNG24;
-	}
-
-	@Override
-	public String getIgnoredArcGISPath() {
-		return this.ignoredArcGISPath;
-	}
-
-	@Override
-	public void setIgnoredArcGISPath(String ignoredArcGISPath) {
-		this.ignoredArcGISPath = ignoredArcGISPath;
-	}
-
-	@Override
-	public LayerWrapper generateLayer() throws JSONException {
-		LayerWrapper jsonLayer = super.generateLayer();
-
-		if (this.isForcePNG24() != null) {
-			jsonLayer.setForcePNG24(this.isForcePNG24());
-		}
-
-		if(Utils.isNotBlank(this.getArcGISPath())) {
-			jsonLayer.setArcGISPath(this.getArcGISPath().trim());
-		}
-
-		return jsonLayer;
 	}
 
 	public String getArcGISPath() {

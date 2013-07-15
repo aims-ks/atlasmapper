@@ -100,6 +100,21 @@ public abstract class AbstractConfig implements Cloneable {
 		return set;
 	}
 
+	public static boolean arrayContains(Comparable[] array, Comparable needle) {
+		for (Comparable element : array) {
+			if (needle == null) {
+				if (element == null) {
+					return true;
+				}
+			} else {
+				if (needle.equals(element)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
 	/**
 	 * This method use reflexion to get all field annoted with ConfigField,
 	 * find the getter for the field, call the getter and fill the JSONObject

@@ -81,7 +81,7 @@
 
 			#workflowDiv .diagram {
 				float: right;
-				width: 400px;
+				width: 660px;
 				margin-left: 1em;
 			}
 		</style>
@@ -94,51 +94,34 @@
 		<h2 id="workflow">Workflow</h2>
 		<div id="workflowDiv">
 			<p>
-				The information used to generate the layer configuration come from different sources, following the described workflow:
+				Description of the workflow followed to generate a client.
 			</p>
 
-			<h3>WMS</h3>
-			<img class="diagram" src="../resources/images/AtlasMapper-overrides-workflow.png" alt="AtlasMapper workflow diagram" />
+			<h3>Building a data source</h3>
+			<img class="diagram" src="../resources/images/workflow.png" alt="AtlasMapper workflow diagram" />
 			<ol>
-				<li>The AtlasMapper download the GetCapabilities associate with the data source.</li>
-				<li>For each layers described in the GetCapabilities document, it download its associated <em>TC211</em>
-					metadata document, if specified in the field <em>MetadataURL</em>.<br/>
-					If TC211 document has a <em>gmd:CI_OnlineResource</em> link, defined for the protocol
-					<em>OGC:WMS-1.1.1-http-get-map</em>, with a name
-					that match the layer name, than its description is use create the layer description,
-					with the metadata description, and the links.<br/>
-
-					<!--
-					that match the layer name, than its description is used to define some layer attributes.
-					If the description is written in the following format:
-<pre>
-Title: The title of the layer.
-Description: A description, using Wiki format.
-Path: The path defining the location of the layer in the tree of the add layer window.
-</pre>
-					It is used as described here:
-					<ol>
-						<li>The application get the title for the layer from the link description.</li>
-						<li>It generates a description using the description found in the link description, the metadata description and the links that are not set with the protocol <em>OGC:WMS-1.1.1-http-get-map</em>.</li>
-						<li>It override the layer <em>WMS path</em> using the path found in the link description.</li>
-					</ol>
-					<br/>
-					Otherwise, if the description do not follow the expected format, the layer description is simply created my concatenating the link description with the metadata description, and the links.<br/>
-					-->
-					<br/>
-					If the TC211 document do not have a <em>gmd:CI_OnlineResource</em> link with a name that match the layer name, than the metadata description and the links are used alone to generate the layer description.
+				<li>When the button <em>Build</em> is pressed, the AtlasMapper download or reuse cached document from the data source service to discover the layers.
+				In the case of WMS service, it download the GetCapabilities document. For ArcGIS, it download the JSON files, etc.</li>
+				<li>For each WMS layers, it also download its associated <em>TC211</em>
+					metadata document (also known as MEST record), when specified in the field <em>MetadataURL</em> of the GetCapabilities document.
+					<ul>
+						<li>If the TC211 document has a <em>CI_OnlineResource</em> link with a name
+							that match the layer name, than the <em>CI_OnlineResource</em> description is append the layer description,
+							with the metadata description, and the links.</li>
+						<li>If the TC211 document do not have a <em>CI_OnlineResource</em> link with a name that match the layer name,
+							than only the metadata description and the links are append to the layer description.</li>
+					</ul>
 				</li>
-				<li>The layer overrides described in the AtlasMapper data source's advanced tab are apply on the generated AtlasMapper layer.</li>
-				<li>The layer overrides described in the AtlasMapper client's advanced tab are apply on the generated AtlasMapper layer.</li>
-				<li>The layer info is written in the <em>layers.json</em> catalog file, ready to use with the AtlasMapper client.</li>
+				<li>The layer overrides described in the AtlasMapper data source's advanced tab are applied.</li>
+				<li>The layers information and the data source information are saved on the disk in a <em>Data source saved state</em> file.</li>
 			</ol>
 
-			<h3>Other</h3>
+			<h3>Generating a client</h3>
 			<ol>
-				<li>The AtlasMapper download the layer information from the source server.</li>
-				<li>The layer overrides described in the AtlasMapper data source's advanced tab are apply on the generated AtlasMapper layer.</li>
-				<li>The layer overrides described in the AtlasMapper client's advanced tab are apply on the generated AtlasMapper layer.</li>
-				<li>The layer info is written in the <em>layers.json</em> catalog file, ready to use with the AtlasMapper client.</li>
+				<li>When the button <em>Generate</em> is pressed, the AtlasMapper collect the layers for each data source associated with the client, from the <em>Data source saved state</em> files.</li>
+				<li>The layer overrides described in the AtlasMapper client's advanced tab are applied.</li>
+				<li>The client templates, client files, client configuration file and the layer catalog
+					file are saved on disk, ready to use with the AtlasMapper client.</li>
 			</ol>
 		</div>
 
@@ -159,14 +142,14 @@ Path: The path defining the location of the layer in the tree of the add layer w
 			</p>
 			<h3>Examples</h3>
 			<p>
-				The following bloc override the attribute
-				<i>wmsRequestMimeType</i> and <i>legendParameters</i> for the
+				The following bloc override the mime type of the layer using the attribute
+				<i>olParams</i> and mime type of the legend graphics using <i>legendParameters</i> for the
 				layer ID <i>ea:bluemarble</i> of the datasource <i>ea</i> to request tiles and legend graphics as GIF:
 			</p>
 <pre>
 {
 	"ea_ea:bluemarble": {
-		"wmsRequestMimeType": "image/gif",
+		"olParams": {"format": "image/gif"},
 		"legendParameters": {
 			"FORMAT": "image/gif"
 		}
@@ -205,6 +188,19 @@ Path: The path defining the location of the layer in the tree of the add layer w
 	"ea_ea:World_NED_NE2": {"hasLegend": false}
 }
 </pre>
+
+			<p>
+				This last example show how to move a layer from a data source to an other,
+				in the <i>Add layers</i> window. This is generally used to regroup layers from
+				data source that provide only one or very few layers.
+			</p>
+<pre>
+{
+	"one_Unique-layer": {
+		"dataSourceName": "e-Atlas"
+	}
+}
+</pre>
 		</div>
 
 		<h2 id="layerGroups">Layer groups</h2>
@@ -229,7 +225,7 @@ Path: The path defining the location of the layer in the tree of the add layer w
 					<th class="desc">Description</th>
 				</tr>
 				<tr>
-					<td>dataSourceType</td>
+					<td>layerType</td>
 					<td>"GROUP"</td>
 					<td>To tell AtlasMapper that it's a layer group</td>
 				</tr>
@@ -260,7 +256,7 @@ Path: The path defining the location of the layer in the tree of the add layer w
 					<td>This feature is only available with version 1.1 of the configuration standard.</td>
 				</tr>
 				<tr>
-					<td>wmsPath</td>
+					<td>treePath</td>
 					<td>"Terrestrial biology/Coastal wetlands"</td>
 					<td>The layer group will appear under the folder <i>Terrestrial biology</i> &gt; <i>Coastal wetlands</i></td>
 				</tr>
@@ -277,7 +273,7 @@ Path: The path defining the location of the layer in the tree of the add layer w
 <pre>
 {
 	"ea_mangroves": {
-		"dataSourceType": "GROUP",
+		"layerType": "GROUP",
 		"description": "Layer group for the layers \"QLD Coastal wetlands - Study regions\" and \"QLD Coastal wetlands (DEEDI)\"",
 		"layerBoundingBox": [
 			134.91053,
@@ -291,7 +287,7 @@ Path: The path defining the location of the layer in the tree of the add layer w
 		],
 		"title": "Mangroves",
 		"version": 1.1,
-		"wmsPath": "Terrestrial biology/Coastal wetlands",
+		"treePath": "Terrestrial biology/Coastal wetlands",
 		"wmsQueryable": false
 	}
 }
@@ -311,20 +307,18 @@ Path: The path defining the location of the layer in the tree of the add layer w
 
 
 			<h3>Styles:</h3>
-			<p>
-				<ul>
-					<li>Bold: *expression*</li>
-					<li>Italic: /expression/</li>
-					<li>Underline: _expression_</li>
-					<li>Strike: -expression-</li>
-				</ul>
-				Rules:
-				<ul>
-					<li>Styles starts at the beginning of a word and end at the end of a word. It can not be used inside one.</li>
-					<li>Styles started in a wiki block, like a list item, must end in the same block.</li>
-					<li>Styles can be nested, but can not overlap with any other styles of other wiki blocks.</li>
-				</ul>
-			</p>
+			<ul>
+				<li>Bold: *expression*</li>
+				<li>Italic: /expression/</li>
+				<li>Underline: _expression_</li>
+				<li>Strike: -expression-</li>
+			</ul>
+			<p>Rules:</p>
+			<ul>
+				<li>Styles starts at the beginning of a word and end at the end of a word. It can not be used inside one.</li>
+				<li>Styles started in a wiki block, like a list item, must end in the same block.</li>
+				<li>Styles can be nested, but can not overlap with any other styles of other wiki blocks.</li>
+			</ul>
 			<h4>Example:</h4>
 			<blockquote>
 <pre>
@@ -452,63 +446,63 @@ _*Nested bold and underlined*_ (Valid)
 				<br/>
 				<strong>IMPORTANT:</strong> The URL must be properly encoded, expecially
 				if it contains one of the following characters:
-				<table class="urlSpecialChars">
-					<tr>
-						<th class="name">Character name</th>
-						<th class="char">Character</th>
-						<th class="enc">Encoded</th>
-					</tr>
-					<tr>
-						<td class="name">Opening square bracket</td>
-						<td class="char">[</td>
-						<td class="enc">%5B</td>
-					</tr>
-					<tr>
-						<td class="name">Closing square bracket</td>
-						<td class="char">]</td>
-						<td class="enc">%5D</td>
-					</tr>
-					<tr>
-						<td class="name">Pipe <em>or</em> Vertical bar</td>
-						<td class="char">|</td>
-						<td class="enc">%7C</td>
-					</tr>
-				</table>
-
-				<ul>
-					<li>
-						<strong>Simple</strong><br/>
-						URLs can be simply part of the text, or surround by double square brackets ([[]]), for better control.<br/>
-						Format: [[url]]
-					</li>
-					<li>
-						<strong>Labeled</strong><br/>
-						Label can be defined by adding a pipe (|) after the URL, following by the text label.<br/>
-						Format: [[url|label]]<br/>
-						<strong>NOTE:</strong> The label may contains wiki format.
-					</li>
-					<li>
-						<strong>Image</strong><br/>
-						To add an image, full size, the keyword IMG must be added before the URL, followed by a pipe (|).<br/>
-						Format: [[IMG|url|alternative text]]
-					</li>
-					<li>
-						<strong>Download</strong><br/>
-						Normal links are shown in a new browser window / tab. This is not needed the desired behaviour
-						for documents that should be downloaded. For those documents, the keyword DOWNLOAD may be
-						added before the URL, followed by a pipe (|).<br/>
-						<strong>WARNING:</strong> This feature use the <a href="http://www.w3.org/html/wg/drafts/html/master/links.html#downloading-resources" target="_blank">download</a>
-						attribute of HTML 5. It force HTML 5 browsers to download the resource instead of
-						displaying it, and it simply works as a normal link if the browser do not support HTML 5.
-						<ul>
-							<li>Simple format: [[DOWNLOAD|url]] <i>the filename is extracted from the URL and used for the label and download attribute.</i></li>
-							<li>Format with filename: [[DOWNLOAD|url|filename]] <i>the filename is used for the label and download attribute.</i></li>
-							<li>Labeled format: [[DOWNLOAD|url|filename|label]] <i>the filename is only used for the download attribute.</i></li>
-						</ul>
-						<strong>NOTE:</strong> The label may contains wiki format.
-					</li>
-				</ul>
 			</p>
+			<table class="urlSpecialChars">
+				<tr>
+					<th class="name">Character name</th>
+					<th class="char">Character</th>
+					<th class="enc">Encoded</th>
+				</tr>
+				<tr>
+					<td class="name">Opening square bracket</td>
+					<td class="char">[</td>
+					<td class="enc">%5B</td>
+				</tr>
+				<tr>
+					<td class="name">Closing square bracket</td>
+					<td class="char">]</td>
+					<td class="enc">%5D</td>
+				</tr>
+				<tr>
+					<td class="name">Pipe <em>or</em> Vertical bar</td>
+					<td class="char">|</td>
+					<td class="enc">%7C</td>
+				</tr>
+			</table>
+
+			<ul>
+				<li>
+					<strong>Simple</strong><br/>
+					URLs can be simply part of the text, or surround by double square brackets ([[]]), for better control.<br/>
+					Format: [[url]]
+				</li>
+				<li>
+					<strong>Labeled</strong><br/>
+					Label can be defined by adding a pipe (|) after the URL, following by the text label.<br/>
+					Format: [[url|label]]<br/>
+					<strong>NOTE:</strong> The label may contains wiki format.
+				</li>
+				<li>
+					<strong>Image</strong><br/>
+					To add an image, full size, the keyword IMG must be added before the URL, followed by a pipe (|).<br/>
+					Format: [[IMG|url|alternative text]]
+				</li>
+				<li>
+					<strong>Download</strong><br/>
+					Normal links are shown in a new browser window / tab. This is not needed the desired behaviour
+					for documents that should be downloaded. For those documents, the keyword DOWNLOAD may be
+					added before the URL, followed by a pipe (|).<br/>
+					<strong>WARNING:</strong> This feature use the <a href="http://www.w3.org/html/wg/drafts/html/master/links.html#downloading-resources" target="_blank">download</a>
+					attribute of HTML 5. It force HTML 5 browsers to download the resource instead of
+					displaying it, and it simply works as a normal link if the browser do not support HTML 5.
+					<ul>
+						<li>Simple format: [[DOWNLOAD|url]] <i>the filename is extracted from the URL and used for the label and download attribute.</i></li>
+						<li>Format with filename: [[DOWNLOAD|url|filename]] <i>the filename is used for the label and download attribute.</i></li>
+						<li>Labeled format: [[DOWNLOAD|url|filename|label]] <i>the filename is only used for the download attribute.</i></li>
+					</ul>
+					<strong>NOTE:</strong> The label may contains wiki format.
+				</li>
+			</ul>
 			<h4>Examples:</h4>
 			<blockquote>
 <pre>
@@ -604,7 +598,12 @@ http://www.google.com/
 				<tr>
 					<td class="attr">legendUrl</td>
 					<td class="type">URL</td>
-					<td class="desc">URL to an image, to be use as a legend, to substitute the one provide by the server.</td>
+					<td class="desc">URL to an image, to be use as a legend, to substitute the one provide by the server. This attribute is usually accompanied with <i>"legendDpiSupport": false</i>.</td>
+				</tr>
+				<tr>
+					<td class="attr">legendDpiSupport</td>
+					<td class="type">Boolean</td>
+					<td class="desc">False if the legend URL do not support DPI parameter. If this options is not set properly, the legend graphic will not be resized when the map DPI is changed, for layers of data sources that support DPI.</td>
 				</tr>
 				<tr>
 					<td class="attr">legendGroup</td>
@@ -652,14 +651,14 @@ http://www.google.com/
 					<td class="desc">List of the parameters supported by the WebCache server.</td>
 				</tr>
 				<tr>
-					<td class="attr">dataSourceName</td> <!-- TODO Is this field work? -->
+					<td class="attr">dataSourceName</td>
 					<td class="type">String</td>
 					<td class="desc">Specified a different data source name for this layer, to display it in a different tab in the <i>Add layers</i> window.</td>
 				</tr>
 				<tr>
-					<td class="attr">dataSourceType</td>
+					<td class="attr">layerType</td>
 					<td class="type">String</td>
-					<td class="desc">Override the type of layer. This option should not be used in normals circumstances, other that defining a <i>layer group</i>.</td>
+					<td class="desc">Override the type of layer (GROUP, KML, WMS, NCWMS, ARCGIS_MAPSERVER, etc). This option should not be used in normals circumstances, other that defining a <i>layer group</i>.<br/>NOTE: This attribute used to be called <i>dataSourceType</i></td>
 				</tr>
 				<tr>
 					<td class="attr">legendParameters</td>
@@ -718,6 +717,11 @@ http://www.google.com/
 							</tr>
 							<tr>
 								<td class="attr">default</td>
+								<td class="type">Boolean</td>
+								<td class="desc"><i>true</i> to specified which style is considered as the default for GeoServer; the one that is used when the STYLES parameter is not specified in the request. You should only set this parameter if the AtlasMapper select the wrong style as the default.</td>
+							</tr>
+							<tr>
+								<td class="attr">selected</td>
 								<td class="type">Boolean</td>
 								<td class="desc"><i>true</i> to load this style by default when the layer is loaded, <i>false</i> otherwise. (default value: false)</td>
 							</tr>
@@ -839,7 +843,24 @@ http://www.google.com/
 	}
 }
 </pre>
-						See: <a href="http://nsidc.org/data/atlas/ogc_services.html#WMS">OGC WMS parameters</a>,
+						List of some useful params:
+						<table>
+							<tr>
+								<th>Param</th>
+								<th>Type</th>
+								<th>Description</th>
+								<th>Example</th>
+							</tr>
+							<tr>
+								<td>format</td>
+								<td>Mimetype (String). Default: usually "image/png" or "image/gif", depend on the server</td>
+								<td></td>
+								<td>"format": "image/jpeg"</td>
+							</tr>
+						</table>
+						<b>NOTE:</b> For the "version" parameter, it's preferable to use the <i>wmsVersion</i> and <i>cacheWmsVersion</i>
+						attribute, since the AtlasMapper need to be able to switch between the 2 for data source that has web cache enable.<br/>
+						See: <a href="http://nsidc.org/data/atlas/ogc_services.html#WMS">OGC WMS parameters</a>.
 					</td>
 				</tr>
 				<tr>
@@ -857,20 +878,64 @@ http://www.google.com/
 	}
 }
 </pre>
-						See: <a href="http://dev.openlayers.org/releases/OpenLayers-2.11/doc/apidocs/files/OpenLayers/Layer/Grid-js.html">OpenLayers Grid layer API</a>, list of <i>Properties</i>.<br/>
-						NOTE: the option <i>singleTile</i> should not be used with <i>ncWMS</i> since the tiles can not exceed 1024x1024.
+						List of some useful options:
+						<table>
+							<tr>
+								<th>Option</th>
+								<th style="width: 150px">Type</th>
+								<th>Description</th>
+								<th>Example</th>
+							</tr>
+							<tr>
+								<td>opacity</td>
+								<td>Real value, between 0 and 1. Default: 1</td>
+								<td>The layer's opacity.</td>
+								<td>"opacity": 0.5</td>
+							</tr>
+							<tr>
+								<td>singleTile</td>
+								<td>Boolean. Default: false</td>
+								<td>Moves the layer into single-tile mode, meaning that one tile will be loaded. The tile's size will be determined by the 'ratio' property.  When the tile is dragged such that it does not cover the entire viewport, it is reloaded.<br/>
+									<b>NOTE:</b> this option should not be used with <i>ncWMS</i> since the tiles can not exceed 1024x1024.
+								</td>
+								<td>"singleTile": true</td>
+							</tr>
+							<tr>
+								<td>gutter</td>
+								<td>Integer (in pixels). Default: 0</td>
+								<td>Determines the width (in pixels) of the gutter around image tiles to ignore. By setting this property to a non-zero value, images will be requested that are wider and taller than the tile size by a value of 2 x gutter. This allows artifacts of rendering at tile edges to be ignored. Set a gutter value that is equal to half the size of the widest symbol that needs to be displayed. Defaults to zero. Non-tiled layers always have zero gutter.<br/>
+									<b>IMPORTANT:</b> This attribute have a strange behaviour when the map DPI is modified.
+								</td>
+								<td>"gutter": 20</td>
+							</tr>
+							<tr>
+								<td>numZoomLevels</td>
+								<td>Integer. Default: 16</td>
+								<td>When specified on a base layer, it set the number of zoom level for the map.<br/>
+									<b>NOTE:</b> It could be dangerous to use a value higher than 22; beyond that point, the amount of tiles needed to represent the whole world is astronomical.
+								</td>
+								<td>"numZoomLevels": 20</td>
+							</tr>
+						</table>
+						See: <a href="http://dev.openlayers.org/releases/OpenLayers-2.12/doc/apidocs/files/OpenLayers/Layer/Grid-js.html">OpenLayers Grid layer API</a>, list of <i>Properties</i>.
+						The list is spread out between all layers sub-classes / super-classes. It's often a matter of trial and error to find out what works and what doesn't.
 					</td>
 				</tr>
 				<!-- styles & layerOptions: [name, type, mandatory, defaultValue] -->
 				<tr>
-					<td class="attr">wmsPath</td>
+					<td class="attr">treePath</td>
 					<td class="type">String</td>
-					<td class="desc">Path separated by "/", representing the path where the layer will be found in the add layer window.</td>
+					<td class="desc">Path separated by "/", representing the path where the layer will be found in the add layer window. For WMS services, this attribute is usually the same as the wmsPath from WMS capabilities document.</td>
 				</tr>
 				<tr>
 					<td class="attr">wmsVersion</td>
 					<td class="type">String</td>
-					<td class="desc"><b>DEPRECATED by <i>"olParams": {"version": "1.1.1"}</i></b><br/>The WMS version send in the request; "1.1.1", "1.3.0"</td>
+					<td class="desc">The WMS version send in the request, when requesting tiles direct from the WMS service; "1.1.1", "1.3.0"</td>
+				</tr>
+				<tr>
+					<td class="attr">cacheWmsVersion</td>
+					<td class="type">String</td>
+					<td class="desc">The WMS version send in the request, when requesting tiles through the web cache; "1.1.1", "1.3.0"</td>
 				</tr>
 				<tr>
 					<td class="attr">wmsRequestMimeType</td>

@@ -26,9 +26,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 public class ServerConfigWrapper extends AbstractWrapper {
-	public ServerConfigWrapper(JSONObject json) {
-		super(json);
-	}
+	public ServerConfigWrapper() { super(); }
+	public ServerConfigWrapper(JSONObject json) { super(json); }
 
 	public Boolean isDemoMode() {
 		return this.isDemoMode(null);

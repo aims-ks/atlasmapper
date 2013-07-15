@@ -39,13 +39,11 @@ public class XYZLayerGenerator extends AbstractLayerGenerator<XYZLayerConfig, XY
 
 	/**
 	 * @param dataSourceConfig
-	 * @param harvest
 	 * @return
-	 * @throws Exception
 	 * NOTE: Harvest is ignored since there is nothing to harvest.
 	 */
 	@Override
-	public LayerCatalog generateLayerCatalog(XYZDataSourceConfig dataSourceConfig, boolean clearCapabilitiesCache, boolean clearMetadataCache) throws Exception {
+	public LayerCatalog generateRawLayerCatalog(XYZDataSourceConfig dataSourceConfig, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles) {
 		return new LayerCatalog(); // All layers are created using the layer overrides
 	}
 }

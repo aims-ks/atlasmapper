@@ -35,7 +35,6 @@
 
 		<%@page contentType="application/json" pageEncoding="UTF-8"%>
 <%
-	String actionStr = request.getParameter("action");
 	String[] layerIds = ServletUtils.getComaSeparatedParameters(request, "layerIds");
 	String iso19115_19139url = request.getParameter("iso19115_19139url");
 	String clientId = request.getParameter("client");
@@ -44,12 +43,6 @@
 
 	int indent = (request.getParameter("indent") != null ? Integer.parseInt(request.getParameter("indent")) : 0);
 	JSONObject jsonObj = new JSONObject();
-
-	// preview:
-	//     true: Get the config from the live server (slow)
-	//     false (default): Get the config from generated config files (fast)
-	// "preview" is true only when it's value is the String "true", ignoring case.
-	boolean preview = (request.getParameter("preview") == null ? false : Boolean.parseBoolean(request.getParameter("preview")));
 
 	if (Utils.isBlank(clientId)) {
 		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -62,34 +55,8 @@
 			jsonObj.put("success", false);
 			jsonObj.put("errors", new JSONArray().put("The client "+clientId+" do not exists."));
 		} else {
-			if (Utils.isNotBlank(actionStr)) {
-				if ("GET_LIVE_CONFIG".equalsIgnoreCase(actionStr)) {
-					JSONObject fullConfig = null;
-					try {
-						fullConfig = configManager.getClientConfigFileJSon(clientConfig, ConfigType.FULL, true, true);
-					} catch (Exception ex) {
-						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-						jsonObj.put("success", false);
-						jsonObj.put("errors", new JSONArray().put("Exception while generating the new Live Full config. Check the server logs."));
-						ex.printStackTrace();
-					}
-					if (fullConfig == null || fullConfig.length() <= 0) {
-						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-						jsonObj.put("success", false);
-						jsonObj.put("errors", new JSONArray().put("The new Live Full config is empty."));
-					} else {
-						response.setStatus(HttpServletResponse.SC_OK);
-						jsonObj.put("success", true);
-						jsonObj.put("message", "Live Full config");
-						jsonObj.put("data", fullConfig);
-					}
-				} else {
-					response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-					jsonObj.put("success", false);
-					jsonObj.put("errors", new JSONArray().put("Unknown action ["+actionStr+"]."));
-				}
-			} else if (Utils.isNotBlank(iso19115_19139url)) {
-				URLSaveState mapState = configManager.getMapStateForDataset(clientConfig, iso19115_19139url, preview);
+			if (Utils.isNotBlank(iso19115_19139url)) {
+				URLSaveState mapState = configManager.getMapStateForDataset(clientConfig, iso19115_19139url);
 
 				if (mapState == null) {
 					response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -102,7 +69,7 @@
 					jsonObj.put("data", mapState.getJSON());
 				}
 			} else if (layerIds != null) {
-				JSONObject foundLayers = configManager.getClientLayers(clientConfig, layerIds, preview);
+				JSONObject foundLayers = configManager.getClientLayers(clientConfig, layerIds);
 
 				if (foundLayers == null || foundLayers.length() <= 0) {
 					response.setStatus(HttpServletResponse.SC_BAD_REQUEST);

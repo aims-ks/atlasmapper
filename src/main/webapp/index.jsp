@@ -42,7 +42,7 @@
 		ConfigManager configManager = ConfigHelper.getConfigManager(context);
 		ClientConfig defaultClient = configManager.getDefaultClientConfig();
 		if (defaultClient != null) {
-			String clientUrl = FileFinder.getAtlasMapperClientURL(context, defaultClient, false);
+			String clientUrl = FileFinder.getAtlasMapperClientURL(context, defaultClient);
 			if (clientUrl != null) {
 				urlString = clientUrl;
 			}

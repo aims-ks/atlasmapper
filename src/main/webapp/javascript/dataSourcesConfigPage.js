@@ -20,7 +20,7 @@
  */
 // http://dev.sencha.com/deploy/ext-4.0.2/examples/writer/writer.html
 
-var dataSourceTypes = {
+var dataSourceLayerTypes = {
 	'WMS': {
 		display: 'WMS',
 		qtipHtml: 'Web Map Service (WMS) is a standard protocol for serving georeferenced map images provided by geospatial data applications such as <strong>GeoServer</strong>. This is the most common protocol. You will be asked to provide a GetCapabilities document URL.',
@@ -78,7 +78,10 @@ Ext.apply(Ext.form.field.VTypes, {
 		Ext.Ajax.request({
 			url: 'dataSourcesConfig.jsp?action=validateNewId',
 			method: 'POST',
-			params: 'dataSourceId=' + val,
+			params: {
+				'dataSourceId': val,
+				'jsonResponse': true
+			},
 			success: function(o) {
 				if (o.responseText === 'true') {
 					resetDataSourceIdValidator(true);
@@ -112,8 +115,10 @@ function resetDataSourceIdValidator(is_error) {
 			Ext.Ajax.request({
 				url: 'dataSourcesConfig.jsp?action=validateNewId',
 				method: 'POST',
-				params: 'dataSourceId=' + val,
-
+				params: {
+					'dataSourceId': val,
+					'jsonResponse': true
+				},
 				success: function(o) {
 					if (o.responseText === 'true') {
 						resetDataSourceIdValidator(true);
@@ -131,27 +136,29 @@ function resetDataSourceIdValidator(is_error) {
 }
 
 var frameset = null;
-var harvestTimeout = 900000; // 15 minutes
+var rebuildTimeout = 900000; // 15 minutes
+var rebuildMaxTimeout = 7200000; // 2 hours
 
 Ext.define('Writer.LayerServerConfigForm', {
 	extend: 'Ext.form.Panel',
 	alias: 'widget.writerlayerserverconfigform',
 
 	requires: ['Ext.form.field.Text'],
-	dataSourceType: null,
+	layerType: null,
 
 	defaultValues: null,
 	kmlStore: null,
 
 	initComponent: function() {
 		this.defaultValues = Ext.create('Writer.LayerServerConfig', {
-			'dataSourceType': 'WMS',
+			'layerType': 'WMS',
 			'activeDownload': false,
 			'webCacheEnable': true,
 			'showInLegend': true,
 			'forcePNG24': true,
+			'legendDpiSupport': true,
 			'legendParameters': 'FORMAT=image/png\nHEIGHT=10\nWIDTH=20',
-			'webCacheSupportedParameters': 'LAYERS, TRANSPARENT, SERVICE, VERSION, REQUEST, EXCEPTIONS, FORMAT, SRS, BBOX, WIDTH, HEIGHT, STYLES'
+			'webCacheSupportedParameters': 'LAYERS, TRANSPARENT, SERVICE, VERSION, REQUEST, EXCEPTIONS, FORMAT, CRS, SRS, BBOX, WIDTH, HEIGHT, STYLES'
 		});
 		this.addEvents('create');
 
@@ -167,11 +174,11 @@ Ext.define('Writer.LayerServerConfigForm', {
 				fieldLabel: 'Data source type',
 				qtipHtml: 'Protocol used by the server to provide the layers. The data source type can not be modified. If you have to change it, you have to create a new data source entry using the values of this one.',
 				xtype: 'displayfield',
-				value: dataSourceTypes[this.dataSourceType].display
+				value: dataSourceLayerTypes[this.layerType].display
 			}, {
-				name: 'dataSourceType',
+				name: 'layerType',
 				xtype: 'hiddenfield',
-				value: this.dataSourceType
+				value: this.layerType
 			}, {
 				fieldLabel: 'Data source ID',
 				qtipHtml: 'This field is used internally to associate layers with a data source. It must be short, to minimise data transfer, and unique amount the other <em>Data source ID</em>. It\'s a good practice to only use lower case letters and number for this field.<br/><strong>WARNING:</strong> Modifying the value of this field will remove the data source from clients that are using it.',
@@ -179,7 +186,10 @@ Ext.define('Writer.LayerServerConfigForm', {
 				xtype: 'ajaxtextfield',
 				ajax: {
 					url: 'dataSourcesConfig.jsp',
-					params: { action: 'validateId' },
+					params: {
+						action: 'validateId',
+						'jsonResponse': true
+					},
 					formValues: ['id'], formPanel: this
 				},
 				anchor: null, size: 15,
@@ -351,12 +361,24 @@ Ext.define('Writer.LayerServerConfigForm', {
 				'</ul>',
 			name: 'legendUrl'
 		};
+		var legendDpiSupport = {
+			boxLabel: 'Legend support DPI',
+			qtipHtml: 'Uncheck this box to stretch the legend graphic instead of requesting a high DPI one, when the map DPI is changed.',
+			name: 'legendDpiSupport',
+			xtype: 'checkboxfield'
+		};
 
-		var serviceUrl = {
-			fieldLabel: 'Service URL',
-			qtipHtml: 'URL to the layer service. This URL is used by a java library to download the layers or the WMS capabilities document. Setting this field alone with <em>Data source ID</em> and <em>Data source name</em> is usually enough. Note that a full URL to the capabilities document can also be provided, including additional parameters.<br/>NOTE: WMS services may use the file protocol here.<br/>Example: file:///somepath/capabilities.xml',
+		var wmsServiceUrl = {
+			fieldLabel: 'WMS service URL',
+			qtipHtml: 'URL to the layer service. This URL is used by a java library to download the WMS capabilities document. Setting this field alone with <em>Data source ID</em> and <em>Data source name</em> is usually enough. Note that a full URL to the capabilities document can also be provided, including additional parameters.<br/>NOTE: WMS services may use the file protocol here.<br/>Example: file:///somepath/capabilities.xml',
 			name: 'serviceUrl'
 		};
+		var arcGISServiceUrl = {
+			fieldLabel: 'ArcGIS service URL',
+			qtipHtml: 'URL to the layer service. This URL is used to download the JSON files describing the layers. Setting this field alone with <em>Data source ID</em> and <em>Data source name</em> is usually enough.<br/>Example: http://ao.com/ArcGIS/rest/services',
+			name: 'serviceUrl'
+		};
+
 		var serviceUrls = {
 			fieldLabel: '<a href="http://dev.openlayers.org/docs/files/OpenLayers/Layer/OSM-js.html" target="_blank">Service URLs</a>',
 			qtipTitle: 'Service URLs',
@@ -393,7 +415,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 			boxLabel: 'Enable Web cache',
 			name: 'webCacheEnable',
 			xtype: 'checkboxfield'
-		}
+		};
 
 		var webCacheCapabilitiesUrl = {
 			fieldLabel: 'Web Cache capabilities document URL (WMTS)',
@@ -465,9 +487,9 @@ Ext.define('Writer.LayerServerConfigForm', {
 		};
 
 		// Set the Form items for the different data source types
-		switch(this.dataSourceType) {
+		switch(this.layerType) {
 			case 'WMS':
-				items.push(Ext.apply(serviceUrl, { fieldLabel: 'WMS service URL' }));
+				items.push(wmsServiceUrl);
 				items.push(baseLayers);
 				items.push(activeDownload);
 				items.push(comment);
@@ -477,6 +499,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 				advancedItems.push(showInLegend);
 				advancedItems.push(legendParameters);
 				advancedItems.push(legendUrl);
+				advancedItems.push(legendDpiSupport);
 				//advancedItems.push(extraWmsServiceUrls);
 				advancedItems.push(webCacheEnable);
 				advancedItems.push(webCacheCapabilitiesUrl);
@@ -487,7 +510,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 				break;
 
 			case 'NCWMS':
-				items.push(Ext.apply(serviceUrl, { fieldLabel: 'ncWMS service URL' }));
+				items.push(Ext.apply(wmsServiceUrl, { fieldLabel: 'ncWMS service URL' }));
 				items.push(baseLayers);
 				items.push(activeDownload);
 				items.push(comment);
@@ -503,7 +526,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 				break;
 
 			case 'WMTS':
-				items.push(Ext.apply(serviceUrl, { fieldLabel: 'WMTS service URL' }));
+				items.push(Ext.apply(wmsServiceUrl, { fieldLabel: 'WMTS service URL' }));
 				items.push(baseLayers);
 				items.push(activeDownload);
 				items.push(comment);
@@ -541,7 +564,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 				break;
 
 			case 'ARCGIS_MAPSERVER':
-				items.push(Ext.apply(serviceUrl, { fieldLabel: 'ArcGIS service URL' }));
+				items.push(arcGISServiceUrl);
 				items.push(baseLayers);
 				items.push(activeDownload);
 				items.push(comment);
@@ -570,7 +593,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 			items: items
 		}];
 
-		if (this.dataSourceType === 'KML') {
+		if (this.layerType === 'KML') {
 			tabs.push(kmlDataGrid);
 		}
 
@@ -779,6 +802,51 @@ Ext.define('Writer.LayerServerConfigForm', {
 
 				this.kmlStore.loadData(cleanKMLData);
 			}
+
+			// "serviceUrls" is used by XYZ layers (but may be used by other data source type in the future).
+			// "baseLayers" and "overlayLayers" are used with all data sources.
+			// They are saved as JSONArray in the AtlasMapper layer catalog.
+			// By default, ExtJS format it as a coma separated string,
+			// which do not looks nice in a text area.
+			var serviceUrls = record.get('serviceUrls');
+			if (serviceUrls) {
+				var serviceUrlsStr = '';
+				for (var i=0, len=serviceUrls.length; i<len; i++) {
+					if (serviceUrlsStr) {
+						serviceUrlsStr += ',\n';
+					}
+					serviceUrlsStr += serviceUrls[i];
+				}
+				this.getForm().setValues({
+					'serviceUrls': serviceUrlsStr
+				});
+			}
+			var baseLayers = record.get('baseLayers');
+			if (baseLayers) {
+				var baseLayersStr = '';
+				for (var i=0, len=baseLayers.length; i<len; i++) {
+					if (baseLayersStr) {
+						baseLayersStr += ',\n';
+					}
+					baseLayersStr += baseLayers[i];
+				}
+				this.getForm().setValues({
+					'baseLayers': baseLayersStr
+				});
+			}
+			var overlayLayers = record.get('overlayLayers');
+			if (overlayLayers) {
+				var overlayLayersStr = '';
+				for (var i=0, len=overlayLayers.length; i<len; i++) {
+					if (overlayLayersStr) {
+						overlayLayersStr += ',\n';
+					}
+					overlayLayersStr += overlayLayers[i];
+				}
+				this.getForm().setValues({
+					'overlayLayers': overlayLayersStr
+				});
+			}
 		} else if (this.defaultValues) {
 			this.activeRecord = this.defaultValues;
 			form.loadRecord(this.defaultValues);
@@ -786,11 +854,11 @@ Ext.define('Writer.LayerServerConfigForm', {
 			this.activeRecord = null;
 			form.reset();
 		}
-		// The defaultValues record (and the reset) also change the dataSourceType.
+		// The defaultValues record (and the reset) also change the layerType.
 		// It seems to be no way to prevent that (I can't remove the value
 		// from the defaultValues instance since the model is unmutable),
 		// but it can be restore here.
-		form.setValues({dataSourceType: this.dataSourceType});
+		form.setValues({layerType: this.layerType});
 	},
 
 	onSave: function(){
@@ -847,6 +915,18 @@ Ext.define('Writer.LayerServerConfigGrid', {
 		'Ext.toolbar.TextItem'
 	],
 
+	renderStatus: function(status) {
+		var htmlStatus = '<span class="grid-false" title="Invalid - Run harvest to be able to use it"><span class="text">Invalid</span></span>';
+		if (status !== null) {
+			if (status === 'OKAY') {
+				htmlStatus = '<span class="grid-true" title="Valid - Can be used by clients"><span class="text">Valid</span></span>';
+			} else if (status === 'PASSED') {
+				htmlStatus = '<span class="grid-warning"><span class="text" title="Usable - There were errors during the last rebuild, but the data source may still be used">Usable</span></span>';
+			}
+		}
+		return htmlStatus;
+	},
+
 	initComponent: function(){
 		var that = this;
 
@@ -879,25 +959,11 @@ Ext.define('Writer.LayerServerConfigGrid', {
 						'->',
 						{
 							//iconCls: 'icon-save',
-							text: 'Clear all cache',
-							tooltip: 'Clear the cache of all capabilities documents.',
+							text: 'Rebuild all',
+							tooltip: 'Rebuild all data sources.',
 							scope: this,
 							handler: function() {
-
-								var confirm = Ext.MessageBox.confirm(
-									'Confirm',
-									'Are you sure you want to delete all downloaded files associated with all data sources?<br/>' +
-									'This action can not be undone. The files will be re-downloaded after ' +
-									'running harvest for each data sources.',
-									function(btn) {
-										if (btn == 'yes') {
-											this.onClearAllCacheConfirmed();
-										}
-									},
-									this
-								);
-								// Set "No" as default
-								confirm.defaultButton = 2;
+								this.getRebuildWindow().show();
 							}
 						}
 					]
@@ -908,11 +974,9 @@ Ext.define('Writer.LayerServerConfigGrid', {
 					width: 30,
 					align: 'center',
 					sortable: true,
-					xtype: 'booleancolumn',
 					// The icon is placed using CSS and the text is hidden with CSS.
-					trueText: '<span class="grid-true"><span class="text">True</span></span>',
-					falseText: '<span class="grid-false"><span class="text">False</span></span>',
-					dataIndex: 'valid'
+					renderer: that.renderStatus,
+					dataIndex: 'status'
 				}, {
 					header: 'Data source ID',
 					width: 100,
@@ -922,22 +986,32 @@ Ext.define('Writer.LayerServerConfigGrid', {
 					header: 'Type',
 					width: 80,
 					sortable: true,
-					dataIndex: 'dataSourceType'
+					dataIndex: 'layerType'
 				}, {
 					header: 'Data source name',
 					flex: 1,
 					sortable: true,
 					dataIndex: 'dataSourceName'
 				}, {
-					header: 'Last harvested',
+					header: 'Last build',
 					width: 130,
 					sortable: true,
 					dataIndex: 'lastHarvested'
 				}, {
+					header: 'Modified',
+					width: 55,
+					align: 'center',
+					sortable: true,
+					xtype: 'booleancolumn',
+					// The icon is placed using CSS and the text is hidden with CSS.
+					trueText: '<span class="modified-true"><span class="text">True</span></span>',
+					falseText: '<span class="modified-false"><span class="text">False</span></span>',
+					dataIndex: 'modified'
+				}, {
 					// http://docs.sencha.com/ext-js/4-0/#/api/Ext.grid.column.Action
 					header: 'Actions',
 					xtype: 'actioncolumn',
-					width: 90,
+					width: 55,
 					defaults: {
 						iconCls: 'grid-icon'
 					},
@@ -953,15 +1027,15 @@ Ext.define('Writer.LayerServerConfigGrid', {
 							handler: function(grid, rowIndex, colIndex) {
 								var rec = grid.getStore().getAt(rowIndex);
 								if (rec) {
-									var dataSourceType = rec.data.dataSourceType;
-									if (dataSourceType) {
+									var layerType = rec.get('layerType');
+									if (layerType) {
 										// Close the all windows and show the edit window.
-										var window = this.getLayerConfigFormWindow(dataSourceType, 'save');
+										var window = this.getLayerConfigFormWindow(layerType, rec);
 										if (window) {
 											window.child('.form').setActiveRecord(rec);
 											window.show();
 										} else {
-											frameset.setError('Unsupported data source type ['+dataSourceType+']');
+											frameset.setError('Unsupported data source layer type ['+layerType+']');
 										}
 									}
 								} else {
@@ -973,12 +1047,12 @@ Ext.define('Writer.LayerServerConfigGrid', {
 							icon: '../resources/icons/cog_go.png',
 							// Bug: defaults is ignored (http://www.sencha.com/forum/showthread.php?138446-actioncolumn-ignore-defaults)
 							iconCls: 'grid-icon',
-							tooltip: 'Run harvest',
+							tooltip: 'Rebuild',
 							scope: this,
 							handler: function(grid, rowIndex, colIndex) {
 								var rec = grid.getStore().getAt(rowIndex);
 								if (rec) {
-									this.getRunHarvestWindowWindow(rec).show();
+									this.getRebuildWindow(rec).show();
 								} else {
 									frameset.setError('No record has been selected.');
 								}
@@ -994,13 +1068,142 @@ Ext.define('Writer.LayerServerConfigGrid', {
 		this.getSelectionModel().on('selectionchange', this.onSelectChange, this);
 	},
 
-	getRunHarvestWindowWindow: function(rec) {
+	getRebuildWindow: function(rec) {
 		var that = this;
-		var dataSourceName = rec.get('dataSourceName') + ' (' + rec.get('dataSourceId') + ')';
+		var layerType = 'ALL';
+		var windowTitle = 'Rebuild all data source';
+		var dataSourceName = null;
+		if (rec) {
+			layerType = rec.get('layerType');
+			dataSourceName = rec.get('dataSourceName') + ' (' + rec.get('dataSourceId') + ')';
+			windowTitle = 'Rebuild <i>' + dataSourceName + '</i>';
+		}
+
+		var windowContent = [];
+		switch (layerType) {
+			case 'ALL':
+				windowContent = [
+					{
+						xtype: 'displayfield',
+						value: 'Rebuild all data sources information with the latest settings and re-harvest documents.'
+					}, {
+						xtype: 'checkboxfield',
+						qtipHtml: 'Redownload files that failed to download or parse previously.',
+						boxLabel: 'Redownload broken or corrupted files',
+						checked: true,
+						name: 'redownloadBrokenFiles'
+					}, {
+						xtype: 'checkboxfield',
+						qtipHtml: 'Redownload all capabilities &amp; JSON documents.',
+						boxLabel: 'Redownload all capabilities &amp; JSON documents',
+						checked: true,
+						name: 'clearCapCache'
+					}, {
+						xtype: 'checkboxfield',
+						qtipTitle: 'Redownload all MEST records',
+						qtipHtml: 'Redownload MEST records for all WMS services. This operation may takes a fair amount of time.',
+						boxLabel: 'Redownload all MEST records (may take over 30 minutes per WMS services)',
+						name: 'clearMestCache'
+					}
+				];
+				break;
+
+			case 'WMS':
+				windowContent = [
+					{
+						xtype: 'displayfield',
+						value: 'Rebuild the data source information with the latest settings and re-harvest documents.'
+					}, {
+						xtype: 'checkboxfield',
+						qtipHtml: 'Redownload files that failed to download or parse previously.',
+						boxLabel: 'Redownload broken or corrupted files',
+						checked: true,
+						name: 'redownloadBrokenFiles'
+					}, {
+						xtype: 'checkboxfield',
+						qtipHtml: 'Redownload the capabilities document.',
+						boxLabel: 'Redownload the capabilities document',
+						checked: true,
+						name: 'clearCapCache'
+					}, {
+						xtype: 'checkboxfield',
+						qtipHtml: 'Redownload the MEST records. This operation may takes a fair amount of time.',
+						boxLabel: 'Redownload the MEST records (may take over 30 minutes)',
+						name: 'clearMestCache'
+					}
+				];
+				break;
+
+			case 'NCWMS':
+				windowContent = [
+					{
+						xtype: 'displayfield',
+						value: 'Rebuild the data source information with the latest settings and re-harvest capabilities documents.'
+					}, {
+						xtype: 'checkboxfield',
+						qtipHtml: 'Redownload files that failed to download or parse previously.',
+						boxLabel: 'Redownload broken or corrupted files',
+						checked: true,
+						name: 'redownloadBrokenFiles'
+					}, {
+						xtype: 'checkboxfield',
+						qtipHtml: 'Redownload the capabilities document.',
+						boxLabel: 'Redownload the capabilities document',
+						checked: true,
+						name: 'clearCapCache'
+					}
+				];
+				break;
+
+			case 'ARCGIS_MAPSERVER':
+				windowContent = [
+					{
+						xtype: 'displayfield',
+						value: 'Rebuild the data source information with the latest settings and re-harvest JSON documents.'
+					}, {
+						xtype: 'checkboxfield',
+						qtipHtml: 'Redownload files that failed to download or parse previously.',
+						boxLabel: 'Redownload broken or corrupted files',
+						checked: true,
+						name: 'redownloadBrokenFiles'
+					}, {
+						xtype: 'checkboxfield',
+						qtipHtml: 'Redownload the JSON documents (equivalent to WMS capabilities document for ArcGIS services).',
+						boxLabel: 'Redownload the JSON documents',
+						checked: true,
+						name: 'clearCapCache'
+					}
+				];
+				break;
+
+			case 'KML':
+				windowContent = [
+					{
+						xtype: 'displayfield',
+						value: 'Rebuild the data source information with the latest settings and re-check KML URLs.'
+					}, {
+						xtype: 'checkboxfield',
+						qtipHtml: 'Send a request to the server to verify if the KML files exist on the server. Only uncheck this option if you know that the URLs are valid and the server providing the KMLs is temporary down or overloaded, or you are on a very limited internet connection.',
+						boxLabel: 'Re-check KML URLs',
+						checked: true,
+						name: 'clearCapCache'
+					}
+				];
+				break;
+
+			default:
+				windowContent = [
+					{
+						xtype: 'displayfield',
+						value: 'Rebuild the data source information with the latest settings.'
+					}
+				];
+				break;
+		}
 
 		return Ext.create('Ext.window.Window', {
-			title: 'Run harvest for <i>' + dataSourceName + '</i>',
-			width: 300,
+			title: windowTitle,
+			width: 450,
 			layout: 'fit',
 			constrainHeader: true,
 			closeAction: 'destroy',
@@ -1015,44 +1218,49 @@ Ext.define('Writer.LayerServerConfigGrid', {
 						labelAlign: 'right',
 						labelWidth: 100
 					},
-					items: [
-						{
-							xtype: 'displayfield',
-							value: 'This action will parse all documents associated with the data source and generate a data source file, which is used by the client generation. Because the download process can takes a lot of time, downloaded documents are cached indefinitely. If you simply want to apply a modification you made to the data source configuration, simply process without checking any of the boxes. If the server holding the layers has changed, added or removed layers, you will need to check the "Clear capabilities document cache" box. If the MEST record of a layer has changed, you will need to check the "Clear MEST records cache".'
-						}, {
-							xtype: 'checkboxfield',
-							qtipHtml: 'TODO',
-							boxLabel: 'Clear capabilities document cache',
-							name: 'clearCapCache'
-						}, {
-							xtype: 'checkboxfield',
-							qtipHtml: 'TODO',
-							boxLabel: 'Clear MEST records cache',
-							name: 'clearMestCache'
-						}
-					]
+					items: windowContent
 				}
 			],
 			buttons: [
 				{
-					text: 'Run harvest',
+					text: 'Rebuild',
 					handler: function() {
 						var window = this.ownerCt.ownerCt;
 						var form = window.child('form').getForm();
 						if (form.isValid()) {
 							var values = form.getFieldValues();
 
-							frameset.setSavingMessage('Processing <i>' + dataSourceName + '</i>.');
+
+							var ajaxParams = {
+								'redownloadBrokenFiles': !!values['redownloadBrokenFiles'],
+								'clearCapCache': !!values['clearCapCache'],
+								'clearMestCache': !!values['clearMestCache'],
+								'jsonResponse': true
+							};
+							if (rec) {
+								ajaxParams['action'] = 'PROCESS';
+								ajaxParams['id'] = rec.get('id');
+								frameset.setSavingMessage('Rebuilding <i>' + dataSourceName + '</i>.');
+							} else {
+								ajaxParams['action'] = 'PROCESSALL';
+								frameset.setSavingMessage('Rebuilding all data sources.');
+							}
+
+							var timeout = rebuildTimeout;
+							if (!rec) {
+								var gridItemCount = that.getStore() ? that.getStore().getTotalCount() : 0;
+								if (gridItemCount > 1) {
+									timeout *= gridItemCount;
+								}
+								if (timeout > rebuildMaxTimeout) {
+									timeout = rebuildMaxTimeout;
+								}
+							}
 
 							Ext.Ajax.request({
 								url: 'dataSourcesConfig.jsp',
-								timeout: harvestTimeout,
-								params: {
-									'action': 'PROCESS',
-									'clearCapCache': !!values['clearCapCache'],
-									'clearMestCache': !!values['clearMestCache'],
-									'id': rec.get('id')
-								},
+								timeout: timeout,
+								params: ajaxParams,
 								success: function(response){
 									var responseObj = null;
 									var statusCode = response ? response.status : null;
@@ -1063,22 +1271,36 @@ Ext.define('Writer.LayerServerConfigGrid', {
 											responseObj = {errors: [err.toString()]};
 										}
 									}
-									if(responseObj && responseObj.success){
-										if (responseObj.errors || responseObj.warnings) {
-											frameset.setErrorsAndWarnings('Data source process passed for <i>'+dataSourceName+'</i>', 'Warning(s) occurred while processing the data source configuration.', responseObj, statusCode);
-										} else if (responseObj.messages) {
-											frameset.setErrorsAndWarnings('Data source process succeed for <i>'+dataSourceName+'</i>', null, responseObj, statusCode);
+									if (dataSourceName === null) {
+										if(responseObj && responseObj.success){
+											if (responseObj.errors || responseObj.warnings) {
+												frameset.setErrorsAndWarnings('Rebuild of all data sources passed', 'Warning(s) occurred while rebuilding some data sources.', responseObj, statusCode);
+											} else if (responseObj.messages) {
+												frameset.setErrorsAndWarnings('Rebuild of all data sources succeed', null, responseObj, statusCode);
+											} else {
+												frameset.setSavedMessage('Rebuild of all data sources succeed');
+											}
 										} else {
-											frameset.setSavedMessage('Data source processed successfully for <i>'+dataSourceName+'</i>.');
+											frameset.setErrorsAndWarnings('Rebuild failed for some data sources', 'Error(s) / warning(s) occurred while rebuilding some data sources.', responseObj, statusCode);
 										}
 									} else {
-										frameset.setErrorsAndWarnings('Process failed for <i>'+dataSourceName+'</i>', 'Error(s) / warning(s) occurred while processing the data source configuration.', responseObj, statusCode);
+										if(responseObj && responseObj.success){
+											if (responseObj.errors || responseObj.warnings) {
+												frameset.setErrorsAndWarnings('Data source rebuild passed for <i>'+dataSourceName+'</i>', 'Warning(s) occurred while rebuilding the data source.', responseObj, statusCode);
+											} else if (responseObj.messages) {
+												frameset.setErrorsAndWarnings('Data source rebuild succeed for <i>'+dataSourceName+'</i>', null, responseObj, statusCode);
+											} else {
+												frameset.setSavedMessage('Data source rebuild successfully for <i>'+dataSourceName+'</i>.');
+											}
+										} else {
+											frameset.setErrorsAndWarnings('Rebuild failed for <i>'+dataSourceName+'</i>', 'Error(s) / warning(s) occurred while rebuilding the data source.', responseObj, statusCode);
+										}
 									}
 									that.onReload();
 								},
 								failure: function(response) {
 									if (response.timedout) {
-										frameset.setError('Request timed out for <i>'+dataSourceName+'</i>.', 408);
+										frameset.setError('Request timed out.', 408);
 									} else {
 										var statusCode = response ? response.status : null;
 										var responseObj = null;
@@ -1089,7 +1311,11 @@ Ext.define('Writer.LayerServerConfigGrid', {
 												responseObj = {errors: [err.toString()]};
 											}
 										}
-										frameset.setErrors('An error occurred while processing the data source configuration for <i>'+dataSourceName+'</i>.', responseObj, statusCode);
+										if (dataSourceName === null) {
+											frameset.setErrors('An error occurred while rebuilding the data sources.', responseObj, statusCode);
+										} else {
+											frameset.setErrors('An error occurred while rebuilding the data source <i>'+dataSourceName+'</i>.', responseObj, statusCode);
+										}
 									}
 									that.onReload();
 								}
@@ -1112,20 +1338,20 @@ Ext.define('Writer.LayerServerConfigGrid', {
 		});
 	},
 
-	getDataSourceTypeFormWindow: function() {
+	getDataSourceLayerTypeFormWindow: function() {
 		// Create the radio buttons for each layer type
-		var dataSourceTypesItems = [];
-		for (var dataSourceType in dataSourceTypes) {
-			if (dataSourceTypes.hasOwnProperty(dataSourceType)) {
+		var dataSourceLayerTypesItems = [];
+		for (var layerType in dataSourceLayerTypes) {
+			if (dataSourceLayerTypes.hasOwnProperty(layerType)) {
 				var item = {
-					name: 'dataSourceType',
-					boxLabel: dataSourceTypes[dataSourceType].display,
-					inputValue: dataSourceType
+					name: 'layerType',
+					boxLabel: dataSourceLayerTypes[layerType].display,
+					inputValue: layerType
 				};
 				// Apply the other fields to the item
 				// qtipHtml, checked, style, disabled, etc.
-				Ext.apply(item, dataSourceTypes[dataSourceType]);
-				dataSourceTypesItems.push(item);
+				Ext.apply(item, dataSourceLayerTypes[layerType]);
+				dataSourceLayerTypesItems.push(item);
 			}
 		}
 
@@ -1155,7 +1381,7 @@ Ext.define('Writer.LayerServerConfigGrid', {
 							xtype: 'radiogroup',
 							fieldLabel: 'Data source type',
 							columns: 1,
-							items: dataSourceTypesItems
+							items: dataSourceLayerTypesItems
 						}
 					]
 				}
@@ -1169,14 +1395,14 @@ Ext.define('Writer.LayerServerConfigGrid', {
 						if (form.isValid()) {
 							// Close the current form window and show the next one
 							var values = form.getFieldValues();
-							var newWindow = that.getLayerConfigFormWindow(values.dataSourceType, 'add');
+							var newWindow = that.getLayerConfigFormWindow(values.layerType);
 							if (newWindow) {
 								// Apply default values
 								newWindow.child('.form').reset();
 								newWindow.show();
 								window.close();
 							} else {
-								frameset.setError('Unsupported dataset type ['+dataSourceType+']');
+								frameset.setError('Unsupported data source layer type ['+layerType+']');
 							}
 						} else {
 							frameset.setError('Some fields contains errors.');
@@ -1194,12 +1420,15 @@ Ext.define('Writer.LayerServerConfigGrid', {
 		});
 	},
 
-	getLayerConfigFormWindow: function(dataSourceType, action) {
-		if (!dataSourceTypes[dataSourceType]) { return null; }
+	getLayerConfigFormWindow: function(layerType, rec) {
+		if (!dataSourceLayerTypes[layerType]) { return null; }
 
 		var that = this;
+		var windowTitle = null;
 		var buttons = [];
-		if (action == 'save') {
+		if (typeof(rec) !== 'undefined') {
+			var dataSourceName = rec.get('dataSourceName') + ' (' + rec.get('dataSourceId') + ')';
+			windowTitle = 'Configuration of <i>'+dataSourceName+'</i>';
 			buttons = [
 				{
 					iconCls: 'icon-save',
@@ -1223,12 +1452,13 @@ Ext.define('Writer.LayerServerConfigGrid', {
 				}
 			];
 		} else {
+			windowTitle = 'New data source configuration';
 			buttons = [
 				{
 					//iconCls: 'icon-back',
 					text: 'Back',
 					handler: function() {
-						that.getDataSourceTypeFormWindow().show();
+						that.getDataSourceLayerTypeFormWindow().show();
 						this.ownerCt.ownerCt.close();
 					}
 				}, {
@@ -1253,19 +1483,19 @@ Ext.define('Writer.LayerServerConfigGrid', {
 		}
 
 		return Ext.create('Ext.window.Window', {
-			title: 'Data source configuration',
+			title: windowTitle,
 			width: 700,
 			height: 450,
 			maxHeight: Ext.getBody().getViewSize().height,
 			layout: 'fit',
 			constrainHeader: true,
 			closeAction: 'hide',
-			dataSourceType: dataSourceType,
+			layerType: layerType,
 
 			items: [
 				{
 					xtype: 'writerlayerserverconfigform',
-					dataSourceType: dataSourceType,
+					layerType: layerType,
 					listeners: {
 						scope: this,
 						create: function(form, data){
@@ -1290,7 +1520,7 @@ Ext.define('Writer.LayerServerConfigGrid', {
 	},
 
 	onAddClick: function(){
-		this.getDataSourceTypeFormWindow().show();
+		this.getDataSourceLayerTypeFormWindow().show();
 	},
 
 	onDeleteClick: function() {
@@ -1328,48 +1558,6 @@ Ext.define('Writer.LayerServerConfigGrid', {
 		} else {
 			frameset.setError('Can not find the data source to delete');
 		}
-	},
-
-	onClearAllCacheConfirmed: function() {
-		var that = this;
-		frameset.setSavingMessage('Clearing all cache.');
-
-		Ext.Ajax.request({
-			url: 'dataSourcesConfig.jsp',
-			params: {
-				'action': 'CLEARALLCACHE'
-			},
-			success: function(response){
-				var responseObj = null;
-				var statusCode = response ? response.status : null;
-				if (response && response.responseText) {
-					try {
-						responseObj = Ext.decode(response.responseText);
-					} catch (err) {
-						responseObj = {errors: [err.toString()]};
-					}
-				}
-				if(responseObj && responseObj.success){
-					frameset.setSavedMessage('All cache cleared successfully.');
-				} else {
-					frameset.setErrors('An error occurred while clearing all cache.', responseObj, statusCode);
-				}
-				that.onReload();
-			},
-			failure: function(response) {
-				var responseObj = null;
-				var statusCode = response ? response.status : null;
-				if (response && response.responseText) {
-					try {
-						responseObj = Ext.decode(response.responseText);
-					} catch (err) {
-						responseObj = {errors: [err.toString()]};
-					}
-				}
-				frameset.setErrors('An error occurred while clearing all cache.', responseObj, statusCode);
-				that.onReload();
-			}
-		});
 	}
 });
 
@@ -1388,13 +1576,14 @@ Ext.define('Writer.LayerServerConfig', {
 	// is unchecked).
 	fields: [
 		{name: 'id', type: 'int', useNull: true},
-		{name: 'valid', type: 'boolean', defaultValue: false},
 		{name: 'dataSourceId', sortType: 'asUCString'},
 		{name: 'dataSourceName', sortType: 'asUCString'},
-		{name: 'dataSourceType', type: 'string'},
+		{name: 'layerType', type: 'string'},
 		{name: 'lastHarvested', type: 'string'},
+		'status',
+		{name: 'modified', type: 'boolean', defaultValue: false},
 		'serviceUrl',
-		'serviceUrls',
+		'serviceUrls', // XYZ layers
 		'getMapUrl',
 		'extraWmsServiceUrls',
 		'kmlData',
@@ -1404,6 +1593,7 @@ Ext.define('Writer.LayerServerConfig', {
 		'webCacheSupportedParameters',
 		'featureRequestsUrl',
 		'legendUrl',
+		{name: 'legendDpiSupport', type: 'boolean', defaultValue: false},
 		'legendParameters',
 		'blackAndWhiteListedLayers',
 		'baseLayers',
@@ -1427,7 +1617,7 @@ Ext.define('Writer.LayerServerConfig', {
 		type: 'length',
 		min: 1
 	}, {
-		field: 'dataSourceType',
+		field: 'layerType',
 		type: 'length',
 		min: 1
 	}]

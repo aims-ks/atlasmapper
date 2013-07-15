@@ -23,8 +23,8 @@ package au.gov.aims.atlasmapperserver.layerConfig;
 
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.Errors;
+import au.gov.aims.atlasmapperserver.jsonWrappers.client.LayerWrapper;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -75,39 +75,39 @@ public class LayerCatalog {
 	}
 
 	// Helper
-	public static AbstractLayerConfig createLayer(String dataSourceType, JSONObject layerConfigJSON, ConfigManager configManager) throws JSONException {
-		if (dataSourceType == null) {
+	public static AbstractLayerConfig createLayer(String layerType, LayerWrapper layerConfigJSON, ConfigManager configManager) throws JSONException {
+		if (layerType == null) {
 			// Unsupported
-			throw new IllegalArgumentException("No data source type provided:\n" + layerConfigJSON.toString(4));
+			throw new IllegalArgumentException("No data source type provided:\n" + layerConfigJSON.getJSON().toString(4));
 		}
 
 		AbstractLayerConfig layerConfig = null;
-		if ("ARCGIS_MAPSERVER".equals(dataSourceType)) {
+		if ("ARCGIS_MAPSERVER".equals(layerType)) {
 			layerConfig = new ArcGISMapServerLayerConfig(configManager);
-		} else if ("GOOGLE".equals(dataSourceType)) {
+		} else if ("GOOGLE".equals(layerType)) {
 			layerConfig = new GoogleLayerConfig(configManager);
-		} else if ("BING".equals(dataSourceType)) {
+		} else if ("BING".equals(layerType)) {
 			layerConfig = new BingLayerConfig(configManager);
-		} else if ("KML".equals(dataSourceType)) {
+		} else if ("KML".equals(layerType)) {
 			layerConfig = new KMLLayerConfig(configManager);
-		} else if ("NCWMS".equals(dataSourceType)) {
+		} else if ("NCWMS".equals(layerType)) {
 			layerConfig = new NcWMSLayerConfig(configManager);
-		} else if ("TILES".equals(dataSourceType)) {
+		} else if ("TILES".equals(layerType)) {
 			layerConfig = new TilesLayerConfig(configManager);
-		} else if ("XYZ".equals(dataSourceType)) {
+		} else if ("XYZ".equals(layerType)) {
 			layerConfig = new XYZLayerConfig(configManager);
-		} else if ("WMS".equals(dataSourceType)) {
+		} else if ("WMS".equals(layerType)) {
 			layerConfig = new WMSLayerConfig(configManager);
-		} else if ("GROUP".equals(dataSourceType) || "SERVICE".equals(dataSourceType)) {
+		} else if ("GROUP".equals(layerType) || "SERVICE".equals(layerType)) {
 			layerConfig = new GroupLayerConfig(configManager);
 		} else {
 			// Unsupported
-			throw new IllegalArgumentException("Unsupported data source type [" + dataSourceType + "]");
+			throw new IllegalArgumentException("Unsupported data source layer type [" + layerType + "]");
 		}
 
 		// Set all data source values into the data source bean
 		if (layerConfig != null) {
-			layerConfig.update(layerConfigJSON);
+			layerConfig.update(layerConfigJSON.getJSON());
 		}
 
 		return layerConfig;

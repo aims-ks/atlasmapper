@@ -101,8 +101,12 @@ public class Tree extends AbstractModule {
 			currentBranch = this.getTreeBranch(currentBranch, BASE_LAYERS_TAB_LABEL);
 		} else {
 			currentBranch = this.getTreeBranch(currentBranch, OVERLAY_LAYERS_TAB_LABEL);
-			if (dataSourceWrapper != null) {
-				currentBranch = this.getTreeBranch(currentBranch, dataSourceWrapper.getDataSourceName());
+			String dataSourceName = layer.getDataSourceName(); // First check if the data source name has been overriden.
+			if (Utils.isBlank(dataSourceName) && dataSourceWrapper != null) {
+				dataSourceName = dataSourceWrapper.getDataSourceName();
+			}
+			if (Utils.isNotBlank(dataSourceName)) {
+				currentBranch = this.getTreeBranch(currentBranch, dataSourceName);
 			}
 		}
 

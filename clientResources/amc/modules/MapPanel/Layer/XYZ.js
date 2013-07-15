@@ -48,8 +48,7 @@ Atlas.Layer.XYZ = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 				crossOriginKeyword = this.json['crossOriginKeyword'];
 			}
 
-			// isBaseLayer is true by default with XYZ layers (undefined => true)
-			var isBaseLayer = (typeof(this.json['isBaseLayer']) === 'undefined' ? true : !!this.json['isBaseLayer']);
+			var isBaseLayer = !!this.json['isBaseLayer'];
 
 			var olOptions = OpenLayers.Util.extend({
 					"isBaseLayer": isBaseLayer,

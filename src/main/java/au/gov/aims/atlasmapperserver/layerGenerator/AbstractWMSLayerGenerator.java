@@ -40,6 +40,7 @@ import org.geotools.data.ows.WMSCapabilities;
 import org.geotools.data.ows.WMSRequest;
 import org.geotools.data.wms.xml.MetadataURL;
 import org.opengis.util.InternationalString;
+import org.xml.sax.SAXException;
 
 import java.io.File;
 import java.net.URI;
@@ -58,6 +59,34 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 
 	protected abstract L createLayerConfig(ConfigManager configManager);
 
+	// GeoTools library and ncWMS server has issues with 1.3.0
+	// * GeoTools: It tries to download the schema of extended specifications. Often, those specifications
+	//     are not standard and their schema are no longer available, producing long waiting delay, timeout and
+	//     IOExceptions. The most common example is the addition of "<ms:GetStyle>", which was part of 1.1.1,
+	//     removed in 1.3.0 and is re-added as a un-standard extension by some services.
+	// * ncWMS: All versions of ncWMS are able to provide a 1.3.0 capabilities document but they do not
+	//     support 1.3.0, returning server error for all requests.
+	// NOTE: If a specific URL to the capabilities document version 1.3.0 is provided, WMS 1.3.0 will be used.
+	//
+	// WMS Versions history:
+	// * 0.0.1 through 0.0.6 - WMT development versions, March-September 1999
+	// * 0.1 - WMT demonstration - 1999-09-10
+	// * 0.9 - RFC submission - 1999-11-15
+	// * 0.9.3 - RFC resubmission - 2000-01-17
+	// * 1.0.0 - First WMS Implementation Specification (OGC document #00-028) - 2000-04-19
+	//     http://portal.opengeospatial.org/files/?artifact_id=7196
+	// * 1.0.4 - Web Mapping Testbed 2 development version - 2000-10-13
+	// * 1.0.6 - OGC Discussion paper #01-021 - 2001-01-29
+	// * 1.0.7 - OGC Discussion Paper #01-021r1 - 2001-03-02
+	// * 1.0.8 - WMS Revision Working Group submittal to OGC TC (document #01-047) - 2001-05-14
+	// * 1.1.0 - Revised edition (OGC document #01-047r2) - 2001-06-21
+	//     http://portal.opengeospatial.org/files/?artifact_id=1058
+	// * 1.1.1 - Minor revision (OGC document #01-068r3) - 2002-01-16
+	//     http://portal.opengeospatial.org/files/?artifact_id=1081&version=1&format=pdf
+	// * 1.3.0 - (OGC document #06-042) - 2006-03-15
+	//     http://portal.opengeospatial.org/files/?artifact_id=14416
+	protected String wmsVersion = "1.1.1";
+
 	/**
 	 * WMS Server already has a unique layer ID for each layers. Nothing to do here.
 	 * @param layer
@@ -70,19 +99,39 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 	}
 
 	@Override
-	public LayerCatalog generateLayerCatalog(D dataSourceClone, boolean clearCapabilitiesCache, boolean clearMetadataCache) throws Exception {
+	public LayerCatalog generateRawLayerCatalog(D dataSourceClone, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles) {
 		LayerCatalog layerCatalog = new LayerCatalog();
 		Map<String, L> layersMap = null;
 		URL wmsServiceUrl = null;
 		String dataSourceServiceUrlStr = dataSourceClone.getServiceUrl();
+		ConfigManager configManager = dataSourceClone.getConfigManager();
 
-		WMSCapabilities wmsCapabilities = URLCache.getWMSCapabilitiesResponse(dataSourceClone.getConfigManager(), dataSourceClone, dataSourceServiceUrlStr, true, clearCapabilitiesCache);
+		WMSCapabilities wmsCapabilities = null;
+		try {
+			wmsCapabilities = URLCache.getWMSCapabilitiesResponse(configManager, this.wmsVersion, dataSourceClone, dataSourceServiceUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, true);
+		} catch (Exception ex) {
+			LOGGER.log(Level.WARNING, "Error occurred while parsing the capabilities document for the service URL [" + dataSourceServiceUrlStr + "]", ex);
+			layerCatalog.addError("Error occurred while parsing the capabilities document for the service URL [" + dataSourceServiceUrlStr + "]: " + Utils.getExceptionMessage(ex));
+		}
+
 		if (wmsCapabilities != null) {
 			WMSRequest wmsRequestCapabilities = wmsCapabilities.getRequest();
 			if (wmsRequestCapabilities != null) {
-				dataSourceClone.setFeatureRequestsUrl(this.getOperationUrl(wmsRequestCapabilities.getGetFeatureInfo()));
-				wmsServiceUrl = this.getOperationUrl(wmsRequestCapabilities.getGetMap());
+				if (Utils.isNotBlank(dataSourceClone.getGetMapUrl())) {
+					try {
+						wmsServiceUrl = Utils.toURL(dataSourceClone.getGetMapUrl());
+					} catch (Exception ex) {
+						LOGGER.log(Level.WARNING, "Can not create a URL object from the string [" + dataSourceClone.getGetMapUrl() + "]", ex);
+					}
+				} else {
+					wmsServiceUrl = this.getOperationUrl(wmsRequestCapabilities.getGetMap());
+				}
 				dataSourceClone.setServiceUrl(wmsServiceUrl);
+
+				if (Utils.isBlank(dataSourceClone.getFeatureRequestsUrl())) {
+					dataSourceClone.setFeatureRequestsUrl(this.getOperationUrl(wmsRequestCapabilities.getGetFeatureInfo()));
+				}
+
 				dataSourceClone.setLegendUrl(this.getOperationUrl(wmsRequestCapabilities.getGetLegendGraphic()));
 				dataSourceClone.setWmsVersion(wmsCapabilities.getVersion());
 
@@ -91,38 +140,73 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 				//this.stylesUrl = this.getOperationUrl(wmsRequestCapabilities.getGetStyles());
 			}
 
-			layersMap = this.getLayersInfoFromCaps(wmsCapabilities, dataSourceClone, clearMetadataCache);
+			layersMap = this.getLayersInfoFromCaps(wmsCapabilities, dataSourceClone);
+
+			// Set default style of each layer
+			if (layersMap != null && !layersMap.isEmpty()) {
+				for (L layer : layersMap.values()) {
+					this.setDefaultLayerStyle(configManager, layer);
+				}
+			}
 		}
 		if (wmsServiceUrl == null && dataSourceServiceUrlStr != null) {
-			wmsServiceUrl = Utils.toURL(dataSourceServiceUrlStr);
+			try {
+				wmsServiceUrl = Utils.toURL(dataSourceServiceUrlStr);
+			} catch (Exception ex) {
+				LOGGER.log(Level.WARNING, "Can not create a URL object from the string [" + dataSourceServiceUrlStr + "]", ex);
+			}
 		}
 
 		Collection<L> layers = null;
 		if (layersMap != null && !layersMap.isEmpty()) {
-			layers = new ArrayList<L>(layersMap.size());
-			Map<String, L> cachedLayers = this.generateRawCachedLayerConfigs(dataSourceClone, wmsServiceUrl, layerCatalog, clearCapabilitiesCache, clearMetadataCache);
-
-			// Since we are not parsing the Cache server WMS capability document, we can not find which version of WMS it is using...
-			// Fallback to 1.1.1, it's very well supported.
-			dataSourceClone.setCacheWmsVersion("1.1.1");
-
-			// Set cached flags
-			for (Map.Entry<String, L> layerEntry : layersMap.entrySet()) {
-				boolean cached = false;
-				L layer = layerEntry.getValue();
-				if (cachedLayers != null && cachedLayers.containsKey(layerEntry.getKey())) {
-					L cachedLayer = cachedLayers.get(layerEntry.getKey());
-					if (cachedLayer != null) {
-						cached = true;
-						this.setLayerStylesCacheFlag(layer.getStyles(), cachedLayer.getStyles());
-					}
+			if (dataSourceClone.isWebCacheEnable() != null && dataSourceClone.isWebCacheEnable() && wmsServiceUrl != null) {
+				layers = new ArrayList<L>(layersMap.size());
+				Map<String, L> cachedLayers = null;
+				try {
+					cachedLayers = this.generateRawCachedLayerConfigs(dataSourceClone, wmsServiceUrl, layerCatalog);
+				} catch (Exception ex) {
+					LOGGER.log(Level.WARNING, "Error occurred while parsing the WMTS capabilities document for the service URL [" + wmsServiceUrl + "]", ex);
+					layerCatalog.addWarning("Error occurred while parsing the WMTS capabilities document for the service URL [" + wmsServiceUrl + "]: " + Utils.getExceptionMessage(ex));
 				}
-				layer.setCached(cached);
 
-				layers.add(layer);
+				// Since we are not parsing the Cache server WMS capability document, we can not find which version of WMS it is using...
+				// Fallback to 1.1.1, it's very well supported.
+				dataSourceClone.setCacheWmsVersion("1.1.1");
+
+				// Set cached flags
+				boolean fallback = false;
+				for (Map.Entry<String, L> layerEntry : layersMap.entrySet()) {
+					boolean cached = false;
+					L layer = layerEntry.getValue();
+					if (cachedLayers == null) {
+						// Empty list means no cached layers
+						// NULL means WMTS service not available. GeoServer 2.1.X use to have that problem...
+						// Fallback (GeoServer 2.1.X)  - assume GeoWebCache support cache for all layers, default style only
+						fallback = true;
+						cached = true;
+						this.setLayerStylesCacheFlag(layer.getStyles(), null);
+					} else if (cachedLayers.containsKey(layerEntry.getKey())) {
+						L cachedLayer = cachedLayers.get(layerEntry.getKey());
+						if (cachedLayer != null) {
+							cached = true;
+							this.setLayerStylesCacheFlag(layer.getStyles(), cachedLayer.getStyles());
+						}
+					}
+					layer.setCached(cached);
+
+					layers.add(layer);
+				}
+
+				if (fallback) {
+					layerCatalog.addWarning("Could not find a valid WMTS capability document. " +
+							"Assuming all layers are cached. If the caching feature do not work properly, " +
+							"disable it in the data source configuration and report a bug.");
+				}
+			} else {
+				// The cache is disabled, just get the layer list direct from the map.
+				layers = layersMap.values();
 			}
 		}
-
 		layerCatalog.addLayers(layers);
 
 		return layerCatalog;
@@ -154,24 +238,26 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 		}
 	}
 
-	private Map<String, L> generateRawCachedLayerConfigs(D dataSourceClone, URL wmsServiceUrl, LayerCatalog layerCatalog, boolean clearCapabilitiesCache, boolean clearMetadataCache) throws Exception {
+	private Map<String, L> generateRawCachedLayerConfigs(D dataSourceClone, URL wmsServiceUrl, LayerCatalog layerCatalog) throws Exception {
 		// When the webCacheEnable checkbox is unchecked, no layers are cached.
 		if (dataSourceClone.isWebCacheEnable() == null || dataSourceClone.isWebCacheEnable() == false) {
 			return null;
 		}
 
-		WMTSDocument gwcCapabilities = this.getGWCDocument(dataSourceClone.getConfigManager(), wmsServiceUrl, layerCatalog, dataSourceClone, clearCapabilitiesCache);
+		WMTSDocument gwcCapabilities = this.getGWCDocument(dataSourceClone.getConfigManager(), wmsServiceUrl, layerCatalog, dataSourceClone);
 
-		Map<String, L> layerConfigs = new HashMap<String, L>();
+		Map<String, L> layerConfigs = null;
 
 		if (gwcCapabilities != null) {
+			layerConfigs = new HashMap<String, L>();
+
 			// http://docs.geotools.org/stable/javadocs/org/geotools/data/wms/WebMapServer.html
 			Layer rootLayer = gwcCapabilities.getLayer();
 
 			if (rootLayer != null) {
 				// The boolean at the end is use to ignore the root from the capabilities document. It can be added (change to false) if some users think it's useful to see the root...
 				// NOTE: There should be no metadata document in GWC
-				this._propagateLayersInfoMapFromGeoToolRootLayer(layerConfigs, rootLayer, new LinkedList<String>(), dataSourceClone, true, clearMetadataCache);
+				this._propagateLayersInfoMapFromGeoToolRootLayer(layerConfigs, rootLayer, new LinkedList<String>(), dataSourceClone, true);
 			}
 		}
 
@@ -191,7 +277,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 	 *     If that didn't work, try to rectify the WMTS capabilities document URL and try again.
 	 *     If that didn't work, return null and add an error.
 	 */
-	public WMTSDocument getGWCDocument(ConfigManager configManager, URL wmsServiceUrl, LayerCatalog layerCatalog, D dataSourceClone, boolean clearCapabilitiesCache) {
+	public WMTSDocument getGWCDocument(ConfigManager configManager, URL wmsServiceUrl, LayerCatalog layerCatalog, D dataSourceClone) {
 		// GWC service is not mandatory; failing to parse this won't cancel the generation of the client.
 		boolean gwcMandatory = false;
 
@@ -225,16 +311,16 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 		// Get GWC URL or craft it from WMS URL
 		URL gwcUrl = null;
 		String gwcUrlStr = dataSourceClone.getWebCacheUrl();
-		try {
-			if (gwcUrlStr == null || gwcUrlStr.isEmpty()) {
+		if (Utils.isBlank(gwcUrlStr)) {
+			try {
 				if (gwcBaseURL != null) {
 					gwcUrl = new URL(gwcBaseURL, "service/wms");
 					dataSourceClone.setWebCacheUrl(gwcUrl.toString());
 				}
+			} catch (Exception ex) {
+				// This should not happen
+				LOGGER.log(Level.WARNING, "Fail craft the GWC URL.", ex);
 			}
-		} catch (Exception ex) {
-			// This should not happen
-			LOGGER.log(Level.WARNING, "Fail craft the GWC URL.", ex);
 		}
 
 		// Get GWC Capabilities Document URL or craft it from WMS URL
@@ -242,7 +328,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 		File gwcCapFile = null;
 		String gwcCapUrlStr = dataSourceClone.getWebCacheCapabilitiesUrl();
 		try {
-			if (gwcCapUrlStr == null || gwcCapUrlStr.isEmpty()) {
+			if (Utils.isBlank(gwcCapUrlStr)) {
 				if (gwcBaseURL != null) {
 					gwcCapUrl = new URL(gwcBaseURL, "service/wmts?REQUEST=getcapabilities");
 				}
@@ -270,7 +356,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 				if (gwcCapFile != null) {
 					document = WMTSParser.parseFile(gwcCapFile, gwcCapUrlStr);
 				} else {
-					document = WMTSParser.parseURL(configManager, dataSourceClone, gwcCapUrl, gwcMandatory, clearCapabilitiesCache);
+					document = WMTSParser.parseURL(configManager, dataSourceClone, gwcCapUrl, gwcMandatory);
 				}
 			} catch (Exception ex) {
 				// This happen every time the admin set a GWC base URL instead of a WMTS capabilities document.
@@ -292,9 +378,10 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 						// Add WMTS URL part
 						URL modifiedGwcCapUrl = new URL(modifiedGwcBaseURL, "service/wmts?REQUEST=getcapabilities");
 						// Try to download the doc again
-						document = WMTSParser.parseURL(configManager, dataSourceClone, modifiedGwcCapUrl, gwcMandatory, clearCapabilitiesCache);
+						document = WMTSParser.parseURL(configManager, dataSourceClone, modifiedGwcCapUrl, gwcMandatory);
 
 						if (document != null) {
+							URLCache.setRedirection(configManager, gwcCapUrl.toString(), modifiedGwcCapUrl.toString());
 							// If it works, save the crafted URL
 							gwcCapUrl = modifiedGwcCapUrl;
 						}
@@ -308,11 +395,8 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 		}
 
 		if (document == null) {
-			if (gwcCapUrlStr != null && !gwcCapUrlStr.isEmpty()) {
-				String errorMsg = "Could not find a valid WMTS capability document at the given GWC URL. " +
-						"Assuming all layers are cached. If the caching feature do not work properly, " +
-						"disable it in the data source config and report a bug." +
-						(exceptionMessage == null ? "" : "\nError: " + exceptionMessage);
+			if (exceptionMessage != null) {
+				String errorMsg = "Error: " + exceptionMessage;
 				if (gwcMandatory) {
 					layerCatalog.addError(errorMsg);
 				} else {
@@ -336,13 +420,11 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 	/**
 	 * @param wmsCapabilities
 	 * @param dataSourceClone
-	 * @param clearMetadataCache True do download associated metadata documents (TC211), false to use the cached ones.
 	 * @return
 	 */
 	private Map<String, L> getLayersInfoFromCaps(
 			WMSCapabilities wmsCapabilities,
-			D dataSourceClone, // Data source of layers (to link the layer to its data source)
-			boolean clearMetadataCache
+			D dataSourceClone // Data source of layers (to link the layer to its data source)
 	) {
 		if (wmsCapabilities == null) {
 			return null;
@@ -353,17 +435,28 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 
 		Map<String, L> layerConfigs = new HashMap<String, L>();
 		// The boolean at the end is use to ignore the root from the capabilities document. It can be added (change to false) if some users think it's useful to see the root...
-		this._propagateLayersInfoMapFromGeoToolRootLayer(layerConfigs, rootLayer, new LinkedList<String>(), dataSourceClone, true, clearMetadataCache);
-
-		// Set default styles
-		for (L layer : layerConfigs.values()) {
-			List<LayerStyleConfig> styles = layer.getStyles();
-			if (styles != null && !styles.isEmpty()) {
-				styles.get(0).setDefault(true);
-			}
-		}
+		this._propagateLayersInfoMapFromGeoToolRootLayer(layerConfigs, rootLayer, new LinkedList<String>(), dataSourceClone, true);
 
 		return layerConfigs;
+	}
+
+	/**
+	 * Set default layer style - This method is overriden in some sub-classes.
+	 *     See: WMSLayerGenerator.java
+	 * When the default style is selected by the user, the attribute it is removed from the requests.
+	 *     This allow to use the cache with some old version of GeoServer.
+	 * NOTE: Default behaviour is to add a dummy style for the default, but is some case,
+	 *     the default style can be found so there is no need to add an extra style.
+	 * @param configManager
+	 * @param layer
+	 */
+	protected void setDefaultLayerStyle(ConfigManager configManager, L layer) {
+		LayerStyleConfig defaultDummyStyle = new LayerStyleConfig(configManager);
+		defaultDummyStyle.setName("");
+		defaultDummyStyle.setTitle("Default");
+		defaultDummyStyle.setDefault(true);
+
+		layer.getStyles().add(defaultDummyStyle);
 	}
 
 	// Internal recursive function that takes an actual map of layer and add more layers to it.
@@ -381,8 +474,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 			Layer layer,
 			List<String> treePath,
 			D dataSourceClone,
-			boolean isRoot,
-			boolean clearMetadataCache) {
+			boolean isRoot) {
 
 		if (layer == null) {
 			return;
@@ -408,7 +500,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 			}
 
 			for (Layer childLayer : children) {
-				this._propagateLayersInfoMapFromGeoToolRootLayer(layerConfigs, childLayer, childrenTreePath, dataSourceClone, false, clearMetadataCache);
+				this._propagateLayersInfoMapFromGeoToolRootLayer(layerConfigs, childLayer, childrenTreePath, dataSourceClone, false);
 			}
 		} else {
 			// The layer do not have any children, so it is a real layer
@@ -424,7 +516,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 				}
 			}
 
-			L layerConfig = this.layerToLayerConfig(layer, treePathBuf.toString(), dataSourceClone, clearMetadataCache);
+			L layerConfig = this.layerToLayerConfig(layer, treePathBuf.toString(), dataSourceClone);
 			if (layerConfig != null) {
 				layerConfigs.put(layerConfig.getLayerId(), layerConfig);
 			}
@@ -441,8 +533,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 	private L layerToLayerConfig(
 			Layer layer,
 			String treePath,
-			D dataSourceClone,
-			boolean clearMetadataCache) {
+			D dataSourceClone) {
 
 		L layerConfig = this.createLayerConfig(dataSourceClone.getConfigManager());
 
@@ -460,7 +551,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 					URL url = metadataUrl.getUrl();
 					if (url != null) {
 						try {
-							tc211Document = TC211Parser.parseURL(dataSourceClone.getConfigManager(), dataSourceClone, url, false, clearMetadataCache);
+							tc211Document = TC211Parser.parseURL(dataSourceClone.getConfigManager(), dataSourceClone, url, false, true);
 							if (tc211Document == null || tc211Document.isEmpty()) { tc211Document = null; }
 						} catch (Exception e) {
 							LOGGER.log(Level.SEVERE, "Unexpected exception while parsing the metadata document URL: {0}\n" +
@@ -485,7 +576,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 						URL url = metadataUrl.getUrl();
 						if (url != null) {
 							try {
-								tc211Document = TC211Parser.parseURL(dataSourceClone.getConfigManager(), dataSourceClone, url, false, clearMetadataCache);
+								tc211Document = TC211Parser.parseURL(dataSourceClone.getConfigManager(), dataSourceClone, url, false, false);
 								if (tc211Document != null && !tc211Document.isEmpty()) {
 									validMetadataUrl = metadataUrl;
 								} else {
@@ -611,9 +702,6 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 			};
 			layerConfig.setLayerBoundingBox(boundingBoxArray);
 		}
-
-		// Link the layer to it's data source
-		dataSourceClone.bindLayer(layerConfig);
 
 		return layerConfig;
 	}

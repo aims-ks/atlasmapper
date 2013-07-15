@@ -64,14 +64,15 @@ public class ClientServlet extends HttpServlet {
 	}
 
 	private void performTask(HttpServletRequest request, HttpServletResponse response) throws IOException {
-		// http://localhost:12080/atlasmapper/client/lg/arrow.gif?param=value
-		// RequestURI:  [/atlasmapper/client/lg/arrow.gif]
-		// ContextPath: [/atlasmapper]
-		// ServletPath: [/client]
-		// PathInfo:    [/lg/arrow.gif]  <=  This is the one
-		// QueryString: [param=value]
-		// PathTranslated: [/home/reefatlas/e-atlas_site/maps/tomcat/webapps/atlasmapper/lg/arrow.gif]  <=  Useful, but not quite what we are looking for
-		//System.out.println("RequestURI: [" + request.getRequestURI() + "]  ServletPath: [" + request.getServletPath() + "]  PathInfo: [" + request.getPathInfo() + "]  ContextPath: [" + request.getContextPath() + "]  PathTranslated: [" + request.getPathTranslated() + "]");
+		// The request attributes can be very confusing.
+		// There is an example of a request and it's attributes:
+		//     Requested URL: "http://localhost:12080/atlasmapper/client/lg/arrow.gif?param=value"
+		//     getRequestURI():     "/atlasmapper/client/lg/arrow.gif"
+		//     getContextPath():    "/atlasmapper"
+		//     getServletPath():    "client"
+		//     getPathInfo():       "/lg/arrow.gif"  <=  This is the one needed by this method
+		//     getQueryString():    "param=value"
+		//     getPathTranslated(): "/home/reefatlas/e-atlas_site/maps/tomcat/webapps/atlasmapper/lg/arrow.gif"  <=  Useful, but not quite what we are looking for
 		String fileRelativePath = null;
 
 		// Only used for error messages
@@ -111,7 +112,7 @@ public class ClientServlet extends HttpServlet {
 
 					// If the file is a folder, try to add "index.html".
 					if (file != null && file.isDirectory()) {
-						String indexURL = FileFinder.getAtlasMapperClientURL(this.getServletContext(), client, false);
+						String indexURL = FileFinder.getAtlasMapperClientURL(this.getServletContext(), client);
 						if (indexURL == null) {
 							response.setStatus(HttpServletResponse.SC_NOT_FOUND);
 							LOGGER.log(Level.WARNING, "{0} do not have an index.html file.", client.getClientName());
@@ -139,8 +140,7 @@ public class ClientServlet extends HttpServlet {
 			response.setContentType(contentType);
 			response.setStatus(HttpServletResponse.SC_OK);
 
-			// TODO Set ttl according to the request (that could help the browser to know when to clear it's cache)
-			// Example: Request for the preview should have a very short ttl
+			// TODO Set ttl according to the request (that could help the browser to know when to clear it's cache) - I'm not sure how we would like to do that...
 			/*
 			String RFC1123_PATTERN = "EEE, dd MMM yyyy HH:mm:ss z";
 			SimpleDateFormat rfc1123Format = new SimpleDateFormat(RFC1123_PATTERN, Locale.US);

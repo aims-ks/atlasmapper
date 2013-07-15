@@ -25,9 +25,6 @@ import au.gov.aims.atlasmapperserver.dataSourceConfig.GoogleDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.GoogleLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
 
-import java.util.ArrayList;
-import java.util.Collection;
-
 /**
  *
  * @author glafond
@@ -54,7 +51,7 @@ public class GoogleLayerGenerator extends AbstractLayerGenerator<GoogleLayerConf
 	 * NOTE: Harvest is ignored since there is nothing to harvest.
 	 */
 	@Override
-	public LayerCatalog generateLayerCatalog(GoogleDataSourceConfig dataSourceConfig, boolean clearCapabilitiesCache, boolean clearMetadataCache) {
+	public LayerCatalog generateRawLayerCatalog(GoogleDataSourceConfig dataSourceConfig, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles) {
 		LayerCatalog layerCatalog = new LayerCatalog();
 
 		layerCatalog.addLayer(this.createGoogleLayer(dataSourceConfig, "TERRAIN", "Google Physical", null, 16));
@@ -84,7 +81,6 @@ public class GoogleLayerGenerator extends AbstractLayerGenerator<GoogleLayerConf
 			layerConfig.setNumZoomLevels(numZoomLevels);
 		}
 
-		dataSourceConfig.bindLayer(layerConfig);
 		this.ensureUniqueLayerId(layerConfig, dataSourceConfig);
 
 		return layerConfig;

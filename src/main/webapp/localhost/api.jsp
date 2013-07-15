@@ -1,7 +1,7 @@
 <%--
  *  This file is part of AtlasMapper server and clients.
  *
- *  Copyright (C) 2011 Australian Institute of Marine Science
+ *  Copyright (C) 2013 Australian Institute of Marine Science
  *
  *  Contact: Gael Lafond <g.lafond@aims.org.au>
  *
@@ -45,21 +45,20 @@
  *
  *         To refresh the cache for the data source "ea" and regenerate the client "demo":
  *             http://localhost:8080/atlasmapper/localhost/api.jsp?action=REFRESH&dataSourceIds=ea&clientIds=demo
---%>
-<%@ page import="au.gov.aims.atlasmapperserver.Utils" %>
-<%@ page import="au.gov.aims.atlasmapperserver.APIActionType"%>
-<%@ page import="au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig" %>
-<%@ page import="au.gov.aims.atlasmapperserver.ConfigManager" %>
-<%@ page import="au.gov.aims.atlasmapperserver.ConfigHelper" %>
-<%@ page import="au.gov.aims.atlasmapperserver.ClientConfig" %>
-<%@ page import="org.json.JSONObject" %>
-<%@ page import="org.json.JSONArray" %>
-<%@ page import="java.util.Map" %>
-<%@ page import="au.gov.aims.atlasmapperserver.Errors" %>
-<%@ page import="java.util.HashMap" %>
 
-<%@ page contentType="application/json" pageEncoding="UTF-8"%>
-<%
+NOTE: The strange arrangement of the import is to avoid unnecessary empty lines at the top of the generated file.
+--%><%@
+page import="au.gov.aims.atlasmapperserver.Utils" %><%@
+page import="au.gov.aims.atlasmapperserver.APIActionType"%><%@
+page import="au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig" %><%@
+page import="au.gov.aims.atlasmapperserver.ConfigManager" %><%@
+page import="au.gov.aims.atlasmapperserver.ConfigHelper" %><%@
+page import="au.gov.aims.atlasmapperserver.ClientConfig" %><%@
+page import="org.json.JSONObject" %><%@
+page import="org.json.JSONArray" %><%@
+page import="au.gov.aims.atlasmapperserver.Errors" %><%@
+page contentType="application/json" pageEncoding="UTF-8"%><%
+
 	ConfigManager configManager = ConfigHelper.getConfigManager(this.getServletConfig().getServletContext());
 
 	String actionStr = request.getParameter("action");
@@ -81,7 +80,9 @@
 		} else {
 			switch(action) {
 				case REFRESH:
-					Map<String, Errors> warnings = new HashMap<String, Errors>();
+					JSONObject errors = new JSONObject();
+					JSONObject warnings = new JSONObject();
+					JSONObject messages = new JSONObject();
 
 					// Refresh data sources cache first
 					if (dataSourceIds != null && !dataSourceIds.isEmpty()) {
@@ -90,12 +91,19 @@
 							AbstractDataSourceConfig dataSource = configManager.getDataSourceConfig(dataSourceId);
 							if (dataSource == null) {
 								// Invalid data source ID
-								Errors errors = new Errors();
-								errors.addError("Invalid data source ID: ["+dataSourceId+"]");
-								warnings.put(dataSourceId, errors);
+								JSONArray jsonError = new JSONArray();
+								jsonError.put("Invalid data source ID: ["+dataSourceId+"]");
+								errors.put(dataSourceId, jsonError);
 							} else {
 								// Refresh cache and merging error messages
-								warnings.put(dataSourceId, dataSource.process(true));
+								JSONObject jsonErrors = dataSource.process(
+										true, // redownloadBrokenFiles
+										true, // clearCapabilitiesCache
+										false // clearMetadataCache
+								);
+								errors.put(dataSourceId, jsonErrors.opt("errors"));
+								warnings.put(dataSourceId, jsonErrors.opt("warnings"));
+								messages.put(dataSourceId, jsonErrors.opt("messages"));
 							}
 						}
 					}
@@ -107,23 +115,30 @@
 							ClientConfig client = configManager.getClientConfig(clientId);
 							if (client == null) {
 								// Invalid client ID
-								Errors errors = new Errors();
-								errors.addError("Invalid client ID: ["+clientId+"]");
-								warnings.put(clientId, errors);
+								JSONArray jsonError = new JSONArray();
+								jsonError.put("Invalid client ID: ["+clientId+"]");
+								errors.put(clientId, jsonError);
 							} else {
 								// Regenerate client and merging error messages
-								warnings.put(clientId, client.process(false));
+								Errors errorsObj = client.process(false);
+								JSONObject jsonErrors = errorsObj.toJSON();
+								errors.put(clientId, jsonErrors.opt("errors"));
+								warnings.put(clientId, jsonErrors.opt("warnings"));
+								messages.put(clientId, jsonErrors.opt("messages"));
 							}
 						}
 					}
 
-					JSONObject errors = Errors.toJSON(warnings);
 					response.setStatus(HttpServletResponse.SC_OK);
 					jsonObj.put("message", "Config Generated");
-					if (errors != null) {
-						jsonObj.put("errors", errors.optJSONObject("errors"));
-						jsonObj.put("warnings", errors.optJSONObject("warnings"));
-						jsonObj.put("messages", errors.optJSONObject("messages"));
+					if (errors != null && errors.length() > 0) {
+						jsonObj.put("errors", errors);
+					}
+					if (warnings != null && warnings.length() > 0) {
+						jsonObj.put("warnings", warnings);
+					}
+					if (messages != null && messages.length() > 0) {
+						jsonObj.put("messages", messages);
 					}
 					jsonObj.put("success", !jsonObj.has("errors"));
 
@@ -141,5 +156,5 @@
 		jsonObj.put("success", false);
 		jsonObj.put("errors", new JSONArray().put("Missing parameter [action]."));
 	}
-%>
-<%=jsonObj.toString(4) %>
+
+%><%=jsonObj.toString(4) %>

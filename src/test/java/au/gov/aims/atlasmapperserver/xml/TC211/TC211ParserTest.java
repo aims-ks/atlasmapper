@@ -242,4 +242,61 @@ public class TC211ParserTest extends TestCase {
 
 		assertNotNull("The SAX Parser didn't throw an exception from an unbalanced XML document.", expectedException);
 	}
+
+
+	public void testCraftGeoNetworkMestUrl() throws Exception {
+		URL craftedUrl;
+
+		// Strait forward
+		craftedUrl = TC211Parser.craftGeoNetworkMestUrl(new URL("http://www.cmar.csiro.au/geonetwork/srv/en/metadata.show?id=44003"));
+		assertEquals("http://www.cmar.csiro.au/geonetwork/srv/en/iso19139.xml?id=44003", craftedUrl.toString());
+
+		craftedUrl = TC211Parser.craftGeoNetworkMestUrl(new URL("http://www.cmar.csiro.au/geonetwork/srv/en/metadata.show?uuid=urn:cmar.csiro.au:dataset:13028"));
+		assertEquals("http://www.cmar.csiro.au/geonetwork/srv/en/iso19139.xml?uuid=urn:cmar.csiro.au:dataset:13028", craftedUrl.toString());
+
+		// Do not return the same thing
+		craftedUrl = TC211Parser.craftGeoNetworkMestUrl(new URL("http://www.cmar.csiro.au/geonetwork/srv/en/iso19139.xml?currTab=full&uuid=urn:cmar.csiro.au:dataset:13028"));
+		assertNull(craftedUrl);
+
+		// Different schema / port
+		craftedUrl = TC211Parser.craftGeoNetworkMestUrl(new URL("https://www.cmar.csiro.au:8443/geonetwork/srv/en/metadata.show?id=44003"));
+		assertEquals("https://www.cmar.csiro.au:8443/geonetwork/srv/en/iso19139.xml?id=44003", craftedUrl.toString());
+
+		// ID or UUID mixed with other parameters
+		craftedUrl = TC211Parser.craftGeoNetworkMestUrl(new URL("http://www.cmar.csiro.au/geonetwork/srv/en/metadata.show?uuid=urn:cmar.csiro.au:dataset:13028&currTab=full"));
+		assertEquals("http://www.cmar.csiro.au/geonetwork/srv/en/iso19139.xml?uuid=urn:cmar.csiro.au:dataset:13028&currTab=full", craftedUrl.toString());
+
+		craftedUrl = TC211Parser.craftGeoNetworkMestUrl(new URL("http://www.cmar.csiro.au/geonetwork/srv/en/metadata.show?id=44003&currTab=full"));
+		assertEquals("http://www.cmar.csiro.au/geonetwork/srv/en/iso19139.xml?id=44003&currTab=full", craftedUrl.toString());
+
+		craftedUrl = TC211Parser.craftGeoNetworkMestUrl(new URL("http://www.cmar.csiro.au/geonetwork/srv/en/metadata.show?currTab=full&id=44003"));
+		assertEquals("http://www.cmar.csiro.au/geonetwork/srv/en/iso19139.xml?currTab=full&id=44003", craftedUrl.toString());
+
+		// Parameter ID / UUID missing
+		craftedUrl = TC211Parser.craftGeoNetworkMestUrl(new URL("http://www.cmar.csiro.au/geonetwork/srv/en/metadata.show?currTab=full&not-uuid=urn:cmar.csiro.au:dataset:13028"));
+		assertNull(craftedUrl);
+
+		craftedUrl = TC211Parser.craftGeoNetworkMestUrl(new URL("http://www.cmar.csiro.au/geonetwork/srv/en/metadata.show?currTab=full&not-id=44003"));
+		assertNull(craftedUrl);
+
+		craftedUrl = TC211Parser.craftGeoNetworkMestUrl(new URL("http://www.google.com"));
+		assertNull(craftedUrl);
+
+		// ID / UUID present, in a URL that do not quite looks like a GeoNetwork URL
+		craftedUrl = TC211Parser.craftGeoNetworkMestUrl(new URL("http://www.google.com?id=44003"));
+		assertEquals("http://www.google.com/iso19139.xml?id=44003", craftedUrl.toString());
+
+		// Ensure stability (no exception) - Do not really care about the output...
+		TC211Parser.craftGeoNetworkMestUrl(null);
+		TC211Parser.craftGeoNetworkMestUrl(new URL("http://www.google.com/"));
+		TC211Parser.craftGeoNetworkMestUrl(new URL("http://www.google.com/id=12"));
+		TC211Parser.craftGeoNetworkMestUrl(new URL("http://www.google.com/?id=12"));
+		TC211Parser.craftGeoNetworkMestUrl(new URL("http://www.google.com/?"));
+		TC211Parser.craftGeoNetworkMestUrl(new URL("http://www.google.com/?&"));
+		TC211Parser.craftGeoNetworkMestUrl(new URL("http://www.google.com/?&id=12"));
+		TC211Parser.craftGeoNetworkMestUrl(new URL("http://www.google.com/?&/"));
+		TC211Parser.craftGeoNetworkMestUrl(new URL("http://www.google.com/?&/id=12"));
+		TC211Parser.craftGeoNetworkMestUrl(new URL("http://www.google.com//?&/"));
+		TC211Parser.craftGeoNetworkMestUrl(new URL("http://www.google.com//?id=12&/"));
+	}
 }

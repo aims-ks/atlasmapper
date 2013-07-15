@@ -24,37 +24,15 @@ package au.gov.aims.atlasmapperserver.layerConfig;
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
-import au.gov.aims.atlasmapperserver.dataSourceConfig.WMSDataSourceConfigInterface;
-import au.gov.aims.atlasmapperserver.jsonWrappers.client.LayerWrapper;
-import org.json.JSONArray;
-import org.json.JSONException;
 
 import java.util.Arrays;
 
-public class WMSLayerConfig extends AbstractLayerConfig implements WMSDataSourceConfigInterface {
+public class WMSLayerConfig extends AbstractLayerConfig {
 	@ConfigField
 	private Boolean wmsQueryable;
 
 	@ConfigField
 	private String[] wmsFeatureRequestLayers;
-
-	@ConfigField
-	private String extraWmsServiceUrls;
-
-	@ConfigField
-	private String webCacheUrl;
-
-	@ConfigField
-	private String webCacheSupportedParameters;
-
-	@ConfigField
-	private String wmsRequestMimeType;
-
-	@ConfigField
-	private Boolean wmsTransectable;
-
-	@ConfigField
-	private String wmsVersion;
 
 	public WMSLayerConfig(ConfigManager configManager) {
 		super(configManager);
@@ -74,122 +52,6 @@ public class WMSLayerConfig extends AbstractLayerConfig implements WMSDataSource
 
 	public void setWmsFeatureRequestLayers(String[] wmsFeatureRequestLayers) {
 		this.wmsFeatureRequestLayers = wmsFeatureRequestLayers;
-	}
-
-	@Override
-	public String getExtraWmsServiceUrls() {
-		return this.extraWmsServiceUrls;
-	}
-
-	@Override
-	public String getWebCacheSupportedParameters() {
-		return this.webCacheSupportedParameters;
-	}
-
-	@Override
-	public void setWebCacheSupportedParameters(String webCacheSupportedParameters) {
-		this.webCacheSupportedParameters = webCacheSupportedParameters;
-	}
-
-	@Override
-	public void setExtraWmsServiceUrls(String extraWmsServiceUrls) {
-		this.extraWmsServiceUrls = extraWmsServiceUrls;
-	}
-
-	// Helper
-	public String[] getWebCacheSupportedParametersArray() {
-		if (this.webCacheSupportedParameters == null) {
-			return null;
-		}
-
-		String trimmedWebCacheParameters = this.webCacheSupportedParameters.trim();
-		if (trimmedWebCacheParameters.isEmpty()) {
-			return null;
-		}
-
-		return trimmedWebCacheParameters.split("\\s*,\\s*");
-	}
-
-	@Override
-	public String getWebCacheUrl() {
-		return this.webCacheUrl;
-	}
-
-	@Override
-	public void setWebCacheUrl(String webCacheUrl) {
-		this.webCacheUrl = webCacheUrl;
-	}
-
-	@Override
-	public String getWmsRequestMimeType() {
-		return this.wmsRequestMimeType;
-	}
-
-	@Override
-	public void setWmsRequestMimeType(String wmsRequestMimeType) {
-		this.wmsRequestMimeType = wmsRequestMimeType;
-	}
-
-	@Override
-	public Boolean isWmsTransectable() {
-		return this.wmsTransectable;
-	}
-
-	@Override
-	public void setWmsTransectable(Boolean wmsTransectable) {
-		this.wmsTransectable = wmsTransectable;
-	}
-
-	@Override
-	public String getWmsVersion() {
-		return this.wmsVersion;
-	}
-
-	@Override
-	public void setWmsVersion(String wmsVersion) {
-		this.wmsVersion = wmsVersion;
-	}
-
-	@Override
-	public LayerWrapper generateLayer() throws JSONException {
-		LayerWrapper jsonLayer = super.generateLayer();
-
-		if (Utils.isNotBlank(this.getWebCacheUrl())) {
-			jsonLayer.setWebCacheUrl(this.getWebCacheUrl().trim());
-		}
-
-		String[] webCacheParametersArray = this.getWebCacheSupportedParametersArray();
-		if (webCacheParametersArray != null && webCacheParametersArray.length > 0) {
-			JSONArray webCacheParameters = new JSONArray(webCacheParametersArray);
-			jsonLayer.setWebCacheSupportedParameters(webCacheParameters);
-		}
-
-		if (Utils.isNotBlank(this.getWmsVersion())) {
-			jsonLayer.setWmsVersion(this.getWmsVersion().trim());
-		}
-
-		if(this.isWmsQueryable() != null) {
-			jsonLayer.setWmsQueryable(this.isWmsQueryable());
-		}
-
-		if (Utils.isNotBlank(this.getExtraWmsServiceUrls())) {
-			jsonLayer.setExtraWmsServiceUrls(this.getExtraWmsServiceUrls().trim());
-		}
-
-		if (Utils.isNotBlank(this.getWmsRequestMimeType())) {
-			jsonLayer.setWmsRequestMimeType(this.getWmsRequestMimeType().trim());
-		}
-
-		String[] wmsFeatureRequestLayers = this.getWmsFeatureRequestLayers();
-		if (wmsFeatureRequestLayers != null && wmsFeatureRequestLayers.length > 0) {
-			jsonLayer.setWmsFeatureRequestLayers(wmsFeatureRequestLayers);
-		}
-
-		if (this.isWmsTransectable() != null) {
-			jsonLayer.setWmsTransectable(this.isWmsTransectable());
-		}
-
-		return jsonLayer;
 	}
 
 	public String toString() {

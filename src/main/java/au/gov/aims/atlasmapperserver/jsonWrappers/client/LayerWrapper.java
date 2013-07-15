@@ -30,9 +30,8 @@ import org.json.JSONObject;
  * It has been made to manage the Json keys in one location and simplify maintenance.
  */
 public class LayerWrapper extends AbstractWrapper {
-	public LayerWrapper(JSONObject json) {
-		super(json);
-	}
+	public LayerWrapper() { super(); }
+	public LayerWrapper(JSONObject json) { super(json); }
 
 	public Double getVersion() {
 		return this.getVersion(null);
@@ -51,6 +50,7 @@ public class LayerWrapper extends AbstractWrapper {
 		}
 	}
 
+	// TODO Remove (the ID is the key of the JSONObject)
 	public String getLayerId() {
 		return this.json.optString("layerId", null);
 	}
@@ -65,19 +65,32 @@ public class LayerWrapper extends AbstractWrapper {
 		this.json.put("dataSourceId", dataSourceId);
 	}
 
-	public String getDataSourceType() {
-		return this.json.optString("dataSourceType", null);
+	// Only used when a layer override the data source name, to put a layer in a different root folder.
+	// This option is quite useful to regroup data sources that provide only 1 layer.
+	public String getDataSourceName() {
+		return this.json.optString("dataSourceName", null);
 	}
-	public void setDataSourceType(String dataSourceType) throws JSONException {
-		this.json.put("dataSourceType", dataSourceType);
+	public void setDataSourceName(String dataSourceName) throws JSONException {
+		this.json.put("dataSourceName", dataSourceName);
 	}
 
-	// TODO change wmsServiceUrl to serviceUrl
+	public String getLayerType() {
+		return this.getLayerType(null);
+	}
+	public String getLayerType(String defaultValue) {
+		return this.json.optString("layerType",
+			// Backward compatibility
+			this.json.optString("dataSourceType", defaultValue));
+	}
+	public void setLayerType(String layerType) throws JSONException {
+		this.json.put("layerType", layerType);
+	}
+
 	public String getServiceUrl() {
-		return this.json.optString("wmsServiceUrl", null);
+		return this.json.optString("serviceUrl", null);
 	}
 	public void setServiceUrl(String serviceUrl) throws JSONException {
-		this.json.put("wmsServiceUrl", serviceUrl);
+		this.json.put("serviceUrl", serviceUrl);
 	}
 
 	// TODO delete after implementing Save State
@@ -91,11 +104,7 @@ public class LayerWrapper extends AbstractWrapper {
 		return this.json.optBoolean("selected");
 	}
 	public void setSelected(Boolean selected) throws JSONException {
-		if (selected == null && !this.json.isNull("selected")) {
-			this.json.remove("selected");
-		} else {
-			this.json.put("selected", selected);
-		}
+		this.setValue("selected", selected);
 	}
 
 	public String getFeatureRequestsUrl() {
@@ -152,6 +161,7 @@ public class LayerWrapper extends AbstractWrapper {
 		this.json.put("description", description);
 	}
 
+	// text, wiki, html
 	public String getDescriptionFormat() {
 		return this.json.optString("descriptionFormat", null);
 	}
@@ -314,11 +324,16 @@ public class LayerWrapper extends AbstractWrapper {
 		this.json.put("olOptions", olOptions);
 	}
 
-	public JSONArray getLayerOptions() {
-		return this.json.optJSONArray("layerOptions");
+	/**
+	 * Extra fields to add in the layer options panel, like CQL filter, time, depth, etc.
+	 * Usually used only with layer overrides.
+	 * @return
+	 */
+	public JSONArray getOptions() {
+		return this.json.optJSONArray("options");
 	}
-	public void setLayerOptions(JSONArray layerOptions) throws JSONException {
-		this.json.put("layerOptions", layerOptions);
+	public void setOptions(JSONArray options) throws JSONException {
+		this.json.put("options", options);
 	}
 
 	public String getTreePath() {
@@ -328,9 +343,9 @@ public class LayerWrapper extends AbstractWrapper {
 		this.json.put("treePath", treePath);
 	}
 
-	// Group layers (and ArcGIS)
+	// Group layers (and ArcGIS special group of grouped layers called "Service")
 	public boolean isGroup() {
-		return "GROUP".equals(this.getDataSourceType());
+		return "GROUP".equals(this.getLayerType()) || "SERVICE".equals(this.getLayerType());
 	}
 
 	public JSONArray getLayers() {

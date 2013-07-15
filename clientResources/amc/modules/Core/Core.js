@@ -38,7 +38,6 @@ Atlas.Core = OpenLayers.Class({
 	// The OpenLayers event object, set in initialize function
 	events: null,
 	configFileUrl: null,
-	preview: false,
 
 	mapPanels: null,
 
@@ -54,15 +53,12 @@ Atlas.Core = OpenLayers.Class({
 
 	mapCounter: 0,
 
-	initialize: function(configUrl, layersFileUrl, version, preview) {
+	initialize: function(configUrl, layersFileUrl, version) {
 		this.events = new OpenLayers.Events(this, null,
 			this.EVENT_TYPES);
 
 		this.mapPanels = [];
 
-		if (preview) {
-			this.preview = true;
-		}
 		if (version) {
 			this.version = version;
 		}
@@ -436,7 +432,6 @@ Atlas.Core = OpenLayers.Class({
 				url = this.layerInfoServiceUrl;
 				params = {
 					client: Atlas.conf['clientId'],
-					preview: this.preview,
 					layerIds: missingLayerIds.concat(missingDependencies),
 					ver: this.version
 				};
@@ -486,10 +481,7 @@ Atlas.Core = OpenLayers.Class({
 					params: params,
 					scope: this,
 					success: received,
-					failure: function (result, request) {
-						// TODO Error on the page
-						alert('The application has failed to load the requested layers');
-					}
+					failure: received // If it failed, use what we managed to get and try again...
 				});
 			}
 		} else if (cachedLayersJSon.length > 0) {
@@ -503,8 +495,11 @@ Atlas.Core = OpenLayers.Class({
 				if (missingLayersCallback) {
 					missingLayersCallback(missingLayerIds);
 				} else {
-					// TODO Error on the page
-					alert('The application has failed to load the layers ['+missingLayerIds.join()+']');
+					// Some layers could not be downloaded.
+					// This error happen when a client's catalog changes and someone try to access a URL saved state
+					// that use one of the old layers.
+					// NOTE: The AbstractMapPanel define the same error message, and the GeoExtMapPanel (and temporary the EmbeddedMapPanel) define a ExtJS error window.
+					alert('The application has failed to load the layers ['+missingLayerIds.join(', ')+']');
 				}
 			}
 		}
@@ -515,7 +510,6 @@ Atlas.Core = OpenLayers.Class({
 			url = this.layerInfoServiceUrl;
 			params = {
 				client: Atlas.conf['clientId'],
-				preview: this.preview,
 				iso19115_19139url: urlStr,
 				ver: this.version
 			};
@@ -632,7 +626,7 @@ Atlas.Core = OpenLayers.Class({
 							// No info found. Creating fake layers for the KML layer.
 							var layerId = OpenLayers.Util.createUniqueID("KML_");
 							var layerJSON = {
-								'dataSourceType': type,
+								'layerType': type,
 								'kmlUrl': kmlURL
 							};
 							this.loadLayerCache(layerJSON, layerId);
@@ -883,14 +877,14 @@ Atlas.Core = OpenLayers.Class({
 
 	// Create a list of arbitrary layerJSON (no fancy titles, descriptions, etc.) with
 	// the missing layers. Call the callback with those layers to add them in the map.
-	_requestMissingLayersJSon: function(dataSourceType, serverUrl, layerIds, callback) {
+	_requestMissingLayersJSon: function(layerType, serverUrl, layerIds, callback) {
 		var arbitraryLayersJSon = [];
 
 		for (var i=0; i<layerIds.length; i++) {
 			var layerId = layerIds[i];
 
 			var layerJSON = {
-				'dataSourceType': dataSourceType,
+				'layerType': layerType,
 				'serviceUrl': serverUrl,
 				'layerId': layerId
 			};
@@ -993,13 +987,13 @@ Atlas.Core = OpenLayers.Class({
 			if (dataSources.hasOwnProperty(dataSourceId)) {
 				dataSourceData = dataSources[dataSourceId];
 
-				if (!dataSourceData['dataSourceType']) {
-					dataSourceData['dataSourceType'] = "WMS";
+				if (!dataSourceData['layerType']) {
+					dataSourceData['layerType'] = "WMS";
 				} else {
-					dataSourceData['dataSourceType'] = dataSourceData['dataSourceType'].toUpperCase();
+					dataSourceData['layerType'] = dataSourceData['layerType'].toUpperCase();
 				}
 
-				if (dataSourceData['dataSourceType'] == 'WMS' || dataSourceData['dataSourceType'] == 'NCWMS') {
+				if (dataSourceData['layerType'] == 'WMS' || dataSourceData['layerType'] == 'NCWMS') {
 					if (!dataSourceData['featureRequestsUrl'] && dataSourceData['serviceUrl']) {
 						dataSourceData['featureRequestsUrl'] = dataSourceData['serviceUrl'];
 					}
@@ -1013,7 +1007,7 @@ Atlas.Core = OpenLayers.Class({
 	 */
 	normalizeLayerJSon: function(layerJSon) {
 		// Normalise "dataSourceId"
-		if (!layerJSon['dataSourceId'] && !layerJSon['dataSourceType']) {
+		if (!layerJSon['dataSourceId'] && !layerJSon['layerType']) {
 			layerJSon['dataSourceId'] = 'default'; // TODO get the "first" ID found in Atlas.conf['dataSources']
 		}
 
@@ -1103,7 +1097,7 @@ Atlas.Core = OpenLayers.Class({
 			layerJSon['description'] = layerJSon['title'];
 		}
 
-		// Apply all server config to the layer, to allow easy override in the layer.
+		// Apply all data source config to the layer, to allow easy override in the layer.
 		if (layerDataSource) {
 			for(var dataSourceProp in layerDataSource){
 				if(layerDataSource.hasOwnProperty(dataSourceProp)

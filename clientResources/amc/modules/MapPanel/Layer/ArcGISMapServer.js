@@ -39,9 +39,13 @@ Atlas.Layer.ArcGISMapServer = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 
 		var url = this.json['serviceUrl'];
 		if (this.json['arcGISPath']) {
-			url += '/' + this.json['arcGISPath'];
+			// Add a slash if the URL do not already ends with a slash
+			if (url.charAt(url.length - 1) !== '/') { url += '/'; }
+			url += this.json['arcGISPath'];
 		}
-		url += '/MapServer/';
+		// Add a slash if the URL do not already ends with a slash
+		if (url.charAt(url.length - 1) !== '/') { url += '/'; }
+		url += 'MapServer/';
 
 		this.exportUrl = url + 'export';
 		this.identifyUrl = url + 'identify';
@@ -52,11 +56,15 @@ Atlas.Layer.ArcGISMapServer = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 			this.getArcGISLayerParams(),
 			this.getArcGISLayerOptions()
 		));
+
+		// DPI
+		// The "dpi" attribute can be used with "Dynamic Map Service Layer", not "TiledMapServiceLayer":
+		//     http://forums.arcgis.com/threads/56085-dpi-properties-not-working
 	},
 
 	getServiceLayer: function() {
 		var serviceLayer = this;
-		while (serviceLayer != null && serviceLayer.json['dataSourceType'] != 'SERVICE') {
+		while (serviceLayer != null && serviceLayer.json['layerType'] != 'SERVICE') {
 			serviceLayer = serviceLayer.parent;
 		}
 		return serviceLayer;

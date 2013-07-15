@@ -23,6 +23,12 @@ Ext.namespace("GeoExt.ux");
 
 GeoExt.ux.NCWMSLegend = Ext.extend(GeoExt.ux.WMSLegend, {
 
+	initComponent: function() {
+		// ncWMS legend is always a static image (the DPI parameter is ignored)
+		this.legendDpiSupport = false;
+		GeoExt.ux.NCWMSLegend.superclass.initComponent.call(this);
+	},
+
 	/**
 	 * Construct a WMS legend, without styles attributes and with
 	 * PALETTE attribute when needed.

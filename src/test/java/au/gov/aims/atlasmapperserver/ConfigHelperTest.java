@@ -73,7 +73,7 @@ public class ConfigHelperTest extends TestCase {
 						"{"+
 							"\"id\":\"1\","+
 							"\"serverUrls\":\"http://aaa.com\","+
-							"\"dataSourceType\":\"WMS\","+
+							"\"layerType\":\"WMS\","+
 							"\"enable\":true,"+
 							"\"dataSourceId\":\"test\","+
 							"\"dataSourceName\":\"Test\","+
@@ -81,7 +81,7 @@ public class ConfigHelperTest extends TestCase {
 						"},{"+
 							"\"id\":\"2\","+
 							"\"serverUrls\":\"http://aaa2.com\","+
-							"\"dataSourceType\":\"NCWMS\","+
+							"\"dataSourceType\":\"NCWMS\","+ // Test backward compatibility
 							"\"enable\":true,"+
 							"\"dataSourceId\":\"test2\","+
 							"\"dataSourceName\":\"Test2\","+

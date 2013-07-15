@@ -30,9 +30,8 @@ import org.json.JSONObject;
  * It has been made to manage the Json keys in one location and simplify maintenance.
  */
 public class ClientWrapper extends AbstractWrapper {
-	public ClientWrapper(JSONObject json) {
-		super(json);
-	}
+	public ClientWrapper() { super(); }
+	public ClientWrapper(JSONObject json) { super(json); }
 
 	public Double getVersion() {
 		return this.getVersion(null);
@@ -197,13 +196,6 @@ public class ClientWrapper extends AbstractWrapper {
 	}
 	public void setClientUrl(String clientUrl) throws JSONException {
 		this.json.put("clientUrl", clientUrl);
-	}
-
-	public String getPreviewClientUrl() {
-		return this.json.optString("previewClientUrl", null);
-	}
-	public void setPreviewClientUrl(String previewClientUrl) throws JSONException {
-		this.json.put("previewClientUrl", previewClientUrl);
 	}
 
 	public String getLayerListUrl() {

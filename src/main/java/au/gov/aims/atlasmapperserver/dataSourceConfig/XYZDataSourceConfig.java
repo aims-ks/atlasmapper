@@ -21,26 +21,21 @@
 
 package au.gov.aims.atlasmapperserver.dataSourceConfig;
 
-import au.gov.aims.atlasmapperserver.AbstractConfig;
-import au.gov.aims.atlasmapperserver.ClientConfig;
 import au.gov.aims.atlasmapperserver.ConfigManager;
-import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
 import au.gov.aims.atlasmapperserver.layerGenerator.XYZLayerGenerator;
-import org.json.JSONException;
-import org.json.JSONObject;
 
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Pattern;
 
 public class XYZDataSourceConfig extends AbstractDataSourceConfig {
 	/**
 	 * List of URLs used to request the tiles (load balancing)
 	 */
 	@ConfigField
-	private String serviceUrls;
-	// Cache - avoid parsing baseLayers string every times.
-	private Set<String> serviceUrlsSet = null;
+	private String[] serviceUrls;
 
 	@ConfigField
 	private Boolean osm;
@@ -52,20 +47,23 @@ public class XYZDataSourceConfig extends AbstractDataSourceConfig {
 		super(configManager);
 	}
 
-	public String getServiceUrls() {
+	public String[] getServiceUrls() {
 		return this.serviceUrls;
 	}
-	public Set<String> getServiceUrlsSet() {
-		if (this.serviceUrlsSet == null && Utils.isNotBlank(this.serviceUrls)) {
-			this.serviceUrlsSet = AbstractConfig.toSet(this.serviceUrls);
+	public void setServiceUrls(String[] rawServiceUrls) {
+		List<String> serviceUrls = new ArrayList<String>(rawServiceUrls.length);
+		for (String rawServiceUrl : rawServiceUrls) {
+			// When the value come from the form (or an old config file), it's a coma separated String instead of an Array
+			Pattern regex = Pattern.compile(".*" + SPLIT_PATTERN + ".*", Pattern.DOTALL);
+			if (regex.matcher(rawServiceUrl).matches()) {
+				for (String splitUrl : rawServiceUrl.split(SPLIT_PATTERN)) {
+					serviceUrls.add(splitUrl.trim());
+				}
+			} else {
+				serviceUrls.add(rawServiceUrl.trim());
+			}
 		}
-
-		return this.serviceUrlsSet;
-	}
-
-	public void setServiceUrls(String serviceUrls) {
-		this.serviceUrls = serviceUrls;
-		this.serviceUrlsSet = null;
+		this.serviceUrls = serviceUrls.toArray(new String[serviceUrls.size()]);
 	}
 
 	public Boolean isOsm() {

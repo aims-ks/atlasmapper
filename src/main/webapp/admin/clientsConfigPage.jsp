@@ -72,22 +72,21 @@
 					for (AbstractDataSourceConfig cfg : dataSourceConfigs) {
 						if (cfg != null) {
 
-							boolean valid = false;
+							String status = "INVALID";
 							File applicationFolder = manager.getApplicationFolder();
 							File dataSourceCatalogFile = FileFinder.getDataSourcesCatalogFile(applicationFolder, cfg.getDataSourceId());
 							if (dataSourceCatalogFile.exists()) {
 								DataSourceWrapper dataSourceSavedState = AbstractDataSourceConfig.load(dataSourceCatalogFile);
 
 								if (dataSourceSavedState != null) {
-									Boolean validObj = dataSourceSavedState.getValid();
-									valid = validObj != null && validObj;
+									status = dataSourceSavedState.getStatus();
 								}
 							}
 
 							%><%=(first?"":",\n") +
 									"'" + Utils.safeJsStr(cfg.getDataSourceId()) + "': {" +
 										"name: '" + Utils.safeJsStr(cfg.getDataSourceName()) + "'," +
-										"valid: " + valid +
+										"status: '" + status + "'" +
 									"}"
 							%><%
 							first = false;

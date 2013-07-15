@@ -22,8 +22,11 @@
 Atlas.Legend = Ext.extend(Ext.Window, {
 	closable: false,
 	frame: false,
-	width:200,
+	width: 200,
 	boxMinWidth: 100,
+
+	minimumVisibleHeight: 40,
+	minimumVisibleWidth: 80,
 
 	autoHeight: true,
 
@@ -48,26 +51,106 @@ Atlas.Legend = Ext.extend(Ext.Window, {
 
 		// Render the legend and hide it until legend elements are added.
 		this.show();
-		this._align();
+		this.doInitialAlignment();
 		this.hide();
+
+		// Every time the browser window is resized, check if the legend is hidden and reposition it if needed.
+		this.mapPanel.on('afterlayout', this.repositionIfHidden, this);
+		this.on('move', this.repositionIfHidden, this);
+		this.on('show', this.repositionIfHidden, this);
 	},
 
-	_align: function() {
+	repositionIfHidden: function() {
+		if (!this._isMoving && this.mapPanel.rendered && this.isVisible()) {
+			// Size of the window
+			// IMPORTANT: This is not the size of what the user can see
+			//     in the browser, this is the total size of the whole
+			//     page, including what is hidden by the scrollbars.
+			//     This is quite tricky since every browser have
+			//     their own idea about the value of the many existing
+			//     attributes to get this.
+			var windowWidth, windowHeight;
+
+			// Get the viewport dimensions, defined in index.html
+			var viewportSize = window.viewport;
+			if (viewportSize) {
+				// Size of the page, including what is hidden by the scroller
+				windowWidth = viewportSize[0];
+				windowHeight = viewportSize[1];
+			} else {
+				// There is no user defined viewport, get the size of the visible area instead
+				// (using ExtJS, for better browser compatibility)
+				var windowSize = Ext.getBody().getViewSize();
+				windowWidth = windowSize['width'];
+				windowHeight = windowSize['height'];
+			}
+
+			var legendPosition = this.getPosition();
+			var legendWidth = this.getWidth();
+			var legendHeight = this.getHeight();
+
+			// Minimum visible legend width / height allow before
+			// repositioning the legend.
+			var needAdj = false;
+			var adjPosition = [legendPosition[0], legendPosition[1]];
+
+			// Too far off the screen to the left ?
+			if (legendPosition[0] + legendWidth < this.minimumVisibleWidth) {
+				needAdj = true;
+				adjPosition[0] = this.minimumVisibleWidth - legendWidth;
+			}
+
+			// Too far off the screen to the right ?
+			if (legendPosition[0] + this.minimumVisibleWidth > windowWidth) {
+				needAdj = true;
+				adjPosition[0] = windowWidth - this.minimumVisibleWidth;
+			}
+
+			// Too far off the screen to the top ?
+			if (legendPosition[1] + legendHeight < this.minimumVisibleHeight) {
+				needAdj = true;
+				adjPosition[1] = this.minimumVisibleHeight - legendHeight;
+			}
+
+			// Too fat off the screen to the bottom ?
+			if (legendPosition[1] + this.minimumVisibleHeight > windowHeight) {
+				needAdj = true;
+				adjPosition[1] = windowHeight - this.minimumVisibleHeight;
+			}
+
+			// WARNING! setPosition trigger 'move' event which trigger this method.
+			//     To avoid infinite loop, we set the private temporary attribute '_isMoving'.
+			//     (the 'move' event is still trigger and this method is still called but it does nothing)
+			if (needAdj) {
+				this._isMoving = true;
+				this.setPosition(adjPosition[0], adjPosition[1]);
+				delete this._isMoving;
+			}
+		}
+	},
+
+	doInitialAlignment: function() {
 		// Align the top-right corner of the legend window
 		// with the top-right corner of the mapPanel
-		// TODO Position it according to a config parameter?
 
 		// NOTE: The Legend window is independent from the mapPanel,
 		// but it use it to know where to be moved on the screen.
 		// So, the align function can only be called once the mapPanel
 		// as been rendered and layout.
+		var afterLayout = function() {
+			// The first time 'afterlayout' get called, the mapPanel width is too small (about 2px).
+			// The second time, the mapPanel has its real width.
+			if (this.mapPanel.body.getWidth() > 10) {
+				this.mapPanel.un('afterlayout', afterLayout, this);
+				this.alignTo(this.mapPanel.body, 'tr-tr', [-10, 10]);
+			}
+		};
+		this.mapPanel.un('afterlayout', afterLayout, this);
+
 		if (this.mapPanel.rendered) {
-			this.alignTo(this.mapPanel.body, 'tr-tr', [-10, 10]);
+			afterLayout.call(this);
 		} else {
-			var that = this;
-			this.mapPanel.on('afterlayout', function() {
-				that.alignTo(that.mapPanel.body, 'tr-tr', [-10, 10]);
-			});
+			this.mapPanel.on('afterlayout', afterLayout, this);
 		}
 	},
 
@@ -92,34 +175,5 @@ Atlas.Legend = Ext.extend(Ext.Window, {
 		}
 
 		Atlas.Legend.superclass.onResize.call(this, w, h, rawWidth, rawHeight);
-	},
-
-	// Adjust the position when setPosition is called
-	adjustPosition : function(x, y){
-		var adjx = x, adjy = y;
-		var mapPos = this.mapPanel.getPosition();
-
-		// To limit the legend on the mapPanel (do not allow dd on the left panel);
-		//     minx = mapPos[0]
-		// To force the legend to always be visible (never hidden in the bottom of the browser window);
-		//     maxy = mapPos[1] + this.mapPanel.getHeight() - this.getHeight()
-		var minx = 0,
-			maxx = mapPos[0] + this.mapPanel.getWidth() - this.getWidth(),
-			miny = mapPos[1],
-			maxy = mapPos[1] + this.mapPanel.getHeight() - 35;
-
-		if (maxx < minx) { maxx = minx; }
-		if (maxy < miny) { maxy = miny; }
-
-		if (adjx < minx) { adjx = minx; }
-		if (adjx > maxx) { adjx = maxx; }
-
-		if (adjy < miny) { adjy = miny; }
-		if (adjy > maxy) { adjy = maxy; }
-
-		this.x = adjx;
-		this.y = adjy;
-
-		return {x: adjx, y: adjy};
 	}
 });

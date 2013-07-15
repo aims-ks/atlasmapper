@@ -84,6 +84,8 @@ Atlas.Layer.KML = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 		}
 	},
 
+	/*
+	// Adding the documentName to the layer title is un-intuitive and the admin do not have any control over it. Better let it as it is.
 	// Override
 	getTitle: function() {
 		var title = Atlas.Layer.AbstractLayer.prototype.getTitle.apply(this, arguments);
@@ -91,7 +93,7 @@ Atlas.Layer.KML = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 			return this.json['documentName'] + ' (' + title + ')';
 		}
 		return title;
-	},
+	},*/
 
 	// KML are vector; they can always be located, but their extent can only be calculated once the layer is loaded.
 	canBeLocated: function() {

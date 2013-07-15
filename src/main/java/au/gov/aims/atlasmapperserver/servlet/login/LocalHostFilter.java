@@ -86,7 +86,8 @@ public class LocalHostFilter implements Filter {
 	}
 
 	private boolean isAllowedIP(String ip) {
-		return "127.0.0.1".equals(ip);
+		// Requested from localhost (IPv4 or IPv6)
+		return "127.0.0.1".equals(ip) || "0:0:0:0:0:0:0:1".equals(ip);
 	}
 
 	private void sendUnauthorizedResponse(HttpServletResponse response) throws IOException {

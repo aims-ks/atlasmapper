@@ -228,6 +228,7 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 
 	/**
 	 * Auto-set the options for a given layer.
+	 * Options: Fields in the options panel to control the layer URL parameters (such as CQL filter, time, depth, etc.)
 	 */
 	setLayerOptions: function(node) {
 		var layer = (node ? node.layer : null);
@@ -335,48 +336,57 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 				layer.atlasLayer.setOptions(this);
 
 				// User defined options in the Manual layer override
-				if (layer.atlasLayer.json['layerOptions']) {
-					Ext.each(layer.atlasLayer.json['layerOptions'], function(option) {
-						var inputObj = null;
+				// Default values are setup in AbstractLayer
+				if (layer.atlasLayer.json['options']) {
+					Ext.each(layer.atlasLayer.json['options'], function(option) {
+						if (option && option['name']) {
+							var inputObj = null;
 
-						var inputConfig = {
-							fieldLabel: (option['title'] ? option['title'] : option['name']),
-							xtype: option['type'],
-							name: option['name'],
-							listeners: {
-								change: this.onExtraOptionChange, // For most fields
-								select: this.onExtraOptionChange  // For combobox (dropdown list)
+							var inputConfig = {
+								fieldLabel: (option['title'] ? option['title'] : option['name']),
+								xtype: option['type'],
+								name: option['name'],
+								listeners: {
+									scope: this,
+									change: this.onExtraOptionChange, // For most fields
+									select: this.onExtraOptionChange, // For combobox (dropdown list)
+									specialkey: function(field, event) {
+										if (event.getKey() == event.ENTER) {
+											this.onExtraOptionChange();
+										}
+									}
+								}
+							};
+							if (option['type'] === 'datefield') {
+								inputConfig.format = 'd/m/Y'; // TODO Get displayFormat from config
 							}
-						};
-						if (option['type'] === 'datefield') {
-							inputConfig.format = 'd/m/Y'; // TODO Get displayFormat from config
-						}
-						if (option['type'] === 'ux-datefield') {
-							inputConfig.format = 'd/m/Y'; // TODO Get displayFormat from config
-							inputConfig.outputFormat = 'Y-m-d'; // TODO Get valueFormat from config
-						}
-						if (option['type'] === 'ux-ncdatetimefield') {
-							inputConfig.dateFormat = 'd/m/Y'; // TODO Get displayFormat from config
-							inputConfig.timeFormat = 'H:i:s'; // TODO Get displayFormat from config
-							// Set the URLs to load the available dates & times
-							inputConfig.layer = layer;
-						}
+							if (option['type'] === 'ux-datefield') {
+								inputConfig.format = 'd/m/Y'; // TODO Get displayFormat from config
+								inputConfig.outputFormat = 'Y-m-d'; // TODO Get valueFormat from config
+							}
+							if (option['type'] === 'ux-ncdatetimefield') {
+								inputConfig.dateFormat = 'd/m/Y'; // TODO Get displayFormat from config
+								inputConfig.timeFormat = 'H:i:s'; // TODO Get displayFormat from config
+								// Set the URLs to load the available dates & times
+								inputConfig.layer = layer;
+							}
 
-						// Greg's ux-ncplotpanel configuration
-						if (option['type'] === 'ux-ncplotpanel') {
-							inputConfig.format = 'd/m/Y'; // TODO Get displayFormat from config
-							inputConfig.layer = layer;
-							inputConfig.mapPanel = that.mapPanel;
-						}
+							// Greg's ux-ncplotpanel configuration
+							if (option['type'] === 'ux-ncplotpanel') {
+								inputConfig.format = 'd/m/Y'; // TODO Get displayFormat from config
+								inputConfig.layer = layer;
+								inputConfig.mapPanel = that.mapPanel;
+							}
 
-						inputObj = this.extraOptionsFieldSet.add(inputConfig);
+							var extraOptionName = option['name'].toUpperCase();
+							var actualValue = layer.atlasLayer.getParameter(extraOptionName, null);
 
-						var extraOptionName = option['name'].toUpperCase();
-						var actualValue = layer.atlasLayer.getParameter(extraOptionName, option['defaultValue']);
+							// Set the actual value.
+							if (actualValue) {
+								inputConfig.value = actualValue;
+							}
 
-						// Set the actual value.
-						if (actualValue) {
-							inputObj.setValue(actualValue);
+							inputObj = this.extraOptionsFieldSet.add(inputConfig);
 						}
 					}, this);
 				}

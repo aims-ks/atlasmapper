@@ -24,13 +24,9 @@ import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.URLCache;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
-import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
-import au.gov.aims.atlasmapperserver.layerConfig.KMLLayerConfig;
-import au.gov.aims.atlasmapperserver.layerConfig.WMSLayerConfig;
+import au.gov.aims.atlasmapperserver.jsonWrappers.client.LayerWrapper;
 import org.json.JSONException;
-import org.json.JSONObject;
 import org.xml.sax.SAXException;
-import org.xml.sax.SAXNotRecognizedException;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -38,10 +34,10 @@ import javax.xml.parsers.SAXParserFactory;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -50,29 +46,20 @@ import java.util.logging.Logger;
 public class TC211Parser {
 	private static final Logger LOGGER = Logger.getLogger(TC211Parser.class.getName());
 
-	public static final String NL = System.getProperty("line.separator");
-	private static final String TITLE_ATTR = "Title:";
-	public static final String TITLE_KEY = "TITLE";
-	private static final String DESCRIPTION_ATTR = "Description:";
-	public static final String DESCRIPTION_KEY = "DESCRIPTION";
-	private static final String PATH_ATTR = "Path:";
-	public static final String PATH_KEY = "PATH";
-
-	private static final String APPLICATION_PROFILE_ATTR = "AtlasMapper:";
-
 	/**
 	 * Cached
 	 * @param configManager Config manager associated to that URL, for caching purpose
 	 * @param dataSource Data source associated to that URL, for caching purpose
 	 * @param url Url of the document to parse
 	 * @param mandatory True to cancel the client generation if the file cause problem
+	 * @param validMimeType True if the mime type specified in the document is TC211. This parameter is used to ignored warnings concerning MEST document with invalid mime type.
 	 * @return
 	 * @throws SAXException
 	 * @throws ParserConfigurationException
 	 * @throws IOException
 	 * @throws JSONException
 	 */
-	public static TC211Document parseURL(ConfigManager configManager, AbstractDataSourceConfig dataSource, URL url, boolean mandatory, boolean clearMetadataCache)
+	public static TC211Document parseURL(ConfigManager configManager, AbstractDataSourceConfig dataSource, URL url, boolean mandatory, boolean validMimeType)
 			throws SAXException, ParserConfigurationException, IOException, JSONException {
 
 		String urlStr = url.toString();
@@ -80,18 +67,134 @@ public class TC211Parser {
 
 		TC211Document tc211Document = null;
 		try {
-			cachedDocumentFile = URLCache.getURLFile(configManager, dataSource, urlStr, mandatory, clearMetadataCache);
+			cachedDocumentFile = URLCache.getURLFile(
+					configManager,
+					dataSource,
+					urlStr,
+					validMimeType ? URLCache.Category.MEST_RECORD : URLCache.Category.BRUTEFORCE_MEST_RECORD,
+					mandatory);
 			tc211Document = parseFile(cachedDocumentFile, urlStr);
-			URLCache.commitURLFile(configManager, cachedDocumentFile, urlStr);
+			if (tc211Document == null) {
+				File rollbackFile = URLCache.rollbackURLFile(configManager, cachedDocumentFile, urlStr, "Invalid TC211 document");
+				tc211Document = parseFile(rollbackFile, urlStr);
+			} else {
+				URLCache.commitURLFile(configManager, cachedDocumentFile, urlStr);
+			}
 		} catch (Exception ex) {
+			// Parsing a file that has already been accepted - Very unlikely to throw an exception here
 			File rollbackFile = URLCache.rollbackURLFile(configManager, cachedDocumentFile, urlStr, ex);
 			tc211Document = parseFile(rollbackFile, urlStr);
+		}
+
+		// Still no document? Assuming the MEST service is GeoNetwork, try to craft a better URL
+		if (tc211Document == null) {
+			URL craftedUrl = null;
+			try {
+				craftedUrl = craftGeoNetworkMestUrl(url);
+			} catch (Exception ex) {
+				// This should not happen
+				LOGGER.log(Level.WARNING, "Unexpected error occurred while crafting a GeoNetwork URL", ex);
+			}
+			if (craftedUrl != null) {
+				String craftedUrlStr = craftedUrl.toString();
+				try {
+
+					cachedDocumentFile = URLCache.getURLFile(
+							configManager,
+							dataSource,
+							craftedUrlStr,
+							validMimeType ? URLCache.Category.MEST_RECORD : URLCache.Category.BRUTEFORCE_MEST_RECORD,
+							mandatory);
+					tc211Document = parseFile(cachedDocumentFile, craftedUrlStr);
+					if (tc211Document == null) {
+						File rollbackFile = URLCache.rollbackURLFile(configManager, cachedDocumentFile, craftedUrlStr, "Invalid TC211 document");
+						tc211Document = parseFile(rollbackFile, craftedUrlStr);
+					} else {
+						// NOTE: The capabilities document refer to a MEST document, but the URL is not
+						//     an actual TC211 MEST record. Using some basic URL crafting, the AtlasMapper
+						//     managed to find a URL that returns a valid MEST record. Therefore, the
+						//     invalid URL should be linked (redirection) to the valid crafted one,
+						//     so the application will not try to re-download the HTML one again.
+						URLCache.setRedirection(configManager, urlStr, craftedUrlStr);
+						URLCache.commitURLFile(configManager, cachedDocumentFile, craftedUrlStr);
+					}
+				} catch (Exception ex) {
+					// Parsing a file that has already been accepted - Very unlikely to throw an exception here
+					File rollbackFile = URLCache.rollbackURLFile(configManager, cachedDocumentFile, craftedUrlStr, "Invalid TC211 document");
+					tc211Document = parseFile(rollbackFile, craftedUrlStr);
+				}
+			}
 		}
 
 		return tc211Document;
 	}
 
-	private static SAXParser getSAXParser() throws SAXException, SAXNotRecognizedException, ParserConfigurationException {
+	/**
+	 * 1. Find pattern in the URL that would be good indication that we have a GeoNetwork URL.
+	 * 2. Craft a URL to the XML document.
+	 *
+	 * Example:
+	 *     http://www.cmar.csiro.au/geonetwork/srv/en/metadata.show?uuid=urn:cmar.csiro.au:dataset:13028&currTab=full
+	 * should return:
+	 *     http://www.cmar.csiro.au/geonetwork/srv/en/iso19139.xml?uuid=urn:cmar.csiro.au:dataset:13028&currTab=full
+	 *
+	 * Example:
+	 *     http://www.cmar.csiro.au/geonetwork/srv/en/metadata.show?id=44003&currTab=full
+	 * should return:
+	 *     http://www.cmar.csiro.au/geonetwork/srv/en/iso19139.xml?id=44003&currTab=full
+	 * @param brokenUrl
+	 * @return
+	 */
+	protected static URL craftGeoNetworkMestUrl(URL brokenUrl) throws URISyntaxException, MalformedURLException {
+		if (brokenUrl == null) {
+			return null;
+		}
+
+		String brokenUrlQuery = brokenUrl.getQuery();
+		if (Utils.isNotBlank(brokenUrlQuery)) {
+			// The Scheme is the URL's protocol (http)
+			String scheme = brokenUrl.getProtocol();
+
+			// The Authority is the URL's host and the port number if needed
+			int port = brokenUrl.getPort(); // 80, 443, etc. -1 if not set
+			String authority = brokenUrl.getHost() + (port > 0 ? ":"+port : ""); // www.domain.com:80
+
+			// URI and URL agree to call this a path
+			String path = brokenUrl.getPath(); // geonetwork/srv/en/metadata.show
+
+			String[] brokenUrlParams = brokenUrlQuery.split("&");
+			for (String paramStr : brokenUrlParams) {
+				String[] param = paramStr.split("=");
+				if ("id".equalsIgnoreCase(param[0]) || "uuid".equalsIgnoreCase(param[0])) {
+					// Transform "geonetwork/srv/en/metadata.show" into "geonetwork/srv/en/iso19139.xml"
+					int slashIdx = path.lastIndexOf("/");
+
+					String newPath = slashIdx <= 0 ? "/iso19139.xml" :
+							path.substring(0, slashIdx) + "/iso19139.xml";
+
+					URI uri = new URI(
+							scheme,
+							authority,
+							newPath,
+							brokenUrlQuery,
+							null);
+
+					String cleanUrlStr = uri.toASCIIString();
+
+					// Return null if the crafted URL is the same as the input one.
+					if (cleanUrlStr.equals(brokenUrl.toString())) {
+						return null;
+					}
+
+					return new URL(cleanUrlStr);
+				}
+			}
+		}
+
+		return null;
+	}
+
+	private static SAXParser getSAXParser() throws SAXException, ParserConfigurationException {
 		SAXParserFactory factory = SAXParserFactory.newInstance();
 
 		// Disabling DTD loading & validation
@@ -125,7 +228,7 @@ public class TC211Parser {
 
 		saxParser.parse(file, handler);
 
-		return doc;
+		return doc.isEmpty() ? null : doc;
 	}
 
 	/**
@@ -155,124 +258,8 @@ public class TC211Parser {
 		return doc;
 	}
 
-
-
-
-	@Deprecated
-	public static Map<String, StringBuilder> parseMestDescription(String descriptionStr) {
-		Map<String, StringBuilder> descriptionMap = new HashMap<String, StringBuilder>();
-
-		String currentKey = null;
-		// Scanner is used to process each lines one by one. It's more efficient than using
-		// the method split to generate an array of String.
-		Scanner scanner = new Scanner(descriptionStr.trim());
-		while (scanner.hasNextLine()) {
-			String line = scanner.nextLine();
-			// This should not happen...
-			if (line == null) { line = ""; }
-			// Remove trailing white spaces.
-			line = line.trim();
-
-			if (line.startsWith(TITLE_ATTR)) {
-				currentKey = TITLE_KEY;
-				descriptionMap.put(TITLE_KEY, new StringBuilder(
-						line.substring(TITLE_ATTR.length()).trim()));
-
-			} else if (line.startsWith(DESCRIPTION_ATTR)) {
-				currentKey = DESCRIPTION_KEY;
-				descriptionMap.put(DESCRIPTION_KEY, new StringBuilder(
-						line.substring(DESCRIPTION_ATTR.length()).trim()));
-
-			} else if (line.startsWith(PATH_ATTR)) {
-				currentKey = PATH_KEY;
-				descriptionMap.put(PATH_KEY, new StringBuilder(
-						line.substring(PATH_ATTR.length()).trim()));
-
-			} else {
-				if (currentKey == null) {
-					// Text was found before an attribute. No attributes are expected...
-					descriptionMap.put(DESCRIPTION_KEY, new StringBuilder(descriptionStr));
-					break;
-				} else {
-					StringBuilder value = descriptionMap.get(currentKey);
-					value.append(NL);
-					value.append(line);
-				}
-			}
-		}
-
-		return descriptionMap;
-	}
-
-	/**
-	 * EXPERIMENTAL
-	 * This method is used to parse the "gmd:applicationProfile" field of the Metadata document (MEST).
-	 * This field is used by the AtlasMapper and other AtlasHub applications (such as the MetadataViewer)
-	 * to input some application related values; in the case of the AtlasMapper, the field contains
-	 * initial manual overrides.
-	 * Example of expected value for the XML field:
-	 *     AtlasMapper: {"hasLegend": false, "wmsQueryable": false}, Metadataviewer: {"onlyShow":true}
-	 * @param applicationProfileStr The application profile String as found in the XML document.
-	 * @return A map of Application name (as key) associated with it related configuration (JSONObject value)
-	 */
-	// AtlasMapper:{"hasLegend": false,"wmsQueryable": false } Metadataviewer:{"onlyShow":true}
-	@Deprecated
-	public static JSONObject parseMestApplicationProfile(String applicationProfileStr) {
-		int applicationConfigIndex = applicationProfileStr.indexOf(APPLICATION_PROFILE_ATTR);
-
-		if (applicationConfigIndex < 0) {
-			// There is no configuration for the AtlasMapper in this application profile string.
-			return null;
-		}
-
-		String rawAtlasMapperProfileStr = applicationProfileStr.substring(applicationConfigIndex + APPLICATION_PROFILE_ATTR.length());
-		if (rawAtlasMapperProfileStr == null || rawAtlasMapperProfileStr.isEmpty()) {
-			// A configuration has been found but it's empty.
-			return null;
-		}
-
-		rawAtlasMapperProfileStr = rawAtlasMapperProfileStr.trim();
-		if (!rawAtlasMapperProfileStr.startsWith("{")) {
-			// A configuration has been found but it's not a valid JSON config.
-			// Try to find a valid one on the rest of the string.
-			return parseMestApplicationProfile(rawAtlasMapperProfileStr);
-		}
-
-		int end = findEndOfBloc(rawAtlasMapperProfileStr, 0);
-		String atlasMapperProfileStr = rawAtlasMapperProfileStr.substring(0, end+1);
-
-		JSONObject json = null;
-		try {
-			json = new JSONObject(atlasMapperProfileStr);
-		} catch (Exception ex) {
-			// Try with the rest of the line
-			json = parseMestApplicationProfile(rawAtlasMapperProfileStr);
-
-			if (json == null) {
-				// It is possible, but very unlikely, that this error message get displayed more than once
-				// for the same String (it may happen if the text "AtlasMapper:" occurred more once in the
-				// applicationProfile string).
-				LOGGER.log(Level.WARNING, "Invalid JSON configuration for the AtlasMapper \"{0}\" in the applicationProfile \"{1}\"\n{2}", new String[]{ atlasMapperProfileStr, applicationProfileStr, Utils.getExceptionMessage(ex) });
-				LOGGER.log(Level.FINE, "Stack trace: ", ex);
-			}
-		}
-
-		return json;
-	}
-	private static int findEndOfBloc(String str, int offset) {
-		for (int i=offset+1, len=str.length(); i<len; i++) {
-			if (str.charAt(i) == '{') {
-				i = findEndOfBloc(str, i);
-			} else if (str.charAt(i) == '}') {
-				return i;
-			}
-		}
-		// No end of block found. Return the index of the last char.
-		return str.length()-1;
-	}
-
 	private static int seq = 0; // tmp layer id sequence
-	public static AbstractLayerConfig createLayer(ConfigManager configManager, TC211Document document, TC211Document.Link link) throws JSONException {
+	public static LayerWrapper createLayer(ConfigManager configManager, TC211Document document, TC211Document.Link link) throws JSONException {
 		TC211Document.Protocol protocol = link.getProtocol();
 		if (protocol == null) { return null; }
 
@@ -280,24 +267,20 @@ public class TC211Parser {
 		String linkName = link.getName();
 
 		// Create a custom WMS layer, with all the info available in the metadata document
-		AbstractLayerConfig layer = null;
+		LayerWrapper layer = new LayerWrapper();
 		if (protocol.isOGC()) {
-			WMSLayerConfig wmsLayer = new WMSLayerConfig(configManager);
-			wmsLayer.setDataSourceType("WMS");
-			wmsLayer.setServiceUrl(serviceUrl);
+			layer.setLayerType("WMS");
+			layer.setServiceUrl(serviceUrl);
 			if (Utils.isBlank(linkName)) {
 				return null;
 			}
-			layer = wmsLayer;
 
 		} else if (protocol.isKML()) {
-			KMLLayerConfig kmlLayer = new KMLLayerConfig(configManager);
-			kmlLayer.setDataSourceType("KML");
-			kmlLayer.setKmlUrl(serviceUrl);
+			layer.setLayerType("KML");
+			layer.setKmlUrl(serviceUrl);
 			if (Utils.isBlank(linkName)) {
 				linkName = "KML";
 			}
-			layer = kmlLayer;
 
 		} else {
 			return null;
@@ -308,63 +291,16 @@ public class TC211Parser {
 		layer.setLayerName(linkName);
 
 		// *** MEST Description ***
-
 		String layerDescription = link.getDescription();
-		// The layer description found in the MEST is added to the description of the AtlasMapper layer.
-		// The description may also specified a title for the layer, and other attributes,
-		// using the following format:
-		//     Title: Coral sea Plateau
-		//     Description: Plateau is a flat or nearly flat area...
-		//     Subcategory: 2. GBRMPA features
-		Map<String, StringBuilder> parsedDescription = TC211Parser.parseMestDescription(layerDescription);
+		if (Utils.isNotBlank(layerDescription)) {
+			layer.setDescription(layerDescription);
+			layer.setDescriptionFormat("wiki");
+		}
 
 		// The layer title is replace with the title from the MEST link description.
 		String titleStr = linkName;
-		if (parsedDescription.containsKey(TC211Parser.TITLE_KEY) && parsedDescription.get(TC211Parser.TITLE_KEY) != null) {
-			titleStr = parsedDescription.get(TC211Parser.TITLE_KEY).toString().trim();
-			if (!titleStr.isEmpty()) {
-				layer.setTitle(titleStr);
-			}
-		}
 		if (Utils.isNotBlank(titleStr)) {
 			layer.setTitle(titleStr);
-		}
-
-		// The description found in the MEST link description (i.e. Layer description) is added
-		// at the beginning of the layer description (with a "Dataset description" label to
-		//     divide the layer description from the rest).
-		if (parsedDescription.containsKey(TC211Parser.DESCRIPTION_KEY) && parsedDescription.get(TC211Parser.DESCRIPTION_KEY) != null) {
-			StringBuilder descriptionSb = parsedDescription.get(TC211Parser.DESCRIPTION_KEY);
-			if (descriptionSb.length() > 0) {
-
-				String datasetDescription = document.getAbstract();
-				if (Utils.isNotBlank(datasetDescription)) {
-					descriptionSb.append(TC211Parser.NL); descriptionSb.append(TC211Parser.NL);
-					descriptionSb.append("*Dataset description*"); descriptionSb.append(TC211Parser.NL);
-					descriptionSb.append(datasetDescription);
-				}
-
-				layer.setDescription(descriptionSb.toString().trim());
-				layer.setDescriptionFormat("wiki");
-			}
-		}
-
-		// The path found in the MEST link description override the WMS path in the layer.
-		if (parsedDescription.containsKey(TC211Parser.PATH_KEY) && parsedDescription.get(TC211Parser.PATH_KEY) != null) {
-			String treePathStr = parsedDescription.get(TC211Parser.PATH_KEY).toString().trim();
-			if (!treePathStr.isEmpty()) {
-				layer.setTreePath(treePathStr);
-			}
-		}
-
-		// *** MEST Application profile ***
-
-		String applicationProfileStr = link.getApplicationProfile();
-		if (applicationProfileStr != null && !applicationProfileStr.isEmpty()) {
-			JSONObject mestOverrides = TC211Parser.parseMestApplicationProfile(applicationProfileStr);
-			if (mestOverrides != null && mestOverrides.length() > 0) {
-				layer.applyOverrides(mestOverrides);
-			}
 		}
 
 		return layer;

@@ -22,10 +22,7 @@
 package au.gov.aims.atlasmapperserver.layerConfig;
 
 import au.gov.aims.atlasmapperserver.ConfigManager;
-import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
-import au.gov.aims.atlasmapperserver.jsonWrappers.client.LayerWrapper;
-import org.json.JSONException;
 
 public class GroupLayerConfig extends AbstractLayerConfig {
 	@ConfigField
@@ -34,6 +31,10 @@ public class GroupLayerConfig extends AbstractLayerConfig {
 	// Layer group children
 	@ConfigField
 	private String[] layers;
+
+	// Used with ArcGIS
+	@ConfigField
+	private Boolean singleFusedMapCache;
 
 	public GroupLayerConfig(ConfigManager configManager) {
 		super(configManager);
@@ -55,19 +56,11 @@ public class GroupLayerConfig extends AbstractLayerConfig {
 		this.layers = layers;
 	}
 
-	@Override
-	public LayerWrapper generateLayer() throws JSONException {
-		LayerWrapper jsonLayer = super.generateLayer();
+	public Boolean isSingleFusedMapCache() {
+		return this.singleFusedMapCache;
+	}
 
-		if(Utils.isNotBlank(this.getGroupPath())) {
-			// TODO groupPath instead of arcGISPath
-			jsonLayer.setArcGISPath(this.getGroupPath().trim());
-		}
-		String[] groupLayers = this.getLayers();
-		if (groupLayers != null && groupLayers.length > 0) {
-			jsonLayer.setLayers(groupLayers);
-		}
-
-		return jsonLayer;
+	public void setSingleFusedMapCache(Boolean singleFusedMapCache) {
+		this.singleFusedMapCache = singleFusedMapCache;
 	}
 }

@@ -66,12 +66,6 @@
 	int indent = (request.getParameter("indent") != null ? Integer.parseInt(request.getParameter("indent")) : 0);
 	JSONObject jsonObj = new JSONObject();
 
-	// live:
-	//     true: Perform a search using the current client config.
-	//     false (default): Perform a search using the generated client config.
-	// "live" is true only when it's value is the String "true", ignoring case.
-	boolean live = (request.getParameter("live") != null && Boolean.parseBoolean(request.getParameter("live")));
-
 	if (Utils.isBlank(clientId)) {
 		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 		jsonObj.put("success", false);
@@ -87,7 +81,7 @@
 				JSONObject results = null;
 
 				try {
-					results = clientConfig.locationSearch(query, bounds, offset, qty, live);
+					results = clientConfig.locationSearch(query, bounds, offset, qty);
 				} catch (Exception ex) {
 					response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 					jsonObj.put("success", false);

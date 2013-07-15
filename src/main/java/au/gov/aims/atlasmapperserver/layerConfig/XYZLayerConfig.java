@@ -22,11 +22,8 @@
 package au.gov.aims.atlasmapperserver.layerConfig;
 
 import au.gov.aims.atlasmapperserver.ConfigManager;
-import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
-import au.gov.aims.atlasmapperserver.jsonWrappers.client.LayerWrapper;
 import org.json.JSONArray;
-import org.json.JSONException;
 
 public class XYZLayerConfig extends AbstractLayerConfig {
 	@ConfigField
@@ -53,16 +50,5 @@ public class XYZLayerConfig extends AbstractLayerConfig {
 
 	public void setFormat(String format) {
 		this.format = format;
-	}
-
-	@Override
-	public LayerWrapper generateLayer() throws JSONException {
-		LayerWrapper jsonLayer = super.generateLayer();
-
-		if (Utils.isNotBlank(this.getFormat())) {
-			jsonLayer.setFormat(this.getFormat().trim());
-		}
-
-		return jsonLayer;
 	}
 }

@@ -91,20 +91,51 @@ Atlas.Layer.WMS = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 
 	// Override
 	setOptions: function(optionsPanel) {
-		var that = this;
-		var useCache = {
+		// NOTE: This value of this variable is also set on loadstart.
+		var cacheAvailable = this.canUseWebCache(this.layer.params);
+		var useCacheCheckboxId = 'useCache_' + this.layerId;
+		var useCacheCheckbox = {
 			xtype: "checkbox",
 			name: "useCache",
+			id: useCacheCheckboxId,
 			cls: "advancedOption",
-			fieldLabel: "Use server cache when available",
-			checked: true,
+			fieldLabel: "Use server cache",
+			checked: cacheAvailable && this.useCache,
+			disabled: !cacheAvailable,
+			layer: this.layer,
+			scope: this,
 			handler: function(checkbox, checked) {
-				that.useCache = !!checked;
+				// Modify the "useCache" flag if the user has click the checkbox
+				// (do not modify the flag if the checkbox state is changed by
+				// the action of disabling the ckeckbox)
+				if (this.canUseWebCache(this.layer.params)) {
+					this.useCache = !!checked;
+				}
 				// This trigger a redraw if needed (if the server URL has changed)
-				that.setParameters({});
+				this.setParameters({});
 			}
 		};
-		optionsPanel.addOption(this, useCache);
+		optionsPanel.addOption(this, useCacheCheckbox);
+
+		// Change the checkbox status when the layer parameters changes
+		this.layer.events.on({
+			// TODO Unregister this!!
+			'loadstart': function() {
+				// The checkbox is destroyed and recreated every time the panel is redrawn,
+				// so we can not keep a reference to the component.
+				var useCacheCheckboxObj = Ext.ComponentMgr.get(useCacheCheckboxId);
+				if (useCacheCheckboxObj && useCacheCheckboxObj.layer == this.layer) {
+					cacheAvailable = this.canUseWebCache(this.layer.params);
+					useCacheCheckboxObj.setValue(cacheAvailable && this.useCache);
+					if (cacheAvailable) {
+						useCacheCheckboxObj.enable();
+					} else {
+						useCacheCheckboxObj.disable();
+					}
+				}
+			},
+			scope: this
+		});
 	},
 
 	// override
@@ -309,15 +340,36 @@ Atlas.Layer.WMS = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 			format: format
 		};
 
-		if (parseFloat(layer.params.VERSION) >= 1.3) {
-			params.crs = this.mapPanel.map.getProjection();
-			params.i = clickPosition.x;
-			params.j = clickPosition.y;
-		} else {
-			params.srs = this.mapPanel.map.getProjection();
-			params.x = clickPosition.x;
-			params.y = clickPosition.y;
+		if (this.json['options']) {
+			for (var i=0, len=this.json['options'].length; i < len; i++) {
+				var option = this.json['options'][i];
+				if (option['name']) {
+					var extraOptionName = option['name'].toUpperCase();
+					var value = this.getParameter(extraOptionName, null);
+					if (value) {
+						params[extraOptionName] = value;
+					}
+				}
+			}
 		}
+
+		// Some WMS server require 1.1.1 parameters even when the layer has been requested as 1.3.0 (and vice versa)
+		// so the easiest and more strait forward way to ensure the feature request works is to always add both set
+		// of parameters.
+
+		// For version 1.3.0
+		var projection = layer.projection;
+		if (!projection) {
+			projection = this.mapPanel.map.getProjection();
+		}
+		params.crs = projection;
+		params.i = clickPosition.x;
+		params.j = clickPosition.y;
+
+		// For version 1.1.1
+		params.srs = projection;
+		params.x = clickPosition.x;
+		params.y = clickPosition.y;
 
 		params.feature_count = this.featureInfoMaxFeatures;
 		params.info_format = this.featureInfoFormat;

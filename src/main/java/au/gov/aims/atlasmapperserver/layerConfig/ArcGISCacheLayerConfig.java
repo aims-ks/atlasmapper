@@ -23,14 +23,8 @@ package au.gov.aims.atlasmapperserver.layerConfig;
 
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
-import au.gov.aims.atlasmapperserver.jsonWrappers.client.LayerWrapper;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 public class ArcGISCacheLayerConfig extends ArcGISMapServerLayerConfig {
-	@ConfigField
-	private Boolean forcePNG24;
-
 	@ConfigField
 	private Integer tileCols;
 	@ConfigField
@@ -46,14 +40,6 @@ public class ArcGISCacheLayerConfig extends ArcGISMapServerLayerConfig {
 
 	public ArcGISCacheLayerConfig(ConfigManager configManager) {
 		super(configManager);
-	}
-
-	public Boolean isForcePNG24() {
-		return this.forcePNG24;
-	}
-
-	public void setForcePNG24(Boolean forcePNG24) {
-		this.forcePNG24 = forcePNG24;
 	}
 
 	public Integer getTileCols() {
@@ -94,24 +80,5 @@ public class ArcGISCacheLayerConfig extends ArcGISMapServerLayerConfig {
 
 	public void setTileResolutions(Double[] tileResolutions) {
 		this.tileResolutions = tileResolutions;
-	}
-
-	@Override
-	public LayerWrapper generateLayer() throws JSONException {
-		LayerWrapper layerWrapper = super.generateLayer();
-
-		if (this.getTileCols() != null && this.getTileRows() != null) {
-			layerWrapper.setArcGISCacheTileCols(this.getTileCols());
-			layerWrapper.setArcGISCacheTileRows(this.getTileRows());
-		}
-		if (this.getTileOriginX() != null && this.getTileOriginY() != null) {
-			layerWrapper.setArcGISCacheTileOriginX(this.getTileOriginX());
-			layerWrapper.setArcGISCacheTileOriginY(this.getTileOriginY());
-		}
-		if (this.getTileResolutions() != null) {
-			layerWrapper.setArcGISCacheTileResolutions(this.getTileResolutions());
-		}
-
-		return layerWrapper;
 	}
 }

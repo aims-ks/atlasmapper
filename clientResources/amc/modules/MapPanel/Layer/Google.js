@@ -64,6 +64,9 @@ Atlas.Layer.Google = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 			});
 
 			this.setLayer(layer);
+
+			// DPI;
+			// https://developers.google.com/maps/documentation/staticmaps/?hl=fr#scale_values
 		}
 	},
 

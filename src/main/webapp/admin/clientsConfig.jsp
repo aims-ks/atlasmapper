@@ -279,54 +279,6 @@
 					}
 					break;
 
-/*
-				case DEBUG:
-					if (Utils.isBlank(idStr)) {
-						response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-						jsonObj.put("success", false);
-						jsonObj.put("errors", new JSONArray().put("Missing parameter [id]."));
-					} else {
-						Integer id = null;
-						try {
-							id = Integer.valueOf(idStr);
-						} catch(Exception e) {
-							response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-							jsonObj.put("success", false);
-							jsonObj.put("errors", new JSONArray().put("Invalid id format."));
-						}
-
-						if (id != null) {
-							try {
-								ClientConfig foundClientConfig = configManager.getClientConfig(id);
-								if (foundClientConfig == null) {
-									response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-									jsonObj.put("success", false);
-									jsonObj.put("errors", new JSONArray().put("Client number ["+id+"] not found."));
-								} else {
-									JSONObject configs = configManager.debugClientConfigJSon(foundClientConfig);
-									if (configs == null) {
-										response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-										jsonObj.put("success", false);
-										jsonObj.put("errors", new JSONArray().put("An error occurred while retrieving/generating the Client configurations. Check your server log."));
-									} else {
-										response.setStatus(HttpServletResponse.SC_OK);
-										jsonObj.put("success", true);
-										jsonObj.put("message", "Config Generated");
-										jsonObj.put("data", configs);
-									}
-								}
-							} catch(Exception e) {
-								LOGGER.log(Level.SEVERE, "An error occurred while retrieving/generating the Client configurations: {0}", Utils.getExceptionMessage(e));
-								LOGGER.log(Level.WARNING, "Stack trace: ", e);
-								response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-								jsonObj.put("success", false);
-								jsonObj.put("errors", new JSONArray().put("An error occurred while retrieving/generating the Client configurations. Check your server log."));
-							}
-						}
-					}
-					break;
-*/
-
 				default:
 					response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 					jsonObj.put("success", false);

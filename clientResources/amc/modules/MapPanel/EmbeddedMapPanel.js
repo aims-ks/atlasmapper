@@ -40,3 +40,8 @@ Atlas.MapPanel = OpenLayers.Class(Atlas.AbstractMapPanel, {
 	}
 });
 */
+
+// TODO The Embedded window is currently using the ExtJS. When this will be fix, the following message will have to be moved to an other library.
+Atlas.MapPanel.prototype.missingLayersCallback = function(missingLayerIds) {
+	Ext.Msg.alert('Error', 'The application has failed to load the following layers:<ul class="bullet-list"><li>' + missingLayerIds.join('</li><li>') + '</li></ul>');
+};

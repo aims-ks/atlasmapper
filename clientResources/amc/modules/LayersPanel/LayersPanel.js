@@ -97,7 +97,10 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 		}
 
 		Atlas.LayersPanel.superclass.initComponent.call(this);
-		var infoObj = new Atlas.Info({mapPanel: this.mapPanel});
+		var infoObj = new Atlas.Info({
+			mapPanel: this.mapPanel,
+			config: Atlas.conf && Atlas.conf['modules'] ? Atlas.conf['modules']['Info'] : null
+		});
 
 		// Inspire on: http://www.geoext.org/tutorials/layertree-tutorial.html
 		// See also this for layer list with groups:

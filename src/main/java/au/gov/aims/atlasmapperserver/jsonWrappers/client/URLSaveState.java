@@ -26,9 +26,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 public class URLSaveState extends AbstractWrapper {
-	public URLSaveState(JSONObject json) {
-		super(json);
-	}
+	public URLSaveState() { super(); }
+	public URLSaveState(JSONObject json) { super(json); }
 
 	public JSONArray getLayers() {
 		return this.json.optJSONArray("layers");

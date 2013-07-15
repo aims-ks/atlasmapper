@@ -36,6 +36,7 @@ import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -310,7 +311,7 @@ public class Utils {
 			// The Scheme is the URL's protocol
 			String scheme = rawUrl.getProtocol();
 
-			// The Authority iss the URL's host and the port number if needed
+			// The Authority is the URL's host and the port number if needed
 			int port = rawUrl.getPort();
 			String authority = rawUrl.getHost() + (port > 0 ? ":"+port : "");
 
@@ -334,6 +335,11 @@ public class Utils {
 		String cleanUrlStr = uri.toASCIIString();
 
 		return new URL(cleanUrlStr);
+	}
+
+	public static int getHeaderStatusCode(URL url) throws IOException {
+		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+		return connection.getResponseCode();
 	}
 
 	// Do a proper URL compare, checking host, port number, file, query string (any order), etc. Also, for WMS, .../ows?REQUESR=WMS&... is equivalent to .../wms?...

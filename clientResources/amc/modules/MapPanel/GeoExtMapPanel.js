@@ -23,7 +23,15 @@ Ext.namespace("Atlas");
 
 Atlas.MapPanel = Ext.extend(GeoExt.MapPanel, Atlas.AbstractMapPanel);
 
+// From here I have to modify the prototype directly... A second extend give an infinite loop for some reason...
+
+/*
 Atlas.MapPanel.prototype.destroy = function() {
-	// TODO understand why this line break the application when a map is removed
-	//Atlas.MapPanel.superclass.destroy.call(this, arguments);
+	// TODO Using "call" instead of "apply" break the application when a map is removed. Try with apply to see if it works.
+	Atlas.MapPanel.superclass.destroy.apply(this, arguments);
+};
+*/
+
+Atlas.MapPanel.prototype.missingLayersCallback = function(missingLayerIds) {
+	Ext.Msg.alert('Error', 'The application has failed to load the following layers:<ul class="bullet-list"><li>' + missingLayerIds.join('</li><li>') + '</li></ul>');
 };

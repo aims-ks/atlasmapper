@@ -33,6 +33,10 @@ public class AbstractWrapper implements Cloneable {
 
 	protected JSONObject json;
 
+	public AbstractWrapper() {
+		this.json = new JSONObject();
+	}
+
 	public AbstractWrapper(JSONObject json) {
 		this.json = json;
 	}

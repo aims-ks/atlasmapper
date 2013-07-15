@@ -23,7 +23,7 @@
 window["Atlas"] = window["Atlas"] || {};
 window["Atlas"]["Layer"] = window["Atlas"]["Layer"] || {};
 
-Atlas.Layer.ArcGISCache = OpenLayers.Class(/*Atlas.Layer.AbstractLayer*/ Atlas.Layer.ArcGISMapServer, {
+Atlas.Layer.ArcGISCache = OpenLayers.Class(Atlas.Layer.ArcGISMapServer, {
 	/**
 	 * Constructor: Atlas.Layer.ArcGISCache
 	 *
@@ -62,5 +62,13 @@ Atlas.Layer.ArcGISCache = OpenLayers.Class(/*Atlas.Layer.AbstractLayer*/ Atlas.L
 			layerOptions
 		);
 		*/
+	},
+
+	// Override
+	getArcGISLayerParams: function() {
+		var params = Atlas.Layer.ArcGISMapServer.prototype.getArcGISLayerParams.apply(this, arguments);
+		// ArcGIS cached layers do not need 'layers' parameter
+		delete params['layers'];
+		return params;
 	}
 });

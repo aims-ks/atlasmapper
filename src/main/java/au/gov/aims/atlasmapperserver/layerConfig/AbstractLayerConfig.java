@@ -29,24 +29,18 @@ import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfigInterface;
-import au.gov.aims.atlasmapperserver.jsonWrappers.client.LayerOptionWrapper;
-import au.gov.aims.atlasmapperserver.jsonWrappers.client.LayerStyleWrapper;
 import au.gov.aims.atlasmapperserver.jsonWrappers.client.LayerWrapper;
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.json.JSONSortedObject;
 
 /**
  *
  * @author glafond
  */
 // NOTE Layers can override any fields of it's data source's interface
-public abstract class AbstractLayerConfig extends AbstractConfig implements AbstractDataSourceConfigInterface {
+public abstract class AbstractLayerConfig extends AbstractConfig {
 	private static final Logger LOGGER = Logger.getLogger(AbstractLayerConfig.class.getName());
 
 	// Unique ID for the layer, it has to be unique between all layers used by the client.
@@ -79,7 +73,7 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 	@ConfigField
 	private String systemDescription;
 
-	@ConfigField
+	@ConfigField(alias="wmsPath") // Also require special case in "applyGlobalOverrides"
 	private String treePath;
 
 	@ConfigField
@@ -128,46 +122,8 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 	@ConfigField
 	private Boolean selected;
 
-
-	// DataSource fields
-	@ConfigField
-	private String dataSourceId;
-
-	@ConfigField
-	private String dataSourceName;
-
-	@ConfigField
-	private String dataSourceType;
-
-	@ConfigField
-	private String serviceUrl;
-
-	@ConfigField
-	private String featureRequestsUrl;
-
-	@ConfigField
-	private String legendUrl;
-
-	@ConfigField
-	private String legendParameters;
-
-//	@ConfigField
-//	private String stylesUrl;
-
-	@ConfigField
-	private String baseLayers;
-
-	@ConfigField
-	private JSONSortedObject globalManualOverride;
-
-	@ConfigField
-	private Boolean showInLegend;
-
-	@ConfigField
-	private String comment;
-
-
-
+	@ConfigField(alias="dataSourceType")
+	private String layerType;
 
 	public AbstractLayerConfig(ConfigManager configManager) {
 		super(configManager);
@@ -185,128 +141,13 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 		return this.layerId;
 	}
 
-	@Override
-	public String getBaseLayers() {
-		return this.baseLayers;
+	public String getLayerType() {
+		return this.layerType;
 	}
 
-	@Override
-	public void setBaseLayers(String baseLayers) {
-		this.baseLayers = baseLayers;
+	public void setLayerType(String layerType) {
+		this.layerType = layerType;
 	}
-
-	@Override
-	public JSONSortedObject getGlobalManualOverride() {
-		return this.globalManualOverride;
-	}
-
-	@Override
-	public void setGlobalManualOverride(JSONSortedObject globalManualOverride) {
-		this.globalManualOverride = globalManualOverride;
-	}
-
-	@Override
-	public String getDataSourceType() {
-		return this.dataSourceType;
-	}
-
-	@Override
-	public void setDataSourceType(String dataSourceType) {
-		this.dataSourceType = dataSourceType;
-	}
-
-	@Override
-	public String getFeatureRequestsUrl() {
-		return this.featureRequestsUrl;
-	}
-
-	@Override
-	public void setFeatureRequestsUrl(String featureRequestsUrl) {
-		this.featureRequestsUrl = featureRequestsUrl;
-	}
-
-	@Override
-	public String getServiceUrl() {
-		return this.serviceUrl;
-	}
-
-	@Override
-	public void setServiceUrl(String serviceUrl) {
-		this.serviceUrl = serviceUrl;
-	}
-
-	@Override
-	public String getLegendUrl() {
-		return this.legendUrl;
-	}
-
-	@Override
-	public void setLegendUrl(String legendUrl) {
-		this.legendUrl = legendUrl;
-	}
-
-	@Override
-	public String getStylesUrl() {
-		return this.legendUrl;
-	}
-
-	@Override
-	public void setStylesUrl(String legendUrl) {
-		this.legendUrl = legendUrl;
-	}
-
-	@Override
-	public String getLegendParameters() {
-		return this.legendParameters;
-	}
-
-	@Override
-	public void setLegendParameters(String legendParameters) {
-		this.legendParameters = legendParameters;
-	}
-
-	@Override
-	public String getDataSourceId() {
-		return this.dataSourceId;
-	}
-
-	@Override
-	public void setDataSourceId(String dataSourceId) {
-		this.dataSourceId = dataSourceId;
-	}
-
-	@Override
-	public String getDataSourceName() {
-		return this.dataSourceName;
-	}
-
-	@Override
-	public void setDataSourceName(String dataSourceName) {
-		this.dataSourceName = dataSourceName;
-	}
-
-	@Override
-	public Boolean isShowInLegend() {
-		return this.showInLegend;
-	}
-
-	@Override
-	public void setShowInLegend(Boolean showInLegend) {
-		this.showInLegend = showInLegend;
-	}
-
-	@Override
-	public String getComment() {
-		return this.comment;
-	}
-
-	@Override
-	public void setComment(String comment) {
-		this.comment = comment;
-	}
-
-
-
 
 	public String getDescription() {
 		return description;
@@ -504,48 +345,8 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 		this.selected = selected;
 	}
 
-	public AbstractLayerConfig applyGlobalOverrides(
-			JSONObject globalOverrides) throws JSONException {
-
-		// Create an AbstractLayerConfig from the layer override
-		AbstractLayerConfig layerGlobalOverride = null;
-		if (globalOverrides != null && globalOverrides.length() > 0) {
-			JSONObject globalOverride = globalOverrides.optJSONObject(this.layerId);
-
-			return this.applyOverrides(globalOverride);
-		}
-
-		return this;
-	}
-
-	public AbstractLayerConfig applyOverrides(
-			JSONObject layerOverrides) throws JSONException {
-
-		// Create an AbstractLayerConfig from the layer override
-		AbstractLayerConfig layerOverride = null;
-		if (layerOverrides != null && layerOverrides.length() > 0) {
-			try {
-				String dataSourceType = layerOverrides.optString("dataSourceType", this.getDataSourceType());
-				if (dataSourceType == null) {
-					dataSourceType = this.getDataSourceType();
-				}
-
-				layerOverride = LayerCatalog.createLayer(dataSourceType, layerOverrides, this.getConfigManager());
-			} catch(Exception ex) {
-				LOGGER.log(Level.SEVERE, "Unexpected error occurred while parsing the following layer override for the data source [{0}]: {1}\n{2}",
-						new String[] { this.getDataSourceName(), Utils.getExceptionMessage(ex), layerOverrides.toString(4) });
-				LOGGER.log(Level.FINE, "Stack trace: ", ex);
-			}
-		}
-
-		// Apply the layer override on a clone of the current layer (do not modify the original layer)
-		AbstractLayerConfig clone = (AbstractLayerConfig)this.clone();
-		clone.applyOverrides(layerOverride);
-
-		return clone;
-	}
-
-	public static JSONObject applyGlobalOverrides(String layerId, JSONObject jsonLayer, JSONObject globalOverrides) throws JSONException {
+	public static LayerWrapper applyGlobalOverrides(String layerId, LayerWrapper layerWrapper, JSONObject globalOverrides) throws JSONException {
+		JSONObject jsonLayer = layerWrapper.getJSON();
 		if (globalOverrides != null && jsonLayer != null) {
 			JSONObject layerOverride = globalOverrides.optJSONObject(layerId);
 			if (layerOverride != null && layerOverride.length() > 0) {
@@ -553,243 +354,17 @@ public abstract class AbstractLayerConfig extends AbstractConfig implements Abst
 				while (keys.hasNext()) {
 					String key = keys.next();
 					if (!layerOverride.isNull(key)) {
-						jsonLayer.put(key, layerOverride.opt(key));
-					}
-				}
-			}
-		}
-		return jsonLayer;
-	}
-
-	// TODO Specific pieces into specific classes (example: WMSLayerConfig parts goes into WMSLayerConfig class)
-	public LayerWrapper generateLayer() throws JSONException {
-		// AbstractLayerConfig implements AbstractDataSourceConfigInterface
-		LayerWrapper layerWrapper = new LayerWrapper(this.toJSonObject());
-
-		if (this.isCached() != null) {
-			layerWrapper.setCached(this.isCached());
-		}
-
-		if (this.getOlParams() != null) {
-			layerWrapper.setOlParams(this.getOlParams());
-		}
-		if (this.getOlOptions() != null) {
-			layerWrapper.setOlOptions(this.getOlOptions());
-		}
-
-		layerWrapper.setVersion(ConfigManager.CURRENT_LAYER_CONFIG_VERSION);
-
-		String layerName = this.getLayerName();
-		if (Utils.isNotBlank(layerName) && !layerName.equals(this.getLayerId())) {
-			layerWrapper.setLayerName(layerName.trim());
-		}
-
-		if (Utils.isNotBlank(this.getTitle())) {
-			layerWrapper.setTitle(this.getTitle().trim());
-		}
-
-		if (Utils.isNotBlank(this.getDescription())) {
-			layerWrapper.setDescription(this.getDescription().trim());
-		}
-		if (Utils.isNotBlank(this.getDescriptionFormat())) {
-			layerWrapper.setDescriptionFormat(this.getDescriptionFormat().trim());
-		}
-		if (Utils.isNotBlank(this.getSystemDescription())) {
-			layerWrapper.setSystemDescription(this.getSystemDescription().trim());
-		}
-
-		if (Utils.isNotBlank(this.getDownloadLinks())) {
-			layerWrapper.setDownloadLinks(this.getDownloadLinks().trim());
-		}
-
-		if (Utils.isNotBlank(this.getProjection())) {
-			layerWrapper.setProjection(this.getProjection().trim());
-		}
-
-		// serverId
-		if (Utils.isNotBlank(this.getDataSourceId())) {
-			layerWrapper.setDataSourceId(this.getDataSourceId().trim());
-		}
-
-		// Needed for data source save state - then used by the client generation to create the tree.
-		if (Utils.isNotBlank(this.getTreePath())) {
-			layerWrapper.setTreePath(this.getTreePath().trim());
-		}
-
-		double[] boundingBox = this.getLayerBoundingBox();
-		if (boundingBox != null && boundingBox.length > 0) {
-			layerWrapper.setLayerBoundingBox(boundingBox);
-		}
-
-		if (this.isIsBaseLayer() != null) {
-			layerWrapper.setIsBaseLayer(this.isIsBaseLayer());
-		}
-
-		if (this.isHasLegend() != null) {
-			layerWrapper.setHasLegend(this.isHasLegend());
-		}
-
-		// No need for a legend URL + Filename since there is no more Layer Groups
-		if (Utils.isNotBlank(this.getLegendUrl())) {
-			layerWrapper.setLegendUrl(this.getLegendUrl().trim());
-		}
-
-		if (Utils.isNotBlank(this.getStylesUrl())) {
-			layerWrapper.setStylesUrl(this.getStylesUrl().trim());
-		}
-
-		if(Utils.isNotBlank(this.getLegendGroup())) {
-			layerWrapper.setLegendGroup(this.getLegendGroup().trim());
-		}
-
-		if(Utils.isNotBlank(this.getLegendTitle())) {
-			layerWrapper.setLegendTitle(this.getLegendTitle().trim());
-		}
-
-		String[] infoHtmlUrls = this.getInfoHtmlUrls();
-		if(infoHtmlUrls != null && infoHtmlUrls.length > 0) {
-			layerWrapper.setInfoHtmlUrls(infoHtmlUrls);
-		}
-
-		String[] aliasIds = this.getAliasIds();
-		if (aliasIds != null && aliasIds.length > 0) {
-			layerWrapper.setAliasIds(aliasIds);
-		}
-
-		List<LayerStyleConfig> styles = this.getStyles();
-		// Browsers do not have to keep the order in JavaScript objects, but they often do.
-		if (styles != null && !styles.isEmpty()) {
-			JSONObject jsonStyles = new JSONObject();
-			if (!styles.isEmpty()) {
-				boolean firstStyle = true;
-				for (LayerStyleConfig style : styles) {
-					String styleName = style.getName();
-					if (styleName != null) {
-						styleName = styleName.trim();
-
-						LayerStyleWrapper jsonStyle = this.generateLayerStyle(style, cached);
-
-						if (firstStyle) {
-							firstStyle = false;
-							styleName = "";
-						}
-						if (jsonStyle != null) {
-							jsonStyles.put(styleName, jsonStyle.getJSON());
+						// Backward compatibility
+						if ("wmsPath".equals(key)) {
+							jsonLayer.put("treePath", layerOverride.opt(key));
+						} else {
+							jsonLayer.put(key, layerOverride.opt(key));
 						}
 					}
 				}
 			}
-			if (jsonStyles.length() > 0) {
-				layerWrapper.setStyles(jsonStyles);
-			}
 		}
-
-		List<LayerOptionConfig> options = this.getOptions();
-		if (options != null && !options.isEmpty()) {
-			JSONArray optionsArray = new JSONArray();
-
-			for (LayerOptionConfig option : options) {
-				LayerOptionWrapper optionWrapper = this.generateLayerOption(option);
-				if (optionWrapper != null) {
-					optionsArray.put(optionWrapper.getJSON());
-				}
-			}
-
-			if (optionsArray.length() > 0) {
-				layerWrapper.setLayerOptions(optionsArray);
-			}
-		}
-
-		// Initial state is related to the Client saved state
-		// TODO delete after implementing Save State
-		if(this.isSelected() != null) {
-			layerWrapper.setSelected(this.isSelected());
-		}
-
-		return layerWrapper;
-	}
-
-	private LayerStyleWrapper generateLayerStyle(LayerStyleConfig style, Boolean cached) throws JSONException {
-		if (style == null) {
-			return null;
-		}
-
-		LayerStyleWrapper styleWrapper = new LayerStyleWrapper(new JSONObject());
-
-		// The title fallback to the style name, which should never be null, so no
-		// style should have the title "Untitled" (this is just an extra security).
-		String title = "Untitled";
-		if (Utils.isNotBlank(style.getTitle())) {
-			title = style.getTitle().trim();
-		} else if (Utils.isNotBlank(style.getName())) {
-			title = style.getName().trim();
-		}
-		styleWrapper.setTitle(title);
-
-		if (style.isDefault() != null) {
-			styleWrapper.setDefault(style.isDefault());
-		}
-
-		if (style.isCached() != null) {
-			styleWrapper.setCached(style.isCached());
-		} else if (cached != null) {
-			styleWrapper.setCached(cached);
-		}
-
-		if (Utils.isNotBlank(style.getDescription())) {
-			styleWrapper.setDescription(style.getDescription().trim());
-		}
-
-		//if (Utils.isNotBlank(style.getLegendUrl())) {
-		//	styleWrapper.setLegendUrl(style.getLegendUrl().trim());
-		//}
-
-		//if (Utils.isNotBlank(style.getLegendFilename())) {
-		//	styleWrapper.setLegendFilename(style.getLegendFilename().trim());
-		//}
-
-		return styleWrapper;
-	}
-
-	/**
-	 * "layerOptions": [
-	 *     {
-	 *         "name": "String, mandatory: name of the url parameter",
-	 *         "title": "String, optional (default: name): title displayed in the layer options",
-	 *         "type": "String, optional (default: text): type of the parameter, to specify which UI to use",
-	 *         "mandatory": "Boolean, optional (default: false): set to true is the field is not allow to contains an empty string"
-	 *         "defaultValue": "String, optional (default: empty string): default value"
-	 *     },
-	 *     ...
-	 * ]
-	 */
-	private LayerOptionWrapper generateLayerOption(LayerOptionConfig option) throws JSONException {
-		if (option == null) {
-			return null;
-		}
-
-		LayerOptionWrapper jsonOption = new LayerOptionWrapper(new JSONObject());
-		if (Utils.isNotBlank(option.getName())) {
-			jsonOption.setName(option.getName().trim());
-		}
-
-		if (Utils.isNotBlank(option.getTitle())) {
-			jsonOption.setTitle(option.getTitle().trim());
-		}
-
-		if (Utils.isNotBlank(option.getType())) {
-			jsonOption.setType(option.getType().trim());
-		}
-
-		if (option.isMandatory() != null) {
-			jsonOption.setMandatory(option.isMandatory());
-		}
-
-		if (Utils.isNotBlank(option.getDefaultValue())) {
-			jsonOption.setDefaultValue(option.getDefaultValue().trim());
-		}
-
-		return jsonOption;
+		return new LayerWrapper(jsonLayer);
 	}
 
 	@Override

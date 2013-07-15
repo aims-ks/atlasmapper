@@ -40,31 +40,64 @@ Atlas.Layer.Group = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 		this.children = [];
 
 		if (this.json != null) {
+
+			// Temporary patch
+			// singleFusedMapCache (used by ArcGIS services): default false
+			var singleFusedMapCache = typeof(this.json['singleFusedMapCache']) !== 'undefined' && this.json['singleFusedMapCache'];
+
 			if (this.json['layers'] && this.json['layers'].length > 0) {
-				// The "layers" attribute define the children layers of the group.
-				// NOTE: Since each layer may appear in multiple groups, the attribute path can
-				//     not be defined in the layer's configuration. It has to be dynamically
-				//     created for each instance of the layer.
+				if (singleFusedMapCache) { // I NEED A SERVICE LAYER TYPE!!
+					// Path: Array of layerJSON object, with a unique ID for this instance of the group
+					var pathSuffixId = "_" + new Date().getTime();
+					var path = [];
 
-				// Path: Array of layerJSON object, with a unique ID for this instance of the group
-				var pathSuffixId = "_" + new Date().getTime();
-				var path = [];
+					// The path is dynamically created for the GROUP (folder)
+					if (this.json['path']) {
+						// Clone the path
+						path = this.json['path'].slice(0);
+					}
 
-				// The path is dynamically created for the GROUP (folder)
-				if (this.json['path']) {
-					// Clone the path
-					path = this.json['path'].slice(0);
-				}
+					this.json['layerType'] = 'ARCGIS_CACHE';
+					this.json['path'] = path;
+					arcGISPath = '';
+					for (var i=0, len=path.length; i<len; i++) {
+						arcGISPath += path[i]['layerName'] + '/';
+					}
+					arcGISPath += this.json['layerName'];
+					this.json['arcGISPath'] = arcGISPath;
 
-				var pathPart = clone(this.json);
-				pathPart.id = (this.json['layerName'] || this.json['layerId']) + pathSuffixId;
-				path.push(pathPart);
+					// Add all children under that path. If a child is a GROUP, it will pass
+					// through this function again.
+					if (this.mapPanel) {
+						// layerJSON, folder Path, parent
+						this.mapPanel.addLayer(this.json, parent);
+					}
+				} else {
+					// The "layers" attribute define the children layers of the group.
+					// NOTE: Since each layer may appear in multiple groups, the attribute path can
+					//     not be defined in the layer's configuration. It has to be dynamically
+					//     created for each instance of the layer.
 
-				// Add all children under that path. If a child is a GROUP, it will pass
-				// through this function again.
-				if (this.mapPanel) {
-					// layerJSON, folder Path, parent
-					this.mapPanel.addLayersById(this.json['layers'], path, this);
+					// Path: Array of layerJSON object, with a unique ID for this instance of the group
+					var pathSuffixId = "_" + new Date().getTime();
+					var path = [];
+
+					// The path is dynamically created for the GROUP (folder)
+					if (this.json['path']) {
+						// Clone the path
+						path = this.json['path'].slice(0);
+					}
+
+					var pathPart = clone(this.json);
+					pathPart.id = (this.json['layerName'] || this.json['layerId']) + pathSuffixId;
+					path.push(pathPart);
+
+					// Add all children under that path. If a child is a GROUP, it will pass
+					// through this function again.
+					if (this.mapPanel) {
+						// layerJSON, folder Path, parent
+						this.mapPanel.addLayersById(this.json['layers'], path, this);
+					}
 				}
 			}
 		}

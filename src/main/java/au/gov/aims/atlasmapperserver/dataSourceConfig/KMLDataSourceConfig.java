@@ -118,7 +118,7 @@ public class KMLDataSourceConfig extends AbstractDataSourceConfig {
 				(this.kmlData == null || this.kmlData.length() <= 0 ? "" :     "	kmlData=" + this.kmlData.toString() + "\n") +
 				(Utils.isBlank(this.getDataSourceId()) ? "" :          "	dataSourceId=" + this.getDataSourceId() + "\n") +
 				(Utils.isBlank(this.getDataSourceName()) ? "" :        "	dataSourceName=" + this.getDataSourceName() + "\n") +
-				(Utils.isBlank(this.getDataSourceType()) ? "" :        "	dataSourceType=" + this.getDataSourceType() + "\n") +
+				(Utils.isBlank(this.getLayerType()) ? "" :             "	layerType=" + this.getLayerType() + "\n") +
 				(Utils.isBlank(this.getServiceUrl()) ? "" :            "	serviceUrl=" + this.getServiceUrl() + "\n") +
 				(Utils.isBlank(this.getFeatureRequestsUrl()) ? "" :    "	featureRequestsUrl=" + this.getFeatureRequestsUrl() + "\n") +
 				(Utils.isBlank(this.getLegendUrl()) ? "" :             "	legendUrl=" + this.getLegendUrl() + "\n") +

@@ -37,12 +37,12 @@ Atlas.Layer.LayerHelper = {
 			atlasLayer.setLayer(layerJSon);
 
 		} else {
-			if (typeof(layerJSon['dataSourceType']) === 'undefined') {
-				alert('Layer '+layerJSon['layerId']+' has no dataSourceType defined.');
+			if (typeof(layerJSon['layerType']) === 'undefined') {
+				alert('Layer '+layerJSon['layerId']+' has no layerType defined.');
 				return;
 			}
 
-			switch (layerJSon['dataSourceType']) {
+			switch (layerJSon['layerType']) {
 				case 'DUMMY':
 					// Dummy layers are used to create a tree node that can contains a layer object that is not load on the map.
 					atlasLayer = new Atlas.Layer.Dummy(mapPanel, layerJSon, parent);
@@ -79,7 +79,7 @@ Atlas.Layer.LayerHelper = {
 					atlasLayer = new Atlas.Layer.Group(mapPanel, layerJSon, parent);
 					break;
 				default:
-					alert('Layer type '+layerJSon['dataSourceType']+' for layer '+layerJSon['layerId']+', is not implemented.');
+					alert('Layer type '+layerJSon['layerType']+' for layer '+layerJSon['layerId']+', is not implemented.');
 			}
 		}
 

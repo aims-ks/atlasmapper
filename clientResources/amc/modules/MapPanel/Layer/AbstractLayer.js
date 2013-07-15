@@ -59,6 +59,18 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 		this.mapPanel = mapPanel;
 		this.json = jsonLayer;
 		this.parent = parent;
+
+		// Set default options values (the fields that appears on the Option panel)
+		// See: modules/Info/OptionPanel.js
+		if (this.json['options']) {
+			this.json['olParams'] = this.json['olParams'] || {};
+			for (var i=0, len=this.json['options'].length; i < len; i++) {
+				var option = this.json['options'][i];
+				if (option['name'] && typeof(option['defaultValue']) !== 'undefined') {
+					this.json['olParams'][option['name'].toUpperCase()] = option['defaultValue'];
+				}
+			}
+		}
 	},
 
 
@@ -119,8 +131,8 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 		}
 
 		var serviceUrl = this.json['serviceUrl'];
-		if (this.json['webCacheUrl'] &&
-				this._canUseWebCache(layerParams, newParams)) {
+		if (this.useCache &&
+				this.canUseWebCache(layerParams, newParams)) {
 
 			serviceUrl = this.json['webCacheUrl'];
 			this.setWebCacheParameters(newParams ? newParams : layerParams);
@@ -135,8 +147,8 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 	setWebCacheParameters: function(params) {},
 	setDirectParameters: function(params) {},
 
-	_canUseWebCache: function(layerParams, newParams) {
-		if (!this.useCache || this.json == null || (typeof(this.json['cached']) !== 'undefined' && !this.json['cached'])) {
+	canUseWebCache: function(layerParams, newParams) {
+		if (this.json == null || !this.json['webCacheUrl'] || (typeof(this.json['cached']) !== 'undefined' && !this.json['cached'])) {
 			return false;
 		}
 
@@ -196,8 +208,8 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 					}
 					var foundStyle = null;
 					for (var j=0, lenj=this.json['styles'].length; j < lenj; j++) {
-						if (typeof(this.json['styles']['name']) !== 'undefined' && this.json['styles']['name'] === value) {
-							foundStyle = this.json['styles'];
+						if (typeof(this.json['styles'][j]['name']) !== 'undefined' && this.json['styles'][j]['name'] === value) {
+							foundStyle = this.json['styles'][j];
 						}
 					}
 
@@ -280,17 +292,7 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 
 		var previewUrl = this.getPreviewUrl();
 		if (previewUrl) {
-			desc += '<div class="descriptionLayerPreview"><img src="' + previewUrl + '" alt="Layer preview" \></div>';
-		}
-
-		// TODO Deprecate additionalInfo
-		var additionalInfo = this.json['additionalInfo'];
-		if (additionalInfo) {
-			for(var key in additionalInfo){
-				if(additionalInfo.hasOwnProperty(key)){
-					desc += '<br/><b>'+key+':</b> '+additionalInfo[key];
-				}
-			}
+			desc += '<div class="descriptionLayerPreview"><img src="' + previewUrl + '" alt="Layer preview" /></div>';
 		}
 
 		if (this.json['description']) {

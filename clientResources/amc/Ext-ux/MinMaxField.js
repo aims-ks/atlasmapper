@@ -77,8 +77,20 @@ Ext.ux.form.MinMaxField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 		function onChange() {
 			that.fireEvent('change', arguments);
 		}
+
 		this.minField.on('change', onChange);
+		this.minField.on('specialkey', function(field, event) {
+			if (event.getKey() == event.ENTER) {
+				onChange(field, event);
+			}
+		});
+
 		this.maxField.on('change', onChange);
+		this.maxField.on('specialkey', function(field, event) {
+			if (event.getKey() == event.ENTER) {
+				onChange(field, event);
+			}
+		});
 
 		Ext.ux.form.MinMaxField.superclass.initComponent.call(this);
 	},
@@ -94,7 +106,10 @@ Ext.ux.form.MinMaxField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 			values = [minValue, maxValue];
 		}
 		// Ensure the min value is the first one and the max is the last one
-		values.sort();
+		values.sort(function(a, b) {
+			// Sort as numerical value
+			return parseFloat(a) - parseFloat(b);
+		});
 
 		this.minValue = values[0];
 		// It's possible that the user try to set values with a string that contains more than 2 values.
@@ -130,7 +145,10 @@ Ext.ux.form.MinMaxField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 
 		// sort the numbers
 		var values = [min, max]; //new Array(min,max);
-		values.sort();
+		values.sort(function(a, b) {
+			// Sort as numerical value
+			return parseFloat(a) - parseFloat(b);
+		});
 
 		// Start with an empty string to avoid mathematical addition
 		return ''+values[0]+this.spacer+values[1];

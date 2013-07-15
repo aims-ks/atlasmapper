@@ -105,6 +105,21 @@ Atlas.LegendPanel = Ext.extend(GeoExt.LegendPanel, {
 		//		that.allowDD = false;
 		//	});
 		//}, 1);
+
+		// Synchronised the legend window size with the map DPI
+		// The listener is removed when the legend is removed
+		if (this.mapPanel) {
+			this.mapPanel.ol_on('dpiChange', this.onDpiChange, this);
+		}
+	},
+
+	onDpiChange: function(evt) {
+		if (evt && evt.dpi && evt.previousDpi) {
+			var ratio = evt.dpi / evt.previousDpi;
+			var legendWindow = this.ownerCt;
+			legendWindow.setWidth(parseInt(legendWindow.getWidth() * ratio));
+			legendWindow.repositionIfHidden();
+		}
 	},
 
 	/**
@@ -143,10 +158,12 @@ Atlas.LegendPanel = Ext.extend(GeoExt.LegendPanel, {
 
 				var legendGroup = this.getLegendGroup(record);
 
+				var legendId = this.getIdForLayer(layer);
+
 				// Configuration of the GeoExt.ux.WMSLegend (same as GeoExt.WMSLegend) and GeoExt.ux.VectorLegend (same as GeoExt.VectorLegend)
 				var legendConfig = {
 					xtype: types[0],
-					id: this.getIdForLayer(layer),
+					id: legendId,
 					layerRecord: record,
 					baseParams: {},
 					hidden: !((!layer.map && layer.visibility) ||
@@ -159,7 +176,6 @@ Atlas.LegendPanel = Ext.extend(GeoExt.LegendPanel, {
 				if (Ext.isIE6) {
 					legendConfig.baseParams.FORMAT = 'image/gif';
 				}
-
 
 				legendGroup.insert(index, legendConfig);
 			}
@@ -202,6 +218,7 @@ Atlas.LegendPanel = Ext.extend(GeoExt.LegendPanel, {
 				xtype: 'gx_ux_legendgroup',
 				groupName: legendGroupName,
 				headerCls: 'legend-group-header',
+				mapPanel: this.mapPanel,
 				hidden: false,
 				listeners: {
 					hide: function(comp){ that.showHidePanel(); },

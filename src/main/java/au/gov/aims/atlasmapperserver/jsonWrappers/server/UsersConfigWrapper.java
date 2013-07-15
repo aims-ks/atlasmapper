@@ -26,9 +26,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 public class UsersConfigWrapper extends AbstractWrapper {
-	public UsersConfigWrapper(JSONObject json) {
-		super(json);
-	}
+	public UsersConfigWrapper() { super(); }
+	public UsersConfigWrapper(JSONObject json) { super(json); }
 
 	public Double getVersion() {
 		return this.getVersion(null);

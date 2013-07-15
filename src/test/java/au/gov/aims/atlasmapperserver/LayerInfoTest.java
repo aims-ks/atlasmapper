@@ -61,11 +61,11 @@ public class LayerInfoTest extends TestCase {
 
 			layerInfo.setTitle("Test layer title");
 			layerInfo.setDescription("Test layer description");
-			layerInfo.setDataSourceId("test-srv-id");
+			//layerInfo.setDataSourceId("test-srv-id");
 			layerInfo.setLayerBoundingBox(layerBoundingBox);
 			layerInfo.setIsBaseLayer(true);
 			layerInfo.setHasLegend(false);
-			layerInfo.setLegendParameters(legendParameters.toString());
+			//layerInfo.setLegendParameters(legendParameters.toString());
 			layerInfo.setWmsQueryable(true);
 
 			JSONObject jsonObject = layerInfo.toJSonObject();

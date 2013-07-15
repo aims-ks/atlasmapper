@@ -25,6 +25,7 @@ import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.WMTSDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.WMTSLayerConfig;
 
+// TODO Remove - This class is probably unused since the WMTS layers are only used to discover which WMS layers are cached.
 public class WMTSLayerGenerator extends AbstractWMSLayerGenerator<WMTSLayerConfig, WMTSDataSourceConfig> {
 	@Override
 	protected WMTSLayerConfig createLayerConfig(ConfigManager configManager) {

@@ -42,6 +42,10 @@
 	<!--[if lte IE 6 ]>
 		<link rel="stylesheet" type="text/css" href="resources/css/styles-ie6.css?atlasmapperVer=${version}" />
 	<![endif]-->
+
+	<#if (headExtra?? && headExtra != "")>
+		${headExtra}
+	</#if>
 </head>
 
 <body id="embeddedClient">
@@ -50,6 +54,7 @@
 	<div id="goToMap"></div>
 
 	<noscript>
+		<hr/>
 		<p class="noJavaScript">
 			Error: <strong>JavaScript is disabled</strong>.<br/>
 			You need to have <em>JavaScript enabled</em> to use the Map.
@@ -69,6 +74,7 @@
 
 	<script type="text/javascript" src="OpenLayers/OpenLayers-2.12/OpenLayers.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="OpenLayers-ux/Bing.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="OpenLayers-ux/MultiSelectDragFeature.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="OpenLayers-ux/PrintFrame.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="OpenLayers-ux/SearchResults.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="OpenLayers-ux/KML.js?atlasmapperVer=${version}"></script>

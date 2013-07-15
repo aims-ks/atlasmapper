@@ -38,7 +38,7 @@ Atlas.Trees.LayerNode = Ext.extend(Ext.tree.AsyncTreeNode, {
 		this.layerId = attributes.layerId;
 
 		var jsonLayer = {
-			'dataSourceType': 'DUMMY',
+			'layerType': 'DUMMY',
 			'title': attributes.text,
 			'layerId': attributes.layerId
 		};
@@ -77,7 +77,7 @@ Atlas.Trees.LayerLeaf = Ext.extend(Ext.tree.TreeNode, {
 		this.layerId = attributes.layerId;
 
 		var jsonLayer = {
-			'dataSourceType': 'DUMMY',
+			'layerType': 'DUMMY',
 			'title': attributes.text,
 			'layerId': attributes.layerId
 		};

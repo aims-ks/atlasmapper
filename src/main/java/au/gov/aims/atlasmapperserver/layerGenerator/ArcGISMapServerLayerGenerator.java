@@ -45,6 +45,7 @@ import java.util.logging.Logger;
 
 // ArcGIS API:
 // http://services.arcgisonline.com/ArcGIS/SDK/REST/index.html?mapserver.html
+// NOTE: The generic layer can not ne ArcGISMapServerLayerConfig since it also generate "FOLDER" layers and "SERVICE" layers.
 public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<AbstractLayerConfig, ArcGISMapServerDataSourceConfig> {
 	private static final Logger LOGGER = Logger.getLogger(ArcGISMapServerLayerGenerator.class.getName());
 
@@ -75,7 +76,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 		// Add the layer ID and the layer title for readability
 		//     I.E. Animals/0_Turtle
 		// NOTE: Only add those for layers (not folders)
-		if (!"FOLDER".equals(layer.getDataSourceType()) && !"SERVICE".equals(layer.getDataSourceType())) {
+		if (!"FOLDER".equals(layer.getLayerType()) && !"SERVICE".equals(layer.getLayerType())) {
 			layerUniqueId.append(layer.getLayerId());
 			layerUniqueId.append("_");
 			layerUniqueId.append(layer.getTitle());
@@ -84,7 +85,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 	}
 
 	@Override
-	public LayerCatalog generateLayerCatalog(ArcGISMapServerDataSourceConfig dataSourceConfig, boolean clearCapabilitiesCache, boolean clearMetadataCache) throws Exception {
+	public LayerCatalog generateRawLayerCatalog(ArcGISMapServerDataSourceConfig dataSourceConfig, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles) {
 		LayerCatalog layerCatalog = new LayerCatalog();
 		if (dataSourceConfig == null) {
 			throw new IllegalArgumentException("ArcGIS Map Server generation requested for a null data source.");
@@ -93,9 +94,14 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 		Map<String, AbstractLayerConfig> layers = new HashMap<String, AbstractLayerConfig>();
 
 		// Fill the Map of layers
-		this.parseJSON(layers, null, null, null, dataSourceConfig, clearCapabilitiesCache);
+		try {
+			this.parseJSON(layers, null, null, null, dataSourceConfig);
 
-		layerCatalog.addLayers(layers.values());
+			layerCatalog.addLayers(layers.values());
+		} catch (Exception ex) {
+			LOGGER.log(Level.WARNING, "Error occurred while parsing a JSON capabilities document", ex);
+			layerCatalog.addError("Error occurred while parsing a JSON capabilities document: " + Utils.getExceptionMessage(ex));
+		}
 
 		return layerCatalog;
 	}
@@ -115,24 +121,36 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 		StringBuilder url = new StringBuilder(baseUrlStr);
 
 		if (Utils.isNotBlank(arcGISPath)) {
-			url.append("/");
+			if (url.charAt(url.length() -1) != '/') { url.append("/"); }
 			url.append(arcGISPath);
 		}
 
 		if (this.isServiceSupported(type)) {
-			url.append("/"+type);
+			if (url.charAt(url.length() -1) != '/') { url.append("/"); }
+			url.append(type);
 		}
 
 		if (Utils.isNotBlank(layerId)) {
-			url.append("/"+layerId);
+			if (url.charAt(url.length() -1) != '/') { url.append("/"); }
+			url.append(layerId);
 		}
 
 		// IMPORTANT: Some version of ArcGIS give weird output without pretty=true:
 		// Example: value of initialExtent (sometimes) as a wrong value without pretty=true
+		// (2013-07-03: The problem seems to have been fixed, but the patch remain in case it appear with other services)
 		//     http://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer?f=json
 		//     VS
 		//     http://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer?f=json&pretty=true
-		return Utils.setUrlParameter(Utils.setUrlParameter(url.toString(), "f", "json"), "pretty", "true");
+
+		String urlStr = url.toString();
+
+		// Request as JSon
+		urlStr = Utils.setUrlParameter(urlStr, "f", "json");
+
+		// Add pretty=true (because of the bug describe above)
+		urlStr = Utils.setUrlParameter(urlStr, "pretty", "true");
+
+		return urlStr;
 	}
 
 	private List<AbstractLayerConfig> parseJSON(
@@ -140,8 +158,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 			String treePath,
 			String arcGISPath,
 			String type,
-			ArcGISMapServerDataSourceConfig dataSourceConfig,
-			boolean clearCapabilitiesCache) throws IOException, JSONException {
+			ArcGISMapServerDataSourceConfig dataSourceConfig) throws IOException, JSONException {
 
 		// We currently only support MapServer. Other possible values: GlobeServer
 		if (type != null && !this.isServiceSupported(type)) {
@@ -156,8 +173,8 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 				dataSourceConfig.getConfigManager(),
 				dataSourceConfig,
 				getJSONUrl(dataSourceConfig.getServiceUrl(), arcGISPath, type),
-				true,
-				clearCapabilitiesCache
+				URLCache.Category.CAPABILITIES_DOCUMENT,
+				true
 		);
 
 		List<AbstractLayerConfig> children = new ArrayList<AbstractLayerConfig>();
@@ -181,8 +198,8 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 									dataSourceConfig.getConfigManager(),
 									dataSourceConfig,
 									getJSONUrl(dataSourceConfig.getServiceUrl(), arcGISPath, type, groupId),
-									true,
-									clearCapabilitiesCache
+									URLCache.Category.CAPABILITIES_DOCUMENT,
+									true
 							);
 						}
 
@@ -202,8 +219,8 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 									dataSourceConfig.getConfigManager(),
 									dataSourceConfig,
 									getJSONUrl(dataSourceConfig.getServiceUrl(), arcGISPath, type, layerId),
-									true,
-									clearCapabilitiesCache
+									URLCache.Category.CAPABILITIES_DOCUMENT,
+									true
 							);
 						}
 
@@ -266,7 +283,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 					// If one of the folder name is null or an empty string, the URL will be the same, returning the
 					// same folder name including the null / empty string.
 					if (Utils.isNotBlank(childArcGISPath)) {
-						this.parseJSON(allLayers, childArcGISPath, childArcGISPath, null, dataSourceConfig, clearCapabilitiesCache);
+						this.parseJSON(allLayers, childArcGISPath, childArcGISPath, null, dataSourceConfig);
 					}
 				}
 			}
@@ -284,12 +301,12 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 								dataSourceConfig.getConfigManager(),
 								dataSourceConfig,
 								getJSONUrl(dataSourceConfig.getServiceUrl(), childArcGISPath, childType),
-								true,
-								clearCapabilitiesCache
+								URLCache.Category.CAPABILITIES_DOCUMENT,
+								true
 						);
 					}
 
-					List<AbstractLayerConfig> subChildren = this.parseJSON(allLayers, treePath, childArcGISPath, childType, dataSourceConfig, clearCapabilitiesCache);
+					List<AbstractLayerConfig> subChildren = this.parseJSON(allLayers, treePath, childArcGISPath, childType, dataSourceConfig);
 					if (subChildren != null) {
 						AbstractLayerConfig layerService = this.getLayerServiceConfig(childArcGISPath, subChildren, jsonServiceExtra, dataSourceConfig);
 						this.ensureUniqueLayerId(layerService, dataSourceConfig);
@@ -361,20 +378,17 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 			layer.setLayerBoundingBox(this.getExtent(jsonLayerExtra.optJSONObject("extent"), layer.getTitle(), dataSourceConfig.getDataSourceName()));
 		}
 
-		dataSourceConfig.bindLayer(layer);
-
 		return layer;
 	}
 
-	// TODO Change the logic - Only the service (map) is cache, not the layers individually
+	// TODO Change the logic - Only the service (group of layers called map) is cache, not the individual layers
 	private ArcGISCacheLayerConfig getLayerCacheConfig(JSONObject jsonLayer, JSONObject jsonLayerExtra, JSONObject jsonParentService, ArcGISMapServerDataSourceConfig dataSourceConfig) {
 		ArcGISCacheLayerConfig layer = new ArcGISCacheLayerConfig(dataSourceConfig.getConfigManager());
 
 		String layerId = jsonLayer.optString("id", null);
 
 		layer.setLayerId(layerId);
-		layer.setDataSourceId(dataSourceConfig.getDataSourceId());
-		layer.setDataSourceType("ARCGIS_CACHE");
+		layer.setLayerType("ARCGIS_CACHE");
 
 		layer.setTitle(jsonLayer.optString("name", null));
 		layer.setSelected(jsonLayer.optBoolean("defaultVisibility", true));
@@ -429,7 +443,6 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 		String layerId = jsonGroup.optString("id", null);
 
 		groupLayer.setLayerId(layerId);
-		groupLayer.setDataSourceId(dataSourceConfig.getDataSourceId());
 
 		groupLayer.setTitle(jsonGroup.optString("name", null));
 		groupLayer.setSelected(jsonGroup.optBoolean("defaultVisibility", true));
@@ -442,7 +455,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 				children[i] = jsonChildren.optString(i);
 			}
 			groupLayer.setLayers(children);
-			groupLayer.setDataSourceType("GROUP");
+			groupLayer.setLayerType("GROUP");
 		}
 
 		if (jsonGroupExtra != null) {
@@ -482,6 +495,15 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 		if (jsonServiceExtra != null) {
 			serviceLayer.setDescription(jsonServiceExtra.optString("serviceDescription", null));
 
+			// "singleFusedMapCache"
+			//     true: The service layers' are requested from a cache. Single layer can not be turned on or off and DPI parameter is ignored.
+			//     false: The service layers' are dynamic. Single layer can be turned on or off and the parameter DPI affect the graphics.
+			//         I assume false is the default (i.e. if the parameter is missing, the server probably do not have cache support)
+			// API ref: http://resources.arcgis.com/en/help/rest/apiref/imageserver.html
+			if (jsonServiceExtra.has("singleFusedMapCache")) {
+				serviceLayer.setSingleFusedMapCache(jsonServiceExtra.optBoolean("singleFusedMapCache", false));
+			}
+
 			double[] extent = this.getExtent(jsonServiceExtra.optJSONObject("initialExtent"), serviceLayer.getTitle(), dataSourceConfig.getDataSourceName());
 			if (extent == null) {
 				extent = this.getExtent(jsonServiceExtra.optJSONObject("fullExtent"), serviceLayer.getTitle(), dataSourceConfig.getDataSourceName());
@@ -494,9 +516,8 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 		// childArcGISPath contains the current layerGroup
 		serviceLayer.setGroupPath(childArcGISPath);
 
-		dataSourceConfig.bindLayer(serviceLayer);
-		// Override the data source type
-		serviceLayer.setDataSourceType("SERVICE");
+		// Override the layer type
+		serviceLayer.setLayerType("SERVICE");
 
 		return serviceLayer;
 	}

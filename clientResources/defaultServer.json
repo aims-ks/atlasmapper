@@ -25,13 +25,13 @@
 			"id": 5,
 			"baseLayers": "ea_ea:World_NED_NE2,\nea_World_NE2-coast-cities-reefs_Baselayer",
 			"webCacheEnable": true,
-			"webCacheParameters": "LAYERS, TRANSPARENT, SERVICE, VERSION, REQUEST, EXCEPTIONS, FORMAT, SRS, BBOX, WIDTH, HEIGHT, STYLES",
+			"webCacheSupportedParameters": "LAYERS, TRANSPARENT, SERVICE, VERSION, REQUEST, EXCEPTIONS, FORMAT, SRS, BBOX, WIDTH, HEIGHT, STYLES",
 			"legendParameters": "FORMAT=image/png\nHEIGHT=10\nWIDTH=20",
-			"globalManualOverride": "{\n    \"ea_ea:World_NED_NE2\": {\"hasLegend\": false},\n    \"ea_GBR_JCU_Bathymetry-3DGBR_Land-and-sea\": {\"hasLegend\": false},\n    \"ea_mangroves\": {\n        \"dataSourceType\": \"GROUP\",\n        \"description\": \"Layer group for the layers \\\"QLD Coastal wetlands - Study regions\\\" and \\\"QLD Coastal wetlands (DEEDI)\\\"\",\n        \"layerBoundingBox\": [\n            134.91053,\n            -29.91797,\n            156.53146999999998,\n            -8.29703\n        ],\n        \"layers\": [\n            \"ea_ea:QLD_DEEDI_Coastal-wetlands\",\n            \"ea_ea:QLD_DEEDI_Coastal-wetlands_Study-regions\"\n        ],\n        \"title\": \"Mangroves\",\n        \"version\": 1.1,\n        \"wmsPath\": \"Terrestrial biology/QLD: Coastal wetlands (DEEDI)\",\n        \"wmsQueryable\": false\n    },\n    \"ea_World_NE2-coast-cities-reefs_Baselayer\": {\"hasLegend\": false}\n}",
+			"globalManualOverride": "{\n    \"ea_ea:World_NED_NE2\": {\"hasLegend\": false},\n    \"ea_GBR_JCU_Bathymetry-3DGBR_Land-and-sea\": {\"hasLegend\": false},\n    \"ea_mangroves\": {\n        \"layerType\": \"GROUP\",\n        \"description\": \"Layer group for the layers \\\"QLD Coastal wetlands - Study regions\\\" and \\\"QLD Coastal wetlands (DEEDI)\\\"\",\n        \"layerBoundingBox\": [\n            134.91053,\n            -29.91797,\n            156.53146999999998,\n            -8.29703\n        ],\n        \"layers\": [\n            \"ea_ea:QLD_DEEDI_Coastal-wetlands\",\n            \"ea_ea:QLD_DEEDI_Coastal-wetlands_Study-regions\"\n        ],\n        \"title\": \"Mangroves\",\n        \"version\": 1.1,\n        \"wmsPath\": \"Terrestrial biology/QLD: Coastal wetlands (DEEDI)\",\n        \"wmsQueryable\": false\n    },\n    \"ea_World_NE2-coast-cities-reefs_Baselayer\": {\"hasLegend\": false}\n}",
 			"comment": "This is an example of a WMS Data Source. It provide layers from e-Atlas, with WebCache capabilities. It also define a \"layer group\", which show multiple layers as one layer in the \"Add layer window\" and as a folder on the \"layer switcher\" once it has been added to the map.\n\nFell free to refer to it as an example, but try to set up your own WMS server as soon as possible.",
 			"serviceUrl": "http://maps.e-atlas.org.au/maps/wms",
 			"dataSourceName": "e-Atlas",
-			"dataSourceType": "WMS",
+			"layerType": "WMS",
 			"dataSourceId": "ea",
 			"showInLegend": true
 		},
@@ -45,7 +45,7 @@
 			"comment": "OpenGeo layers\nThis service only provide tiles through a Geo Web Cache application. The \"tplanner\" layer(s) has been black listed in the \"Advanced options\" because they only contains info about New-York, USA. By default, the AtlasMapper request base layers as JPEG. This server only provide PNG for most of their layers so a layer override has been added in the \"Advanced options\" for fix this issue.\nNote that the legend of some layers has been deactivated using the \"Layers' global manual override\".",
 			"serviceUrl": "http://maps.opengeo.org/geowebcache/service/wms",
 			"dataSourceName": "OpenGeo",
-			"dataSourceType": "WMS",
+			"layerType": "WMS",
 			"dataSourceId": "og",
 			"showInLegend": true
 		},
@@ -66,7 +66,7 @@
 			"globalManualOverride": "{\n    \"kml_fictional-bunyip-sightings\": {\n        \"legendGroup\": \"Bunyip data\",\n        \"legendTitle\": \"Sightings\",\n        \"legendUrl\": \"http://maps.e-atlas.org.au/kmls/sightings-legend.png\"\n    },\n    \"kml_fictional-bunyip-tracks\": {\n        \"legendGroup\": \"Bunyip data\",\n        \"legendTitle\": \"Tracks\",\n        \"legendUrl\": \"http://maps.e-atlas.org.au/kmls/tracks-legend.png\"\n    }\n}",
 			"comment": "KML Data source having 2 KML in it. See the Advanced tab for the definition of the layer name, description, legend URL, etc.",
 			"dataSourceName": "Demo KML",
-			"dataSourceType": "KML",
+			"layerType": "KML",
 			"dataSourceId": "kml",
 			"showInLegend": false
 		},
@@ -74,14 +74,14 @@
 			"id": 8,
 			"serviceUrl": "http://services.arcgisonline.com/ArcGIS/rest/services",
 			"dataSourceName": "ArcGIS Online",
-			"dataSourceType": "ARCGIS_MAPSERVER",
+			"layerType": "ARCGIS_MAPSERVER",
 			"dataSourceId": "ao",
 			"showInLegend": true
 		},
 		{
 			"id": 9,
 			"dataSourceName": "Google",
-			"dataSourceType": "GOOGLE",
+			"layerType": "GOOGLE",
 			"dataSourceId": "g",
 			"showInLegend": false
 		}

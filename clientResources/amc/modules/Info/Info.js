@@ -36,18 +36,14 @@ Atlas.Info = Ext.extend(Ext.Component, {
 	initComponent: function() {
 		Atlas.Info.superclass.initComponent.call(this);
 		this.tabs = [];
-		if (Atlas.conf
-				&& Atlas.conf['modules']
-				&& Atlas.conf['modules']['Info']
-				&& Atlas.conf['modules']['Info']['config']) {
-
-			if (typeof(Atlas.conf['modules']['Info']['version']) != 'undefined' && Atlas.conf['modules']['Info']['version'] > this.CURRENT_CONFIG_VERSION) {
-				var err = "The version of the configuration of the Info module ("+Atlas.conf['modules']['Tree']['version']+") is not supported by this client (support up to version: "+this.CURRENT_CONFIG_VERSION+").";
+		if (this.config && this.config['config']) {
+			if (typeof(this.config['version']) != 'undefined' && this.config['version'] > this.CURRENT_CONFIG_VERSION) {
+				var err = "The version of the configuration of the Info module ("+this.config['version']+") is not supported by this client (support up to version: "+this.CURRENT_CONFIG_VERSION+").";
 				alert(err);
 				throw err;
 			}
 
-			Ext.iterate(Atlas.conf['modules']['Info']['config'], function(tabName, tab) {
+			Ext.iterate(this.config['config'], function(tabName, tab) {
 				var tabObj = tab;
 				if (typeof(tab) == 'string') {
 					tabObj = {"defaultContent": tab};
@@ -59,9 +55,12 @@ Atlas.Info = Ext.extend(Ext.Component, {
 				}
 
 				var panelConfig = {
-					mapPanel: this.mapPanel,
-					title: tabName
+					mapPanel: this.mapPanel
 				};
+
+				if (typeof(this.header) === 'undefined' || this.header) {
+					panelConfig.title = tabName;
+				}
 
 				if (tabObj['type'] === 'options') {
 					panelConfig.cls = 'infoTab';

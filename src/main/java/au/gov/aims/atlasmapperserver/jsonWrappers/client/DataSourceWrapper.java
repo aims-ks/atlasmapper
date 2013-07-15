@@ -21,6 +21,7 @@
 package au.gov.aims.atlasmapperserver.jsonWrappers.client;
 
 import au.gov.aims.atlasmapperserver.AbstractConfig;
+import au.gov.aims.atlasmapperserver.Errors;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.jsonWrappers.AbstractWrapper;
 import org.json.JSONArray;
@@ -29,15 +30,15 @@ import org.json.JSONObject;
 
 import java.net.URL;
 import java.util.Iterator;
+import java.util.Map;
 
 /**
  * This class is wrapping a JSONObject representing a data source to be sent to the AtlasMapper client.
  * It has been made to manage the Json keys in one location and simplify maintenance.
  */
 public class DataSourceWrapper extends AbstractWrapper {
-	public DataSourceWrapper(JSONObject json) {
-		super(json);
-	}
+	public DataSourceWrapper() { super(); }
+	public DataSourceWrapper(JSONObject json) { super(json); }
 
 	public Integer getId() {
 		if (this.json.isNull("id")) {
@@ -63,21 +64,23 @@ public class DataSourceWrapper extends AbstractWrapper {
 		this.json.put("dataSourceName", dataSourceName);
 	}
 
-	public String getDataSourceType() {
-		return this.json.optString("dataSourceType", null);
+	public String getLayerType() {
+		return this.json.optString("layerType",
+			// Backward compatibility
+			this.json.optString("dataSourceType", null));
 	}
-	public void setDataSourceType(String dataSourceType) throws JSONException {
-		this.json.put("dataSourceType", dataSourceType);
+	public void setLayerType(String layerType) throws JSONException {
+		this.json.put("layerType", layerType);
 	}
 
 	public String getServiceUrl() {
-		return this.json.optString("wmsServiceUrl", null);
+		return this.json.optString("serviceUrl", null);
 	}
 	public void setServiceUrl(URL serviceUrl) throws JSONException {
 		this.setServiceUrl(serviceUrl == null ? null : serviceUrl.toString());
 	}
 	public void setServiceUrl(String serviceUrl) throws JSONException {
-		this.json.put("wmsServiceUrl", serviceUrl);
+		this.json.put("serviceUrl", serviceUrl);
 	}
 
 	public String getFeatureRequestsUrl() {
@@ -107,6 +110,14 @@ public class DataSourceWrapper extends AbstractWrapper {
 		this.json.put("wmsVersion", wmsVersion);
 	}
 
+	// Used only on server side, the value is removed before saving the data source save state.
+	public String getGetMapUrl() {
+		return this.json.optString("getMapUrl", null);
+	}
+	public void setGetMapUrl(String getMapUrl) throws JSONException {
+		this.setValue("getMapUrl", getMapUrl);
+	}
+
 	public String getCacheWmsVersion() {
 		return this.json.optString("cacheWmsVersion", null);
 	}
@@ -125,13 +136,21 @@ public class DataSourceWrapper extends AbstractWrapper {
 		}
 	}
 
-	public void addLayer(String layerId, JSONObject layer) throws JSONException {
-		JSONObject layers = this.getLayers();
-		if (layers == null) {
-			layers = new JSONObject();
-			this.setLayers(layers);
+	public void addLayers(Map<String, LayerWrapper> layers) throws JSONException {
+		for (Map.Entry<String, LayerWrapper> layerEntry : layers.entrySet()) {
+			LayerWrapper layerWrapper = layerEntry.getValue();
+			String layerId = layerEntry.getKey();
+			if (layerId != null && !layerId.isEmpty() && layerWrapper != null) {
+				JSONObject jsonLayer = layerWrapper.getJSON();
+				if (jsonLayer != null && jsonLayer.length() > 0) {
+					this.addLayer(layerId, jsonLayer);
+				}
+			}
 		}
-		layers.put(layerId, layer);
+	}
+
+	public void addLayer(String layerId, LayerWrapper layer) throws JSONException {
+		this.addLayer(layerId, layer.getJSON());
 	}
 
 	public void addLayers(JSONObject newLayers) throws JSONException {
@@ -144,6 +163,15 @@ public class DataSourceWrapper extends AbstractWrapper {
 				}
 			}
 		}
+	}
+
+	private void addLayer(String layerId, JSONObject layer) throws JSONException {
+		JSONObject layers = this.getLayers();
+		if (layers == null) {
+			layers = new JSONObject();
+			this.setLayers(layers);
+		}
+		layers.put(layerId, layer);
 	}
 
 	public String getGlobalManualOverride() {
@@ -160,6 +188,36 @@ public class DataSourceWrapper extends AbstractWrapper {
 		this.setValue("blackAndWhiteListedLayers", blackAndWhiteListedLayers);
 	}
 
+	public JSONArray getWebCacheSupportedParameters() {
+		return this.json.optJSONArray("webCacheSupportedParameters");
+	}
+	public void setWebCacheSupportedParameters(JSONArray webCacheSupportedParameters) throws JSONException {
+		this.setValue("webCacheSupportedParameters", webCacheSupportedParameters);
+	}
+	public void setWebCacheSupportedParameters(String[] webCacheSupportedParameters) throws JSONException {
+		this.setValue("webCacheSupportedParameters", webCacheSupportedParameters);
+	}
+
+	public JSONArray getBaseLayers() {
+		return this.json.optJSONArray("baseLayers");
+	}
+	public void setBaseLayers(JSONArray baseLayers) throws JSONException {
+		this.setValue("baseLayers", baseLayers);
+	}
+	public void setBaseLayers(String[] baseLayers) throws JSONException {
+		this.setValue("baseLayers", baseLayers);
+	}
+
+	public JSONArray getOverlayLayers() {
+		return this.json.optJSONArray("overlayLayers");
+	}
+	public void setOverlayLayers(JSONArray overlayLayers) throws JSONException {
+		this.setValue("overlayLayers", overlayLayers);
+	}
+	public void setOverlayLayers(String[] overlayLayers) throws JSONException {
+		this.setValue("overlayLayers", overlayLayers);
+	}
+
 	public String getLastHarvested() {
 		return this.json.optString("lastHarvested", null);
 	}
@@ -167,14 +225,23 @@ public class DataSourceWrapper extends AbstractWrapper {
 		this.setValue("lastHarvested", lastHarvested);
 	}
 
-	public Boolean getValid() {
-		if (this.json.has("valid")) {
-			return this.json.optBoolean("valid");
-		}
-		return null;
+	// INVALID (or null), PASSED, OKAY
+	public String getStatus() {
+		return this.json.optString("status", "INVALID");
 	}
-	public void setValid(Boolean valid) throws JSONException {
-		this.setValue("valid", valid);
+	public void setStatus(String status) throws JSONException {
+		this.setValue("status", status);
+	}
+
+	public boolean isModified() {
+		return this.json.optBoolean("modified", false);
+	}
+	public void setModified(boolean modified) throws JSONException {
+		if (modified) {
+			this.setValue("modified", true);
+		} else {
+			this.json.remove("modified");
+		}
 	}
 
 	public String getComment() {
@@ -215,28 +282,40 @@ public class DataSourceWrapper extends AbstractWrapper {
 		return this.isWMS() || this.isNCWMS();
 	}
 	public boolean isArcGISMapServer() {
-		return "ARCGIS_MAPSERVER".equals(this.getDataSourceType());
+		return "ARCGIS_MAPSERVER".equals(this.getLayerType());
 	}
 	public boolean isGoogle() {
-		return "GOOGLE".equals(this.getDataSourceType());
+		return "GOOGLE".equals(this.getLayerType());
 	}
 	public boolean isBing() {
-		return "BING".equals(this.getDataSourceType());
+		return "BING".equals(this.getLayerType());
 	}
 	public boolean isKML() {
-		return "KML".equals(this.getDataSourceType());
+		return "KML".equals(this.getLayerType());
 	}
 	public boolean isNCWMS() {
-		return "NCWMS".equals(this.getDataSourceType());
+		return "NCWMS".equals(this.getLayerType());
 	}
 	public boolean isTiles() {
-		return "TILES".equals(this.getDataSourceType());
+		return "TILES".equals(this.getLayerType());
 	}
 	public boolean isXYZ() {
-		return "XYZ".equals(this.getDataSourceType());
+		return "XYZ".equals(this.getLayerType());
 	}
 	public boolean isWMS() {
-		return "WMS".equals(this.getDataSourceType());
+		return "WMS".equals(this.getLayerType());
+	}
+
+	public void addAllErrors(Errors errors) throws JSONException {
+		for (Errors.Error error : errors.getErrors()) {
+			this.addError(error.toJSON());
+		}
+		for (Errors.Error warning : errors.getWarnings()) {
+			this.addWarning(warning.toJSON());
+		}
+		for (Errors.Error message : errors.getMessages()) {
+			this.addMessage(message.toJSON());
+		}
 	}
 
 	public JSONArray getErrors() {
@@ -245,13 +324,21 @@ public class DataSourceWrapper extends AbstractWrapper {
 	public void setErrors(JSONArray errors) throws JSONException {
 		this.json.put("errors", errors);
 	}
-	public void addError(String error) throws JSONException {
+	// Add either a String (error message) or a JSONObject (url: error message)
+	public void addError(Object error) throws JSONException {
 		JSONArray errors = this.getErrors();
 		if (errors == null) {
 			errors = new JSONArray();
 			this.setErrors(errors);
 		}
 		errors.put(error);
+	}
+	public void addErrors(JSONArray errors) throws JSONException {
+		if (errors != null) {
+			for (int i=0, len=errors.length(); i<len; i++) {
+				this.addError(errors.get(i));
+			}
+		}
 	}
 
 	public JSONArray getWarnings() {
@@ -260,13 +347,21 @@ public class DataSourceWrapper extends AbstractWrapper {
 	public void setWarnings(JSONArray warnings) throws JSONException {
 		this.json.put("warnings", warnings);
 	}
-	public void addWarning(String warning) throws JSONException {
+	// Add either a String (warning message) or a JSONObject (url: warning message)
+	public void addWarning(Object warning) throws JSONException {
 		JSONArray warnings = this.getWarnings();
 		if (warnings == null) {
 			warnings = new JSONArray();
 			this.setWarnings(warnings);
 		}
 		warnings.put(warning);
+	}
+	public void addWarnings(JSONArray warnings) throws JSONException {
+		if (warnings != null) {
+			for (int i=0, len=warnings.length(); i<len; i++) {
+				this.addWarning(warnings.get(i));
+			}
+		}
 	}
 
 	public JSONArray getMessages() {
@@ -275,13 +370,26 @@ public class DataSourceWrapper extends AbstractWrapper {
 	public void setMessages(JSONArray messages) throws JSONException {
 		this.json.put("messages", messages);
 	}
-	public void addMessage(String message) throws JSONException {
+	// Add either a String (message) or a JSONObject (url: message)
+	public void addMessage(Object message) throws JSONException {
 		JSONArray messages = this.getMessages();
 		if (messages == null) {
 			messages = new JSONArray();
 			this.setMessages(messages);
 		}
 		messages.put(message);
+	}
+	public void addMessages(JSONArray messages) throws JSONException {
+		if (messages != null) {
+			for (int i=0, len=messages.length(); i<len; i++) {
+				this.addMessage(messages.get(i));
+			}
+		}
+	}
+
+	public boolean isLayerCatalogEmpty() {
+		JSONObject layers = this.getLayers();
+		return layers == null || layers.length() <= 0;
 	}
 
 	// The data source has many attributes unneeded for the main config; they only enlarge the file.
@@ -290,7 +398,7 @@ public class DataSourceWrapper extends AbstractWrapper {
 		DataSourceWrapper dataSourceClone = (DataSourceWrapper)this.clone();
 		if (dataSourceClone == null) {
 			// Unlikely to happen
-			dataSourceClone = new DataSourceWrapper(new JSONObject());
+			dataSourceClone = new DataSourceWrapper();
 		}
 
 		// Remove unwanted values
@@ -302,7 +410,6 @@ public class DataSourceWrapper extends AbstractWrapper {
 		dataSourceClone.setMessages(null);
 		dataSourceClone.setBlackAndWhiteListedLayers(null);
 		dataSourceClone.setLastHarvested(null);
-		dataSourceClone.setValid(null);
 		dataSourceClone.setComment(null);
 
 		return dataSourceClone.getJSON();
