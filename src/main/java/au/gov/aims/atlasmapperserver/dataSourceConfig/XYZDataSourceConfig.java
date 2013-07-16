@@ -51,19 +51,23 @@ public class XYZDataSourceConfig extends AbstractDataSourceConfig {
 		return this.serviceUrls;
 	}
 	public void setServiceUrls(String[] rawServiceUrls) {
-		List<String> serviceUrls = new ArrayList<String>(rawServiceUrls.length);
-		for (String rawServiceUrl : rawServiceUrls) {
-			// When the value come from the form (or an old config file), it's a coma separated String instead of an Array
-			Pattern regex = Pattern.compile(".*" + SPLIT_PATTERN + ".*", Pattern.DOTALL);
-			if (regex.matcher(rawServiceUrl).matches()) {
-				for (String splitUrl : rawServiceUrl.split(SPLIT_PATTERN)) {
-					serviceUrls.add(splitUrl.trim());
+		if (rawServiceUrls == null || rawServiceUrls.length <= 0) {
+			this.serviceUrls = null;
+		} else {
+			List<String> serviceUrls = new ArrayList<String>(rawServiceUrls.length);
+			for (String rawServiceUrl : rawServiceUrls) {
+				// When the value come from the form (or an old config file), it's a coma separated String instead of an Array
+				Pattern regex = Pattern.compile(".*" + SPLIT_PATTERN + ".*", Pattern.DOTALL);
+				if (regex.matcher(rawServiceUrl).matches()) {
+					for (String splitUrl : rawServiceUrl.split(SPLIT_PATTERN)) {
+						serviceUrls.add(splitUrl.trim());
+					}
+				} else {
+					serviceUrls.add(rawServiceUrl.trim());
 				}
-			} else {
-				serviceUrls.add(rawServiceUrl.trim());
 			}
+			this.serviceUrls = serviceUrls.toArray(new String[serviceUrls.size()]);
 		}
-		this.serviceUrls = serviceUrls.toArray(new String[serviceUrls.size()]);
 	}
 
 	public Boolean isOsm() {

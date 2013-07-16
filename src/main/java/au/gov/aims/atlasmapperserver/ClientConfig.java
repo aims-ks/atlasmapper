@@ -361,6 +361,19 @@ public class ClientConfig extends AbstractConfig {
 			generatedMainConfig = new ClientWrapper(this.getConfigManager().getClientConfigFileJSon(layerCatalog, dataSources, this, ConfigType.MAIN, true));
 			generatedEmbeddedConfig = new ClientWrapper(this.getConfigManager().getClientConfigFileJSon(layerCatalog, dataSources, this, ConfigType.EMBEDDED, true));
 			generatedLayers = this.getConfigManager().getClientConfigFileJSon(layerCatalog, dataSources, this, ConfigType.LAYERS, true);
+
+			// Show warning for each default layers that are not defined in the layer catalog.
+			List<String> defaultLayerIds = this.getDefaultLayersList();
+			if (layerCatalog != null && defaultLayerIds != null && !defaultLayers.isEmpty()) {
+				JSONObject jsonLayers = layerCatalog.getLayers();
+				if (jsonLayers != null) {
+					for (String defaultLayerId : defaultLayerIds) {
+						if (!jsonLayers.has(defaultLayerId)) {
+							clientErrors.addWarning("The layer ID [" + defaultLayerId + "], specified in the default layers, could not be found in the layer catalog.");
+						}
+					}
+				}
+			}
 		} catch (IOException ex) {
 			// Very unlikely to happen
 			clientErrors.addError("An IO exception occurred while generating the client config: " + Utils.getExceptionMessage(ex) + "\nSee your server logs.");
@@ -977,19 +990,23 @@ public class ClientConfig extends AbstractConfig {
 		return this.extraAllowedHosts;
 	}
 	public void setExtraAllowedHosts(String[] rawExtraAllowedHosts) {
-		List<String> extraAllowedHosts = new ArrayList<String>(rawExtraAllowedHosts.length);
-		for (String extraAllowedHost : rawExtraAllowedHosts) {
-			// When the value come from the form (or an old config file), it's a coma separated String instead of an Array
-			Pattern regex = Pattern.compile(".*" + SPLIT_PATTERN + ".*", Pattern.DOTALL);
-			if (regex.matcher(extraAllowedHost).matches()) {
-				for (String splitHost : extraAllowedHost.split(SPLIT_PATTERN)) {
-					extraAllowedHosts.add(splitHost.trim());
+		if (rawExtraAllowedHosts == null || rawExtraAllowedHosts.length <= 0) {
+			this.extraAllowedHosts = null;
+		} else {
+			List<String> extraAllowedHosts = new ArrayList<String>(rawExtraAllowedHosts.length);
+			for (String extraAllowedHost : rawExtraAllowedHosts) {
+				// When the value come from the form (or an old config file), it's a coma separated String instead of an Array
+				Pattern regex = Pattern.compile(".*" + SPLIT_PATTERN + ".*", Pattern.DOTALL);
+				if (regex.matcher(extraAllowedHost).matches()) {
+					for (String splitHost : extraAllowedHost.split(SPLIT_PATTERN)) {
+						extraAllowedHosts.add(splitHost.trim());
+					}
+				} else {
+					extraAllowedHosts.add(extraAllowedHost.trim());
 				}
-			} else {
-				extraAllowedHosts.add(extraAllowedHost.trim());
 			}
+			this.extraAllowedHosts = extraAllowedHosts.toArray(new String[extraAllowedHosts.size()]);
 		}
-		this.extraAllowedHosts = extraAllowedHosts.toArray(new String[extraAllowedHosts.size()]);
 	}
 
 

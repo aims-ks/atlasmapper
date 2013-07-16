@@ -535,38 +535,46 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 		return this.baseLayers;
 	}
 	public void setBaseLayers(String[] rawBaseLayers) {
-		List<String> baseLayers = new ArrayList<String>(rawBaseLayers.length);
-		for (String baseLayer : rawBaseLayers) {
-			// When the value come from the form (or an old config file), it's a coma separated String instead of an Array
-			Pattern regex = Pattern.compile(".*" + SPLIT_PATTERN + ".*", Pattern.DOTALL);
-			if (regex.matcher(baseLayer).matches()) {
-				for (String splitBaseLayer : baseLayer.split(SPLIT_PATTERN)) {
-					baseLayers.add(splitBaseLayer.trim());
+		if (rawBaseLayers == null || rawBaseLayers.length <= 0) {
+			this.baseLayers = null;
+		} else {
+			List<String> baseLayers = new ArrayList<String>(rawBaseLayers.length);
+			for (String baseLayer : rawBaseLayers) {
+				// When the value come from the form (or an old config file), it's a coma separated String instead of an Array
+				Pattern regex = Pattern.compile(".*" + SPLIT_PATTERN + ".*", Pattern.DOTALL);
+				if (regex.matcher(baseLayer).matches()) {
+					for (String splitBaseLayer : baseLayer.split(SPLIT_PATTERN)) {
+						baseLayers.add(splitBaseLayer.trim());
+					}
+				} else {
+					baseLayers.add(baseLayer.trim());
 				}
-			} else {
-				baseLayers.add(baseLayer.trim());
 			}
+			this.baseLayers = baseLayers.toArray(new String[baseLayers.size()]);
 		}
-		this.baseLayers = baseLayers.toArray(new String[baseLayers.size()]);
 	}
 
 	public String[] getOverlayLayers() {
 		return this.overlayLayers;
 	}
 	public void setOverlayLayers(String[] rawOverlayLayers) {
-		List<String> overlayLayers = new ArrayList<String>(rawOverlayLayers.length);
-		for (String overlayLayer : rawOverlayLayers) {
-			// When the value come from the form (or an old config file), it's a coma separated String instead of an Array
-			Pattern regex = Pattern.compile(".*" + SPLIT_PATTERN + ".*", Pattern.DOTALL);
-			if (regex.matcher(overlayLayer).matches()) {
-				for (String splitOverlayLayer : overlayLayer.split(SPLIT_PATTERN)) {
-					overlayLayers.add(splitOverlayLayer.trim());
+		if (rawOverlayLayers == null || rawOverlayLayers.length <= 0) {
+			this.overlayLayers = null;
+		} else {
+			List<String> overlayLayers = new ArrayList<String>(rawOverlayLayers.length);
+			for (String overlayLayer : rawOverlayLayers) {
+				// When the value come from the form (or an old config file), it's a coma separated String instead of an Array
+				Pattern regex = Pattern.compile(".*" + SPLIT_PATTERN + ".*", Pattern.DOTALL);
+				if (regex.matcher(overlayLayer).matches()) {
+					for (String splitOverlayLayer : overlayLayer.split(SPLIT_PATTERN)) {
+						overlayLayers.add(splitOverlayLayer.trim());
+					}
+				} else {
+					overlayLayers.add(overlayLayer.trim());
 				}
-			} else {
-				overlayLayers.add(overlayLayer.trim());
 			}
+			this.overlayLayers = overlayLayers.toArray(new String[overlayLayers.size()]);
 		}
-		this.overlayLayers = overlayLayers.toArray(new String[overlayLayers.size()]);
 	}
 
 

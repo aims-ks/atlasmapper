@@ -25,7 +25,7 @@
 	<groupId>au.gov.aims</groupId>
 	<artifactId>atlasmapper</artifactId>
 	<packaging>war</packaging>
-	<version>1.4.4</version>
+	<version>1.4.5</version>
 	<name>AtlasMapper server and clients</name>
 	<description>This application compiled as a single War, that can be deployed in Tomcat, without any other dependency.\n\
 It contains:\n\
@@ -46,6 +46,14 @@ It contains:\n\
 	</licenses>
 
 	<repositories>
+		<!-- Central repository is not required. It is listed here only as a reference.
+		<repository>
+			<id>central</id>
+			<name>Maven Repository Switchboard</name>
+			<url>http://repo1.maven.org/maven2</url>
+		</repository>
+		-->
+
 		<repository>
 			<id>osgeo</id>
 			<name>Open Source Geospatial Foundation Repository</name>
@@ -188,7 +196,7 @@ It contains:\n\
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<!-- <version>2.0.2</version> -->
+				<version>3.1</version>
 				<configuration>
 					<source>1.6</source>
 					<target>1.6</target>
@@ -197,7 +205,7 @@ It contains:\n\
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-war-plugin</artifactId>
-				<!-- <version>2.1-beta-1</version> -->
+				<version>2.4</version>
 				<configuration>
 					<!-- warResources do not work as a resource, the method getResource can't find them -->
 					<!-- http://maven.apache.org/plugins/maven-war-plugin/examples/adding-filtering-webresources.html -->
@@ -244,6 +252,7 @@ It contains:\n\
 										<file name="GPL.txt"/>
 										<file name="LICENCE.txt"/>
 										<file name="README.txt"/>
+										<file name="CHANGELOG.txt"/>
 									</filelist>
 								</zip>
 							</target>
@@ -291,7 +300,7 @@ It contains:\n\
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-compiler-plugin</artifactId>
-						<!-- <version>2.0.2</version> -->
+						<version>3.1</version>
 						<configuration>
 							<!-- javaee6 contains upgrades of APIs contained within the JDK itself.
 							As such these need to be placed on the bootclasspath, rather than classpath of the

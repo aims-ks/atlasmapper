@@ -90,19 +90,23 @@ public class WMSDataSourceConfig extends AbstractDataSourceConfig {
 		return this.extraWmsServiceUrls;
 	}
 	public void setExtraWmsServiceUrls(String[] rawExtraWmsServiceUrls) {
-		List<String> extraWmsServiceUrls = new ArrayList<String>(rawExtraWmsServiceUrls.length);
-		for (String extraWmsServiceUrl : rawExtraWmsServiceUrls) {
-			// When the value come from the form (or an old config file), it's a coma separated String instead of an Array
-			Pattern regex = Pattern.compile(".*" + SPLIT_PATTERN + ".*", Pattern.DOTALL);
-			if (regex.matcher(extraWmsServiceUrl).matches()) {
-				for (String splitUrl : extraWmsServiceUrl.split(SPLIT_PATTERN)) {
-					extraWmsServiceUrls.add(splitUrl.trim());
+		if (rawExtraWmsServiceUrls == null || rawExtraWmsServiceUrls.length <= 0) {
+			this.extraWmsServiceUrls = null;
+		} else {
+			List<String> extraWmsServiceUrls = new ArrayList<String>(rawExtraWmsServiceUrls.length);
+			for (String extraWmsServiceUrl : rawExtraWmsServiceUrls) {
+				// When the value come from the form (or an old config file), it's a coma separated String instead of an Array
+				Pattern regex = Pattern.compile(".*" + SPLIT_PATTERN + ".*", Pattern.DOTALL);
+				if (regex.matcher(extraWmsServiceUrl).matches()) {
+					for (String splitUrl : extraWmsServiceUrl.split(SPLIT_PATTERN)) {
+						extraWmsServiceUrls.add(splitUrl.trim());
+					}
+				} else {
+					extraWmsServiceUrls.add(extraWmsServiceUrl.trim());
 				}
-			} else {
-				extraWmsServiceUrls.add(extraWmsServiceUrl.trim());
 			}
+			this.extraWmsServiceUrls = extraWmsServiceUrls.toArray(new String[extraWmsServiceUrls.size()]);
 		}
-		this.extraWmsServiceUrls = extraWmsServiceUrls.toArray(new String[extraWmsServiceUrls.size()]);
 	}
 
 	public String[] getWebCacheSupportedParameters() {
@@ -110,18 +114,22 @@ public class WMSDataSourceConfig extends AbstractDataSourceConfig {
 	}
 
 	public void setWebCacheSupportedParameters(String[] rawWebCacheSupportedParameters) {
-		List<String> webCacheSupportedParameters = new ArrayList<String>(rawWebCacheSupportedParameters.length);
-		for (String rawWebCacheSupportedParameter : rawWebCacheSupportedParameters) {
-			// When the value come from the form (or an old config file), it's a coma separated String instead of an Array
-			if (rawWebCacheSupportedParameter.contains(",")) {
-				for (String splitParameter : rawWebCacheSupportedParameter.split(",")) {
-					webCacheSupportedParameters.add(splitParameter.trim());
+		if (rawWebCacheSupportedParameters == null || rawWebCacheSupportedParameters.length <= 0) {
+			this.webCacheSupportedParameters = null;
+		} else {
+			List<String> webCacheSupportedParameters = new ArrayList<String>(rawWebCacheSupportedParameters.length);
+			for (String rawWebCacheSupportedParameter : rawWebCacheSupportedParameters) {
+				// When the value come from the form (or an old config file), it's a coma separated String instead of an Array
+				if (rawWebCacheSupportedParameter.contains(",")) {
+					for (String splitParameter : rawWebCacheSupportedParameter.split(",")) {
+						webCacheSupportedParameters.add(splitParameter.trim());
+					}
+				} else {
+					webCacheSupportedParameters.add(rawWebCacheSupportedParameter.trim());
 				}
-			} else {
-				webCacheSupportedParameters.add(rawWebCacheSupportedParameter.trim());
 			}
+			this.webCacheSupportedParameters = webCacheSupportedParameters.toArray(new String[webCacheSupportedParameters.size()]);
 		}
-		this.webCacheSupportedParameters = webCacheSupportedParameters.toArray(new String[webCacheSupportedParameters.size()]);
 	}
 
 	public String getWebCacheCapabilitiesUrl() {
