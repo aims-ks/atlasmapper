@@ -72,6 +72,7 @@
 	</script>
 	<![endif]-->
 
+	<!-- NOTE: OpenLayer 2.13 is a bit jumpy on the iPad. We will sticking with 2.12 until we find something that justify this upgrade -->
 	<script type="text/javascript" src="OpenLayers/OpenLayers-2.12/OpenLayers.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="OpenLayers-ux/Bing.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="OpenLayers-ux/MultiSelectDragFeature.js?atlasmapperVer=${version}"></script>

@@ -800,7 +800,7 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 			}
 		}
 
-		this.store.remove(record);
+		//this.store.remove(record);
 
 		var newRecordIndex = this.store.findBy(function(r) {
 			return siblingNode.layer === r.getLayer();
@@ -809,16 +809,29 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 		nextNode != null && newRecordIndex++;
 
 		if(newRecordIndex !== undefined) {
-			this.store.insert(newRecordIndex, [record]);
+			//this.store.insert(newRecordIndex, [record]);
+			this._moveRecord(newRecordIndex, record);
 		} else {
 			// This line seems to be dead code; the variable
 			// oldRecordIndex is not initialised. I'm initialising
 			// it just in case it get called.
 			if (typeof(oldRecordIndex) == 'undefined') { oldRecordIndex = 0 }
-			this.store.insert(oldRecordIndex, [record]);
+			//this.store.insert(oldRecordIndex, [record]);
+			this._moveRecord(oldRecordIndex, record);
 		}
 
 		delete this._reordering;
+	},
+
+	_moveRecord: function(index, record) {
+		// Removing with the events delete the DOM object and cause exception later.
+		// Removing without the events do not seems to do anything...
+		//this.store.suspendEvents(); this.store.remove(record); this.store.resumeEvents();
+
+		// Inserting a record that is already there simply re-order it.
+		// The 'add' event is triggered, which tells the map to re-order the layer on the map.
+		// Unfortunately, some exceptions has to be considered to avoid adding a layer multiple times in the legend.
+		this.store.insert(index, [record]);
 	},
 
 	_adjustNodePath: function(node, newParent) {

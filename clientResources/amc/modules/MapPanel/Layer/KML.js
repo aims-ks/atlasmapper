@@ -50,38 +50,31 @@ Atlas.Layer.KML = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 				layerOptions
 			);
 
-			if (this.mapPanel && this.mapPanel.map) {
-				var select = new OpenLayers.Control.SelectFeature(kml);
-
-				// OpenLayer events for KML layers
-				var that = this;
-				kml.events.on({
-					"featureselected": function(event) {
-						that.onFeatureSelect(event, select);
-					},
-					"featureunselected": function(event) {
-						that.onFeatureUnselect(event);
-					}
-				});
-
-				this.mapPanel.map.addControl(select);
-				select.activate();
-			}
-
 			this.setLayer(kml);
 
-			// After the parsing of the KML document, retrieve the
-			// document name and set it in the JSON object.
 			kml.events.on({
 				loadend: function() {
-					this.json['documentName'] = kml.getDocumentName();
-					if (this.json['documentName']) {
-						kml.setName(this.getTitle());
-					}
+					this.monitorFeatureRequest(kml);
 				},
 				scope: this
 			});
 		}
+	},
+
+	// Need to remove it at some point
+	monitorFeatureRequest: function(layer) {
+		var multiSelectDragFeature = OpenLayers.Control.ux.MultiSelectDragFeature.getInstance(this.mapPanel.map);
+		layer.events.on({
+			"scope": this,
+			"featureselected": function(event) {
+				this.onFeatureSelect(event, multiSelectDragFeature);
+			},
+			"featureunselected": function(event) {
+				this.onFeatureUnselect(event);
+			}
+		});
+
+		multiSelectDragFeature.addLayer(layer);
 	},
 
 	/*
@@ -108,7 +101,10 @@ Atlas.Layer.KML = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 	onFeatureSelect: function(event, select) {
 		var feature = event.feature;
 
-		var content = "<h2>"+feature.attributes.name + "</h2>";
+		var content = '';
+		if (feature.attributes.name) {
+			content += '<h2>' + feature.attributes.name + '</h2>';
+		}
 		var description = '';
 		if (typeof(feature.attributes.description) !== 'undefined') {
 			description += feature.attributes.description;
@@ -123,18 +119,20 @@ Atlas.Layer.KML = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 
 		content += description;
 
-		var that = this;
-		var popupId = 'kml-popup';
-		var popup = new OpenLayers.Popup.FramedCloud(
-			popupId,
-			feature.geometry.getBounds().getCenterLonLat(),
-			new OpenLayers.Size(100, 100), // Initial content size
-			content,
-			null, true,
-			function(event) {that.onPopupClose(event, select);}
-		);
-		feature.popup = popup;
-		this.mapPanel.map.addPopup(popup);
+		if (content) {
+			var that = this;
+			var popupId = 'kml-popup';
+			var popup = new OpenLayers.Popup.FramedCloud(
+				popupId,
+				feature.geometry.getBounds().getCenterLonLat(),
+				new OpenLayers.Size(100, 100), // Initial content size
+				content,
+				null, true,
+				function(event) {that.onPopupClose(event, select);}
+			);
+			feature.popup = popup;
+			this.mapPanel.map.addPopup(popup);
+		}
 	},
 
 	onFeatureUnselect: function(event) {

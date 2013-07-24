@@ -30,6 +30,12 @@ public class KMLLayerConfig extends AbstractLayerConfig {
 
 	public KMLLayerConfig(ConfigManager configManager) {
 		super(configManager);
+
+		// By default, disable KML legend.
+		// KML legend are really bad...
+		if (this.isHasLegend() == null) {
+			this.setHasLegend(false);
+		}
 	}
 
 	public String getKmlUrl() {

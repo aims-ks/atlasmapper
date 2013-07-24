@@ -142,8 +142,15 @@ Atlas.LegendPanel = Ext.extend(GeoExt.LegendPanel, {
 		Atlas.LegendPanel.superclass.onResize.call(this, w, h, rawWidth, rawHeight);
 	},
 
+	// Override
 	addLegend: function(record, index) {
-		if (this.filter(record) === true) {
+		var existingLegend = null;
+		var legendGroup = this.getLegendGroup(record);
+		if (legendGroup && legendGroup.items) {
+			existingLegend = legendGroup.getComponent(this.getIdForLayer(record.getLayer()));
+		}
+
+		if (!existingLegend && this.filter(record) === true) {
 			var layer = record.getLayer();
 			// Always insert new legend on top of its group
 			// TODO maybe figure out how index is generated and do something with it (like legend order = layer list order)
@@ -182,6 +189,7 @@ Atlas.LegendPanel = Ext.extend(GeoExt.LegendPanel, {
 		}
 	},
 
+	// Override
 	removeLegend: function(record) {
 		var legendGroup = this.getLegendGroup(record);
 		if (legendGroup && legendGroup.items) {

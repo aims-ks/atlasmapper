@@ -1,3 +1,14 @@
+2013-07-24: Version 1.4.6
+	Client
+		* Fixed issue related to re-ordering of vector layers (KML layers and print frames)
+		* Fixed KML feature requests showing "undefined" on top of the balloon when the feature do not have a defined name
+		* Fixed KML feature labels to looks more like Google Earth:
+			- Bigger font size (17 instead of 13)
+			- Position to the right of the point instead of the top (this also fix the problem of multi-line label)
+			- Added a black halo around the text
+			- Fixed the default text color: White text with black halo
+			- Fixed dynamic label font size, when the attribute "scale" is specified on the KML styles.
+
 2013-07-17: Version 1.4.5
 	Fixed issues
 		* Issue 64: Can not unset all base layers (and other collections)
@@ -7,7 +18,6 @@
 2013-07-15: Version 1.4.4
 	Fixed issues
 		* Issue 22: Data source with bad WMS capabilities fails silently
-		* Issue 23: Unclear data source caching
 		* Issue 27: Resizing the map window size resets the position of the legend
 		* Issue 43: URL Save State do not save style correctly
 		* Issue 46: Client generation - better error reporting
@@ -16,6 +26,8 @@
 		* Issue 59: Deleting a print frame before it has been drawn results in broken state
 		* Issue 61: URL linking to maps fail poorly when a layer is no longer available
 		* Issue 62: Client build fails with poor error message when data source URL is missing "http://";
+	Issues in progress
+		* Issue 23: Unclear data source caching
 	Server
 		* Client Preview removed. It was not useful and was double the development change for all the generation processing.
 		* WMS now use version 1.1.1 instead of 1.3.0 by default. 1.3.0 is not well supported by GeoTools and ncWMS.

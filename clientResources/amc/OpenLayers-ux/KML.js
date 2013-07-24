@@ -32,7 +32,7 @@ OpenLayers.Layer.ux.KML = OpenLayers.Class(OpenLayers.Layer.Vector, {
 
 		var kmlOptions = {
 			strategies: [new OpenLayers.Strategy.Fixed()],
-			// OpenLayers need this to reproject the KML, if needed.
+			// OpenLayers need to know in which projection the KML is, to reproject it properly.
 			projection: new OpenLayers.Projection("EPSG:4326"),
 			protocol: new OpenLayers.Protocol.HTTP({
 				url: url,
@@ -65,32 +65,81 @@ OpenLayers.Layer.ux.KML = OpenLayers.Class(OpenLayers.Layer.Vector, {
 
 	/**
 	 * Add label above points.
+	 * For a list of style attribute, see:
+	 *     http://dev.openlayers.org/docs/files/OpenLayers/Feature/Vector-js.html#OpenLayers.Feature.Vector.OpenLayers.Feature.Vector.style
+	 * IMPORTANT: There is an inconsistancy between "graphicYOffset" and "labelYOffset". The X offsets are fine.
+	 *     Example: To move the point South of 100 pixels;
+	 *         graphicYOffset += 100
+	 *         labelYOffset -= 100
 	 */
 	_overrideStyleAttributes: function(feature) {
 		if (this._isPoint(feature)) {
+			var fontSize = 17; // Close to what Google Earth use
 
-			var fontSize = 13;
-
+			var graphicWidth = 0;
 			var graphicHeight = 0;
+			// Grab the icon dimention from the KML style, if available
+			if (typeof(feature.style.graphicWidth) !== 'undefined' && !isNaN(feature.style.graphicWidth)) {
+				graphicWidth = parseFloat(feature.style.graphicWidth);
+			}
 			if (typeof(feature.style.graphicHeight) !== 'undefined' && !isNaN(feature.style.graphicHeight)) {
 				graphicHeight = parseFloat(feature.style.graphicHeight);
 			}
 
-			// Default graphicYOffset is -(graphicHeight / 2)
+			// The default offset, when not specified in the KML, is not 0x0, it's half the image width / height
+			// to position the center of the icon on the point lon / lat location.
+			var graphicXOffset = graphicWidth / -2;
 			var graphicYOffset = graphicHeight / -2;
+			// Grab the icon offset from the KML style, if available
+			if (typeof(feature.style.graphicXOffset) !== 'undefined' && !isNaN(feature.style.graphicXOffset)) {
+				graphicXOffset = parseFloat(feature.style.graphicXOffset);
+			}
 			if (typeof(feature.style.graphicYOffset) !== 'undefined' && !isNaN(feature.style.graphicYOffset)) {
-				graphicYOffset = feature.style.graphicYOffset;
+				graphicYOffset = parseFloat(feature.style.graphicYOffset);
 			}
 
-			var yOffset = -graphicYOffset + fontSize;
+			var labelXOffset = graphicWidth; // Move the label East, to avoid overlap
+			var labelYOffset = graphicHeight / -2; // Move the label South, to align with the middle of the icon instead of the top of the icon
+			// Adjust the offset to follow the icon
+			// IMPORTANT: There is an inconsistency between "graphicYOffset" and "labelYOffset". The X offsets are fine.
+			//     Example: To move the point South of 100 pixels;
+			//         graphicYOffset += 100
+			//         labelYOffset -= 100
+			labelXOffset += graphicXOffset;
+			labelYOffset -= graphicYOffset;
 
-			return {
-				label: feature.attributes.name,
-				fontSize: fontSize + 'px',
-				labelXOffset: 0,
-				labelYOffset: yOffset,
-				labelSelect: true
+			// Google Earth default text color is white
+			var fontColor = '#FFFFFF';
+			if (typeof(feature.style.fontColor) !== 'undefined') {
+				fontColor = feature.style.fontColor;
+			}
+
+			var scale = 1;
+			if (typeof(feature.style.scale) !== 'undefined') {
+				scale = feature.style.scale;
+			}
+
+			var style = {
+				fontSize: (fontSize * scale) + 'px',
+				fontFamily: 'sans-serif',
+				fontWeight: 'bold',
+				fontColor: fontColor,
+
+				labelAlign: 'l',
+				labelXOffset: labelXOffset,
+				labelYOffset: labelYOffset,
+				labelSelect: true,
+				// Produce a white 'halo' around the text
+				labelOutlineColor: "#000000",
+				labelOutlineWidth: 3
 			};
+
+			// Google Earth hide the label when the scale is smaller than 0.5
+			if (scale >= 0.5) {
+				style.label = feature.attributes.name;
+			}
+
+			return style;
 		}
 		return null;
 	},
@@ -104,7 +153,7 @@ OpenLayers.Layer.ux.KML = OpenLayers.Class(OpenLayers.Layer.Vector, {
 
 	// Override
 	drawFeature: function(feature, style) {
-		if (typeof style != "object") {
+		if (typeof(style) !== "object") {
 			if(!style && feature.state === OpenLayers.State.DELETE) {
 				style = "delete";
 			}
@@ -116,7 +165,6 @@ OpenLayers.Layer.ux.KML = OpenLayers.Class(OpenLayers.Layer.Vector, {
 				// Add the missing attributes to the style found
 				// in the KML (add labels)
 				OpenLayers.Util.extend(style, this._overrideStyleAttributes(feature));
-				//this.applyIf(style, this.overrideStyleAttributes(feature));
 			}
 		}
 		OpenLayers.Layer.Vector.prototype.drawFeature.apply(this, [feature, style]);
@@ -157,6 +205,22 @@ OpenLayers.Format.ux.KML = OpenLayers.Class(OpenLayers.Format.KML, {
 				}
 			}
 		}
+	},
+
+	// Override
+	// Add the scale attribute to the Label styles
+	parseStyle: function(node) {
+		var style = OpenLayers.Format.KML.prototype.parseStyle.apply(this, arguments);
+
+		var labelStyleNode = this.getElementsByTagNameNS(node, "*", "LabelStyle")[0];
+		if (labelStyleNode) {
+			var labelScale = this.parseProperty(labelStyleNode, "*", "scale");
+			if (labelScale !== null) {
+				style.scale = labelScale;
+			}
+		}
+
+		return style;
 	},
 
 	CLASS_NAME: "OpenLayers.Format.ux.KML"

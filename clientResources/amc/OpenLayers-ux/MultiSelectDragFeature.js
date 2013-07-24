@@ -144,7 +144,7 @@ OpenLayers.Control.ux.MultiSelectDragFeature = OpenLayers.Class(OpenLayers.Contr
 OpenLayers.Control.ux.MultiSelectDragFeature.getInstance = function(map) {
 	if (map.multiSelectDragFeature == null) {
 		map.multiSelectDragFeature = new OpenLayers.Control.ux.MultiSelectDragFeature([], {
-			hover: true
+			hover: false
 		});
 		map.addControl(map.multiSelectDragFeature);
 		map.multiSelectDragFeature.activate();

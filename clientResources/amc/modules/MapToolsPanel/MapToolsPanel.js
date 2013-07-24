@@ -295,7 +295,7 @@ Atlas.MapToolsPanel = Ext.extend(Ext.form.FormPanel, {
 		} else if (embeddedUrlStr.length > this.DRUPAL_MAX_URL_LENGTH) {
 			warningMsg = '<span style="color:#CC0000;"><b>WARNING:' +
 				'</b> The URL length is <b>' + embeddedUrlStr.length + '</b> characters, ' +
-				'which is too long for some DMS like Drupal.</span><br/>\n';
+				'which is too long for some CMS like Drupal.</span><br/>\n';
 		}
 		if (warningMsg) {
 			warningMsg += 'You can fix the problem by removing some layers, including the one ' +
