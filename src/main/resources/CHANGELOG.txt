@@ -7,7 +7,7 @@
 		* Fixed KML feature labels to looks more like Google Earth:
 			- Bigger font size (17 instead of 13)
 			- Position to the right of the point instead of the top (this also fix the problem of multi-line label)
-			- Added a black halo around the text
+			- Added a black halo around the text, white halo when the text is black or really dark
 			- Fixed the default text color: White text with black halo
 			- Fixed dynamic label font size, when the attribute "scale" is specified on the KML styles.
 

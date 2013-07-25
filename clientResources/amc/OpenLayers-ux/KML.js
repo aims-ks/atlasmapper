@@ -119,6 +119,12 @@ OpenLayers.Layer.ux.KML = OpenLayers.Class(OpenLayers.Layer.Vector, {
 				scale = feature.style.scale;
 			}
 
+			var labelOutlineColor = "#000000";
+			// If the text color is quite dark (< 15% luminosity), use white halo.
+			if (this.getColorYIQ(fontColor) < 0.15) {
+				labelOutlineColor = "#FFFFFF";
+			}
+
 			var style = {
 				fontSize: (fontSize * scale) + 'px',
 				fontFamily: 'sans-serif',
@@ -129,8 +135,8 @@ OpenLayers.Layer.ux.KML = OpenLayers.Class(OpenLayers.Layer.Vector, {
 				labelXOffset: labelXOffset,
 				labelYOffset: labelYOffset,
 				labelSelect: true,
-				// Produce a white 'halo' around the text
-				labelOutlineColor: "#000000",
+				// Produce a black 'halo' around the text
+				labelOutlineColor: labelOutlineColor,
 				labelOutlineWidth: 3
 			};
 
@@ -142,6 +148,22 @@ OpenLayers.Layer.ux.KML = OpenLayers.Class(OpenLayers.Layer.Vector, {
 			return style;
 		}
 		return null;
+	},
+
+	/**
+	 * Convert an RGB color space into YIQ, which takes into account the different impacts of its constituent parts.
+	 * See: http://24ways.org/2010/calculating-color-contrast/
+	 * @param hexcolor The 6 characters hexadecimal color. It can starts with a '#'
+	 * @returns {number} 1 means white, 0 black
+	 */
+	getColorYIQ: function(hexcolor) {
+		if (hexcolor.charAt(0) === '#') {
+			hexcolor = hexcolor.substring(1);
+		}
+		var r = parseInt(hexcolor.substr(0,2),16);
+		var g = parseInt(hexcolor.substr(2,2),16);
+		var b = parseInt(hexcolor.substr(4,2),16);
+		return ((r*299)+(g*587)+(b*114))/255000;
 	},
 
 	_isPoint: function(feature) {

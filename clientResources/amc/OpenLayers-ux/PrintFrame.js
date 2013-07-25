@@ -20,36 +20,44 @@
  */
 
 /**
- * Configuration frameOptions:
- * topLeft: Print frame top-left coordinates (2D array of double; [x, y]). Default: if not specified, the layer will ask the user to draw a rectangle on the map.
- * bottomRight: Print frame bottom-right coordinates (2D array of double; [x, y]). Default: if not specified, the layer will ask the user to draw a rectangle on the map.
- * dpi: Desired printed DPI, preferably matching a zoom level (90 * 2^x => for example: 90, 180, 360); everything is scaled up. Default: 90.
- *     Example:
- *         * 90: default resolution; no diferences.
- *         * 180: double resolution; text, lines, patterns, etc. are twice bigger.
- *         * 360: 4x resolution; text, lines, patterns, etc. are 4 times bigger.
- * strokeWidth: Width of the coordinates lines, scale lines and print frame border, in pixels. Default: 2.
- * frameWidth: Width of the white border around the print frame, in pixels. Default: 100.
- * labelsFontSize: Font size of the labels for the coordinate lines, in pixels. Default: 12.
- * attributionsFontSize: Font size of the attributions line, at the bottom of the print frame, in pixels. Default: 10.
- * attributions: String (or function that return a String) used for the attributions. Default: no attributions.
- *     This value is updated everytime:
- *         * The event 'attributionsChange' is fired on the map
- *         * The print frame is resized / dragged (the attribution may change when some layers become out of scope, for the print frame)
- *         * The map is paned or zoomed
- *         * The map layers selection has changed (layer added, removed or changed)
- * coordLinesWidth: Length of the larger coordinate lines, in pixels. Default: 8.
- * scaleFontSize: Font size of the labels of the scale widget, in pixels. Default: 9.
- * controlsRadius: Size of the handle used to move / resize the print frame, in pixels. Default: 12.
+ * Instanciation:
+ *     new OpenLayers.Layer.ux.PrintFrame(title, options);
+ *         title: The string displayed in the layer switcher.
+ *         options: An object containing the layer options (described bellow)
  *
- * northArrowLocation: Coordinate (in lon/lat) of the center of the North arrow (not considering the label).
- * northArrowOffset: Offset of the north arrow (2d array of double; [x, y]), from the top left corner of the printed frame, in pixels (negative values allowed). Default: [20, 30].
- *     NOTE: This attribute is ignored if northArrowLocation is specified.
+ * options:
+ *     dpi: Desired printed DPI, preferably matching a zoom level (90 * 2^x => for example: 90, 180, 360); everything is scaled up. Default: 90.
+ *     frameOptions: An object containing options specific to the Print Frame (described bellow)
+ *     attributions: String (or function that return a String) used for the attributions. Default: no attributions.
+ *         This value is updated every time:
+ *             * The event 'attributionsChange' is fired on the map
+ *             * The print frame is resized / dragged (the attribution may change when some layers become out of scope, for the print frame)
+ *             * The map is paned or zoomed
+ *             * The map layers selection has changed (layer added, removed or changed)
  *
- * scaleLineLocation: Coordinate (in lon/lat) of the center of the left edge of the scale line.
- * scaleLineOffset: Offset of the scale line (2d array of double; [x, y]), from the bottom left corner of the printed frame, in pixels (negative values allowed). Default: [0, 50].
- *     NOTE: This attribute is ignored if scaleLineLocation is specified.
- * 
+ * frameOptions:
+ *     topLeft: Print frame top-left coordinates (2D array of double; [x, y]). Default: if not specified, the user will be asked to draw a rectangle on the map.
+ *     bottomRight: Print frame bottom-right coordinates (2D array of double; [x, y]). Default: if not specified, the layer will ask the user to draw a rectangle on the map.
+ *         Example:
+ *             * 90: default resolution; no diferences.
+ *             * 180: double resolution; text, lines, patterns, etc. are twice bigger.
+ *             * 360: 4x resolution; text, lines, patterns, etc. are 4 times bigger.
+ *     strokeWidth: Width of the coordinates lines, scale lines and print frame border, in pixels. Default: 2.
+ *     frameWidth: Width of the white border around the print frame, in pixels. Default: 100.
+ *     labelsFontSize: Font size of the labels for the coordinate lines, in pixels. Default: 12.
+ *     attributionsFontSize: Font size of the attributions line, at the bottom of the print frame, in pixels. Default: 10.
+ *     coordLinesWidth: Length of the larger coordinate lines, in pixels. Default: 8.
+ *     scaleFontSize: Font size of the labels of the scale widget, in pixels. Default: 9.
+ *     controlsRadius: Size of the handle used to move / resize the print frame, in pixels. Default: 12.
+ *
+ *     northArrowLocation: Coordinate (in lon/lat) of the center of the North arrow (not considering the label).
+ *     northArrowOffset: Offset of the north arrow (2d array of double; [x, y]), from the top left corner of the printed frame, in pixels (negative values allowed). Default: [20, 30].
+ *         NOTE: This attribute is ignored if northArrowLocation is specified.
+ *
+ *     scaleLineLocation: Coordinate (in lon/lat) of the center of the left edge of the scale line.
+ *     scaleLineOffset: Offset of the scale line (2d array of double; [x, y]), from the bottom left corner of the printed frame, in pixels (negative values allowed). Default: [0, 50].
+ *         NOTE: This attribute is ignored if scaleLineLocation is specified.
+ *
  */
 OpenLayers.Layer.ux = OpenLayers.Layer.ux || {};
 OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
@@ -646,10 +654,10 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 	_updateAttributions: function() {
 		// NOTE: Images (logos) are currently unsupported. They could be added using externalGraphic (style attribute) on a point. It won't be easy, but it's a solution...
 		var attributionsStr = null;
-		if (typeof(this.frameOptions.attributions) === 'string') {
-			attributionsStr = this.frameOptions.attributions;
-		} else if (typeof(this.frameOptions.attributions) === 'function') {
-			attributionsStr = this.frameOptions.attributions();
+		if (typeof(this.attributions) === 'string') {
+			attributionsStr = this.attributions;
+		} else if (typeof(this.attributions) === 'function') {
+			attributionsStr = this.attributions();
 		}
 		if (this.attributionsFeature.style.label !== attributionsStr) {
 			this._attributionsLabel = attributionsStr;
