@@ -128,6 +128,7 @@ public class URLCache {
 	 */
  	private static long loadedTime = -1;
 
+	// NOTE: The Proxy has a very similar http client
 	private static HttpClient httpClient = null;
 	static {
 		SchemeRegistry schemeRegistry = SchemeRegistryFactory.createDefault();

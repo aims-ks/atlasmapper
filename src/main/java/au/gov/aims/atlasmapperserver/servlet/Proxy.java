@@ -23,10 +23,10 @@ package au.gov.aims.atlasmapperserver.servlet;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLConnection;
 import java.net.URLDecoder;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -50,6 +50,20 @@ import au.gov.aims.atlasmapperserver.dataSourceConfig.WMSDataSourceConfig;
 import au.gov.aims.atlasmapperserver.jsonWrappers.client.LayerWrapper;
 import au.gov.aims.atlasmapperserver.jsonWrappers.client.ClientWrapper;
 import au.gov.aims.atlasmapperserver.jsonWrappers.client.DataSourceWrapper;
+import org.apache.http.Header;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.StatusLine;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.conn.scheme.Scheme;
+import org.apache.http.conn.scheme.SchemeRegistry;
+import org.apache.http.conn.ssl.AllowAllHostnameVerifier;
+import org.apache.http.conn.ssl.SSLSocketFactory;
+import org.apache.http.conn.ssl.TrustStrategy;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.conn.PoolingClientConnectionManager;
+import org.apache.http.impl.conn.SchemeRegistryFactory;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -66,6 +80,38 @@ import org.json.JSONObject;
 public class Proxy extends HttpServlet {
 	private static final Logger LOGGER = Logger.getLogger(Proxy.class.getName());
 	private static final String URL_PARAM = "url";
+
+	// NOTE: The URL Cache has a very similar http client
+	private static HttpClient httpClient = null;
+	static {
+		SchemeRegistry schemeRegistry = SchemeRegistryFactory.createDefault();
+		// Try to set the SSL scheme factory: Accept all SSL certificates
+		try {
+			SSLSocketFactory sslSocketFactory = new SSLSocketFactory(
+				// All certificates are trusted
+				new TrustStrategy() {
+					public boolean isTrusted(final X509Certificate[] chain, String authType) throws CertificateException {
+						return true;
+					}
+				},
+				// Do not check if the hostname match the certificate
+				new AllowAllHostnameVerifier()
+			);
+
+			Scheme httpsScheme = new Scheme("https", 443, sslSocketFactory);
+			schemeRegistry.register(httpsScheme);
+		} catch(Exception ex) {
+			LOGGER.log(Level.SEVERE, "Can not initiate the SSLSocketFactory, needed to accept all SSL self signed certificates.", ex);
+		}
+
+		// Set a pool of multiple connections so more than one client can be generated simultaneously
+		// See: http://stackoverflow.com/questions/12799006/how-to-solve-error-invalid-use-of-basicclientconnmanager-make-sure-to-release
+		PoolingClientConnectionManager cxMgr = new PoolingClientConnectionManager(schemeRegistry);
+		cxMgr.setMaxTotal(100);
+		cxMgr.setDefaultMaxPerRoute(20);
+
+		httpClient = new DefaultHttpClient(cxMgr);
+	}
 
 	// Cached list of allowed hosts, for each clients
 	private static Map<String, Set<String>> generatedClientsAllowedHostCache = null;
@@ -308,91 +354,88 @@ public class Proxy extends HttpServlet {
 
 						ServletUtils.sendResponse(response, responseTxt);
 					} else if (protocol.equals("http") || protocol.equals("https")) {
-						URLConnection conn = url.openConnection();
+						HttpGet httpGet = new HttpGet(url.toURI());
+						HttpEntity entity = null;
 
-						if (conn == null) {
-							response.setContentType("text/plain");
-							response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+						try {
+							HttpResponse httpClientResponse = httpClient.execute(httpGet);
+							StatusLine httpStatus = httpClientResponse.getStatusLine();
+							int responseCode = -1;
+							if (httpStatus != null) {
+								responseCode = httpStatus.getStatusCode();
+							}
+							response.setStatus(responseCode);
 
-							String responseTxt = "Can not open the URL connection.";
-							LOGGER.log(Level.WARNING, responseTxt);
-
-							ServletUtils.sendResponse(response, responseTxt);
-						} else {
-							try {
-								HttpURLConnection httpConn = (HttpURLConnection)conn;
-								int responseCode = httpConn.getResponseCode();
-
-								if (responseCode > 0) {
-									response.setStatus(responseCode);
+							if (responseCode < 400) {
+								// The entity is streamed
+								entity = httpClientResponse.getEntity();
+								String contentType = null;
+								if (entity != null) {
+									Header header = entity.getContentType();
+									contentType = header.getValue();
 								}
 
-								if (responseCode < 400) {
-									// -1: Unknown status code
-									// 1XX: Informational
-									// 2XX: Successful
-									// 3XX: Redirection
-									String contentType = conn.getContentType();
-									if (contentType == null || contentType.isEmpty()) {
-										response.setContentType("text/plain");
-										LOGGER.log(Level.INFO, "Can not retrieved the content type, falling back to: {0}", response.getContentType());
-									} else {
-										response.setContentType(contentType);
-										LOGGER.log(Level.INFO, "Set content type using URL connection content type: {0}", response.getContentType());
-									}
+								// -1: Unknown status code
+								// 1XX: Informational
+								// 2XX: Successful
+								// 3XX: Redirection
+								if (contentType == null || contentType.isEmpty()) {
+									response.setContentType("text/plain");
+									LOGGER.log(Level.INFO, "Can not retrieved the content type, falling back to: {0}", response.getContentType());
+								} else {
+									response.setContentType(contentType);
+									LOGGER.log(Level.INFO, "Set content type using URL connection content type: {0}", response.getContentType());
+								}
 
-									InputStream inputStream = null;
-									try {
-										inputStream = conn.getInputStream();
-										ServletUtils.sendResponse(response, inputStream);
-									} finally {
-										if (inputStream != null) {
-											try {
-												inputStream.close();
-											} catch (Exception e) {
-												LOGGER.log(Level.WARNING, "Cant close the URL input stream: {0}", Utils.getExceptionMessage(e));
-												LOGGER.log(Level.FINE, "Stack trace: ", e);
-											}
+								InputStream inputStream = null;
+								try {
+									inputStream = entity.getContent();
+									ServletUtils.sendResponse(response, inputStream);
+								} finally {
+									if (inputStream != null) {
+										try {
+											inputStream.close();
+										} catch (Exception e) {
+											LOGGER.log(Level.WARNING, "Cant close the URL input stream: {0}", Utils.getExceptionMessage(e));
+											LOGGER.log(Level.FINE, "Stack trace: ", e);
 										}
 									}
-								} else if (responseCode == HttpServletResponse.SC_BAD_REQUEST) {
-									// 400: Bad Request
-									response.setContentType("text/plain");
-									String responseTxt = "Error "+responseCode+" - Bad Request: "+decodedUrl;
-									LOGGER.log(Level.WARNING, responseTxt);
-
-									ServletUtils.sendResponse(response, responseTxt);
-								} else if (responseCode == HttpServletResponse.SC_NOT_FOUND) {
-									// 404: Not Found
-									response.setContentType("text/plain");
-									String responseTxt = "Error "+responseCode+" - Not Found: "+decodedUrl;
-									LOGGER.log(Level.WARNING, responseTxt);
-
-									ServletUtils.sendResponse(response, responseTxt);
-								} else if (responseCode == HttpServletResponse.SC_INTERNAL_SERVER_ERROR) {
-									// 500: Internal Server Error
-									response.setContentType("text/plain");
-									String responseTxt = "Error "+responseCode+" - Internal Server Error: "+decodedUrl;
-									LOGGER.log(Level.WARNING, responseTxt);
-
-									ServletUtils.sendResponse(response, responseTxt);
-								} else {
-									// Any other errors
-									response.setContentType("text/plain");
-									String responseTxt = "Error "+responseCode+": "+decodedUrl;
-									LOGGER.log(Level.WARNING, responseTxt);
-
-									ServletUtils.sendResponse(response, responseTxt);
 								}
-							} catch (Exception ex) {
+							} else if (responseCode == HttpServletResponse.SC_BAD_REQUEST) {
+								// 400: Bad Request
 								response.setContentType("text/plain");
-								response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-
-								String responseTxt = "An error occurred while opening the URL connection: " + Utils.getExceptionMessage(ex);
+								String responseTxt = "Error "+responseCode+" - Bad Request: "+decodedUrl;
 								LOGGER.log(Level.WARNING, responseTxt);
-								LOGGER.log(Level.FINE, "Stack trace: ", ex);
 
 								ServletUtils.sendResponse(response, responseTxt);
+							} else if (responseCode == HttpServletResponse.SC_NOT_FOUND) {
+								// 404: Not Found
+								response.setContentType("text/plain");
+								String responseTxt = "Error "+responseCode+" - Not Found: "+decodedUrl;
+								LOGGER.log(Level.WARNING, responseTxt);
+
+								ServletUtils.sendResponse(response, responseTxt);
+							} else if (responseCode == HttpServletResponse.SC_INTERNAL_SERVER_ERROR) {
+								// 500: Internal Server Error
+								response.setContentType("text/plain");
+								String responseTxt = "Error "+responseCode+" - Internal Server Error: "+decodedUrl;
+								LOGGER.log(Level.WARNING, responseTxt);
+
+								ServletUtils.sendResponse(response, responseTxt);
+							} else {
+								// Any other errors
+								response.setContentType("text/plain");
+								String responseTxt = "Error "+responseCode+": "+decodedUrl;
+								LOGGER.log(Level.WARNING, responseTxt);
+
+								ServletUtils.sendResponse(response, responseTxt);
+							}
+						} finally {
+							if (httpGet != null) {
+								// Cancel the connection, if it's still alive
+								httpGet.abort();
+								// Close connections
+								httpGet.reset();
 							}
 						}
 					} else {
