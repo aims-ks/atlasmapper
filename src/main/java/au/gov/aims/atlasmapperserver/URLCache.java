@@ -30,6 +30,11 @@ import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.conn.scheme.Scheme;
+import org.apache.http.conn.scheme.SchemeRegistry;
+import org.apache.http.conn.ssl.AllowAllHostnameVerifier;
+import org.apache.http.conn.ssl.SSLSocketFactory;
+import org.apache.http.conn.ssl.TrustStrategy;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.PoolingClientConnectionManager;
 import org.apache.http.impl.conn.SchemeRegistryFactory;
@@ -37,22 +42,13 @@ import org.geotools.data.ows.WMSCapabilities;
 import org.geotools.data.wms.xml.WMSSchema;
 import org.geotools.ows.ServiceException;
 import org.geotools.xml.DocumentFactory;
-import org.geotools.xml.XMLHandlerHints;
-import org.geotools.xml.XMLSAXHandler;
 import org.geotools.xml.handlers.DocumentHandler;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
-import org.xml.sax.EntityResolver;
-import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
-import org.xml.sax.helpers.DefaultHandler;
 
-import javax.xml.XMLConstants;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.parsers.SAXParser;
-import javax.xml.parsers.SAXParserFactory;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -65,12 +61,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.io.StringReader;
 import java.io.Writer;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -133,9 +130,29 @@ public class URLCache {
 
 	private static HttpClient httpClient = null;
 	static {
+		SchemeRegistry schemeRegistry = SchemeRegistryFactory.createDefault();
+		// Try to set the SSL scheme factory: Accept all SSL certificates
+		try {
+			SSLSocketFactory sslSocketFactory = new SSLSocketFactory(
+				// All certificates are trusted
+				new TrustStrategy() {
+					public boolean isTrusted(final X509Certificate[] chain, String authType) throws CertificateException {
+						return true;
+					}
+				},
+				// Do not check if the hostname match the certificate
+				new AllowAllHostnameVerifier()
+			);
+
+			Scheme httpsScheme = new Scheme("https", 443, sslSocketFactory);
+			schemeRegistry.register(httpsScheme);
+		} catch(Exception ex) {
+			LOGGER.log(Level.SEVERE, "Can not initiate the SSLSocketFactory, needed to accept all SSL self signed certificates.", ex);
+		}
+
 		// Set a pool of multiple connections so more than one client can be generated simultaneously
 		// See: http://stackoverflow.com/questions/12799006/how-to-solve-error-invalid-use-of-basicclientconnmanager-make-sure-to-release
-		PoolingClientConnectionManager cxMgr = new PoolingClientConnectionManager(SchemeRegistryFactory.createDefault());
+		PoolingClientConnectionManager cxMgr = new PoolingClientConnectionManager(schemeRegistry);
 		cxMgr.setMaxTotal(100);
 		cxMgr.setDefaultMaxPerRoute(20);
 
@@ -148,6 +165,40 @@ public class URLCache {
 			return new File(System.getProperty("java.io.tmpdir"));
 		}
 		return configManager.getApplicationFolder();
+	}
+
+	public static ResponseStatus getResponseStatus(String urlStr) {
+		ResponseStatus responseStatus = new ResponseStatus();
+
+		URI uri = null;
+		try {
+			uri = Utils.toURL(urlStr).toURI();
+		} catch (Exception ex) {
+			responseStatus.setStatusCode(HttpStatus.SC_BAD_REQUEST);
+			responseStatus.setErrorMessage("Can not parse the URL: " + urlStr);
+			return responseStatus;
+		}
+		HttpGet httpGet = new HttpGet(uri);
+
+		try {
+			HttpResponse response = httpClient.execute(httpGet);
+
+			StatusLine httpStatus = response.getStatusLine();
+			if (httpStatus != null) {
+				responseStatus.setStatusCode(httpStatus.getStatusCode());
+			}
+		} catch (IOException ex) {
+			responseStatus.setErrorMessage(getErrorMessage(ex));
+		} finally {
+			if (httpGet != null) {
+				// Cancel the connection, if it's still alive
+				httpGet.abort();
+				// Close connections
+				httpGet.reset();
+			}
+		}
+
+		return responseStatus;
 	}
 
 	/**
@@ -1137,7 +1188,7 @@ public class URLCache {
 		}
 	}
 
-	private static class ResponseStatus {
+	public static class ResponseStatus {
 		private Integer statusCode;
 		private String errorMessage;
 

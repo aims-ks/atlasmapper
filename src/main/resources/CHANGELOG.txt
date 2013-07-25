@@ -1,4 +1,6 @@
-2013-07-24: Version 1.4.6
+2013-07-25: Version 1.4.6
+	Server
+		* Fixed issues related to downloading files through a https server that use an invalid or self-signed certificate.
 	Client
 		* Fixed issue related to re-ordering of vector layers (KML layers and print frames)
 		* Fixed KML feature requests showing "undefined" on top of the balloon when the feature do not have a defined name

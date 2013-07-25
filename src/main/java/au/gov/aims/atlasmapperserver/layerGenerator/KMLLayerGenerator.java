@@ -21,6 +21,7 @@
 
 package au.gov.aims.atlasmapperserver.layerGenerator;
 
+import au.gov.aims.atlasmapperserver.URLCache;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.KMLDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.KMLLayerConfig;
@@ -86,19 +87,23 @@ public class KMLLayerGenerator extends AbstractLayerGenerator<KMLLayerConfig, KM
 
 						if (url != null) {
 							if (redownloadPrimaryFiles) {
-								try {
-									int statusCode = Utils.getHeaderStatusCode(url);
-
-									if (statusCode >= 200 && statusCode < 300) {
-										layer.setKmlUrl(url.toString());
-
-										// Add the layer only if its configuration is valid
-										layerCatalog.addLayer(layer);
+								URLCache.ResponseStatus responseStatus = URLCache.getResponseStatus(url.toString());
+								Integer statusCode = responseStatus.getStatusCode();
+								if (responseStatus.getErrorMessage() != null) {
+									layerCatalog.addWarning("Invalid entry for KML id [" + kmlId + "]: The KML url [" + urlStr + "] is not accessible. Please look for typos.\n" + responseStatus.getErrorMessage());
+								} else {
+									if (statusCode == null) {
+										// This should not happen; the statusCode is never null when there is no error message.
+										layerCatalog.addWarning("Invalid entry for KML id [" + kmlId + "]: The KML url [" + urlStr + "] could not be downloaded.");
 									} else {
-										layerCatalog.addWarning("Invalid entry for KML id [" + kmlId + "]: The KML url [" + urlStr + "] returned the status code [" + statusCode + "].");
+										if (statusCode >= 200 && statusCode < 300) {
+											layer.setKmlUrl(url.toString());
+											// Add the layer only if its configuration is valid
+											layerCatalog.addLayer(layer);
+										} else {
+											layerCatalog.addWarning("Invalid entry for KML id [" + kmlId + "]: The KML url [" + urlStr + "] returned the status code [" + statusCode + "].");
+										}
 									}
-								} catch(Exception ex) {
-									layerCatalog.addWarning("Invalid entry for KML id [" + kmlId + "]: The KML url [" + urlStr + "] is not accessible. Please look for typos.\n" + Utils.getExceptionMessage(ex));
 								}
 							} else {
 								layer.setKmlUrl(url.toString());

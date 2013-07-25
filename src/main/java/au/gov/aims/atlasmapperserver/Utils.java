@@ -337,11 +337,6 @@ public class Utils {
 		return new URL(cleanUrlStr);
 	}
 
-	public static int getHeaderStatusCode(URL url) throws IOException {
-		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-		return connection.getResponseCode();
-	}
-
 	// Do a proper URL compare, checking host, port number, file, query string (any order), etc. Also, for WMS, .../ows?REQUESR=WMS&... is equivalent to .../wms?...
 	public static boolean equalsWMSUrl(String urlStr1, String urlStr2) throws MalformedURLException, URISyntaxException {
 		// Get rid of the most strait forward case
