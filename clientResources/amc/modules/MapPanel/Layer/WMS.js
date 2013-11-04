@@ -53,7 +53,7 @@ Atlas.Layer.WMS = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 
 			// Set the initial layer tile size
 			this.mapPanel = mapPanel; // This is done automatically later, but it's needed now...
-			var newTileSize = this._getTileSizeForDPI(mapPanel.dpi);
+			var newTileSize = this._getTileSizeForDPI(mapPanel.dpi, jsonLayer);
 			if (newTileSize != this.DEFAULT_TILE_SIZE) {
 				var newTileSizeObj = new OpenLayers.Size(newTileSize, newTileSize);
 
@@ -164,6 +164,7 @@ Atlas.Layer.WMS = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 	//     I need to change the imageSize without changing the tileSize...
 	_gutterChange: function(gutter) {
 		var defaultGutter = this.mapPanel ? this.mapPanel.DEFAULT_GUTTER : 0;
+		gutter = parseInt(gutter);
 		/*
 		// Good try, but that doesn't work. Gutter is an OpenLayers option, not a URL parameter
 		if (gutter == defaultGutter) {
@@ -173,16 +174,23 @@ Atlas.Layer.WMS = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 		}
 		*/
 
-		/*
 		// Closer, but still not working. OpenLayer request bigger tile, overlap them, but do not crop them.
 		var tileSize = (this.layer.tileSize) ? this.layer.tileSize : this.layer.map.getTileSize();
+		this.layer.options.gutter = gutter;
 		this.layer.gutter = gutter;
 		this.layer.imageSize = new OpenLayers.Size(tileSize.w + (2*gutter), tileSize.h + (2*gutter));
 		this.layer.redraw();
-		*/
 	},
 
-	_getTileSizeForDPI: function(dpi) {
+	_getTileSizeForDPI: function(dpi, jsonLayer) {
+		// OpenLayers has serious issues with "layer.setTileSize" when the layer has gutter.
+		// Fix: always return default tile size for guttered layers. The application wont try to change the tile size.
+		if (typeof(jsonLayer) !== 'undefined' && jsonLayer !== null &&
+				typeof(jsonLayer.olOptions) !== 'undefined' && jsonLayer.olOptions !== null &&
+				typeof(jsonLayer.olOptions.gutter) !== 'undefined' && jsonLayer.olOptions.gutter) {
+			return this.DEFAULT_TILE_SIZE;
+		}
+
 		var defaultDPI = this.mapPanel ? this.mapPanel.DEFAULT_DPI : 90;
 		var tileSizeRatio = Math.ceil(dpi / defaultDPI);
 
@@ -206,10 +214,10 @@ Atlas.Layer.WMS = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 		var defaultDPI = this.mapPanel ? this.mapPanel.DEFAULT_DPI : 90;
 		if (this.layer) {
 			var currentTileSizeObj = this.layer.tileSize;
-			var newTileSize = this._getTileSizeForDPI(dpi);
+			var newTileSize = this._getTileSizeForDPI(dpi, this.json);
 			var newTileSizeObj = new OpenLayers.Size(newTileSize, newTileSize);
 
-			if (newTileSizeObj != currentTileSizeObj) {
+			if (newTileSizeObj.w !== currentTileSizeObj.w && newTileSizeObj.h !== currentTileSizeObj.h) {
 				// OpenLayers.Layer.Grid.setTileSize(OpenLayers.Size);
 				this.layer.setTileSize(newTileSizeObj);
 			}

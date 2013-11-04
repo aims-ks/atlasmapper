@@ -144,6 +144,7 @@ OpenLayers.Control.ux.MultiSelectDragFeature = OpenLayers.Class(OpenLayers.Contr
 OpenLayers.Control.ux.MultiSelectDragFeature.getInstance = function(map) {
 	if (map.multiSelectDragFeature == null) {
 		map.multiSelectDragFeature = new OpenLayers.Control.ux.MultiSelectDragFeature([], {
+			// Hover looks cools with search results but it's unusable with KML, and the map can only have ONE of those layer.
 			hover: false
 		});
 		map.addControl(map.multiSelectDragFeature);

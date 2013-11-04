@@ -95,6 +95,11 @@ body {
 	font-weight: bold;
 }
 
+/* Selected layer entry, with loading background (NOTE: IE6 do not support chained classes) */
+.x-tree-selected.layerLoading {
+	background-image: url('../images/loading-bg-selected.gif');
+	background-position: center;
+}
 .layerLoading {
 	background-image: url('../images/loading-bg.gif');
 	background-position: center;
@@ -179,11 +184,13 @@ body {
 }
 
 /* Open Layer */
-/* Color of the coordinate of the mouse pointer, on the map (on mouse over) */
-/* NOTE The default black color is usually okay, but it's good to have an
-	alternative solution for when it's not readable. */
-div.olControlMousePosition:hover {
-	color: #FFFFFF;
+
+/* Position of the mouse: Black text above white background */
+div.olControlMousePosition {
+	background-color: #FFFFFF;
+	background-color: rgba(255, 255, 255, 0.75);
+	padding: 2px 5px;
+	right: 0 !important;
 }
 
 /* Some ExtJS theme change the color of the text in the OpenLayers popups. */
@@ -271,6 +278,12 @@ ol.bullet-list > li {
 .configButton {
 	background-image: url('../images/config-24px.png');
 }
+.measurementButton {
+	background-image: url('../images/ruler-button-24px.png');
+}
+.measurementText {
+	margin-top: 4px;
+}
 
 .searchResultsDescription .query {
 	font-size: 1.1em;
@@ -335,4 +348,33 @@ ol.bullet-list > li {
 	background-size: 1.5em;
 	background-repeat: no-repeat;
 	min-height: 2em;
+}
+
+/* Layer Search results */
+.search-item {
+	border: 1px solid #DDDDDD;
+	margin: 0.2em;
+	font-size: 1.2em;
+	line-height: 1.4em;
+	overflow: hidden;
+	cursor: pointer;
+}
+.search-item .keyword {
+	font-weight: bold;
+}
+.result-title {
+	background-color: #DDDDDD;
+}
+.result-title,
+.result-excerpt {
+	padding: 0.2em;
+}
+.result-empty {
+	font-style: italic;
+}
+.search-item-highlighted .result-title {
+	background-color: #ADD0FB;
+}
+.search-item-highlighted .result-excerpt {
+	background-color: #D9E8FB;
 }

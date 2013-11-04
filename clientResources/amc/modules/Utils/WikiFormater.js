@@ -386,7 +386,8 @@ Atlas.Utils.WikiFormater = OpenLayers.Class({
 		//         "value1|*value2*" => "value2" is bold because it has a pipe before and a end of string at the end.
 		//             The pipe and brakets chars are mostly used to detect style inside element, like in a link label,
 		//             to not accidently consider the label style end with the current style end.
-		var styleDelimiterRegex = /[\s\.,\|\[\]]/;
+		//var styleDelimiterRegex = /[\s\.,\|\[\]]/;
+		var styleDelimiterRegex = /[^\w:]/;
 
 		// Check if the sequence start with white space
 		var len = input.length, startIndex = index, endIndex = index;

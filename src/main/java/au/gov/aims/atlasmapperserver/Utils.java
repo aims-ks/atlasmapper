@@ -36,7 +36,6 @@ import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -52,6 +51,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -79,6 +80,9 @@ public class Utils {
 	private static final int INDENT = 4;
 	// Copied from org.geotools.referencing.operation.projection.MapProjection
 	private static final double ANGLE_TOLERANCE = 1E-4;
+
+	// Used for layer search results highlight
+	protected static final String HIGHLIGHT_OPEN_TAG = "<span class=\"keyword\">", HIGHLIGHT_CLOSE_TAG = "</span>";
 
 	private static final Map<String, JSONObject> SUPPORTED_PROJECTIONS = new HashMap<String, JSONObject>();
 	static {
@@ -130,6 +134,14 @@ public class Utils {
 		chars[0] = Character.toUpperCase(chars[0]);
 
 		return String.valueOf(chars);
+	}
+
+	// Remove common punctuations to make the results looks more in natural alphabetic order.
+	// Removes: White spaces, hyphens, underscores, comas, periods, quotes, brackets, etc.
+	// NOTE: It's easier to remove unwanted characters than keep the good one. (We can't only keep [a-zA-Z0-9],
+	//     we also have to keep all characters from chinese, japanese, arabic, korean, etc.)
+	public static String getComparableTitle(String title) {
+		return Utils.isBlank(title) ? "" : title.replaceAll("[\\s\\-_,.'\":;!\\?\\(\\)\\[\\]\\{\\}/]", "");
 	}
 
 	/**
@@ -489,7 +501,7 @@ public class Utils {
 
 		if (src.isFile()) {
 			if (overwrite || !dest.exists()) {
-				binaryfileCopy(src, dest);
+				binaryFileCopy(src, dest);
 			}
 
 		} else if (src.isDirectory()) {
@@ -506,7 +518,7 @@ public class Utils {
 		}
 	}
 
-	private static void binaryfileCopy(File src, File dest) throws IOException {
+	private static void binaryFileCopy(File src, File dest) throws IOException {
 		FileInputStream in = null;
 		FileOutputStream out = null;
 		try {
@@ -783,9 +795,8 @@ public class Utils {
 		boolean valid = true;
 		for (int i=0; i+1 < coordinates.length; i += 2) {
 
-			// GeoTools coordinates are in [Lat, Lon], OpenLayers are in [Lon, Lat]
-			double x = coordinates[i+1]; // Longitude
-			double y = coordinates[i];   // Latitude
+			double x = coordinates[i];   // Longitude
+			double y = coordinates[i+1]; // Latitude
 
 			final boolean xOut, yOut;
 			xOut = (Double.isNaN(x) || x < (Longitude.MIN_VALUE - ANGLE_TOLERANCE) || x > (Longitude.MAX_VALUE + ANGLE_TOLERANCE));
@@ -856,4 +867,96 @@ public class Utils {
 
 		return mapOptions;
 	}
+
+	/**
+	 * Methods related to layer search (chop and highlight results)
+	 */
+	// Return a list of Occurrence (start, end positions)
+	protected static SortedSet<Occurrence> findOccurrences(String str, String[] terms) {
+		SortedSet<Occurrence> positions = new TreeSet<Occurrence>();
+
+		if (str != null && !str.isEmpty() && terms.length > 0) {
+			for (String term : terms) {
+				Matcher matcher = Pattern.compile(Pattern.quote(term), Pattern.CASE_INSENSITIVE).matcher(str);
+				while(matcher.find()) {
+					positions.add(new Occurrence(matcher.start(), matcher.end()));
+				}
+			}
+		}
+
+		return positions;
+	}
+	protected static String getHighlightChunk(SortedSet<Occurrence> positions, String str, int maxLength) {
+		String ellipsis = "..."; // Stuff added at the end of the chunk, may contain HTML.
+		int ellipsisLen = 3; // Number of visible char (ignoring HTML)
+		if (maxLength > 0 && maxLength <= ellipsisLen) {
+			return ellipsis;
+		}
+		if (str == null || str.isEmpty()) {
+			return str;
+		}
+
+		int currentPos = 0, strLen = str.length();
+		String highlightedStr = null;
+		boolean truncated = false;
+
+		int highlightStrEnd = strLen;
+		if (maxLength > 0 && strLen > maxLength) {
+			highlightStrEnd = currentPos + maxLength-ellipsisLen;
+			truncated = true;
+		}
+
+		if (positions != null && !positions.isEmpty()) {
+			StringBuilder highlightedSb = new StringBuilder();
+			boolean elOpen = false; // Highlight element (b) is open or not
+			int endPos = 0;
+			for (Occurrence pos : positions) {
+				if (pos.start < currentPos) {
+					if (pos.end > currentPos) {
+						if (!elOpen) {
+							highlightedSb.append(HIGHLIGHT_OPEN_TAG);
+							elOpen = true;
+						}
+						endPos = Math.min(pos.end, highlightStrEnd);
+						highlightedSb.append(str.substring(currentPos, endPos));
+						currentPos = endPos;
+					}
+				} else if (pos.start < highlightStrEnd) {
+					if (elOpen) {
+						highlightedSb.append(HIGHLIGHT_CLOSE_TAG);
+					}
+					endPos = Math.min(pos.end, highlightStrEnd);
+					highlightedSb.append(str.substring(currentPos, pos.start)).append(HIGHLIGHT_OPEN_TAG).append(str.substring(pos.start, endPos));
+					currentPos = endPos;
+					elOpen = true;
+				}
+			}
+			if (elOpen) {
+				highlightedSb.append(HIGHLIGHT_CLOSE_TAG);
+			}
+			if (currentPos != highlightStrEnd) {
+				highlightedSb.append(str.substring(currentPos, highlightStrEnd));
+			}
+			highlightedStr = highlightedSb.toString();
+		} else {
+			highlightedStr = str.substring(0, highlightStrEnd);
+		}
+
+		return truncated ? highlightedStr + ellipsis : highlightedStr;
+	}
+	protected static class Occurrence implements Comparable<Occurrence> {
+		public int start;
+		public int end;
+		public Occurrence(int start, int end) {
+			this.start = start;
+			this.end = end;
+		}
+
+		@Override
+		public int compareTo(Occurrence o) {
+			int startCmp = this.start - o.start;
+			return (startCmp == 0 ? this.end - o.end : startCmp);
+		}
+	}
+
 }

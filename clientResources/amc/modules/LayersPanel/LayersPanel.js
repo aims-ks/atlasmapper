@@ -108,7 +108,8 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 		var layerTree = new Ext.tree.TreeNode({
 			text: 'All layers', // The root is hidden
 			leaf: false,
-			allowDrag: false
+			allowDrag: false, // Can not drag the root
+			allowDrop: false
 		});
 
 		var onCheckChange = function(node, checked) {
@@ -129,7 +130,8 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 			parentNode: layerTree,
 			expandable: true,
 			expanded: true,
-			allowDrag: false
+			allowDrag: false, // Can not drag the "overlays" folder
+			allowDrop: true // Can drop layers into this folder
 		});
 		// Remove the icons and auto-select layers when needed
 		overlayList.loader.createNode = function(attr) {
@@ -159,7 +161,7 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 			parentNode: layerTree,
 			expandable: true,
 			expanded: true,
-			allowDrag: false,
+			allowDrag: false, // Can not drag the "base layers" folder
 			allowDrop: false
 		});
 		// Remove the icons and auto-select layers when needed

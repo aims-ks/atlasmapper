@@ -297,7 +297,7 @@ Atlas.AbstractMapPanel = {
 				new OpenLayers.Control.MousePosition({
 					displayProjection: this.defaultLonLatProjection
 				}),                                     // Displays geographic coordinates of the mouse pointer
-				new OpenLayers.Control.Navigation(),    // Including TouchNavigation
+				new OpenLayers.Control.Navigation({zoomWheelEnabled: false}),    // Including TouchNavigation
 				new OpenLayers.Control.KeyboardDefaults(), // Adds panning and zooming functions, controlled with the keyboard.  By default arrow keys pan, +/- keys zoom & Page Up/Page Down/Home/End scroll by three quarters of a page.
 				new OpenLayers.Control.ZoomBox()        // Enables zooming directly to a given extent, by drawing a box on the map.  The box is drawn by holding down shift, whilst dragging the mouse.
 			];
@@ -324,6 +324,8 @@ Atlas.AbstractMapPanel = {
 				*/
 				new OpenLayers.Control.KeyboardDefaults(), // Adds panning and zooming functions, controlled with the keyboard.  By default arrow keys pan, +/- keys zoom & Page Up/Page Down/Home/End scroll by three quarters of a page.
 				new OpenLayers.Control.ZoomBox()        // Enables zooming directly to a given extent, by drawing a box on the map.  The box is drawn by holding down shift, whilst dragging the mouse.
+
+				// NOTE: The measurement control (the ruler button) is added by MapToolsPanel
 			];
 		}
 

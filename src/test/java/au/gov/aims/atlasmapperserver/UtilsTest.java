@@ -24,6 +24,7 @@ package au.gov.aims.atlasmapperserver;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.util.Date;
+import java.util.SortedSet;
 
 import junit.framework.TestCase;
 
@@ -153,5 +154,84 @@ public class UtilsTest extends TestCase {
 		String imosUrl = "http://imosmest.aodn.org.au/geonetwork/srv/en/iso19139.xml?uuid= 73089abf-9880-47f7-b6f7-5659522394ad";
 		String imosUrlCorrected = "http://imosmest.aodn.org.au/geonetwork/srv/en/iso19139.xml?uuid=%2073089abf-9880-47f7-b6f7-5659522394ad";
 		assertEquals(imosUrlCorrected, Utils.toURL(imosUrl).toString());
+	}
+
+	public void testHighlightResults() {
+		SortedSet<Utils.Occurrence> positions;
+		String str, newStr;
+
+		str = "Hello World";
+		positions = Utils.findOccurrences(str, new String[]{"missing"});
+		assertEquals(0, positions.size());
+		newStr = Utils.getHighlightChunk(positions, str, 0);
+		assertEquals("Hello World", newStr);
+
+		str = "Hello World";
+		positions = Utils.findOccurrences(str, new String[]{"orl"});
+		assertEquals(1, positions.size());
+		newStr = Utils.getHighlightChunk(positions, str, 0);
+		assertEquals("Hello W"+Utils.HIGHLIGHT_OPEN_TAG+"orl"+Utils.HIGHLIGHT_CLOSE_TAG+"d", newStr);
+
+		str = "Hello World";
+		positions = Utils.findOccurrences(str, new String[]{"hell"});
+		assertEquals(1, positions.size());
+		newStr = Utils.getHighlightChunk(positions, str, 0);
+		assertEquals(Utils.HIGHLIGHT_OPEN_TAG+"Hell"+Utils.HIGHLIGHT_CLOSE_TAG+"o World", newStr);
+
+		str = "\"Hello\" World";
+		positions = Utils.findOccurrences(str, new String[]{"hell"});
+		assertEquals(1, positions.size());
+		newStr = Utils.getHighlightChunk(positions, str, 0);
+		assertEquals("\""+Utils.HIGHLIGHT_OPEN_TAG+"Hell"+Utils.HIGHLIGHT_CLOSE_TAG+"o\" World", newStr);
+
+		str = "Hello \"World\"";
+		positions = Utils.findOccurrences(str, new String[]{"world"});
+		assertEquals(1, positions.size());
+		newStr = Utils.getHighlightChunk(positions, str, 0);
+		assertEquals("Hello \""+Utils.HIGHLIGHT_OPEN_TAG+"World"+Utils.HIGHLIGHT_CLOSE_TAG+"\"", newStr);
+
+		// Multiple results
+		str = "Multiple results of the word \"result\" for a search for result and for.";
+		positions = Utils.findOccurrences(str, new String[]{"result", "for"});
+		assertEquals(6, positions.size());
+		newStr = Utils.getHighlightChunk(positions, str, 0);
+		assertEquals("Multiple "+Utils.HIGHLIGHT_OPEN_TAG+"result"+Utils.HIGHLIGHT_CLOSE_TAG+"s of the word \""+
+				Utils.HIGHLIGHT_OPEN_TAG+"result"+Utils.HIGHLIGHT_CLOSE_TAG+"\" "+Utils.HIGHLIGHT_OPEN_TAG+"for"+
+				Utils.HIGHLIGHT_CLOSE_TAG+" a search "+Utils.HIGHLIGHT_OPEN_TAG+"for"+Utils.HIGHLIGHT_CLOSE_TAG+" "+
+				Utils.HIGHLIGHT_OPEN_TAG+"result"+Utils.HIGHLIGHT_CLOSE_TAG+" and "+Utils.HIGHLIGHT_OPEN_TAG+"for"+
+				Utils.HIGHLIGHT_CLOSE_TAG+".", newStr);
+
+		// Overlapping results
+		str = "Hello World";
+		positions = Utils.findOccurrences(str, new String[]{"hell", "llo"});
+		assertEquals(2, positions.size());
+		newStr = Utils.getHighlightChunk(positions, str, 0);
+		assertEquals(Utils.HIGHLIGHT_OPEN_TAG+"Hello"+Utils.HIGHLIGHT_CLOSE_TAG+" World", newStr);
+	}
+
+	public void testChopAndHighlightResults() {
+		SortedSet<Utils.Occurrence> positions;
+		String str, newStr;
+
+		// No result
+		str = "Hello World";
+		positions = Utils.findOccurrences(str, new String[]{"missing"});
+		assertEquals(0, positions.size());
+		newStr = Utils.getHighlightChunk(positions, str, 10);
+		assertEquals("Hello W...", newStr);
+
+		// Chopped highlighted result
+		str = "Hello World";
+		positions = Utils.findOccurrences(str, new String[]{"world"});
+		assertEquals(1, positions.size());
+		newStr = Utils.getHighlightChunk(positions, str, 10);
+		assertEquals("Hello "+Utils.HIGHLIGHT_OPEN_TAG+"W"+Utils.HIGHLIGHT_CLOSE_TAG+"...", newStr);
+
+		// Hidden result
+		str = "Hello World";
+		positions = Utils.findOccurrences(str, new String[]{"rld"});
+		assertEquals(1, positions.size());
+		newStr = Utils.getHighlightChunk(positions, str, 10);
+		assertEquals("Hello W...", newStr);
 	}
 }

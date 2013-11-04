@@ -466,7 +466,17 @@ GeoExt.ux.WMSLegend = Ext.extend(GeoExt.WMSLegend, {
 					xtype: "gx_ux_legendimage",
 					url: this.getLegendUrl(layerName, layerNames),
 					itemId: layerName,
-					layer: layer
+					layer: layer,
+					// Hide the legend when the image is broken
+					listeners: {
+						'hide': function() {
+							this.hide();
+						},
+						'show': function() {
+							this.show();
+						},
+						'scope': this
+					}
 				});
 			}
 		}

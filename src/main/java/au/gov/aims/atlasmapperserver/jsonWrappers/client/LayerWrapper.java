@@ -169,6 +169,16 @@ public class LayerWrapper extends AbstractWrapper {
 		this.json.put("descriptionFormat", descriptionFormat);
 	}
 
+	// Remove HTML
+	public String getTextDescription() {
+		String description = this.getDescription();
+		if ("html".equalsIgnoreCase(this.getDescriptionFormat())) {
+			description.replaceAll("\\<.*?\\>","");
+		}
+		// TODO Remove wiki format??
+		return description;
+	}
+
 	public String getSystemDescription() {
 		return this.json.optString("systemDescription", null);
 	}

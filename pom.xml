@@ -25,7 +25,7 @@
 	<groupId>au.gov.aims</groupId>
 	<artifactId>atlasmapper</artifactId>
 	<packaging>war</packaging>
-	<version>1.4.6</version>
+	<version>1.4.7</version>
 	<name>AtlasMapper server and clients</name>
 	<description>This application compiled as a single War, that can be deployed in Tomcat, without any other dependency.\n\
 It contains:\n\
@@ -46,14 +46,6 @@ It contains:\n\
 	</licenses>
 
 	<repositories>
-		<!-- Central repository is not required. It is listed here only as a reference.
-		<repository>
-			<id>central</id>
-			<name>Maven Repository Switchboard</name>
-			<url>http://repo1.maven.org/maven2</url>
-		</repository>
-		-->
-
 		<repository>
 			<id>osgeo</id>
 			<name>Open Source Geospatial Foundation Repository</name>
@@ -61,6 +53,7 @@ It contains:\n\
 		</repository>
 	</repositories>
 
+	<!-- Search maven repo: http://search.maven.org -->
 	<dependencies>
 		<!-- Jar containing classes provided by tomcat - Not included in the war -->
 		<dependency>
@@ -119,13 +112,6 @@ It contains:\n\
 			<artifactId>httpclient</artifactId>
 			<version>4.2.2</version>
 		</dependency>
-<!--
-		<dependency>
-			<groupId>org.apache.httpcomponents</groupId>
-			<artifactId>httpcomponents-core</artifactId>
-			<version>4.2.2</version>
-		</dependency>
--->
 
 		<!-- Used for JUnit tests - Not included in the war -->
 		<dependency>

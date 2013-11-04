@@ -29,17 +29,14 @@ GeoExt.ux.LegendImage = Ext.extend(GeoExt.LegendImage, {
 
 	// Override
 	setUrl: function(url) {
-		//this.layer.atlasLayer.setLegendError(false);
 		GeoExt.ux.LegendImage.superclass.setUrl.call(this, url);
+		this.show();
 	},
 
 	// Override
 	onImageLoadError: function() {
-		if (this.layer != null) {
-			//this.layer.atlasLayer.setLegendError(true);
-			//this.layer.atlasLayer.setHideInLegend(true);
-		}
 		this.getEl().dom.src = this.defaultImgSrc;
+		this.hide();
 	}
 });
 

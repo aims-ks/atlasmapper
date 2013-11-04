@@ -44,8 +44,20 @@
 <%@page import="au.gov.aims.atlasmapperserver.Utils"%>
 <%@page import="org.json.JSONArray"%>
 <%@page import="org.json.JSONObject"%>
-<%@page contentType="application/json" pageEncoding="UTF-8"%>
 <%
+	// Needed by StripTagProxy:
+	//     http://docs.sencha.com/extjs/3.4.0/#!/api/Ext.data.ScriptTagProxy
+	String callback = request.getParameter("callback");
+
+	response.setCharacterEncoding("UTF-8");
+	if (callback != null) {
+		// Equivalent to: <@page contentType="text/javascript" pageEncoding="UTF-8">
+		response.setContentType("text/javascript");
+	} else {
+		// Equivalent to: <@page contentType="application/json" pageEncoding="UTF-8">
+		response.setContentType("application/json");
+	}
+
 	String clientId = request.getParameter("client");
 
 	// Search type: Currently only support location search (default: LOCATION).
@@ -57,9 +69,11 @@
 	String bounds = request.getParameter("bounds");
 
 	// Start from result (default: 0 => Start from the first result).
-	int offset = (request.getParameter("offset") != null ? Integer.parseInt(request.getParameter("offset")) : 0);
+	int offset = (request.getParameter("offset") != null ? Integer.parseInt(request.getParameter("offset")) :
+			(request.getParameter("start") != null ? Integer.parseInt(request.getParameter("start")) : 0));
 	// Maximum number of results that has to be returned (default: 10).
-	int qty = (request.getParameter("qty") != null ? Integer.parseInt(request.getParameter("qty")) : 10);
+	int qty = (request.getParameter("qty") != null ? Integer.parseInt(request.getParameter("qty")) :
+			(request.getParameter("limit") != null ? Integer.parseInt(request.getParameter("limit")) : 10));
 
 	ConfigManager configManager = ConfigHelper.getConfigManager(this.getServletConfig().getServletContext());
 
@@ -93,6 +107,27 @@
 				jsonObj.put("success", true);
 				jsonObj.put("message", "Search results");
 				jsonObj.put("data", results);
+			} else if ("LAYER".equalsIgnoreCase(searchTypeStr)) {
+				JSONObject results = null;
+
+				try {
+					results = clientConfig.layerSearch(query, offset, qty);
+				} catch (Exception ex) {
+					response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+					jsonObj.put("success", false);
+					jsonObj.put("errors", new JSONArray().put("Exception while performing the layer search."));
+					ex.printStackTrace();
+				}
+
+				if (results == null) {
+					response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+					jsonObj.put("success", false);
+					jsonObj.put("errors", new JSONArray().put("Layer search result object is empty."));
+				} else {
+					response.setStatus(HttpServletResponse.SC_OK);
+					jsonObj = results;
+					jsonObj.put("success", true);
+				}
 			} else {
 				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 				jsonObj.put("success", false);
@@ -102,10 +137,19 @@
 	}
 
 	String output = "";
+
+	if (callback != null) {
+		output += callback + "(";
+	}
+
 	if (indent > 0) {
-		output = jsonObj.toString(indent);
+		output += jsonObj.toString(indent);
 	} else {
-		output = jsonObj.toString();
+		output += jsonObj.toString();
+	}
+
+	if (callback != null) {
+		output += ");";
 	}
 %>
 <%=output %>

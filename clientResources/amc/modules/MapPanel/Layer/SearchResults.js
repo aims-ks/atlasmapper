@@ -40,6 +40,7 @@ Atlas.Layer.SearchResults = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 	color: null,
 	searchServiceUrl: null,
 	searchCount: 0,
+	selectedResultId: null,
 
 	page: -1,
 	nbPages: 0,
@@ -98,6 +99,10 @@ Atlas.Layer.SearchResults = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 					var resultEl = Ext.fly(resultId);
 					if (resultEl) {
 						resultEl.addClass('highlight');
+						if (this.selectedResultId !== null && this.selectedResultId !== resultId) {
+							this.layer.events.triggerEvent('featureunselected', {feature: this.selectedResultId});
+						}
+						this.selectedResultId = resultId;
 					}
 				}
 			},
@@ -317,7 +322,6 @@ Atlas.Layer.SearchResults = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 
 				// Those event listeners are removed by Ext.ux.IFramePanel.update()
 				li.addListener('mouseover', function() { that._mouseOver(this); });
-				li.addListener('mouseout', function() { that._mouseOut(this); });
 				li.addListener('click', function() { that._click(this); });
 
 				list.appendChild(li);
@@ -333,10 +337,6 @@ Atlas.Layer.SearchResults = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 	_mouseOver: function(li) {
 		var featureId = li.id;
 		this.layer.events.triggerEvent('featureselected', {feature: featureId});
-	},
-	_mouseOut: function(li) {
-		var featureId = li.id;
-		this.layer.events.triggerEvent('featureunselected', {feature: featureId});
 	},
 	_click: function(li) {
 		var featureId = li.id;

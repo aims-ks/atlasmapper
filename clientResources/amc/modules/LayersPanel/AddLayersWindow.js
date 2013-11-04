@@ -65,16 +65,30 @@ Atlas.AddLayersWindow = Ext.extend(Ext.Window, {
 				infoObj.selectionChange(node);
 			}
 		};
+		treesObj.searchResultSelectionChange = function(layerId) {
+			if (layerId) {
+				infoObj.setLoadingLayerId(layerId);
+				Atlas.core.requestLayersJSon([layerId], function(layersJSon) {
+					if (layersJSon && layersJSon[0]) {
+						var node = {
+							layer: {
+								atlasLayer: Atlas.Layer.LayerHelper.createLayer(null, layersJSon[0])
+							}
+						};
+						// Ensure the current Ajax response goes with the current active tab
+						if (infoObj.getLoadingLayerId() == layerId) {
+							infoObj.selectionChange(node);
+							infoObj.setLoadingLayerId(null);
+						}
+					}
+				});
+			} else {
+				infoObj.setLoadingLayerId(null);
+				infoObj.selectionChange(null);
+			}
+		};
 
 		var trees = treesObj.trees;
-		/*
-		// TODO Implement server side search
-		trees.push({
-			title: 'Search',
-			html: 'Comming soon',
-			getChecked: function(){}
-		});
-		*/
 
 		// Left panel
 		var nav = new Ext.Panel({
@@ -122,10 +136,14 @@ Atlas.AddLayersWindow = Ext.extend(Ext.Window, {
 				Ext.each(trees, function(tree) {
 					var selNodes = tree.getChecked();
 					Ext.each(selNodes, function(node) {
-						// Uncheck the layers so it will not be
-						// checked next time the window is shown.
-						node.ui.toggleCheck(false);
-						layerIds.push(node.layerId);
+						if (typeof(node) === 'string') {
+							layerIds.push(node);
+						} else {
+							// Uncheck the layers so it will not be
+							// checked next time the window is shown.
+							node.ui.toggleCheck(false);
+							layerIds.push(node.layerId);
+						}
 					});
 				});
 				if (layerIds.length > 0) {

@@ -110,6 +110,28 @@ public class Errors {
 		}
 	}
 
+	public void addErrors(JSONArray errors) throws JSONException {
+		if (errors != null) {
+			for (int i=0; i<errors.length(); i++) {
+				this.addError(new Errors.Error(null, errors.optString(i, null)));
+			}
+		}
+	}
+	public void addWarnings(JSONArray warnings) throws JSONException {
+		if (warnings != null) {
+			for (int i=0; i<warnings.length(); i++) {
+				this.addWarning(new Errors.Error(null, warnings.optString(i, null)));
+			}
+		}
+	}
+	public void addMessages(JSONArray messages) throws JSONException {
+		if (messages != null) {
+			for (int i=0; i<messages.length(); i++) {
+				this.addMessage(new Errors.Error(null, messages.optString(i, null)));
+			}
+		}
+	}
+
 	public boolean isEmpty() {
 		return this.errors.isEmpty() && this.warnings.isEmpty() && this.messages.isEmpty();
 	}

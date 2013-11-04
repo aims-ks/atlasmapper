@@ -1387,6 +1387,7 @@ public class ConfigManager {
 		clientWrapper.setPrintEnabled(clientConfig.isPrintEnabled());
 		clientWrapper.setSaveMapEnabled(clientConfig.isSaveMapEnabled());
 		clientWrapper.setMapConfigEnabled(clientConfig.isMapConfigEnabled());
+		clientWrapper.setMapMeasurementEnabled(clientConfig.isMapMeasurementEnabled());
 
 		if (clientConfig.isSearchEnabled()) {
 			if (Utils.isNotBlank(clientConfig.getSearchServiceUrl())) {

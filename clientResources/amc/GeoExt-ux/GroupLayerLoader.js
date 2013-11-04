@@ -71,11 +71,11 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 
 		if (this.filterBaseLayers) {
 			// Show only Overlay layers
-			this.filter = function(record){
+			this.filter = function(record) {
 				var layer = record.getLayer();
 				return layer.displayInLayerSwitcher === true &&
 					layer.isBaseLayer === false;
-			}
+			};
 		}
 
 		if (this.filterOverlays) {
@@ -83,12 +83,12 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 			this.baseAttrs = Ext.applyIf(this.baseAttrs || {}, {
 				iconCls: 'gx-tree-baselayer-icon',
 				checkedGroup: 'baselayer'
-			}),
-				this.filter = function(record) {
-					var layer = record.getLayer();
-					return layer.displayInLayerSwitcher === true &&
-						layer.isBaseLayer === true;
-				}
+			});
+			this.filter = function(record) {
+				var layer = record.getLayer();
+				return layer.displayInLayerSwitcher === true &&
+					layer.isBaseLayer === true;
+			};
 		}
 
 		this.store.map.events.on({
@@ -713,9 +713,9 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 	 */
 	onChildMove: function(tree, node, oldParent, newParent, index) {
 		if (node.hasChildNodes()) {
-			this._onFolderMove(tree, node, oldParent, newParent, node);
+			this._onFolderMove(tree, node, oldParent, newParent, node, index);
 		} else {
-			this._onChildMove(tree, node, oldParent, newParent, node);
+			this._onChildMove(tree, node, oldParent, newParent, node, index);
 		}
 
 		// Adjust the opacity according to the opacity of the new parent and the opacity set by the layer slider (found by computing the opacity of the layer with the opacity of the old parent)
@@ -760,23 +760,23 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 	// the node that triggered the event.
 	// Since it's recursive, the parent nodes do not always represent
 	// the node that initially trigger the event.
-	_onFolderMove: function(tree, node, oldParent, newParent, movedNode) {
-		this._onChildMove(tree, node, oldParent, newParent, movedNode);
+	_onFolderMove: function(tree, node, oldParent, newParent, movedNode, index) {
+		this._onChildMove(tree, node, oldParent, newParent, movedNode, index);
 		if (node.hasChildNodes()) {
 			for (var i = node.childNodes.length; i >= 0; i--) {
 				var childNode = node.childNodes[i];
 				if (childNode) {
 					if (childNode.hasChildNodes()) {
-						this._onFolderMove(tree, childNode, node, node, movedNode);
+						this._onFolderMove(tree, childNode, node, node, movedNode, index);
 					} else {
-						this._onChildMove(tree, childNode, node, node, movedNode);
+						this._onChildMove(tree, childNode, node, node, movedNode, index);
 					}
 				}
 			}
 		}
 	},
 
-	_onChildMove: function(tree, node, oldParent, newParent, movedNode) {
+	_onChildMove: function(tree, node, oldParent, newParent, movedNode, index) {
 		this._adjustNodePath(node, newParent);
 
 		this._reordering = true;
@@ -800,24 +800,19 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 			}
 		}
 
-		//this.store.remove(record);
-
 		var newRecordIndex = this.store.findBy(function(r) {
 			return siblingNode.layer === r.getLayer();
 		});
 
-		nextNode != null && newRecordIndex++;
+		if(newRecordIndex !== undefined && newRecordIndex >= 0) {
+			if (index >= newRecordIndex && nextNode != null) {
+				newRecordIndex++;
+			}
 
-		if(newRecordIndex !== undefined) {
-			//this.store.insert(newRecordIndex, [record]);
 			this._moveRecord(newRecordIndex, record);
 		} else {
-			// This line seems to be dead code; the variable
-			// oldRecordIndex is not initialised. I'm initialising
-			// it just in case it get called.
-			if (typeof(oldRecordIndex) == 'undefined') { oldRecordIndex = 0 }
-			//this.store.insert(oldRecordIndex, [record]);
-			this._moveRecord(oldRecordIndex, record);
+			// This line seems to be dead code
+			this._moveRecord(index, record);
 		}
 
 		delete this._reordering;

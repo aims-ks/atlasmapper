@@ -128,30 +128,12 @@ Ext.define('Writer.ClientConfigForm', {
 			'printEnabled': true,
 			'saveMapEnabled': true,
 			'mapConfigEnabled': true,
+			'mapMeasurementEnabled': true,
 
 			'theme': '',
 			'enable': true
 		});
 		this.addEvents('create');
-
-		var dataSourcesItems = [];
-		// NOTE: data sources variable is set in clientsConfigPage.jsp
-		// I don't want to do an Ajax query to get those...
-		Ext.iterate(dataSources, function(dataSourceId, dataSourceObj) {
-			var htmlStatus = '<span class="grid-false"><span class="text">Invalid</span></span>';
-			if (dataSourceObj.status !== null) {
-				if (dataSourceObj.status === 'OKAY') {
-					htmlStatus = '<span class="grid-true"><span class="text">Valid</span></span>';
-				} else if (dataSourceObj.status === 'PASSED') {
-					htmlStatus = '<span class="grid-warning"><span class="text">Usable</span></span>';
-				}
-			}
-			dataSourcesItems.push({
-				name: 'dataSources',
-				boxLabel: htmlStatus + ' ' + dataSourceObj.name + ' <span class="grid-ds-id">(' + dataSourceId + ')</span>',
-				inputValue: dataSourceId
-			});
-		});
 
 		var mainClientModules = [];
 		var embeddedClientModules = [];
@@ -200,6 +182,41 @@ Ext.define('Writer.ClientConfigForm', {
 
 		var generatedFileLocationId = Ext.id();
 		var baseUrlId = Ext.id();
+
+		/** Define the Data sources grid, with an empty store - The store is filled when an entity is loaded **/
+
+		this.dataSourcesStore = Ext.create('Ext.data.Store', {
+			xtype: 'store',
+			storeId: 'dataSourcesStore',
+			fields: [
+				'id',
+				{name: 'title', sortType: 'asUCString'},
+				'status',
+				{name: 'checked', type: 'boolean'}
+			],
+			sorters: {
+				property: 'title',
+				direction: 'ASC'
+			},
+			// "data" is loaded by this.setActiveRecord(record), called by the action of the "Edit" / "Add" buttons of the data source's grid.
+			data: []
+		});
+		var dataSourcesGrid = Ext.create('Ext.grid.Panel', {
+			fieldLabel: 'Data sources',
+			qtipHtml: 'List of Data sources.',
+			name: 'dataSourcesGrid',
+			bodyPadding: 0,
+			border: false,
+			title: 'Data sources',
+			store: this.dataSourcesStore,
+			columns: [
+				{ xtype: 'checkcolumn', dataIndex: 'checked', width: 30, hideable: false },
+				{ dataIndex: 'status', width: 30, hideable: false },
+				{ text: 'ID',  dataIndex: 'id' },
+				{ text: 'Type', dataIndex: 'type', hidden: true },
+				{ text: 'Name', dataIndex: 'title', flex: 1 }
+			]
+		});
 
 		Ext.apply(this, {
 			activeRecord: null,
@@ -257,11 +274,6 @@ Ext.define('Writer.ClientConfigForm', {
 								fieldLabel: 'Client Name',
 								name: 'clientName',
 								qtipHtml: 'A human readable name for this client. This field is used as a title for the Atlas Mapper client and in error/warning messages.'
-							}, {
-								xtype: 'checkboxgroup',
-								fieldLabel: 'Data source type',
-								columns: 2,
-								items: dataSourcesItems
 							}, {
 								title: 'Modules for the main client(s)',
 								qtipTitle: 'Main client',
@@ -373,7 +385,9 @@ Ext.define('Writer.ClientConfigForm', {
 								height: 50
 							}
 						]
-					}, {
+					},
+					dataSourcesGrid,
+					{
 						// Advanced config options
 						title: 'Advanced',
 						defaults: {
@@ -646,6 +660,22 @@ Ext.define('Writer.ClientConfigForm', {
 										value: 'This feature is under development and any configuration found here may eventually change in the future.'
 									}
 								]
+							}, {
+								xtype: 'fieldset',
+								title: 'Ruler',
+								defaults: {
+									hideEmptyLabel: false
+								},
+								checkboxToggle: true,
+								checkboxName: 'mapMeasurementEnabled',
+								qtipHtml: 'Uncheck this box remove the ruler tool from the toolbar.',
+								defaultType: 'textfield',
+								items: [
+									{
+										xtype: 'displayfield',
+										value: 'This feature is under development and any configuration found here may eventually change in the future.'
+									}
+								]
 							}
 						]
 					}, {
@@ -707,6 +737,32 @@ Ext.define('Writer.ClientConfigForm', {
 		if (record) {
 			this.activeRecord = record;
 			this.getForm().loadRecord(record);
+
+			var checkedDataSources = record.get('dataSources') ? record.get('dataSources') : [];
+
+			// Load the data sources to the grid
+			var dataSourcesItems = [];
+			// NOTE: data sources variable is set in clientsConfigPage.jsp
+			// I don't want to do an Ajax query to get those...
+			Ext.iterate(dataSources, function(dataSourceId, dataSourceObj) {
+				var htmlStatus = '<span class="grid-false"><span class="text">Invalid</span></span>';
+				if (dataSourceObj.status !== null) {
+					if (dataSourceObj.status === 'OKAY') {
+						htmlStatus = '<span class="grid-true"><span class="text">Valid</span></span>';
+					} else if (dataSourceObj.status === 'PASSED') {
+						htmlStatus = '<span class="grid-warning"><span class="text">Usable</span></span>';
+					}
+				}
+				dataSourcesItems.push({
+					id: dataSourceId,
+					type: dataSourceObj.type,
+					title: dataSourceObj.name,
+					status: htmlStatus,
+					checked: (checkedDataSources.indexOf(dataSourceId) !== -1)
+				});
+			});
+
+			this.dataSourcesStore.loadData(dataSourcesItems);
 		} else if (this.defaultValues) {
 			this.activeRecord = this.defaultValues;
 			this.getForm().loadRecord(this.defaultValues);
@@ -729,6 +785,16 @@ Ext.define('Writer.ClientConfigForm', {
 			// Resync the model instance
 			// NOTE: The "active" instance become out of sync everytime the grid get refresh; by creating an instance or updating an other one, for example. The instance can not be saved when it's out of sync.
 			active = active.store.getById(active.internalId);
+
+			// Save the selected data sources from the grid to the form
+			var dataSourcesValue = [];
+			this.dataSourcesStore.data.each(function(item) {
+				if (item.data.checked) {
+					dataSourcesValue.push(item.data.id);
+				}
+			}, this);
+			active.set('dataSources', dataSourcesValue);
+
 			form.updateRecord(active);
 			frameset.setSavedMessage('Client saved', 500);
 			return true;
@@ -1351,6 +1417,7 @@ Ext.define('Writer.ClientConfig', {
 		{name: 'printEnabled', type: 'boolean', defaultValue: false},
 		{name: 'saveMapEnabled', type: 'boolean', defaultValue: false},
 		{name: 'mapConfigEnabled', type: 'boolean', defaultValue: false},
+		{name: 'mapMeasurementEnabled', type: 'boolean', defaultValue: false},
 
 		'theme',
 		'pageHeader',

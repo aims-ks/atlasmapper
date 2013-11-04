@@ -67,9 +67,10 @@ Atlas.Trees = Ext.extend(Ext.Component, {
 						activate: function(treePanel) {
 							// Call selectionChange when the user switch tab
 							if (treePanel && treePanel.getSelectionModel && treePanel.getSelectionModel().getSelectedNode) {
-								that.selectionChange(treePanel.getSelectionModel().getSelectedNode());
+								this.selectionChange(treePanel.getSelectionModel().getSelectedNode());
 							}
-						}
+						},
+						scope: this
 					},
 					// Hide the root and show only the children
 					rootVisible: false,
@@ -78,22 +79,38 @@ Atlas.Trees = Ext.extend(Ext.Component, {
 
 				// Call selectionChange when the user select a new item
 				treePanel.getSelectionModel().addListener('selectionchange', function(selectionModel, node) {
-					that.selectionChange(node);
-				});
+					this.selectionChange(node);
+				}, this);
 
 				this.trees.push(treePanel);
 			}, this);
+
+			var searchTab = new Atlas.Trees.SearchTab({
+				mapPanel: this.mapPanel,
+				listeners: {
+					'searchResultSelectionChange': function(layerId) {
+						this.searchResultSelectionChange(layerId);
+					},
+					'activate': function() {
+						this.searchResultSelectionChange(null);
+					},
+					scope: this
+				}
+			});
+			if (searchTab) {
+				this.trees.push(searchTab);
+			}
 		}
 
 		// Register the event listeners
 		this.mapPanel.ol_on("layerAdded", function(evt) {
 			if (evt.layerJSon) {
-				that.highlightLayer(evt.layerJSon['layerId']);
+				this.highlightLayer(evt.layerJSon['layerId']);
 			}
-		});
+		}, this);
 		this.mapPanel.ol_on("layerRemoved", function(evt) {
-			that.unHighlightLayer();
-		});
+			this.unHighlightLayer();
+		}, this);
 	},
 
 	// Ignore case sort
@@ -320,6 +337,7 @@ Atlas.Trees = Ext.extend(Ext.Component, {
 	// Method to override
 	// See: Atlas.AddLayersWindow (modules/LayersPanel/AddLayersWindow.js)
 	selectionChange: function(node) {},
+	searchResultSelectionChange: function(layerId) {},
 
 	highlightLayer: function(layerId) {
 		if (this.trees == null || typeof(layerId) == 'undefined') {

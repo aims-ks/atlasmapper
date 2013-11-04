@@ -65,6 +65,7 @@
 			var demoMode = <%=manager.isDemoMode() %>;
 			var dataSources = {
 				<%
+					// Data sources are also sorted on client side, but it save time to pre-sort them on server side.
 					List<AbstractDataSourceConfig> dataSourceConfigs = new ArrayList<AbstractDataSourceConfig>(manager.getDataSourceConfigs().values());
 					Collections.sort(dataSourceConfigs);
 
@@ -86,6 +87,7 @@
 							%><%=(first?"":",\n") +
 									"'" + Utils.safeJsStr(cfg.getDataSourceId()) + "': {" +
 										"name: '" + Utils.safeJsStr(cfg.getDataSourceName()) + "'," +
+										"type: '" + Utils.safeJsStr(cfg.getLayerType()) + "'," +
 										"status: '" + status + "'" +
 									"}"
 							%><%

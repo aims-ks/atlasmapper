@@ -554,8 +554,8 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 				try {
 					reprojectedExtent = Utils.reprojectWKIDCoordinatesToDegrees(extent, "EPSG:" + wkid);
 				} catch (NoSuchAuthorityCodeException ex) {
-					LOGGER.log(Level.INFO, "The layer [{0}] from the data source [{1}] has an unknown extent CRS: {2}",
-							new String[]{ layerTitle, dataSourceTitle, Utils.getExceptionMessage(ex) });
+					LOGGER.log(Level.INFO, "The layer [{0}] from the data source [{1}] has an unknown extent WKID [{2}]: {3}",
+							new String[]{ layerTitle, dataSourceTitle, wkid, Utils.getExceptionMessage(ex) });
 					LOGGER.log(Level.FINEST, "Stack trace", ex);
 				} catch (Exception ex) {
 					LOGGER.log(Level.INFO, "The layer [{0}] from the data source [{1}] has an unsupported extent: {2}",
@@ -566,33 +566,14 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 				try {
 					reprojectedExtent = Utils.reprojectWKTCoordinatesToDegrees(extent, wkt);
 				} catch (NoSuchAuthorityCodeException ex) {
-					LOGGER.log(Level.INFO, "The layer [{0}] from the data source [{1}] has an unknown extent CRS: {2}",
-							new String[]{ layerTitle, dataSourceTitle, Utils.getExceptionMessage(ex) });
+					LOGGER.log(Level.INFO, "The layer [{0}] from the data source [{1}] has an unknown extent WKT [{2}]: {3}",
+							new String[]{ layerTitle, dataSourceTitle, wkt, Utils.getExceptionMessage(ex) });
 					LOGGER.log(Level.FINEST, "Stack trace", ex);
 				} catch (Exception ex) {
 					LOGGER.log(Level.INFO, "The layer [{0}] from the data source [{1}] has an unsupported extent: {2}",
 							new String[]{ layerTitle, dataSourceTitle, Utils.getExceptionMessage(ex) });
 					LOGGER.log(Level.FINEST, "Stack trace", ex);
 				}
-			}
-		}
-
-		// Invert the extent coordinate -> [Lon, Lat] for OpenLayers
-		if (reprojectedExtent != null) {
-			// Ensure that the conversion is usable
-			boolean valid = true;
-			for (int i=0; i<reprojectedExtent.length; i+=2) {
-				//
-				Double tmp = reprojectedExtent[i];
-				reprojectedExtent[i] = reprojectedExtent[i+1];
-				reprojectedExtent[i+1] = tmp;
-				if (Double.isNaN(reprojectedExtent[i]) || Double.isNaN(reprojectedExtent[i+1])) {
-					valid = false;
-				}
-			}
-
-			if (!valid) {
-				return null;
 			}
 		}
 

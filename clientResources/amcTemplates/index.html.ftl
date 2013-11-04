@@ -111,6 +111,7 @@
 	<script type="text/javascript" src="Ext-ux/DateField.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="Ext-ux/NCDatetimeField.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="Ext-ux/NCPlotPanel.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="Ext-ux/SearchField.js?atlasmapperVer=${version}"></script>
 
 	<script type="text/javascript" src="GeoExt-ux/LayerLegend.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="GeoExt-ux/WMSLegend.js?atlasmapperVer=${version}"></script>
@@ -151,6 +152,7 @@
 	<script type="text/javascript" src="modules/Trees/Trees.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="modules/Trees/LayerTreeLoader.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="modules/Trees/LayerNode.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="modules/Trees/SearchTab.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="modules/Info/Info.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="modules/Info/DescriptionPanel.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="modules/Info/OptionsPanel.js?atlasmapperVer=${version}"></script>

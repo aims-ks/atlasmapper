@@ -191,6 +191,23 @@ public class ClientWrapper extends AbstractWrapper {
 		}
 	}
 
+	public Boolean isMapMeasurementEnabled() {
+		return this.isMapMeasurementEnabled(null);
+	}
+	public Boolean isMapMeasurementEnabled(Boolean defaultValue) {
+		if (this.json.isNull("mapMeasurementEnabled")) {
+			return defaultValue;
+		}
+		return this.json.optBoolean("mapMeasurementEnabled");
+	}
+	public void setMapMeasurementEnabled(Boolean mapMeasurementEnabled) throws JSONException {
+		if (mapMeasurementEnabled == null && !this.json.isNull("mapMeasurementEnabled")) {
+			this.json.remove("mapMeasurementEnabled");
+		} else {
+			this.json.put("mapMeasurementEnabled", mapMeasurementEnabled);
+		}
+	}
+
 	public String getClientUrl() {
 		return this.json.optString("clientUrl", null);
 	}

@@ -52,6 +52,13 @@ Atlas.Layer.KML = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 
 			this.setLayer(kml);
 
+			if (mapPanel) {
+				var that = this;
+				mapPanel.ol_on("dpiChange", function(evt) {
+					that.layer.redraw();
+				});
+			}
+
 			kml.events.on({
 				loadend: function() {
 					this.monitorFeatureRequest(kml);

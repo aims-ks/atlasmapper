@@ -149,7 +149,7 @@ Atlas.MapPanel.GetFeatureInfo = OpenLayers.Class({
 			popupId,
 			this.map.getLonLatFromPixel(evt.xy),
 			null,
-			" ",
+			featureInfoHTML,
 			null,
 			true,
 			function(evt) {
@@ -160,8 +160,6 @@ Atlas.MapPanel.GetFeatureInfo = OpenLayers.Class({
 		);
 		this.map.addPopup(this.popupBalloon, true);
 
-
-		this.popupBalloon.setContentHTML(featureInfoHTML);
 		this.popupBalloon.show();
 	},
 

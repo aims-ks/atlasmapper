@@ -39,7 +39,7 @@ Atlas.MapToolsPanel = Ext.extend(Ext.form.FormPanel, {
 		if (nbMaps < 1) { nbMaps = 1; }
 		if (nbMaps > 4) { nbMaps = 4; }
 
-		var toolsEnabled = nbMaps == 1;
+		var toolsEnabled = (nbMaps == 1);
 
 		var tools = [];
 		if (toolsEnabled) {
@@ -112,6 +112,129 @@ Atlas.MapToolsPanel = Ext.extend(Ext.form.FormPanel, {
 						that.showMapConfigWindow();
 					}
 				});
+			}
+
+			if (Atlas.conf['mapMeasurementEnabled']) {
+				// For some reason, rules can not be added to a style inline,
+				// so this style can not be defined in the definition of the
+				// measurement control.
+				var measurementStyle = new OpenLayers.Style();
+				measurementStyle.addRules([
+					new OpenLayers.Rule({symbolizer: {
+						// http://dev.openlayers.org/docs/files/OpenLayers/Symbolizer/Point-js.html
+						"Point": {
+							pointRadius: 16,
+							fillOpacity: 1,
+							// Position the ruler under the mouse cursor. The cursor look different
+							// depending on the OS or the theme, so the position is a bit cryptic.
+							graphicXOffset: -5, graphicYOffset: 15,
+							externalGraphic: "resources/images/ruler-cursor.png"
+						},
+						// http://dev.openlayers.org/docs/files/OpenLayers/Symbolizer/Line-js.html
+						"Line": {
+							strokeWidth: 3,
+							strokeColor: "#666666",
+							strokeDashstyle: "dash"
+						}
+					}})
+				]);
+
+				function enableMeasurement(button) {
+					// The control can only be added to the map when the map is ready.
+					// It's safe to say that the map is ready when the user click the button.
+					if (!measurementControl.map && that.mapPanel && that.mapPanel.map) {
+						that.mapPanel.map.addControl(measurementControl);
+					}
+
+					if (measurementControl.map) {
+						if (button.pressed) {
+							measurementControl.activate();
+						} else {
+							measurementText.setValue();
+							measurementControl.deactivate();
+						}
+					}
+				}
+
+				function measurementHandler(event) {
+					var geometry = event.geometry;
+					var units = event.units;
+					var order = event.order;
+					var measure = event.measure;
+
+					if (measurementText) {
+						measurementText.setValue(measure.toFixed(1) + " " + units);
+					}
+				}
+
+				// Enable multi-segment ruler when CTRL is pressed
+				var CTRL = 17; // I can't find this config in OL... It's not the same as OpenLayers.Handler.MOD_CTRL
+				var ctrlHandler = new OpenLayers.Handler.Keyboard(
+					new OpenLayers.Control(),
+					{
+						// The clean way to do this (using the API) do not work, it loose the
+						// config values of the handler that are not set in handlerOptions,
+						// like "persist: true"
+						//     handlerOptions.maxVertices = null;
+						//     measurementControl.updateHandler(OpenLayers.Handler.Path, handlerOptions);
+						keydown: function(evt) {
+							if (evt.keyCode === CTRL) {
+								measurementControl.handler.maxVertices = null;
+							}
+						},
+						keyup: function(evt) {
+							if (evt.keyCode === CTRL) {
+								measurementControl.handler.maxVertices = 2;
+							}
+						}
+					}
+				);
+
+				// This control has to be activated and deactivated, so it has
+				// to be defined in a variable to keep a reference to it.
+				var measurementControl = new OpenLayers.Control.Measure(
+					OpenLayers.Handler.Path,
+					{
+						// persist: The line stay on the map after drawn.
+						persist: true,
+						// immediate: Give the value as the mouse move, using "measurepartial" event.
+						immediate: true,
+						geodesic: true,
+						handlerOptions: {
+							maxVertices: 2, // Draw a single line, don't have to double click
+							layerOptions: {
+								styleMap: new OpenLayers.StyleMap(measurementStyle)
+							}
+						},
+						eventListeners: {
+							"activate": function() {
+								ctrlHandler.activate();
+							},
+							"deactivate": function() {
+								ctrlHandler.deactivate();
+							},
+							"measure": measurementHandler,
+							"measurepartial": measurementHandler,
+							"scope": this
+						}
+					}
+				);
+
+				var measurementText = new Ext.form.TextField({
+					cls: 'measurementText',
+					readOnly: true,
+					width: 100
+				});
+
+				tools.push({
+					iconCls: 'measurementButton',
+					tooltip: 'Map measurement<br/>For multiple points, hold <b>CTRL</b>',
+					enableToggle: true,
+					handler: function(button) {
+						enableMeasurement(button);
+					}
+				});
+				tools.push(measurementText);
 			}
 
 			if (tools.length) {
@@ -247,6 +370,10 @@ Atlas.MapToolsPanel = Ext.extend(Ext.form.FormPanel, {
 			}
 
 			// TODO Fix _gutterChange in Layer/WMS.js before enabling this option
+			// IMPORTANT: Gutter can not be changed on the fly because
+			//     1. They need to be in a "frame". The image frame is only added when a layer is created with gutter > 0.
+			//     2. The method "layer.setTileSize" do not works when gutter is specified (so changing the DPI breaks everything)
+			//         See: MapPanel.Layer.WMS._setTileSizeForDPI
 			//items.push(gutterSelectConfig);
 		}
 

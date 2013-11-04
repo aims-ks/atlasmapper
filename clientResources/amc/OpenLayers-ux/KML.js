@@ -73,17 +73,33 @@ OpenLayers.Layer.ux.KML = OpenLayers.Class(OpenLayers.Layer.Vector, {
 	 *         labelYOffset -= 100
 	 */
 	_overrideStyleAttributes: function(feature) {
+		var defaultDPI = 90;
+		var dpi = defaultDPI;
+		if (typeof(this.atlasLayer) === 'object' && typeof(this.atlasLayer.mapPanel) === 'object' && typeof(this.atlasLayer.mapPanel.dpi) === 'number') {
+			dpi = this.atlasLayer.mapPanel.dpi;
+		}
+		var dpiRatio = dpi / defaultDPI;
+
 		if (this._isPoint(feature)) {
-			var fontSize = 17; // Close to what Google Earth use
+			var fontSize = 17 * dpiRatio; // Close to what Google Earth use
+			var labelOutlineWidth = 3 * dpiRatio;
 
 			var graphicWidth = 0;
 			var graphicHeight = 0;
 			// Grab the icon dimention from the KML style, if available
 			if (typeof(feature.style.graphicWidth) !== 'undefined' && !isNaN(feature.style.graphicWidth)) {
-				graphicWidth = parseFloat(feature.style.graphicWidth);
+				if (typeof(feature.style.graphicWidthOrig) === 'undefined') {
+					feature.style.graphicWidthOrig = feature.style.graphicWidth
+				}
+				graphicWidth = parseFloat(feature.style.graphicWidthOrig) * dpiRatio;
+				feature.style.graphicWidth = graphicWidth;
 			}
 			if (typeof(feature.style.graphicHeight) !== 'undefined' && !isNaN(feature.style.graphicHeight)) {
-				graphicHeight = parseFloat(feature.style.graphicHeight);
+				if (typeof(feature.style.graphicHeightOrig) === 'undefined') {
+					feature.style.graphicHeightOrig = feature.style.graphicHeight
+				}
+				graphicHeight = parseFloat(feature.style.graphicHeightOrig) * dpiRatio;
+				feature.style.graphicHeight = graphicHeight;
 			}
 
 			// The default offset, when not specified in the KML, is not 0x0, it's half the image width / height
@@ -92,10 +108,18 @@ OpenLayers.Layer.ux.KML = OpenLayers.Class(OpenLayers.Layer.Vector, {
 			var graphicYOffset = graphicHeight / -2;
 			// Grab the icon offset from the KML style, if available
 			if (typeof(feature.style.graphicXOffset) !== 'undefined' && !isNaN(feature.style.graphicXOffset)) {
-				graphicXOffset = parseFloat(feature.style.graphicXOffset);
+				if (typeof(feature.style.graphicXOffsetOrig) === 'undefined') {
+					feature.style.graphicXOffsetOrig = feature.style.graphicXOffset
+				}
+				graphicXOffset = parseFloat(feature.style.graphicXOffsetOrig) * dpiRatio;
+				feature.style.graphicXOffset = graphicXOffset;
 			}
 			if (typeof(feature.style.graphicYOffset) !== 'undefined' && !isNaN(feature.style.graphicYOffset)) {
-				graphicYOffset = parseFloat(feature.style.graphicYOffset);
+				if (typeof(feature.style.graphicYOffsetOrig) === 'undefined') {
+					feature.style.graphicYOffsetOrig = feature.style.graphicYOffset
+				}
+				graphicYOffset = parseFloat(feature.style.graphicYOffsetOrig) * dpiRatio;
+				feature.style.graphicYOffset = graphicYOffset;
 			}
 
 			var labelXOffset = graphicWidth; // Move the label East, to avoid overlap
@@ -137,7 +161,7 @@ OpenLayers.Layer.ux.KML = OpenLayers.Class(OpenLayers.Layer.Vector, {
 				labelSelect: true,
 				// Produce a black 'halo' around the text
 				labelOutlineColor: labelOutlineColor,
-				labelOutlineWidth: 3
+				labelOutlineWidth: labelOutlineWidth
 			};
 
 			// Google Earth hide the label when the scale is smaller than 0.5
@@ -146,6 +170,21 @@ OpenLayers.Layer.ux.KML = OpenLayers.Class(OpenLayers.Layer.Vector, {
 			}
 
 			return style;
+		} else if (this._isPolygon(feature)) {
+			if (typeof(feature.style.strokeWidth) === 'undefined' || isNaN(feature.style.strokeWidth)) {
+				// By default, polygon has a line of 1px in Google Earth
+				feature.style.strokeWidth = 1;
+			}
+
+			if (typeof(feature.style.strokeWidth) !== 'undefined' && !isNaN(feature.style.strokeWidth)) {
+				if (typeof(feature.style.strokeWidthOrig) === 'undefined') {
+					feature.style.strokeWidthOrig = feature.style.strokeWidth
+				}
+				strokeWidth = parseInt(feature.style.strokeWidthOrig) * dpiRatio;
+				feature.style.strokeWidth = strokeWidth;
+			}
+
+			return feature.style;
 		}
 		return null;
 	},
@@ -171,6 +210,10 @@ OpenLayers.Layer.ux.KML = OpenLayers.Class(OpenLayers.Layer.Vector, {
 				typeof(feature.geometry) !== 'undefined' &&
 				typeof(feature.geometry.x) !== 'undefined' &&
 				typeof(feature.geometry.y) !== 'undefined');
+	},
+	_isPolygon: function(feature) {
+		// Temporary solution
+		return !this._isPoint(feature);
 	},
 
 	// Override

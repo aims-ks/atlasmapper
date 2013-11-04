@@ -38,6 +38,7 @@ import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -47,9 +48,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.servlet.ServletContext;
 
@@ -172,6 +175,9 @@ public class ClientConfig extends AbstractConfig {
 
 	@ConfigField
 	private boolean mapConfigEnabled;
+
+	@ConfigField
+	private boolean mapMeasurementEnabled;
 
 	@ConfigField
 	private boolean enable;
@@ -364,7 +370,7 @@ public class ClientConfig extends AbstractConfig {
 
 			// Show warning for each default layers that are not defined in the layer catalog.
 			List<String> defaultLayerIds = this.getDefaultLayersList();
-			if (layerCatalog != null && defaultLayerIds != null && !defaultLayers.isEmpty()) {
+			if (layerCatalog != null && defaultLayerIds != null && !defaultLayerIds.isEmpty()) {
 				JSONObject jsonLayers = layerCatalog.getLayers();
 				if (jsonLayers != null) {
 					for (String defaultLayerId : defaultLayerIds) {
@@ -391,6 +397,11 @@ public class ClientConfig extends AbstractConfig {
 			// No catalog, no need to continue.
 			return clientErrors;
 		}
+
+		// Transfer layer's errors to the client
+		clientErrors.addErrors(layerCatalog.getErrors());
+		clientErrors.addWarnings(layerCatalog.getWarnings());
+		clientErrors.addMessages(layerCatalog.getMessages());
 
 		// Verify if there is error (it may contains only warnings)
 		if (clientErrors.getErrors().isEmpty()) {
@@ -443,7 +454,7 @@ public class ClientConfig extends AbstractConfig {
 
 		JSONObject clientOverrides = this.manualOverride;
 
-		// Apply manual overrides, if needed
+		// Apply manual overrides, if needed, and add the layer to the catalog
 		if (dataSources != null && !dataSources.isEmpty()) {
 			for (DataSourceWrapper dataSourceWrapper : dataSources.values()) {
 				String dataSourceId = dataSourceWrapper.getDataSourceId();
@@ -452,6 +463,11 @@ public class ClientConfig extends AbstractConfig {
 					Iterator<String> rawLayerIds = rawLayers.keys();
 					while (rawLayerIds.hasNext()) {
 						String rawLayerId = rawLayerIds.next();
+
+						if (clientOverrides.has(rawLayerId) && clientOverrides.optJSONObject(rawLayerId) == null) {
+							layerCatalog.addWarning("Invalid manual override for layer: " + rawLayerId);
+						}
+
 						LayerWrapper layerWrapper = new LayerWrapper(rawLayers.optJSONObject(rawLayerId));
 						// Associate the layer to its data source (NOTE: This property may already been overridden)
 						if (layerWrapper.getDataSourceId() == null) {
@@ -473,52 +489,56 @@ public class ClientConfig extends AbstractConfig {
 			}
 			while (layerIds.hasNext()) {
 				String layerId = layerIds.next();
-				if (!layers.isNull(layerId)) {
+				if (layers.isNull(layerId)) {
 					LayerWrapper jsonClientLayerOverride = new LayerWrapper(clientOverrides.optJSONObject(layerId));
-					try {
-						DataSourceWrapper dataSource = null;
-						String dataSourceId = jsonClientLayerOverride.getDataSourceId();
-						String layerType = jsonClientLayerOverride.getLayerType();
+					if (jsonClientLayerOverride.getJSON() == null) {
+						layerCatalog.addWarning("Invalid manual override for new layer: " + layerId);
+					} else {
+						try {
+							DataSourceWrapper dataSource = null;
+							String dataSourceId = jsonClientLayerOverride.getDataSourceId();
+							String layerType = jsonClientLayerOverride.getLayerType();
 
-						if (Utils.isNotBlank(dataSourceId)) {
-							dataSource = dataSources.get(dataSourceId);
+							if (Utils.isNotBlank(dataSourceId)) {
+								dataSource = dataSources.get(dataSourceId);
 
-							if (dataSource == null) {
-								layerCatalog.addWarning("Invalid manual override for layer " + layerId + " of client: " + this.getClientName());
-								LOGGER.log(Level.WARNING, "The manual override for the layer {0} of the client {1} is defining an invalid data source {2}.",
-										new String[]{layerId, this.getClientName(), dataSourceId});
-								continue;
+								if (dataSource == null) {
+									layerCatalog.addWarning("Invalid manual override for new layer: " + layerId);
+									LOGGER.log(Level.WARNING, "The manual override for the new layer {0} of the client {1} is defining an invalid data source {2}.",
+											new String[]{layerId, this.getClientName(), dataSourceId});
+									continue;
+								}
 							}
-						}
 
-						if (Utils.isBlank(layerType)) {
+							if (Utils.isBlank(layerType)) {
+								if (dataSource != null) {
+									layerType = dataSource.getLayerType();
+								} else {
+									layerCatalog.addWarning("Invalid manual override for new layer: " + layerId);
+									LOGGER.log(Level.WARNING, "The manual override for the new layer {0} of the client {1} can not be created because it do not define its data source type.",
+											new String[]{layerId, this.getClientName()});
+									continue;
+								}
+							}
+
+							AbstractLayerConfig manualLayer = LayerCatalog.createLayer(
+									layerType, jsonClientLayerOverride, this.getConfigManager());
+
+							LayerWrapper layerWrapper = new LayerWrapper(manualLayer.toJSonObject());
+
 							if (dataSource != null) {
-								layerType = dataSource.getLayerType();
-							} else {
-								layerCatalog.addWarning("Invalid manual override for layer " + layerId + " of client: " + this.getClientName());
-								LOGGER.log(Level.WARNING, "The manual override for the layer {0} of the client {1} define a layer override for a layer that do not exists and can not be created because it do not define its data source type.",
-										new String[]{layerId, this.getClientName()});
-								continue;
+								layerWrapper.setDataSourceId(dataSource.getDataSourceId());
 							}
+
+							layers.put(
+									layerId,
+									layerWrapper);
+						} catch(Exception ex) {
+							layerCatalog.addError("Unexpected error occurred while parsing the layer override for the layer: " + layerId);
+							LOGGER.log(Level.SEVERE, "Unexpected error occurred while parsing the following layer override for the client [{0}]: {1}\n{2}",
+									new String[]{this.getClientName(), Utils.getExceptionMessage(ex), jsonClientLayerOverride.getJSON().toString(4)});
+							LOGGER.log(Level.FINE, "Stack trace: ", ex);
 						}
-
-						AbstractLayerConfig manualLayer = LayerCatalog.createLayer(
-								layerType, jsonClientLayerOverride, this.getConfigManager());
-
-						LayerWrapper layerWrapper = new LayerWrapper(manualLayer.toJSonObject());
-
-						if (dataSource != null) {
-							layerWrapper.setDataSourceId(dataSource.getDataSourceId());
-						}
-
-						layers.put(
-								layerId,
-								layerWrapper);
-					} catch(Exception ex) {
-						layerCatalog.addError("Unexpected error occurred while parsing the layer override for the client " + this.getClientName() + ".");
-						LOGGER.log(Level.SEVERE, "Unexpected error occurred while parsing the following layer override for the client [{0}]: {1}\n{2}",
-								new String[]{this.getClientName(), Utils.getExceptionMessage(ex), jsonClientLayerOverride.getJSON().toString(4)});
-						LOGGER.log(Level.FINE, "Stack trace: ", ex);
 					}
 				}
 			}
@@ -852,6 +872,14 @@ public class ClientConfig extends AbstractConfig {
 
 	public void setMapConfigEnabled(boolean mapConfigEnabled) {
 		this.mapConfigEnabled = mapConfigEnabled;
+	}
+
+	public boolean isMapMeasurementEnabled() {
+		return this.mapMeasurementEnabled;
+	}
+
+	public void setMapMeasurementEnabled(boolean mapMeasurementEnabled) {
+		this.mapMeasurementEnabled = mapMeasurementEnabled;
 	}
 
 	public Double getVersion() {
@@ -1189,8 +1217,8 @@ public class ClientConfig extends AbstractConfig {
 		TreeSet<JSONObject> resultsSet = new TreeSet<JSONObject>(new Comparator<JSONObject>() {
 			@Override
 			public int compare(JSONObject o1, JSONObject o2) {
-				String title1 = ClientConfig.this.getComparableTitle(o1.optString("title", ""));
-				String title2 = ClientConfig.this.getComparableTitle(o2.optString("title", ""));
+				String title1 = Utils.getComparableTitle(o1.optString("title", ""));
+				String title2 = Utils.getComparableTitle(o2.optString("title", ""));
 
 				int cmp = title1.compareToIgnoreCase(title2);
 
@@ -1254,12 +1282,88 @@ public class ClientConfig extends AbstractConfig {
 				.put("results", subResults);
 	}
 
-	// Remove common punctuations to make the results looks more in natural alphabetic order.
-	// Removes: White spaces, hyphens, underscores, comas, periods, quotes, brackets, etc.
-	// NOTE: It's easier to remove unwanted characters than keep the good one. (We can't only keep [a-zA-Z0-9],
-	//     we also have to keep all characters from chinese, japanese, arabic, korean, etc.)
-	private String getComparableTitle(String title) {
-		return title.replaceAll("[\\s\\-_,.'\":;!\\?\\(\\)\\[\\]\\{\\}/]", "");
+	/**
+	 * LayerFound: {
+	 *     layerId: 'ea_...',
+	 *     title: '...',
+	 *     excerpt: '...',
+	 *     rank: 0
+	 * }
+	 * @param query
+	 * @param offset
+	 * @param qty
+	 * @return
+	 * @throws JSONException
+	 * @throws IOException
+	 */
+	public JSONObject layerSearch(String query, int offset, int qty) throws JSONException, IOException {
+		int maxLength = 200;
+		JSONObject layers = this.getConfigManager().getClientConfigFileJSon(null, null, this, ConfigType.LAYERS, false);
+
+		List<JSONObject> layersFound = new ArrayList<JSONObject>();
+		String[] terms = new String[0];
+		if (Utils.isNotBlank(query)) {
+			terms = query.trim().split("\\s+");
+		}
+
+		Iterator<String> layerIds = layers.keys();
+		String title, textDescription;
+		int rank;
+		SortedSet<Utils.Occurrence> titleResults, descResults;
+		while (layerIds.hasNext()) {
+			String layerId = layerIds.next();
+			if (!layers.isNull(layerId)) {
+				LayerWrapper layer = new LayerWrapper(layers.optJSONObject(layerId));
+
+				title = Utils.safeHTMLStr(layer.getTitle());
+				textDescription = Utils.safeHTMLStr(layer.getTextDescription());
+
+				titleResults = null; descResults = null;
+				if (terms.length > 0) {
+					titleResults = Utils.findOccurrences(title, terms);
+					descResults = Utils.findOccurrences(textDescription, terms);
+					rank = titleResults.size() * 5 + descResults.size();
+				} else {
+					// No search term, return everything
+					rank = 1;
+				}
+
+				if (rank > 0) {
+					JSONObject layerFound = new JSONObject();
+					layerFound.put("layerId", layerId);
+					layerFound.put("title", Utils.getHighlightChunk(titleResults, title, 0));
+					layerFound.put("excerpt", Utils.getHighlightChunk(descResults, textDescription, maxLength));
+					layerFound.put("rank", rank);
+					layersFound.add(layerFound);
+				}
+			}
+		}
+
+		// Order the result
+		Collections.sort(layersFound, new Comparator<JSONObject>() {
+			@Override
+			public int compare(JSONObject o1, JSONObject o2) {
+				// Descending order - higher rank first
+				int rankOrder = o2.optInt("rank", 0) - o1.optInt("rank", 0);
+				if (rankOrder == 0) {
+					// Ascending order - same rank: alphabetic order
+					return Utils.getComparableTitle(o1.optString("title", "")).compareTo(Utils.getComparableTitle(o2.optString("title", "")));
+				} else {
+					return rankOrder;
+				}
+			}
+		});
+
+		JSONArray layersFoundJSON = new JSONArray();
+		for (int i = offset; i < layersFound.size() && i < offset + qty; i++) {
+			layersFoundJSON.put(layersFound.get(i));
+		}
+
+		JSONObject results = new JSONObject();
+		results.put("count", layersFound.size());
+		results.put("data", layersFoundJSON);
+
+		return results;
 	}
 
 	/**
