@@ -1,4 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!DOCTYPE html>
 <!--
  *  This file is part of AtlasMapper server and clients.
  *
@@ -19,7 +19,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -->
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<html>
 
 <!-- Generated with AtlasMapper version ${version} -->
 <head>
@@ -73,6 +73,20 @@
 		welcomeMsgObj.style.display = 'none';
 	</script>
 
+	<!-- IE 6- conditional comment - this will only be executed by IE 6 and bellow. -->
+	<!--[if lte IE 6]>
+	<script type="text/javascript">
+		// The AtlasMapper do NOT support IE 6. Normally we would not bother,
+		// but since IE 6 is extremely unstable, we prefer to give a chance
+		// to the user to avoid a fatal crash.
+		var stop = !window.confirm('Your browser is too old for this application.\n' +
+				'It is likely to hide layers or freeze,\n' +
+				'making the application very hard to use.\n' +
+				'\n' +
+				'Do you wish to continue anyway?');
+	</script>
+	<![endif]-->
+
 	<!-- IE 9+ conditional comment - this will only be executed by IE 9 and above. -->
 	<!--[if gte IE 9]>
 	<script type="text/javascript">
@@ -90,6 +104,7 @@
 	<script type="text/javascript" src="OpenLayers-ux/NCWMS.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="OpenLayers-ux/NCTimeSeriesClickControl.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="OpenLayers-ux/NCTransectDrawControl.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="OpenLayers-ux/HighlightedPath.js?atlasmapperVer=${version}"></script>
 
 	<#if (useGoogle)>
 		<!-- If the client use any Google Layers -->
@@ -185,136 +200,141 @@
 			intro = (parameters.intro.toLowerCase() === 'true');
 		}
 
-		Ext.onReady(function() {
-			var welcomeWindow = null;
+		if (typeof stop !== 'undefined' && stop === true) {
+			document.getElementById('loading').style.display = 'none';
+			document.write('<h1 style="text-align: center">Loading aborted.</h1>');
+		} else {
+			Ext.onReady(function() {
+				var welcomeWindow = null;
 
-			if (intro) {
-				var showWelcomeWindow = function() {
-					var welcomeMsg = welcomeMsgObj.innerHTML;
-					if (typeof(welcomeMsg.trim) === 'function') {
-						welcomeMsg = welcomeMsg.trim();
-					} else {
-						welcomeMsg = welcomeMsg.replace(/^\s+/,'').replace(/\s+$/,'');
-					}
+				if (intro) {
+					var showWelcomeWindow = function() {
+						var welcomeMsg = welcomeMsgObj.innerHTML;
+						if (typeof(welcomeMsg.trim) === 'function') {
+							welcomeMsg = welcomeMsg.trim();
+						} else {
+							welcomeMsg = welcomeMsg.replace(/^\s+/,'').replace(/\s+$/,'');
+						}
 
-					if (welcomeMsg) {
-						welcomeWindow = Ext.Msg.show({
-							title:'Welcome',
-							msg: welcomeMsg,
+						if (welcomeMsg) {
+							welcomeWindow = Ext.Msg.show({
+								title:'Welcome',
+								msg: welcomeMsg,
+								cls: 'welcomeCls',
+								minWidth: 500,
+								buttons: Ext.Msg.OK
+							});
+						}
+					};
+
+					if (typeof ie9plus !== 'undefined' && ie9plus === true) {
+						// This Warning window will only show up if IE is not running in compatibility mode (if it ignores the directive in the header)
+						Ext.Msg.show({
+							title:'WARNING',
+							msg: '<p>Your browser is not well supported. It\'s strongly recommended to activate the browser compatibility mode!</p><img src="resources/images/IE9-compatibility-mode.png?atlasmapperVer=${version}">',
 							cls: 'welcomeCls',
-							minWidth: 500,
-							buttons: Ext.Msg.OK
+							width: 750,
+							minWidth: 750,
+							buttons: Ext.Msg.OK,
+							icon: Ext.MessageBox.WARNING,
+							fn: showWelcomeWindow
 						});
+					} else {
+						showWelcomeWindow();
 					}
-				};
-
-				if (typeof(ie9plus) !== 'undefined' && ie9plus === true) {
-					// This Warning window will only show up if IE is not running in compatibility mode (if it ignores the directive in the header)
-					Ext.Msg.show({
-						title:'WARNING',
-						msg: '<p>Your browser is not well supported. It\'s strongly recommended to activate the browser compatibility mode!</p><img src="resources/images/IE9-compatibility-mode.png?atlasmapperVer=${version}">',
-						cls: 'welcomeCls',
-						width: 750,
-						minWidth: 750,
-						buttons: Ext.Msg.OK,
-						icon: Ext.MessageBox.WARNING,
-						fn: showWelcomeWindow
-					});
-				} else {
-					showWelcomeWindow();
-				}
-			}
-
-			Atlas.core = new Atlas.Core("config/${mainConfig}", "config/${layersConfig}", "${timestamp}");
-			Atlas.core.afterLoad = function() {
-				document.getElementById('loading').style.display = 'none';
-
-				mapLayoutItems = [];
-				for (var i=0; i<nbMaps; i++) {
-					var mapPanel = Atlas.core.createNewMapPanel();
-					new Atlas.Legend({mapPanel: mapPanel});
-
-					mapLayoutItems.push(
-						{
-							flex: 1,
-							layout: "border",
-							deferredRender: false,
-							items: [
-								{
-									layout: 'border',
-									border: false,
-									region: 'center',
-									items: [
-										new Atlas.MapToolsPanel({mapPanel: mapPanel}),
-										mapPanel
-									]
-								},
-								new Atlas.LayersPanel({
-									minWidth: 180,
-									mapPanel: mapPanel,
-									region: 'west'
-								})
-							]
-						}
-					);
 				}
 
-				var viewportConfig = {
-					layout: "border",
-					hideBorders: true,
-					items: [
-						<#if (pageHeader?? && pageHeader != "")>
+				Atlas.core = new Atlas.Core("config/${mainConfig}", "config/${layersConfig}", "${timestamp}");
+				Atlas.core.afterLoad = function() {
+					document.getElementById('loading').style.display = 'none';
+
+					mapLayoutItems = [];
+					for (var i=0; i<nbMaps; i++) {
+						var mapPanel = Atlas.core.createNewMapPanel();
+						new Atlas.Legend({mapPanel: mapPanel});
+
+						mapLayoutItems.push(
 							{
-								region: 'north',
-								html: "${pageHeader}"
-							},
-						</#if>
-						{
-							region: 'center',
-							layout: "hbox",
-							layoutConfig: {
-								align : 'stretch',
-								pack  : 'start'
-							},
-							hideBorders: true,
-							items: mapLayoutItems
-						}
-						<#if (pageFooter?? && pageFooter != "")>
-							,{
-								region: 'south',
-								html: "${pageFooter}"
+								flex: 1,
+								layout: "border",
+								deferredRender: false,
+								items: [
+									{
+										layout: 'border',
+										border: false,
+										region: 'center',
+										items: [
+											new Atlas.MapToolsPanel({mapPanel: mapPanel}),
+											mapPanel
+										]
+									},
+									new Atlas.LayersPanel({
+										minWidth: 180,
+										mapPanel: mapPanel,
+										region: 'west'
+									})
+								]
 							}
-						</#if>
-					],
-					listeners: {
-						// OpenLayers steal the focus of the welcome window, preventing the user from closing it using ESC or Enter.
-						'afterrender': function() {
-							if (welcomeWindow && welcomeWindow.getDialog()) {
-								welcomeWindow.getDialog().focus.defer(1, welcomeWindow.getDialog());
+						);
+					}
+
+					var viewportConfig = {
+						layout: "border",
+						hideBorders: true,
+						items: [
+							<#if (pageHeader?? && pageHeader != "")>
+								{
+									region: 'north',
+									html: "${pageHeader}"
+								},
+							</#if>
+							{
+								region: 'center',
+								layout: "hbox",
+								layoutConfig: {
+									align : 'stretch',
+									pack  : 'start'
+								},
+								hideBorders: true,
+								items: mapLayoutItems
+							}
+							<#if (pageFooter?? && pageFooter != "")>
+								,{
+									region: 'south',
+									html: "${pageFooter}"
+								}
+							</#if>
+						],
+						listeners: {
+							// OpenLayers steal the focus of the welcome window, preventing the user from closing it using ESC or Enter.
+							'afterrender': function() {
+								if (welcomeWindow && welcomeWindow.getDialog()) {
+									welcomeWindow.getDialog().focus.defer(1, welcomeWindow.getDialog());
+								}
 							}
 						}
+					};
+
+
+					if (viewport) {
+						var body = document.getElementsByTagName('body')[0];
+						body.style.overflow = 'auto';
+
+						var highRes = document.getElementById('highRes');
+						highRes.style.width = viewport[0] + 'px';
+						highRes.style.height = viewport[1] + 'px';
+
+						viewportConfig.height = viewport[1];
+						viewportConfig.renderTo = 'highRes';
+						new Ext.Panel(viewportConfig);
+					} else {
+						new Ext.Viewport(viewportConfig);
 					}
 				};
 
-
-				if (viewport) {
-					var body = document.getElementsByTagName('body')[0];
-					body.style.overflow = 'auto';
-
-					var highRes = document.getElementById('highRes');
-					highRes.style.width = viewport[0] + 'px';
-					highRes.style.height = viewport[1] + 'px';
-
-					viewportConfig.height = viewport[1];
-					viewportConfig.renderTo = 'highRes';
-					new Ext.Panel(viewportConfig);
-				} else {
-					new Ext.Viewport(viewportConfig);
-				}
-			};
-
-			Ext.QuickTips.init();
-		});
+				Ext.QuickTips.init();
+			});
+		}
 	</script>
 </body>
 

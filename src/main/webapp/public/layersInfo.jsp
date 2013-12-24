@@ -23,8 +23,6 @@
 	Author     : glafond
 	Description: Return complete information in JSON format, about one of more layers.
 --%>
-
-<%@page import="au.gov.aims.atlasmapperserver.ConfigType"%>
 <%@page import="au.gov.aims.atlasmapperserver.ClientConfig"%>
 <%@page import="au.gov.aims.atlasmapperserver.ConfigHelper"%>
 <%@page import="au.gov.aims.atlasmapperserver.ConfigManager"%>
@@ -32,8 +30,7 @@
 <%@page import="org.json.JSONArray"%>
 <%@page import="org.json.JSONObject"%>
 <%@page import="au.gov.aims.atlasmapperserver.ServletUtils"%><%@ page import="au.gov.aims.atlasmapperserver.jsonWrappers.client.URLSaveState"%>
-
-		<%@page contentType="application/json" pageEncoding="UTF-8"%>
+<%@page contentType="application/json" pageEncoding="UTF-8"%>
 <%
 	String[] layerIds = ServletUtils.getComaSeparatedParameters(request, "layerIds");
 	String iso19115_19139url = request.getParameter("iso19115_19139url");

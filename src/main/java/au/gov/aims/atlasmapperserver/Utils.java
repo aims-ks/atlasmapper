@@ -395,7 +395,7 @@ public class Utils {
 				// They are the same so far, but we still need to examine the parameters.
 				// We know that the OWS one has a SERVICE parameter, but this parameter
 				// may be missing from the WMS one, since it's implied.
-				if (!wmsParams.containsKey("SERVICE")) {
+				if (wmsParams != null && !wmsParams.containsKey("SERVICE")) {
 					// The WMS URL do not have the SERVICE parameter. We can add it in
 					// to help the validation of the parameters.
 					wmsParams.put("SERVICE", owsParams.get("SERVICE"));
@@ -406,12 +406,14 @@ public class Utils {
 		}
 
 		// Check URL parameters
-		if (params1.size() != params2.size()) {
-			return false;
-		}
-		for (Map.Entry<String, String> param1 : params1.entrySet()) {
-			if (!param1.getValue().equals(params2.get(param1.getKey()))) {
+		if (params1 != null && params2 != null) {
+			if (params1.size() != params2.size()) {
 				return false;
+			}
+			for (Map.Entry<String, String> param1 : params1.entrySet()) {
+				if (!param1.getValue().equals(params2.get(param1.getKey()))) {
+					return false;
+				}
 			}
 		}
 
@@ -512,8 +514,11 @@ public class Utils {
 			} else {
 				dest.mkdirs();
 			}
-			for (File subFile : src.listFiles()) {
-				recursiveFileCopy(subFile, new File(dest, subFile.getName()), overwrite);
+			File[] files = src.listFiles();
+			if (files != null && files.length > 0) {
+				for (File subFile : files) {
+					recursiveFileCopy(subFile, new File(dest, subFile.getName()), overwrite);
+				}
 			}
 		}
 	}
@@ -584,8 +589,11 @@ public class Utils {
 
 		boolean success = true;
 		if (file.isDirectory()) {
-			for (File subFile : file.listFiles()) {
-				success = Utils.recursiveFileDelete(subFile) && success;
+			File[] files = file.listFiles();
+			if (files != null && files.length > 0) {
+				for (File subFile : files) {
+					success = Utils.recursiveFileDelete(subFile) && success;
+				}
 			}
 		}
 		return file.delete() && success;

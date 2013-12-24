@@ -193,9 +193,12 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 		node.layer.atlasLayer.loaded = false;
 
 		if (node && node.ui && node.layer.atlasLayer.isLoading()) {
-			node.ui.addClass('layerLoading');
-			// Just in case it generate an error last time
-			node.ui.removeClass('layerError');
+			// setTimeout - Fix bug #79
+			window.setTimeout(function() {
+				node.ui.addClass('layerLoading');
+				// Just in case it generate an error last time
+				node.ui.removeClass('layerError');
+			}, 1);
 		}
 	},
 
@@ -206,9 +209,12 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 		node.layer.atlasLayer.loaded = true;
 
 		if (node && node.ui && !node.layer.atlasLayer.isLoading()) {
-			node.ui.removeClass('layerLoading');
-			// Just in case it generate an error last time
-			node.ui.removeClass('layerError');
+			// setTimeout - Fix possible bugs related to bug #79
+			window.setTimeout(function() {
+				node.ui.removeClass('layerLoading');
+				// Just in case it generate an error last time
+				node.ui.removeClass('layerError');
+			}, 1);
 		}
 	},
 
@@ -220,7 +226,10 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 
 		if (node && node.ui && !node.layer.atlasLayer.isLoading()) {
 			this.onLayerLoadEnd(node);
-			node.ui.addClass('layerError');
+			// setTimeout - Fix possible bugs related to bug #79
+			window.setTimeout(function() {
+				node.ui.addClass('layerError');
+			}, 2);
 		}
 	},
 
@@ -779,53 +788,104 @@ GeoExt.ux.tree.GroupLayerLoader = Ext.extend(GeoExt.tree.LayerLoader, {
 	_onChildMove: function(tree, node, oldParent, newParent, movedNode, index) {
 		this._adjustNodePath(node, newParent);
 
+		// Prevent recursive call
 		this._reordering = true;
 		// remove the record and re-insert it at the correct index
 		var record = this.store.getByLayer(node.layer);
 
 		var nextNode = this._getNextTreeLayerNode(node);
-		var siblingNode = nextNode;
-		if (siblingNode == null) {
+		if (nextNode == null) {
 			if (movedNode != null && movedNode.hasChildNodes()) {
-				// The node that has been moved is a Folder and it has been moved on top so we can not get a reference to the previous layer.
-				// Calling _getNextTreeLayerNode will give the next element inside that Folder.
+				// The node that has been moved is a Folder and it has been moved
+				// at the bottom so we can not get a reference to the next layer.
+				// Calling _getNextTreeLayerNode will give the next element inside
+				// that Folder, which is not what we need.
 				// What we need is the next "layer node" present AFTER the Folder.
-				siblingNode = movedNode.previousSibling; // Next node after the folder... this may not be a "layer node"
-				if (siblingNode != null && typeof(siblingNode.layer) == 'undefined') {
+				nextNode = movedNode.nextSibling; // Node after the folder... this may not be a "layer node"
+				if (nextNode != null && typeof(nextNode.layer) === 'undefined') {
 					// The node found was not a "layer node". Find the next "layer node" from this node.
-					siblingNode = this._getPreviousTreeLayerNode(siblingNode);
+					nextNode = this._getNextTreeLayerNode(nextNode);
 				}
-			} else {
-				siblingNode = this._getPreviousTreeLayerNode(node);
 			}
 		}
 
-		var newRecordIndex = this.store.findBy(function(r) {
-			return siblingNode.layer === r.getLayer();
+		// Find the current index of the layer, on the map
+		var oldLayerIndex = this.store.findBy(function(r) {
+			return node.layer === r.getLayer();
 		});
-
-		if(newRecordIndex !== undefined && newRecordIndex >= 0) {
-			if (index >= newRecordIndex && nextNode != null) {
-				newRecordIndex++;
-			}
-
-			this._moveRecord(newRecordIndex, record);
-		} else {
-			// This line seems to be dead code
-			this._moveRecord(index, record);
+		if (oldLayerIndex === null || oldLayerIndex <= 0) {
+			oldLayerIndex = 0;
 		}
+
+		// Find the current index of the layer next to where
+		// we want to move the layer (the layer bellow the new location,
+		//     in the tree - which is the layer above in the map).
+		var newLayerIndex = nextNode == null ? 0 : this.store.findBy(function(r) {
+			return nextNode.layer === r.getLayer();
+		});
+		if (newLayerIndex === null || newLayerIndex <= 0) {
+			newLayerIndex = 0;
+		}
+
+		// NOTE: Index is the position of the element inside it's folder (we don't need that),
+		//         considering sub-folders as 1 element (top = 0).
+		//     oldLayerIndex is the current position of the layer on map (bottom = 0).
+		//     newLayerIndex is the position where the layer has to be moved, on map (bottom = 0).
+		var moveDown = oldLayerIndex >= newLayerIndex;
+
+		// Index Correction: When moving down, the position occupied by
+		//     the layer has to be considered in the new layer position.
+		//     This correction is not trivial, so I will try to explain
+		//     it using examples.
+		//
+		//     The index in the layer switcher (Tree index) is index
+		//         from 0 (top) to N (bottom), independent index for
+		//         each folder.
+		//     The index in the map (Layer index) is indexed as a flat
+		//         list from 0 (lower layer) to N (top layer).
+		//     Example:
+		//         +-------------+------------+------------+-------------+
+		//         | Folder      | Tree index | Layer name | Layer index |
+		//         +-------------+------------+------------+-------------+
+		//         | Overlays    | 0          | aaa        | 4           |
+		//         | Overlays    | 1          | bbb        | 3           |
+		//         | Overlays    | 2          | ccc        | 2           |
+		//         | Overlays    | 3          | ddd        | 1           |
+		//         | Base layers | 0          | base layer | 5           |
+		//         | N/A         | N/A        | base       | 0           | (fake base layer, invisible, to work around an OpenLayer limitation)
+		//         | N/A         | N/A        | Marker     | 6           | (mouse marker, never in the tree, only visible on the map with multi-map)
+		//         +-------------+------------+------------+-------------+
+		//     Operation:
+		//         Moving ccc up (between aaa and bbb):
+		//             New layer index, if ccc was not removed: 4
+		//             New layer index expected: 3
+		//             New layer index returned by findBy: 3
+		//             No correction needed (when moving up)
+		//         Moving bbb down (between ccc and ddd):
+		//             New layer index, if bbb was not removed: 2
+		//             New layer index expected: 2
+		//             New layer index returned by findBy: 1
+		//             +1 correction needed (when moving down)
+		if (moveDown) {
+			newLayerIndex++;
+		}
+
+		this._moveRecord(newLayerIndex, record);
 
 		delete this._reordering;
 	},
 
 	_moveRecord: function(index, record) {
-		// Removing with the events delete the DOM object and cause exception later.
-		// Removing without the events do not seems to do anything...
-		//this.store.suspendEvents(); this.store.remove(record); this.store.resumeEvents();
+		// GeoExt execute this operation by removing / re-inserting the layer.
+		// That solution do not work:
+		//     Removing with the events delete the DOM object and cause exception later.
+		//     Removing without the events do not seems to do anything...
+		//         this.store.suspendEvents(); this.store.remove(record); this.store.resumeEvents();
 
 		// Inserting a record that is already there simply re-order it.
 		// The 'add' event is triggered, which tells the map to re-order the layer on the map.
-		// Unfortunately, some exceptions has to be considered to avoid adding a layer multiple times in the legend.
+		// Unfortunately, some cases has to be considered in the legend window to avoid adding
+		// a layer multiple times in the legend.
 		this.store.insert(index, [record]);
 	},
 

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<!--
+ *  This file is part of AtlasMapper server and clients.
+ *
+ *  Copyright (C) 2011 Australian Institute of Marine Science
+ *
+ *  Contact: Gael Lafond <g.lafond@aims.org.au>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<link rel="icon" type="image/png" href="../resources/favicon.png" />
+		<title>Download logger documentation</title>
+
+		<style type="text/css">
+			.code {
+				font-family: monospace;
+				background-color: #EEEEEE;
+				padding: 0 0.2em;
+			}
+		</style>
+	</head>
+
+	<body>
+		<h1>Download logger documentation</h1>
+
+		<p>The download logger is an external Web application that proxy every downloads. It is use to logs file usage,
+		and optionally asking more information about the user.</p>
+
+		<p>The e-Atlas team has developed an implementation of a download logger that may be requested.
+		That application is not provided with the AtlasMapper. If you wish to implement your own, you mush ensure
+		that it follows the specifications.</p>
+
+		<h2 id="api">API</h2>
+		<div id="apiDiv">
+			<p>The service API is very simple. It takes 3 URL parameters used to create the URL.</p>
+			<ul>
+				<li><strong class="code">url</strong>: The URL to the download file or web page.</li>
+				<li><strong class="code">label</strong>: The human readable name of the download.</li>
+				<li><strong class="code">theme</strong>: The theme to used in the application. This usually refer to a CSS.</li>
+			</ul>
+		</div>
+
+		<h2 id="workflow">Workflow</h2>
+		<div id="specWorkflow">
+			<p>The workflow of the application may vary from one implementation to an other.
+			There is a example of a common workflow.</p>
+			<ol>
+				<li><strong>Form</strong>: HTML page showing a form asking for some information about the user and the
+					intended usage of the file.</li>
+				<li><strong>Download</strong>: After the user has filled the form, he is redirected to a download page,
+					giving him access to the file using the url and label provided. The download link on that page
+					should be launch in a separate window (using <span class="code">target="_blank"</span>) to avoid the page to be shown in
+					the small <span class="code">IFRAME</span> of the download logger.</li>
+			</ol>
+			<p><strong>NOTE</strong>: The implementation of the download logger may choose to skip the form page,
+			and log only the date, user IP and downloaded file.</p>
+		</div>
+
+		<h2 id="spec">Specification</h2>
+		<div id="specDiv">
+			<p>The application interface has to be provided as HTML. It is loaded in an <span class="code">IFRAME</span>
+			with a fixed width of 300px. It is recommend to ensure that the interface can fit within that width
+			to avoid horizontal scroller.</p>
+
+			<p>The logging strategy is independent to the AtlasMapper. We recommend to log file usage in a CSV
+			file for site with low usage or in a proper database for heavily use sites.</p>
+		</div>
+	</body>
+</html>

@@ -259,7 +259,7 @@ public class URLCache {
 				if (followRedirectionCount < MAX_FOLLOW_REDIRECTION) {
 					// Touch the cache entry; set the last access date to "now"
 					cachedFile.setLastAccessDate();
-					return getURLFile(configManager, dataSource, redirectionUrl, category, mandatory, followRedirectionCount++);
+					return getURLFile(configManager, dataSource, redirectionUrl, category, mandatory, followRedirectionCount+1);
 				} else {
 					// Hopefully this error will never occurred
 					LOGGER.log(Level.SEVERE, "Maximum URL follow reach. There is probably a cycle in the cache, which create potential infinite loops.");
@@ -884,7 +884,7 @@ public class URLCache {
 		if (dataSource == null || applicationFolder == null) {
 			return;
 		}
-		String dataSourceId = (dataSource == null ? null : dataSource.getDataSourceId());
+		String dataSourceId = dataSource.getDataSourceId();
 
 		JSONObject jsonCache = getDiskCacheMap(applicationFolder);
 
@@ -942,7 +942,7 @@ public class URLCache {
 		if (dataSource == null || applicationFolder == null) {
 			return;
 		}
-		String dataSourceId = (dataSource == null ? null : dataSource.getDataSourceId());
+		String dataSourceId = dataSource.getDataSourceId();
 
 		JSONObject jsonCache = getDiskCacheMap(applicationFolder);
 
@@ -1209,6 +1209,15 @@ public class URLCache {
 		public Integer getStatusCode() {
 			return this.statusCode;
 		}
+
+		public boolean isPageNotFound() {
+			return this.statusCode != null && this.statusCode == 404;
+		}
+
+		public boolean isSuccess() {
+			return this.statusCode != null && this.statusCode >= 200 && this.statusCode < 300;
+		}
+
 		public String getErrorMessage() {
 			return this.errorMessage;
 		}

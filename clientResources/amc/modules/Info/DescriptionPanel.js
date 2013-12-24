@@ -88,6 +88,14 @@ Atlas.DescriptionPanel = Ext.extend(Ext.Panel, {
 		this.doLayout();
 	},
 
+	getDownloadLinks: function() {
+		if (this.layer) {
+			// Return a fresh copy of the links, with a unique frame name
+			return this.layer.getDownloadLinks();
+		}
+		return null;
+	},
+
 	showDownloads: function(button, evt) {
 		var layerTitle = 'unknown';
 		if (this.layer) {
@@ -97,7 +105,7 @@ Atlas.DescriptionPanel = Ext.extend(Ext.Panel, {
 			title: layerTitle + ' downloads',
 			closable: true,
 			width: 500,
-			height: 350,
+			height: 400,
 			plain: true,
 			layout: 'fit',
 			border: false,
@@ -105,8 +113,14 @@ Atlas.DescriptionPanel = Ext.extend(Ext.Panel, {
 				autoScroll: true,
 				html: '<div class="downloadLinks">' +
 					'<div class="title">Resources available for download:</div>' +
-					this.downloadLinks +
+					this.getDownloadLinks() +
 					'</div>'
+			}],
+			buttons: [{
+				text: 'Close',
+				handler: function(button, evt) {
+					button.ownerCt.ownerCt.close(); // Window.close
+				}
 			}]
 		});
 		downloadWindow.show();

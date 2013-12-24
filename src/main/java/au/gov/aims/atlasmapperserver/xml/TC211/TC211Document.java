@@ -190,30 +190,65 @@ public class TC211Document {
 	}
 
 	public static enum Protocol {
-		METADATA_URL                              ("WWW:LINK-1.0-http--metadata-URL"),      // Metadata URL (usually used for the "Point of truth")
-		WEB_ADDRESS_URL                           ("WWW:LINK-1.0-http--link"),              // Web address (URL)
-		DATA_FOR_DOWNLOAD_URL                     ("WWW:LINK-1.0-http--downloaddata"),      // Data for download (URL)
-		SHOWCASE_PRODUCT_URL                      ("WWW:LINK-1.0-http--samples"),           // Showcase product (URL)
-		RELATED_LINK_URL                          ("WWW:LINK-1.0-http--related"),           // Related link (URL)
-		PARTNER_WEB_ADDRESS_URL                   ("WWW:LINK-1.0-http--partners"),          // Partner web address (URL)
-		RSS_NEWS_FEED_URL                         ("WWW:LINK-1.0-http--rss"),               // RSS News feed (URL)
-		ICALENDAR_URL                             ("WWW:LINK-1.0-http--ical"),              // iCalendar (URL)
-		FILE_FOR_DOWNLOAD                         ("WWW:DOWNLOAD-1.0-http--download"),      // File for download
-		DATA_FILE_FOR_DOWNLOAD                    ("WWW:DOWNLOAD-1.0-http--downloaddata"),  // Data File for download
-		OTHER_FILE_FOR_DOWNLOAD                   ("WWW:DOWNLOAD-1.0-http--downloadother"), // Other File for download
-		DATA_FILE_FOR_DOWNLOAD_THROUGH_FTP        ("WWW:DOWNLOAD-1.0-ftp--downloaddata"),   // Data File for download through FTP
-		OTHER_FILE_FOR_DOWNLOAD_THROUGH_FTP       ("WWW:DOWNLOAD-1.0-ftp--downloadother"),  // Other File for download through FTP
-		OGC_WEB_MAP_SERVICE_VER_1_1_1             ("OGC:WMS-1.1.1-http-get-map"),           // OGC Web Map Service (ver 1.1.1)
-		OGC_WEB_MAP_SERVICE_FILTERED_VER_1_1_1    ("OGC:WMS-1.1.1-http-get-map-filtered"),  // OGC Web Map Service Filtered (ver 1.1.1)
-		OGC_WMS_CAPABILITIES_SERVICE_VER_1_1_1    ("OGC:WMS-1.1.1-http-get-capabilities"),  // OGC-WMS Capabilities service (ver 1.1.1)
-		OGC_WFS_WEB_FEATURE_SERVICE_VER_1_0_0     ("OGC:WFS-1.0.0-http-get-capabilities"),  // OGC-WFS Web Feature Service (ver 1.0.0)
-		OGC_WCS_WEB_COVERAGE_SERVICE_VER_1_1_0    ("OGC:WCS-1.1.0-http-get-capabilities"),  // OGC-WCS Web Coverage Service (ver 1.1.0)
-		OGC_WMC_WEB_MAP_CONTEXT_VER_1_1           ("OGC:WMC-1.1.0-http-get-capabilities"),  // OGC-WMC Web Map Context (ver 1.1)
-		GOOGLE_EARTH_KML_SERVICE_VER_2_0          ("GLG:KML-2.0-http-get-map"),             // Google Earth KML service (ver 2.0)
-		// Some none standard protocols
-		ARCIMS_MAP_SERVICE_CONFIGURATION_FILE_AXL ("ESRI:AIMS--http--configuration"),       // ArcIMS Map Service Configuration File (*.AXL)
-		ARCIMS_INTERNET_IMAGE_MAP_SERVICE         ("ESRI:AIMS--http-get-image"),            // ArcIMS Internet Image Map Service
-		ARCIMS_INTERNET_FEATURE_MAP_SERVICE       ("ESRI:AIMS--http-get-feature");          // ArcIMS Internet Feature Map Service
+		// MCP 1.4 (common to GeoNetwork 2.4 and 2.8.0)
+		WWW_LINK_1_0_HTTP_LINK              ("WWW:LINK-1.0-http--link"),              // Web address (URL)
+		WWW_LINK_1_0_HTTP_SAMPLES           ("WWW:LINK-1.0-http--samples"),           // Showcase product (URL)
+		WWW_LINK_1_0_HTTP_RELATED           ("WWW:LINK-1.0-http--related"),           // Related link (URL)
+		WWW_LINK_1_0_HTTP_PARTNERS          ("WWW:LINK-1.0-http--partners"),          // Partner web address (URL)
+		WWW_LINK_1_0_HTTP_RSS               ("WWW:LINK-1.0-http--rss"),               // RSS News feed (URL)
+		WWW_LINK_1_0_HTTP_ICAL              ("WWW:LINK-1.0-http--ical"),              // iCalendar (URL)
+		WWW_DOWNLOAD_1_0_HTTP_DOWNLOAD      ("WWW:DOWNLOAD-1.0-http--download"),      // File for download
+		OGC_WMS_1_1_1_HTTP_GET_MAP          ("OGC:WMS-1.1.1-http-get-map"),           // OGC Web Map Service (ver 1.1.1)
+		OGC_WMS_1_1_1_HTTP_GET_CAPABILITIES ("OGC:WMS-1.1.1-http-get-capabilities"),  // OGC-WMS Capabilities service (ver 1.1.1)
+		OGC_WFS_1_0_0_HTTP_GET_CAPABILITIES ("OGC:WFS-1.0.0-http-get-capabilities"),  // OGC-WFS Web Feature Service (ver 1.0.0)
+		OGC_WCS_1_1_0_HTTP_GET_CAPABILITIES ("OGC:WCS-1.1.0-http-get-capabilities"),  // OGC-WCS Web Coverage Service (ver 1.1.0)
+		OGC_WMC_1_1_0_HTTP_GET_CAPABILITIES ("OGC:WMC-1.1.0-http-get-capabilities"),  // OGC-WMC Web Map Context (ver 1.1)
+		GLG_KML_2_0_HTTP_GET_MAP            ("GLG:KML-2.0-http-get-map"),             // Google Earth KML service (ver 2.0)
+		ESRI_AIMS_HTTP_CONFIGURATION        ("ESRI:AIMS--http--configuration"),       // ArcIMS Map Service Configuration File (*.AXL)
+		ESRI_AIMS_HTTP_GET_IMAGE            ("ESRI:AIMS--http-get-image"),            // ArcIMS Internet Image Map Service
+		ESRI_AIMS_HTTP_GET_FEATURE          ("ESRI:AIMS--http-get-feature"),          // ArcIMS Internet Feature Map Service
+
+		// MCP 1.4 (Unique to GeoNetwork 2.4)
+		WWW_LINK_1_0_HTTP_METADATA_URL      ("WWW:LINK-1.0-http--metadata-URL"),      // Metadata URL
+		WWW_LINK_1_0_HTTP_DOWNLOADDATA      ("WWW:LINK-1.0-http--downloaddata"),      // Data for download (URL)
+		WWW_DOWNLOAD_1_0_HTTP_DOWNLOADDATA  ("WWW:DOWNLOAD-1.0-http--downloaddata"),  // Data File for download
+		WWW_DOWNLOAD_1_0_HTTP_DOWNLOADOTHER ("WWW:DOWNLOAD-1.0-http--downloadother"), // Other File for download
+		WWW_DOWNLOAD_1_0_FTP_DOWNLOADDATA   ("WWW:DOWNLOAD-1.0-ftp--downloaddata"),   // Data File for download through FTP
+		WWW_DOWNLOAD_1_0_FTP_DOWNLOADOTHER  ("WWW:DOWNLOAD-1.0-ftp--downloadother"),  // Other File for download through FTP
+		OGC_WMS_1_1_1_HTTP_GET_MAP_FILTERED ("OGC:WMS-1.1.1-http-get-map-filtered"),  // OGC Web Map Service Filtered (ver 1.1.1)
+
+		// MCP 1.4 (Unique to GeoNetwork 2.8.0)
+		OGC_CSW                             ("OGC:CSW"),                              // OGC-CSW Catalogue Service for the Web
+		OGC_KML                             ("OGC:KML"),                              // OGC-KML Keyhole Markup Language
+		OGC_GML                             ("OGC:GML"),                              // OGC-GML Geography Markup Language
+		OGC_ODS                             ("OGC:ODS"),                              // OGC-ODS OpenLS Directory Service
+		OGC_OGS                             ("OGC:OGS"),                              // OGC-ODS OpenLS Gateway Service
+		OGC_OUS                             ("OGC:OUS"),                              // OGC-ODS OpenLS Utility Service
+		OGC_OPS                             ("OGC:OPS"),                              // OGC-ODS OpenLS Presentation Service
+		OGC_ORS                             ("OGC:ORS"),                              // OGC-ODS OpenLS Route Service
+		OGC_SOS                             ("OGC:SOS"),                              // OGC-SOS Sensor Observation Service
+		OGC_SPS                             ("OGC:SPS"),                              // OGC-SPS Sensor Planning Service
+		OGC_SAS                             ("OGC:SAS"),                              // OGC-SAS Sensor Alert Service
+		OGC_WCS                             ("OGC:WCS"),                              // OGC-WCS Web Coverage Service
+		OGC_WCTS                            ("OGC:WCTS"),                             // OGC-WCTS Web Coordinate Transformation Service
+		OGC_WFS                             ("OGC:WFS"),                              // OGC-WFS Web Feature Service
+		OGC_WFS_G                           ("OGC:WFS-G"),                            // OGC-WFS-G Gazetteer Service
+		OGC_WMS                             ("OGC:WMS"),                              // OGC-WMS Web Map Service
+		OGC_WMS_1_3_0_HTTP_GET_CAPABILITIES ("OGC:WMS-1.3.0-http-get-capabilities"),  // OGC-WMS Capabilities service (ver 1.3.0)
+		OGC_WMS_1_3_0_HTTP_GET_MAP          ("OGC:WMS-1.3.0-http-get-map"),           // OGC Web Map Service (ver 1.3.0)
+		OGC_SOS_1_0_0_HTTP_GET_OBSERVATION  ("OGC:SOS-1.0.0-http-get-observation"),   // OGC-SOS Get Observation (ver 1.0.0)
+		OGC_SOS_1_0_0_HTTP_POST_OBSERVATION ("OGC:SOS-1.0.0-http-post-observation"),  // OGC-SOS Get Observation (POST) (ver 1.0.0)
+		OGC_WNS                             ("OGC:WNS"),                              // OGC-WNS Web Notification Service
+		OGC_WPS                             ("OGC:WPS"),                              // OGC-WPS Web Processing Service
+		WWW_DOWNLOAD_1_0_FTP_DOWNLOAD       ("WWW:DOWNLOAD-1.0-ftp--download"),       // File for download through FTP
+		FILE_GEO                            ("FILE:GEO"),                             // GIS file
+		FILE_RASTER                         ("FILE:RASTER"),                          // GIS RASTER file
+		DB_POSTGIS                          ("DB:POSTGIS"),                           // PostGIS database table
+		DB_ORACLE                           ("DB:ORACLE"),                            // ORACLE database table
+		WWW_LINK_1_0_HTTP_OPENDAP           ("WWW:LINK-1.0-http--opendap"),           // OPeNDAP URL
+		RBNB_DATATURBINE                    ("RBNB:DATATURBINE"),                     // Data Turbine
+		UKST                                ("UKST");                                 // Unknown Service Type
+
 
 		private final String identifier;
 		private Protocol(String identifier) {
@@ -234,16 +269,32 @@ public class TC211Document {
 			return null;
 		}
 
+		public boolean isDownloadable() {
+			return this.equals(WWW_DOWNLOAD_1_0_HTTP_DOWNLOAD) ||
+					this.equals(GLG_KML_2_0_HTTP_GET_MAP) ||
+					// MCP 1.4 (GeoNetwork 2.4)
+					this.equals(WWW_LINK_1_0_HTTP_DOWNLOADDATA) ||
+					this.equals(WWW_DOWNLOAD_1_0_HTTP_DOWNLOADDATA) ||
+					this.equals(WWW_DOWNLOAD_1_0_HTTP_DOWNLOADOTHER) ||
+					this.equals(WWW_DOWNLOAD_1_0_FTP_DOWNLOADDATA) ||
+					this.equals(WWW_DOWNLOAD_1_0_FTP_DOWNLOADOTHER) ||
+					// MCP 1.4 (GeoNetwork 2.8.0)
+					this.equals(WWW_DOWNLOAD_1_0_FTP_DOWNLOAD) ||
+					this.equals(FILE_GEO) ||
+					this.equals(FILE_RASTER) ||
+					this.equals(RBNB_DATATURBINE);
+		}
+
 		public boolean isWWW() {
-			return this.identifier.startsWith("WWW:");
+			return this.identifier != null && this.identifier.startsWith("WWW:");
 		}
 
 		public boolean isOGC() {
-			return this.identifier.startsWith("OGC:");
+			return this.identifier != null && this.identifier.startsWith("OGC:");
 		}
 
 		public boolean isKML() {
-			return this.identifier.startsWith("GLG:KML");
+			return this.identifier != null && this.identifier.startsWith("GLG:KML");
 		}
 	}
 

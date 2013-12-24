@@ -31,7 +31,7 @@ Atlas.Trees = Ext.extend(Ext.Component, {
 	initComponent: function() {
 		Atlas.Trees.superclass.initComponent.call(this);
 
-		this.trees = new Array();
+		this.trees = [];
 		this.treePaths = {};
 
 		// Used to call local method in anonymous functions without loosing the "this" reference.
@@ -176,7 +176,7 @@ Atlas.Trees = Ext.extend(Ext.Component, {
 				name: childName,
 				child: child
 			});
-		});
+		}, this);
 		var that = this;
 		orderedNode.sort(function(a, b) {
 			// Move nulls at the end (this should not append)
@@ -215,7 +215,7 @@ Atlas.Trees = Ext.extend(Ext.Component, {
 
 		return {
 			// Configuration of a tree node (folder)
-			text: nodeName,
+			text: this._safeHtml(nodeName),
 			children: children,
 			loader: new Atlas.Trees.LayerTreeLoader({treePaths: this.treePaths, layerStore: this.mapPanel.layers})
 		}
@@ -292,7 +292,7 @@ Atlas.Trees = Ext.extend(Ext.Component, {
 
 		// LayerLeaf
 		children.push({
-			text: leafNode.title ? leafNode.title : layerId,
+			text: this._safeHtml(leafNode.title ? leafNode.title : layerId),
 			bbox: leafNode.bbox ? leafNode.bbox : null,
 			cls: 'x-tree-noicon',
 			leaf: true,
@@ -323,7 +323,7 @@ Atlas.Trees = Ext.extend(Ext.Component, {
 	_grayoutOutOfBoundLayers: function(node, mapBBox) {
 		if (node.isLeaf()) {
 			// Grayout, if needed
-			console.log(node.attributes.bbox);
+			//console.log(node.attributes.bbox);
 		} else {
 			// Recursion with children
 			if (node.childNodes && node.childNodes.length > 0) {
@@ -436,5 +436,10 @@ Atlas.Trees = Ext.extend(Ext.Component, {
 				}
 			}
 		}
+	},
+
+	_safeHtml: function(input) {
+		if (input === null || typeof input !== 'string') { return null; }
+		return input.replace(/&/gi, "&amp;").replace(/</gi, "&lt;").replace(/>/gi, "&gt;");
 	}
 });

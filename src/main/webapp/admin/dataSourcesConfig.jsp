@@ -33,9 +33,6 @@
 <%@page import="org.json.JSONObject"%>
 <%@page import="au.gov.aims.atlasmapperserver.ConfigManager"%>
 <%@page import="au.gov.aims.atlasmapperserver.ActionType"%>
-<%@page import="au.gov.aims.atlasmapperserver.URLCache" %>
-<%@page import="java.util.Map"%>
-<%@page import="au.gov.aims.atlasmapperserver.Errors"%>
 <%@page contentType="application/json" pageEncoding="UTF-8"%>
 <%
 	Logger LOGGER = Logger.getLogger("dataSourcesConfig.jsp");

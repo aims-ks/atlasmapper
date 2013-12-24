@@ -135,6 +135,16 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 		});
 		// Remove the icons and auto-select layers when needed
 		overlayList.loader.createNode = function(attr) {
+			// Encode HTML in layer switcher labels
+			// NOTE: GeoExt don't encode anything, thrusting the external
+			//     service to not do XSS. The text attribute can be used
+			//     to work around that, but it stop the magic; the layer
+			//     name won't change in the layer switcher if it changes
+			//     on the map.
+			if (attr && attr.layer && attr.layer.name) {
+				attr.text = attr.layer.atlasLayer._safeHtml(attr.layer.name);
+			}
+
 			attr.cls += ' x-tree-noicon';
 			var layerNode = GeoExt.tree.LayerLoader.prototype.createNode.call(this, attr);
 
@@ -166,6 +176,11 @@ Atlas.LayersPanel = Ext.extend(Ext.Panel, {
 		});
 		// Remove the icons and auto-select layers when needed
 		baselayerList.loader.createNode = function(attr) {
+			// Encode HTML in layer switcher labels
+			if (attr && attr.layer && attr.layer.name) {
+				attr.text = attr.layer.atlasLayer._safeHtml(attr.layer.name);
+			}
+
 			attr.cls += ' x-tree-noicon';
 			var layerNode = GeoExt.tree.LayerLoader.prototype.createNode.call(this, attr);
 

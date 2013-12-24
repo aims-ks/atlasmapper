@@ -1,5 +1,4 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
-		"http://www.w3.org/TR/html4/loose.dtd">
+<!DOCTYPE html>
 <!--
  *  This file is part of AtlasMapper server and clients.
  *
@@ -83,6 +82,11 @@
 				float: right;
 				width: 660px;
 				margin-left: 1em;
+			}
+
+			img.imgClass {
+				border: 10px ridge #CC9977;
+				margin: 10px 0;
 			}
 		</style>
 	</head>
@@ -484,8 +488,14 @@ _*Nested bold and underlined*_ (Valid)
 				</li>
 				<li>
 					<strong>Image</strong><br/>
-					To add an image, full size, the keyword IMG must be added before the URL, followed by a pipe (|).<br/>
-					Format: [[IMG|url|alternative text]]
+					To add an image, the keyword IMG must be added before the URL, followed by a pipe (|).<br/>
+					Format: [[IMG|url|alternative text]]<br/>
+				</li>
+				<li>
+					<strong>Image with dimensions and/or CSS Class</strong><br/>
+					Optionals arguments can be provided to specified the image width/height and CSS Classes<br/>
+					Format: [[IMG|url|alternative text|widthXheight|CSS Class]]<br/>
+					<strong>NOTE:</strong> Supports all CSS units. The default unit is 'px'. The character '?' can be used for width or height to let the browser decide of the value (keep image ratio).
 				</li>
 				<li>
 					<strong>Download</strong><br/>
@@ -511,10 +521,13 @@ http://www.google.com/
 [[http://www.google.com/|Google]]
 [[page2.html|*Page /2/*]]
 [[IMG|../resources/images/maps-small.jpg|Maps]]
+[[IMG|../resources/images/maps-small.jpg|Maps|?X100]]
+[[IMG|../resources/images/maps-small.jpg|Maps|10%]]
+[[IMG|../resources/images/maps-small.jpg|Maps||imgClass]]
 [[DOWNLOAD|../resources/images/maps-small.jpg]]
 [[DOWNLOAD|../resources/images/maps-small.jpg|maps.jpg]]
 [[DOWNLOAD|../resources/images/maps-small.jpg|maps.jpg|Maps]]
-[[DOWNLOAD|../resources/images/maps-small.jpg|maps.jpg|[[IMG|../resources/images/maps-small.jpg|Maps]]]]
+[[DOWNLOAD|../resources/images/maps-small.jpg|maps.jpg|[[IMG|../resources/images/maps-small.jpg|Maps|?X100|imgClass]]]]
 </pre>
 			</blockquote>
 			<h4>Produce:</h4>
@@ -524,10 +537,13 @@ http://www.google.com/
 				<a href="http://www.google.com/" target="_blank">Google</a><br/>
 				<a href="page2.html" target="_blank"><b>Page <i>2</i></b></a><br/>
 				<img src="../resources/images/maps-small.jpg" alt="Maps" title="Maps"/><br/>
+				<img src="../resources/images/maps-small.jpg" style="height:100px" alt="Maps" title="Maps"/><br/>
+				<img src="../resources/images/maps-small.jpg" style="width:10%" alt="Maps" title="Maps"/><br/>
+				<img src="../resources/images/maps-small.jpg" class="imgClass" alt="Maps" title="Maps"/><br/>
 				<a href="../resources/images/maps-small.jpg" download="maps-small.jpg" target="blank">maps-small.jpg</a><br/>
 				<a href="../resources/images/maps-small.jpg" download="maps.jpg" target="blank">maps.jpg</a><br/>
 				<a href="../resources/images/maps-small.jpg" download="maps.jpg" target="blank">Maps</a><br/>
-				<a href="../resources/images/maps-small.jpg" download="maps.jpg" target="blank"><img src="../resources/images/maps-small.jpg" alt="Maps" title="Maps"/></a><br/>
+				<a href="../resources/images/maps-small.jpg" download="maps.jpg" target="blank"><img src="../resources/images/maps-small.jpg" style="height:100px" class="imgClass" alt="Maps" title="Maps"/></a><br/>
 			</blockquote>
 		</div>
 
@@ -581,7 +597,7 @@ http://www.google.com/
 					<td class="desc"><i>true</i> to allow a layer to receive WMS Feature requests, <i>false</i> otherwise.</td>
 				</tr>
 				<tr>
-					<td class="attr">cachable</td>
+					<td class="attr">cached</td>
 					<td class="type">Boolean</td>
 					<td class="desc"><i>true</i> to allow the application to request the layer's tiles through the cache, <i>false</i> otherwise. Default: determined from the WMTS document (available on most GeoServer)</td>
 				</tr>
@@ -726,7 +742,7 @@ http://www.google.com/
 								<td class="desc"><i>true</i> to load this style by default when the layer is loaded, <i>false</i> otherwise. (default value: false)</td>
 							</tr>
 							<tr>
-								<td class="attr">cachable</td>
+								<td class="attr">cached</td>
 								<td class="type">Boolean</td>
 								<td class="desc"><i>true</i> to allow the application to request the tiles of this style through the cache, <i>false</i> otherwise. Default: determined from the WMTS document (available on most GeoServer)</td>
 							</tr>

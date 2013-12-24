@@ -1,4 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!DOCTYPE html>
 <!--
  *  This file is part of AtlasMapper server and clients.
  *
@@ -19,7 +19,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -->
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<html>
 
 <!-- Generated with AtlasMapper version ${version} -->
 <head>
@@ -64,6 +64,13 @@
 		var loadingObj = document.getElementById('loading');
 		loadingObj.style.display = 'block';
 	</script>
+
+	<!-- IE 6- conditional comment - this will only be executed by IE 6 and bellow. -->
+	<!--[if lte IE 6]>
+	<script type="text/javascript">
+		var stop = !window.confirm('Your browser is too old for this application. It is very likely to freeze before you can start using it.\n\nDo you wish to continue anyway?');
+	</script>
+	<![endif]-->
 
 	<!-- IE 9+ conditional comment - this will only be executed by IE 9 and above. -->
 	<!--[if gte IE 9]>
@@ -165,67 +172,72 @@
 			legend = (parameters.leg.toLowerCase() === 'true');
 		}
 
-		Ext.onReady(function() {
-			new Ext.Button({
-				renderTo : "goToMap",
-				scale: 'medium',
-				iconCls: 'goToMapIcon',
-				tooltip: 'View larger map',
-				handler: function(button, evt) {
-					var url = "index.html";
-					var rawParameters = window.location.search;
-					if (rawParameters == null || rawParameters.length == 0) {
-						rawParameters = '?'
-					} else {
-						rawParameters += '&'
-					}
-					rawParameters += 'intro=false'
-
-					window.open(url + rawParameters);
-				}
-			});
-
-			Atlas.core = new Atlas.Core("config/${mainConfig}", "config/${layersConfig}", "${timestamp}");
-			Atlas.core.afterLoad = function() {
-				document.getElementById('loading').style.display = 'none';
-
-				mapLayoutItems = [];
-				for (var i=0; i<nbMaps; i++) {
-					var mapPanel = Atlas.core.createNewMapPanel();
-					if (legend) {
-						new Atlas.Legend({mapPanel: mapPanel});
-					}
-
-					mapLayoutItems.push(
-							{
-								flex: 1,
-								layout: "border",
-								deferredRender: false,
-								items: [mapPanel]
-							}
-					);
-				}
-
-				new Ext.Viewport({
-					layout: "border",
-					hideBorders: true,
-					items: [
-						{
-							region: 'center',
-							layout: "hbox",
-							layoutConfig: {
-								align : 'stretch',
-								pack  : 'start'
-							},
-							hideBorders: true,
-							items: mapLayoutItems
+		if (typeof stop !== 'undefined' && stop === true) {
+			document.getElementById('loading').style.display = 'none';
+			document.write('<h1 style="text-align: center">Loading aborted.</h1>');
+		} else {
+			Ext.onReady(function() {
+				new Ext.Button({
+					renderTo : "goToMap",
+					scale: 'medium',
+					iconCls: 'goToMapIcon',
+					tooltip: 'View larger map',
+					handler: function(button, evt) {
+						var url = "index.html";
+						var rawParameters = window.location.search;
+						if (rawParameters == null || rawParameters.length == 0) {
+							rawParameters = '?'
+						} else {
+							rawParameters += '&'
 						}
-					]
-				});
-			};
+						rawParameters += 'intro=false'
 
-			Ext.QuickTips.init();
-		});
+						window.open(url + rawParameters);
+					}
+				});
+
+				Atlas.core = new Atlas.Core("config/${mainConfig}", "config/${layersConfig}", "${timestamp}");
+				Atlas.core.afterLoad = function() {
+					document.getElementById('loading').style.display = 'none';
+
+					mapLayoutItems = [];
+					for (var i=0; i<nbMaps; i++) {
+						var mapPanel = Atlas.core.createNewMapPanel();
+						if (legend) {
+							new Atlas.Legend({mapPanel: mapPanel});
+						}
+
+						mapLayoutItems.push(
+								{
+									flex: 1,
+									layout: "border",
+									deferredRender: false,
+									items: [mapPanel]
+								}
+						);
+					}
+
+					new Ext.Viewport({
+						layout: "border",
+						hideBorders: true,
+						items: [
+							{
+								region: 'center',
+								layout: "hbox",
+								layoutConfig: {
+									align : 'stretch',
+									pack  : 'start'
+								},
+								hideBorders: true,
+								items: mapLayoutItems
+							}
+						]
+					});
+				};
+
+				Ext.QuickTips.init();
+			});
+		}
 	</script>
 </body>
 

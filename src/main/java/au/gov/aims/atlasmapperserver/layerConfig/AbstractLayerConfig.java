@@ -34,6 +34,7 @@ import java.util.logging.Logger;
 import au.gov.aims.atlasmapperserver.jsonWrappers.client.LayerWrapper;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.json.JSONSortedObject;
 
 /**
  *
@@ -68,7 +69,7 @@ public abstract class AbstractLayerConfig extends AbstractConfig {
 	private String descriptionFormat;
 
 	@ConfigField
-	private String downloadLinks;
+	private JSONSortedObject downloadLinks;
 
 	@ConfigField
 	private String systemDescription;
@@ -165,11 +166,11 @@ public abstract class AbstractLayerConfig extends AbstractConfig {
 		this.descriptionFormat = descriptionFormat;
 	}
 
-	public String getDownloadLinks() {
+	public JSONSortedObject getDownloadLinks() {
 		return this.downloadLinks;
 	}
 
-	public void setDownloadLinks(String downloadLinks) {
+	public void setDownloadLinks(JSONSortedObject downloadLinks) {
 		this.downloadLinks = downloadLinks;
 	}
 

@@ -24,6 +24,7 @@ import au.gov.aims.atlasmapperserver.jsonWrappers.AbstractWrapper;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.json.JSONSortedObject;
 
 /**
  * This class is wrapping a JSONObject representing a layer.
@@ -186,10 +187,10 @@ public class LayerWrapper extends AbstractWrapper {
 		this.json.put("systemDescription", systemDescription);
 	}
 
-	public String getDownloadLinks() {
-		return this.json.optString("downloadLinks", null);
+	public JSONSortedObject getDownloadLinks() {
+		return new JSONSortedObject(this.json.optJSONObject("downloadLinks"));
 	}
-	public void setDownloadLinks(String downloadLinks) throws JSONException {
+	public void setDownloadLinks(JSONSortedObject downloadLinks) throws JSONException {
 		this.json.put("downloadLinks", downloadLinks);
 	}
 

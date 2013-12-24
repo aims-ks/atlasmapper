@@ -79,6 +79,8 @@ Atlas.AbstractMapPanel = {
 
 	// The feature request manager
 	featureInfo: null,
+	// Switch this off to disable feature requests. The measurement tools use this to prevent unwanted feature requests popups on mobile devices.
+	featureRequestsEnabled: true,
 
 	// Avoid clash with "rendered", which is defined in GeoExt.MapPanel
 	isRendered: false,
@@ -297,9 +299,9 @@ Atlas.AbstractMapPanel = {
 				new OpenLayers.Control.MousePosition({
 					displayProjection: this.defaultLonLatProjection
 				}),                                     // Displays geographic coordinates of the mouse pointer
-				new OpenLayers.Control.Navigation({zoomWheelEnabled: false}),    // Including TouchNavigation
-				new OpenLayers.Control.KeyboardDefaults(), // Adds panning and zooming functions, controlled with the keyboard.  By default arrow keys pan, +/- keys zoom & Page Up/Page Down/Home/End scroll by three quarters of a page.
-				new OpenLayers.Control.ZoomBox()        // Enables zooming directly to a given extent, by drawing a box on the map.  The box is drawn by holding down shift, whilst dragging the mouse.
+				new OpenLayers.Control.Navigation({zoomWheelEnabled: false}),    // Including TouchNavigation (also include ZoomBox)
+				new OpenLayers.Control.KeyboardDefaults() // Adds panning and zooming functions, controlled with the keyboard.  By default arrow keys pan, +/- keys zoom & Page Up/Page Down/Home/End scroll by three quarters of a page.
+				//new OpenLayers.Control.ZoomBox()        // Enables zooming directly to a given extent, by drawing a box on the map.  The box is drawn by holding down shift, whilst dragging the mouse.
 			];
 		} else {
 			controls = [
@@ -310,7 +312,7 @@ Atlas.AbstractMapPanel = {
 				new OpenLayers.Control.MousePosition({
 					displayProjection: this.defaultLonLatProjection
 				}),                                     // Displays geographic coordinates of the mouse pointer
-				new OpenLayers.Control.Navigation(),    // Including TouchNavigation
+				new OpenLayers.Control.Navigation(),    // Including TouchNavigation (also include ZoomBox)
 				/*
 				new OpenLayers.Control.OverviewMap({
 					layers: [
@@ -322,8 +324,8 @@ Atlas.AbstractMapPanel = {
 					]
 				}), // Creates a small overview map
 				*/
-				new OpenLayers.Control.KeyboardDefaults(), // Adds panning and zooming functions, controlled with the keyboard.  By default arrow keys pan, +/- keys zoom & Page Up/Page Down/Home/End scroll by three quarters of a page.
-				new OpenLayers.Control.ZoomBox()        // Enables zooming directly to a given extent, by drawing a box on the map.  The box is drawn by holding down shift, whilst dragging the mouse.
+				new OpenLayers.Control.KeyboardDefaults() // Adds panning and zooming functions, controlled with the keyboard.  By default arrow keys pan, +/- keys zoom & Page Up/Page Down/Home/End scroll by three quarters of a page.
+				//new OpenLayers.Control.ZoomBox()        // Enables zooming directly to a given extent, by drawing a box on the map.  The box is drawn by holding down shift, whilst dragging the mouse.
 
 				// NOTE: The measurement control (the ruler button) is added by MapToolsPanel
 			];
@@ -449,7 +451,7 @@ Atlas.AbstractMapPanel = {
 		// Initialise the feature request manager
 		if (Atlas.MapPanel.GetFeatureInfo) {
 			this.featureInfo = new Atlas.MapPanel.GetFeatureInfo({
-				map: this.map
+				mapPanel: this
 			});
 		}
 

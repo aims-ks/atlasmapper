@@ -35,15 +35,18 @@ Atlas.MapPanel.GetFeatureInfo = OpenLayers.Class({
 	activePopupId: null,
 	requestedLayers: null,
 	responses: null,
-	waitingForResponse: false,
 
-	map: null,
+	activeTabId: null,
+	userTabId: null,
+	tabs: [],
+
+	mapPanel: null,
 
 	featureInfoObjects: null,
 
 	// Override
 	initialize:function(options) {
-		this.map = options.map;
+		this.mapPanel = options.mapPanel;
 		this.featureInfoObjects = {};
 	},
 
@@ -55,7 +58,7 @@ Atlas.MapPanel.GetFeatureInfo = OpenLayers.Class({
 				if (typeof(this.featureInfoObjects[key]) === 'undefined') {
 					var featureInfo = new Atlas.MapPanel.SingleLayerFeatureInfo({
 						featureInfoManager: this,
-						map: this.map,
+						mapPanel: this.mapPanel,
 						atlasLayer: atlasLayer,
 						eventListeners: {
 							getfeatureinfo: this.parseFeatureInfoResponse,
@@ -96,7 +99,7 @@ Atlas.MapPanel.GetFeatureInfo = OpenLayers.Class({
 
 		// Only consider responses for the latest request.
 		// Ignore older responses.
-		if (this.waitingForResponse && this.activePopupId == popupId) {
+		if (this.activePopupId == popupId) {
 			var layerId = evt.request.layerId;
 
 			for (var i=0, len=this.responses.length; i<len; i++) {
@@ -112,55 +115,243 @@ Atlas.MapPanel.GetFeatureInfo = OpenLayers.Class({
 	},
 
 	_checkResponses: function() {
-		for (var i=0, len=this.responses.length; i<len && this.waitingForResponse; i++) {
+		var lastEvt, featureInfoHTMLArray = [];
+		for (var i=0, len=this.responses.length; i<len; i++) {
 			if (this.responses[i]) {
-				// Still waiting for the response for the top layer (or the next one if the top didn't answer anything useful)
-				var evt = this.responses[i].evt;
-				if (evt == null) {
-					return;
-				}
+				// Grab the answers from the layers that answered already.
+
 				var atlasLayer = this.responses[i].layer.atlasLayer;
 
-				var featureInfoHTML = atlasLayer.processFeatureInfoResponse(evt);
-				if (featureInfoHTML) {
-					this.waitingForResponse = false;
-					this.showPopup(evt, featureInfoHTML);
-				} else {
-					// The response is empty, remove it to avoid parsing it again with the next layers.
-					this.responses[i] = null;
+				var featureInfoHTML = null;
+				var responseReceived = false;
+				if (this.responses[i].evt) {
+					lastEvt = this.responses[i].evt;
+					featureInfoHTML = atlasLayer.processFeatureInfoResponse(lastEvt);
+					responseReceived = true;
 				}
+				featureInfoHTMLArray.push({
+					id: atlasLayer.json['layerId'],
+					title: atlasLayer.json['title'],
+					content: featureInfoHTML ? featureInfoHTML : null,
+					responseReceived: responseReceived
+				});
+			}
+		}
+		this.showPopup(lastEvt, featureInfoHTMLArray);
+	},
+
+	// NOTE: It would be more efficient to modify the popup content, but there is no method in the API to do that,
+	//     so I'm recreating the popup every time I receive a new response.
+	showPopup: function(evt, featureInfoHTMLArray) {
+		if (evt && featureInfoHTMLArray && featureInfoHTMLArray.length > 0) {
+			var popupId = evt.xy.x + "-" + evt.xy.y;
+
+			// private references to popups, usable within
+			// the closeBoxCallback function.
+			var that = this;
+			var nbNoneEmptyContent = 0;
+
+			if (this.popupBalloon && this.popupBalloon.id === popupId) {
+				if (featureInfoHTMLArray && featureInfoHTMLArray.length) {
+					for (var i=0, len=featureInfoHTMLArray.length; i<len; i++) {
+						if (featureInfoHTMLArray[i].responseReceived) {
+							var content = featureInfoHTMLArray[i].content;
+							if (content) {
+								nbNoneEmptyContent++;
+								var tabObj = $('tab_'+featureInfoHTMLArray[i].id);
+								var contentObj = $('content_'+featureInfoHTMLArray[i].id);
+								if (tabObj && contentObj && contentObj.innerHTML !== content) {
+									OpenLayers.Element.removeClass(tabObj, 'hidden');
+									contentObj.innerHTML = content;
+								}
+							} else {
+								var tabObj = $('tab_'+featureInfoHTMLArray[i].id);
+								if (tabObj) {
+									$('select').removeChild(tabObj);
+								}
+							}
+						}
+					}
+				}
+			} else {
+				var featureInfoHeaderHTML = '<select class="popup-tab" id="select">';
+				var featureInfoContentHTML = '';
+				if (featureInfoHTMLArray && featureInfoHTMLArray.length) {
+					for (var i=0, len=featureInfoHTMLArray.length; i<len; i++) {
+						if (!featureInfoHTMLArray[i].responseReceived || featureInfoHTMLArray[i].content) {
+							this.tabs.push(featureInfoHTMLArray[i].id);
+							featureInfoHeaderHTML += '<option value="' + featureInfoHTMLArray[i].id + '" id="tab_' + featureInfoHTMLArray[i].id + '"' + (featureInfoHTMLArray[i].content ? '' : ' class="hidden"') + '>' +
+									featureInfoHTMLArray[i].title +
+									'</option>';
+
+							var content = featureInfoHTMLArray[i].content;
+							featureInfoContentHTML += '<div id="content_' + featureInfoHTMLArray[i].id + '" class="popup-content">' +
+									(content ? content : '') +
+									'</div>';
+							if (content) {
+								nbNoneEmptyContent++;
+							}
+						}
+					}
+
+					featureInfoHeaderHTML += '</select>';
+					var featureInfoHTML = '<div class="popup">'+featureInfoHeaderHTML + featureInfoContentHTML+'</div>';
+
+					this.popupBalloon = new OpenLayers.Popup.FramedCloud(
+						popupId,
+						this.mapPanel.map.getLonLatFromPixel(evt.xy),
+						null,
+						featureInfoHTML,
+						null,
+						true,
+						function(evt) {
+							that.deletePopup();
+							this.hide();
+							OpenLayers.Event.stop(evt);
+						}
+					);
+					this.activeTabId = null;
+
+					// Override
+					this.popupBalloon.setSize = function(contentSize) {
+						// Increase the popup size slightly to avoid unnecessary scrollers
+						// * Google Chrome (Windows): Need larger width/height (+15) to allow place for the scroller
+						// * Firefox (Windows): Need larger width (+20) to allow place for the scroller
+						// NOTE: Increasing the height too much may have unexpected results.
+						OpenLayers.Popup.FramedCloud.prototype.setSize.apply(this, [
+							new OpenLayers.Size(contentSize.w + 10, contentSize.h + 10)
+						]);
+					};
+
+					// panMapIfOutOfView is annoying: it will fired even if the user already moved the map after requesting the popup.
+					this.popupBalloon.panMapIfOutOfView = false;
+					this.mapPanel.map.addPopup(this.popupBalloon, true);
+
+					this.addEventListener($('select'), 'change', function(evt) {
+						// Most common case (of course don't expect that to work on IE)
+						var id = this.value;
+						if (!id) {
+							// Every browsers
+							evt = evt || event;
+							var target = evt.target || evt.srcElement;
+							id = target.value;
+						}
+						if (id) {
+							that.swapTab(true, id);
+						}
+					});
+				}
+			}
+
+			if (nbNoneEmptyContent) {
+				// Show the default tab, or the tab that was active before recreating the popup (if the user clicked on a tab)
+				// NOTE: Show and hide set CSS display
+				this.popupBalloon.show();
+				this.swapTab(false);
+			} else {
+				this.popupBalloon.hide();
 			}
 		}
 	},
 
-	showPopup: function(evt, featureInfoHTML) {
-		var popupId = evt.xy.x + "-" + evt.xy.y;
+	addEventListener: function(element, name, fct) {
+		if (element.addEventListener) {
+			element.addEventListener(name, fct, false);
+		} else if (element.attachEvent) {
+			element.attachEvent('on' + name, fct);
+		}
+	},
 
-		// Only show feature requests for the latest request.
-		// If request has been sent but not yet received, they will be ignored.
-		if (this.popupBalloon) {
-			this.deletePopup();
+	swapTab: function(userChoice, clickedTabId) {
+		var tabId = null;
+		if (typeof clickedTabId !== 'undefined') {
+			tabId = clickedTabId;
+		} else {
+			// If the user didn't click a tab, get the previous user choice or the first visible tab.
+			tabId = this.userTabId;
+			if (!this.selectable(tabId)) {
+				for (var i=0, len=this.tabs.length; i<len; i++) {
+					if (this.selectable(this.tabs[i])) {
+						tabId = this.tabs[i];
+						break;
+					}
+				}
+			}
 		}
 
-		// private references to popups, usable within
-		// the closeBoxCallback function.
-		var that = this;
-		this.popupBalloon = new OpenLayers.Popup.FramedCloud(
-			popupId,
-			this.map.getLonLatFromPixel(evt.xy),
-			null,
-			featureInfoHTML,
-			null,
-			true,
-			function(evt) {
-				that.deletePopup();
-				this.hide();
-				OpenLayers.Event.stop(evt);
+		if (tabId !== null && tabId !== this.activeTabId) {
+			if (this.selectable(tabId)) {
+				this._activateTab(tabId);
+				if (userChoice) {
+					this.userTabId = tabId;
+				}
 			}
-		);
-		this.map.addPopup(this.popupBalloon, true);
+		} else if (userChoice && this.selectable(tabId)) {
+			this.userTabId = tabId;
 
-		this.popupBalloon.show();
+			// The user has clicked the active tab. This is a trick
+			// to triger a popup size update.
+			this.popupBalloon.updateSize();
+		}
+	},
+
+	_activateTab: function(id) {
+		var tab = $('tab_' + id);
+		var content = $('content_' + id);
+		if (tab && content) {
+			var oldActiveTabId = this.activeTabId;
+			if (oldActiveTabId !== null) {
+				var oldTab = $('tab_' + oldActiveTabId);
+				if (oldTab && oldTab.selected) {
+					delete oldTab.selected;
+					//OpenLayers.Element.removeClass(oldTab, 'active');
+				}
+				var oldContent = $('content_' + oldActiveTabId);
+				if (oldContent) {
+					OpenLayers.Element.removeClass(oldContent, 'popup-content-active');
+				}
+			}
+
+			//OpenLayers.Element.addClass(tab, 'active');
+			tab.selected = 'selected';
+			OpenLayers.Element.addClass(content, 'popup-content-active');
+			this.activeTabId = id;
+
+			// Update the balloon size to fit the content of the activated tab.
+			this.popupBalloon.updateSize();
+			// NOTE: The method has to be called again after the content has
+			//     been completely rendered (all events on popups are related
+			//     to the mouse, there is no event for after render. 1/100 sec
+			//     is usually enough, but sometime it need up to 1/2 sec).
+			var that = this;
+			window.setTimeout(function() {
+				that.popupBalloon.updateSize();
+			}, 10);
+			window.setTimeout(function() {
+				that.popupBalloon.updateSize();
+			}, 500);
+		}
+	},
+
+	selectable: function(tabId) {
+		if (tabId === null) {
+			return false;
+		}
+		var tabObj = $('tab_' + tabId);
+		var contentObj = $('content_' + tabId);
+		return contentObj && tabObj
+				&& !OpenLayers.Element.hasClass(tabObj, 'hidden')
+				&& !OpenLayers.Element.hasClass(tabObj, 'closed');
+	},
+
+	closeTab: function(closeTabId) {
+		if (typeof closeTabId !== 'undefined' && closeTabId) {
+			var tabObj = $('tab_' + closeTabId);
+			if (tabObj) {
+				OpenLayers.Element.addClass(tabObj, 'closed');
+				this.swapTab(true);
+			}
+		}
 	},
 
 	deletePopup: function() {
@@ -201,7 +392,7 @@ Atlas.MapPanel.GetFeatureInfo = OpenLayers.Class({
 
 			var layerIndex = 0;
 			if (!layer.isBaseLayer) {
-				layerIndex = this.map.getLayerIndex(layer);
+				layerIndex = this.mapPanel.map.getLayerIndex(layer);
 			}
 
 			layerList.push({'index': layerIndex, 'layer': layer, evt: null});
@@ -219,6 +410,7 @@ Atlas.MapPanel.GetFeatureInfo = OpenLayers.Class({
 Atlas.MapPanel.SingleLayerFeatureInfo = OpenLayers.Class(OpenLayers.Control.WMSGetFeatureInfo, {
 	atlasLayer: null,
 	featureInfoManager: null,
+	mapPanel: null,
 
 	initialize: function(options) {
 		this.atlasLayer = options.atlasLayer;
@@ -228,8 +420,9 @@ Atlas.MapPanel.SingleLayerFeatureInfo = OpenLayers.Class(OpenLayers.Control.WMSG
 		// format is defined in OpenLayers.Control.WMSGetFeatureInfo.format
 		this.format = this.atlasLayer.getFeatureInfoResponseFormat();
 
+		this.mapPanel = options.mapPanel;
 		// map is defined in OpenLayers.Control.map
-		this.map = options.map;
+		this.map = this.mapPanel.map;
 
 		OpenLayers.Control.WMSGetFeatureInfo.prototype.initialize.apply(this, [{
 			// Some layers are created only for feature requests, they are never visible.
@@ -252,7 +445,7 @@ Atlas.MapPanel.SingleLayerFeatureInfo = OpenLayers.Class(OpenLayers.Control.WMSG
 	},
 
 	layerCount: function() {
-		this.layers.length;
+		return this.layers.length;
 	},
 
 	/**
@@ -269,69 +462,25 @@ Atlas.MapPanel.SingleLayerFeatureInfo = OpenLayers.Class(OpenLayers.Control.WMSG
 	 */
 	// Override
 	request: function(clickPosition, options) {
-		// Only show feature requests for this popup
-		// If request has been sent but not yet received, they will be ignored.
-		this.featureInfoManager._setActivePopup(clickPosition.x + "-" + clickPosition.y);
+		if (this.mapPanel.featureRequestsEnabled) {
+			// Only show feature requests for this popup
+			// If request has been sent but not yet received, they will be ignored.
+			this.featureInfoManager._setActivePopup(clickPosition.x + "-" + clickPosition.y);
 
-		var layers = this.findLayers();
-		if(layers.length == 0) {
-			// Remove the waiting cursor
-			return OpenLayers.Control.WMSGetFeatureInfo.prototype.request.apply(this, [clickPosition, options]);
-		}
-
-		this.featureInfoManager.waitingForResponse = true;
-
-		options = options || {};
-		if(this.drillDown === false) {
-			OpenLayers.Control.WMSGetFeatureInfo.prototype.request.apply(this, [clickPosition, options]);
-		} else {
-			// All candidate layers should be equivalent
-			var layer = layers[0];
-			this.featureInfoManager._addRequestedLayer(layer);
-
-			var urls = this.getInfoServers(layer);
-			for (var j=0, ulen=urls.length; j<ulen; j++) {
-				var url = urls[j];
-				var urlOptions = layer.atlasLayer.getFeatureInfoURL(url, layer,
-					clickPosition, layer.params.FORMAT);
-
-				if (urlOptions != null) {
-					urlOptions.callback = function(request) {
-						// Add the layer ID to the request.
-						// It will be used to know for which layer the
-						// request was for, when parsing the response.
-						request.layerId = layer.atlasLayer.json['layerId'];
-						this.handleResponse(clickPosition, request);
-					};
-					urlOptions.scope = this;
-
-					OpenLayers.Request.GET(urlOptions);
-				}
+			var layers = this.findLayers();
+			if(layers.length === 0) {
+				// Remove the waiting cursor
+				OpenLayers.Control.WMSGetFeatureInfo.prototype.request.apply(this, [clickPosition, options]);
+				return;
 			}
-		}
-	},
 
-	/*
-	request: function(clickPosition, options) {
-		// Only show feature requests for this popup
-		// If request has been sent but not yet received, they will be ignored.
-		this.featureInfoManager._setActivePopup(clickPosition.x + "-" + clickPosition.y);
-
-		var layers = this.findLayers();
-		if(layers.length == 0) {
-			return OpenLayers.Control.WMSGetFeatureInfo.prototype.request.apply(this, [clickPosition, options]);
-		}
-
-		this.featureInfoManager.waitingForResponse = true;
-
-		options = options || {};
-		if(this.drillDown === false) {
-			OpenLayers.Control.WMSGetFeatureInfo.prototype.request.apply(this, [clickPosition, options]);
-		} else {
-			this.featureInfoManager._addResponses(layers);
-
-			for(var i=0, len=layers.length; i<len; i++) {
-				var layer = layers[i];
+			options = options || {};
+			if(this.drillDown === false) {
+				OpenLayers.Control.WMSGetFeatureInfo.prototype.request.apply(this, [clickPosition, options]);
+			} else {
+				// All candidate layers should be equivalent
+				var layer = layers[0];
+				this.featureInfoManager._addRequestedLayer(layer);
 
 				var urls = this.getInfoServers(layer);
 				for (var j=0, ulen=urls.length; j<ulen; j++) {
@@ -355,7 +504,6 @@ Atlas.MapPanel.SingleLayerFeatureInfo = OpenLayers.Class(OpenLayers.Control.WMSG
 			}
 		}
 	},
-	*/
 
 	/**
 	 * Method: findLayers

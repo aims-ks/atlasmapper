@@ -39,8 +39,9 @@ import org.geotools.data.ows.StyleImpl;
 import org.geotools.data.ows.WMSCapabilities;
 import org.geotools.data.ows.WMSRequest;
 import org.geotools.data.wms.xml.MetadataURL;
+import org.json.JSONException;
+import org.json.JSONSortedObject;
 import org.opengis.util.InternationalString;
-import org.xml.sax.SAXException;
 
 import java.io.File;
 import java.net.URI;
@@ -200,7 +201,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 				if (fallback) {
 					layerCatalog.addWarning("Could not find a valid WMTS capability document. " +
 							"Assuming all layers are cached. If the caching feature do not work properly, " +
-							"disable it in the data source configuration and report a bug.");
+							"disable it in the data source configuration.");
 				}
 			} else {
 				// The cache is disabled, just get the layer list direct from the map.
@@ -356,7 +357,31 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 				if (gwcCapFile != null) {
 					document = WMTSParser.parseFile(gwcCapFile, gwcCapUrlStr);
 				} else {
-					document = WMTSParser.parseURL(configManager, dataSourceClone, gwcCapUrl, gwcMandatory);
+					// Get HTTP headers first. Only try to parse it if it returns a 200 (or equivalent)
+					URLCache.ResponseStatus status = URLCache.getResponseStatus(gwcCapUrl.toString());
+					if (status == null) {
+						if (gwcMandatory) {
+							exceptionMessage = "Invalid URL: " + gwcCapUrl.toString();
+						}
+					} else {
+						Integer statusCode = status.getStatusCode();
+						if (statusCode == null) {
+							if (gwcMandatory) {
+								exceptionMessage = "Invalid URL: " + gwcCapUrl.toString();
+							}
+						} else {
+							if (status.isPageNotFound()) {
+								// Don't bother giving a warning for a URL not found if the document is not mandatory
+								if (gwcMandatory) {
+									exceptionMessage = "Document not found (404): " + gwcCapUrl.toString();
+								}
+							} else if (!status.isSuccess()) {
+								exceptionMessage = "Invalid URL (status code: " + statusCode + "): " + gwcCapUrl.toString();
+							} else {
+								document = WMTSParser.parseURL(configManager, dataSourceClone, gwcCapUrl, gwcMandatory);
+							}
+						}
+					}
 				}
 			} catch (Exception ex) {
 				// This happen every time the admin set a GWC base URL instead of a WMTS capabilities document.
@@ -377,8 +402,13 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 						URL modifiedGwcBaseURL = new URL(gwcCapUrl.getProtocol(), gwcCapUrl.getHost(), gwcCapUrl.getPort(), urlPath.substring(0, gwcIndex + gwcSubPath.length() + 2));
 						// Add WMTS URL part
 						URL modifiedGwcCapUrl = new URL(modifiedGwcBaseURL, "service/wmts?REQUEST=getcapabilities");
-						// Try to download the doc again
-						document = WMTSParser.parseURL(configManager, dataSourceClone, modifiedGwcCapUrl, gwcMandatory);
+
+						// Get HTTP headers again, but no error message. This URL has been crafted, no need to bother the user with it.
+						URLCache.ResponseStatus status = URLCache.getResponseStatus(modifiedGwcCapUrl.toString());
+						if (status != null && status.isSuccess()) {
+							// Try to download the doc again
+							document = WMTSParser.parseURL(configManager, dataSourceClone, modifiedGwcCapUrl, gwcMandatory);
+						}
 
 						if (document != null) {
 							URLCache.setRedirection(configManager, gwcCapUrl.toString(), modifiedGwcCapUrl.toString());
@@ -387,7 +417,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 						}
 					} catch (Exception ex) {
 						// Error occurred while crafting the GWC URL. This is unlikely to happen.
-						LOGGER.log(Level.FINE, "Fail to craft a GWC URL using the given GWC URL", ex);
+						LOGGER.log(Level.WARNING, "Fail to craft a GWC URL using the given GWC URL", ex);
 						exceptionMessage = ex.getMessage();
 					}
 				}
@@ -623,6 +653,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 		String metadataDescription = tc211Document == null ? null : tc211Document.getAbstract();
 		String metadataLayerDescription = layerLink == null ? null : layerLink.getDescription();
 		String metadataLinksWikiFormat = this.getMetadataLinksWikiFormat(tc211Document);
+		JSONSortedObject metadataDownloadLinks = this.getDownloadLinks(tc211Document);
 
 		// Clean-up
 		if (layerDescription != null) { layerDescription = layerDescription.trim(); }
@@ -670,8 +701,8 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 			layerConfig.setDescription(descriptionSb.toString());
 		}
 
-		if (metadataLinksWikiFormat != null && !metadataLinksWikiFormat.isEmpty()) {
-			layerConfig.setDownloadLinks(metadataLinksWikiFormat);
+		if (metadataDownloadLinks != null) {
+			layerConfig.setDownloadLinks(metadataDownloadLinks);
 		}
 
 		layerConfig.setWmsQueryable(layer.isQueryable());
@@ -729,21 +760,25 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 		return null;
 	}
 
+	/**
+	 * Return download links, in wiki format
+	 * @param tc211Document
+	 * @return
+	 */
 	private String getMetadataLinksWikiFormat(TC211Document tc211Document) {
-		StringBuilder onlineResources = null;
+		StringBuilder onlineResources = new StringBuilder();
 
 		if (tc211Document != null) {
 			// Add links found in the metadata document and layer description (if any)
 			List<TC211Document.Link> links = tc211Document.getLinks();
 			if (links != null && !links.isEmpty()) {
 				// Set the Online Resources, using wiki format
-				onlineResources = new StringBuilder();
 				for (TC211Document.Link link : links) {
 					// Only display links with none null URL.
 					if (Utils.isNotBlank(link.getUrl())) {
 						TC211Document.Protocol linkProtocol = link.getProtocol();
 						if (linkProtocol != null) {
-							if (linkProtocol.isWWW()) {
+							if (linkProtocol.isWWW() && !linkProtocol.isDownloadable()) {
 								// Dataset links such as point of truth, data download, etc.
 								String linkUrl = link.getUrl();
 								String linkTitle = link.getDescription();
@@ -773,12 +808,6 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 								// Clean-up the title, to be sure it will be parsable by the wiki format parser.
 								if (Utils.isNotBlank(linkTitle)) {
 									linkTitle = linkTitle
-											// Replace square brackets with their HTML entity.
-											//     (they may cause problem with the wiki format parser)
-											.replace("[", "&#91;").replace("]", "&#93;")
-											// Replace pipe with its HTML entity.
-											//     (it may cause problem with the wiki format parser)
-											.replace("|", "&#124;")
 											// Replace chain of whitespaces with one space.
 											//     (newline in a link cause the wiki format parser to fail)
 											.replaceAll("\\s+", " ");
@@ -803,7 +832,45 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 			}
 		}
 
-		return onlineResources == null ? null : onlineResources.toString();
+		return onlineResources.length() > 0 ? onlineResources.toString() : null;
+	}
+
+	private JSONSortedObject getDownloadLinks(TC211Document tc211Document) {
+		JSONSortedObject downloadLinks = new JSONSortedObject();
+
+		if (tc211Document != null) {
+			// Add links found in the metadata document and layer description (if any)
+			List<TC211Document.Link> links = tc211Document.getLinks();
+			if (links != null && !links.isEmpty()) {
+				// Set the Online Resources, using wiki format
+				for (TC211Document.Link link : links) {
+					// Only display links with none null URL.
+					if (Utils.isNotBlank(link.getUrl())) {
+						TC211Document.Protocol linkProtocol = link.getProtocol();
+						if (linkProtocol != null) {
+							if (linkProtocol.isDownloadable()) {
+
+								// Dataset links such as point of truth, data download, etc.
+								String linkUrl = link.getUrl();
+								String linkTitle = link.getDescription();
+								if (Utils.isBlank(linkTitle)) {
+									linkTitle = link.getName();
+								}
+
+								try {
+									downloadLinks.put(linkUrl, linkTitle);
+								} catch(JSONException ex) {
+									// I don't think that exception can even occur, so it's pointless to pass it through.
+									LOGGER.log(Level.SEVERE, "Can not add an attribute to a JSON Object", ex);
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		return downloadLinks.length() > 0 ? downloadLinks : null;
 	}
 
 	private LayerStyleConfig styleToLayerStyleConfig(ConfigManager configManager, StyleImpl style) {
@@ -837,14 +904,6 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 		if (intDescription != null) {
 			styleConfig.setDescription(intDescription.toString());
 		}
-
-		/*
-		if (legendURLs != null && !legendURLs.isEmpty()) {
-			for (String legendURL : legendURLs) {
-				System.out.println("############## legendURL: ["+legendURL+"]");
-			}
-		}
-		*/
 
 		return styleConfig;
 	}

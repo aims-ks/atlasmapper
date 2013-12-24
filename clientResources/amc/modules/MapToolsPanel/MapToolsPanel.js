@@ -115,6 +115,9 @@ Atlas.MapToolsPanel = Ext.extend(Ext.form.FormPanel, {
 			}
 
 			if (Atlas.conf['mapMeasurementEnabled']) {
+				var CTRL = 17; // I can't find this config in OL... It's not the same as OpenLayers.Handler.MOD_CTRL
+				var SHIFT = 16;
+
 				// For some reason, rules can not be added to a style inline,
 				// so this style can not be defined in the definition of the
 				// measurement control.
@@ -133,107 +136,222 @@ Atlas.MapToolsPanel = Ext.extend(Ext.form.FormPanel, {
 						// http://dev.openlayers.org/docs/files/OpenLayers/Symbolizer/Line-js.html
 						"Line": {
 							strokeWidth: 3,
-							strokeColor: "#666666",
-							strokeDashstyle: "dash"
+							strokeColor: "#000000"
+						},
+						"Polygon": {
+							strokeWidth: 3,
+							strokeOpacity: 1,
+							strokeColor: "#000000",
+							fillColor: "#FFFFFF",
+							fillOpacity: 0.3
 						}
 					}})
 				]);
-
-				function enableMeasurement(button) {
-					// The control can only be added to the map when the map is ready.
-					// It's safe to say that the map is ready when the user click the button.
-					if (!measurementControl.map && that.mapPanel && that.mapPanel.map) {
-						that.mapPanel.map.addControl(measurementControl);
-					}
-
-					if (measurementControl.map) {
-						if (button.pressed) {
-							measurementControl.activate();
-						} else {
-							measurementText.setValue();
-							measurementControl.deactivate();
-						}
-					}
-				}
-
-				function measurementHandler(event) {
-					var geometry = event.geometry;
-					var units = event.units;
-					var order = event.order;
-					var measure = event.measure;
-
-					if (measurementText) {
-						measurementText.setValue(measure.toFixed(1) + " " + units);
-					}
-				}
-
-				// Enable multi-segment ruler when CTRL is pressed
-				var CTRL = 17; // I can't find this config in OL... It's not the same as OpenLayers.Handler.MOD_CTRL
-				var ctrlHandler = new OpenLayers.Handler.Keyboard(
-					new OpenLayers.Control(),
-					{
-						// The clean way to do this (using the API) do not work, it loose the
-						// config values of the handler that are not set in handlerOptions,
-						// like "persist: true"
-						//     handlerOptions.maxVertices = null;
-						//     measurementControl.updateHandler(OpenLayers.Handler.Path, handlerOptions);
-						keydown: function(evt) {
-							if (evt.keyCode === CTRL) {
-								measurementControl.handler.maxVertices = null;
-							}
-						},
-						keyup: function(evt) {
-							if (evt.keyCode === CTRL) {
-								measurementControl.handler.maxVertices = 2;
-							}
-						}
-					}
-				);
-
-				// This control has to be activated and deactivated, so it has
-				// to be defined in a variable to keep a reference to it.
-				var measurementControl = new OpenLayers.Control.Measure(
-					OpenLayers.Handler.Path,
-					{
-						// persist: The line stay on the map after drawn.
-						persist: true,
-						// immediate: Give the value as the mouse move, using "measurepartial" event.
-						immediate: true,
-						geodesic: true,
-						handlerOptions: {
-							maxVertices: 2, // Draw a single line, don't have to double click
-							layerOptions: {
-								styleMap: new OpenLayers.StyleMap(measurementStyle)
-							}
-						},
-						eventListeners: {
-							"activate": function() {
-								ctrlHandler.activate();
-							},
-							"deactivate": function() {
-								ctrlHandler.deactivate();
-							},
-							"measure": measurementHandler,
-							"measurepartial": measurementHandler,
-							"scope": this
-						}
-					}
-				);
+				// Object describing the OpenLayers.Style (it doesn't work with an instance of OpenLayers.Style)
+				var lineHighlightStyle = {
+					strokeWidth: 7,
+					strokeColor: "#FFFFFF"
+				};
 
 				var measurementText = new Ext.form.TextField({
 					cls: 'measurementText',
 					readOnly: true,
-					width: 100
+					width: 200
 				});
 
-				tools.push({
-					iconCls: 'measurementButton',
-					tooltip: 'Map measurement<br/>For multiple points, hold <b>CTRL</b>',
-					enableToggle: true,
-					handler: function(button) {
-						enableMeasurement(button);
+				var lineMeasurementControl = null, areaMeasurementControl = null,
+					measurementLineButton = null, measurementAreaButton = null;
+
+				if (Atlas.conf['mapMeasurementLineEnabled']) {
+					function enableLineMeasurement(button) {
+						// The control can only be added to the map when the map is ready.
+						// It's safe to say that the map is ready when the user click the button.
+						if (!lineMeasurementControl.map && that.mapPanel && that.mapPanel.map) {
+							that.mapPanel.map.addControl(lineMeasurementControl);
+						}
+
+						if (lineMeasurementControl.map) {
+							measurementText.setValue();
+							if (button.pressed) {
+								if (measurementAreaButton) {
+									measurementAreaButton.toggle(false);
+								}
+								if (areaMeasurementControl) {
+									areaMeasurementControl.deactivate();
+								}
+								lineMeasurementControl.activate();
+							} else {
+								lineMeasurementControl.deactivate();
+							}
+						}
 					}
-				});
+
+					function lineMeasurementHandler(event) {
+						var geometry = event.geometry;
+						var units = event.units;
+						var order = event.order;
+						var measure = event.measure;
+
+						if (measurementText) {
+							// 1 kilometre = 0.539956803 nautical miles
+							var nauticalMiles = null;
+							var nmRatio = 0.539956803;
+							if (units === 'm') {
+								nauticalMiles = measure / 1000 * nmRatio;
+							} else if (units === 'km') {
+								nauticalMiles = measure * nmRatio;
+							}
+							measurementText.setValue(measure.toFixed(1) + " " + units +
+									(nauticalMiles === null ? '' : ' [' + nauticalMiles.toFixed(1) + ' nautical miles]'));
+						}
+					}
+
+					// Enable multi-segment ruler when CTRL is pressed
+					var ctrlHandler = new OpenLayers.Handler.Keyboard(
+						new OpenLayers.Control(),
+						{
+							// The clean way to do this (using the API) do not work, it loose the
+							// config values of the handler that are not set in handlerOptions,
+							// like "persist: true"
+							//     handlerOptions.maxVertices = null;
+							//     lineMeasurementControl.updateHandler(OpenLayers.Handler.Path, handlerOptions);
+							keydown: function(evt) {
+								// SHIFT key is used for freehand (freehand crash when maxVertices is set)
+								if (evt.keyCode === CTRL || evt.keyCode === SHIFT) {
+									lineMeasurementControl.handler.maxVertices = null;
+								}
+							},
+							keyup: function(evt) {
+								// Restore the vertices mode to default when a key is released
+								// NOTE: Some browsers (Chrome) do not trigger the correct key code on key up
+								lineMeasurementControl.handler.maxVertices = 2;
+							}
+						}
+					);
+
+					// This control has to be activated and deactivated, so it has
+					// to be defined in a variable to keep a reference to it.
+					lineMeasurementControl = new OpenLayers.Control.Measure(
+						OpenLayers.Handler.ux.HighlightedPath,
+						{
+							// persist: The line stay on the map after drawn.
+							persist: true,
+							// immediate: Give the value as the mouse move, using "measurepartial" event.
+							immediate: true,
+							geodesic: true,
+							handlerOptions: {
+								maxVertices: 2, // Draw a single line, don't have to double click
+								lineHighlightStyle: lineHighlightStyle,
+								layerOptions: {
+									styleMap: new OpenLayers.StyleMap(measurementStyle)
+								}
+							},
+							eventListeners: {
+								"activate": function() {
+									this.mapPanel.featureRequestsEnabled = false;
+									ctrlHandler.activate();
+								},
+								"deactivate": function() {
+									this.mapPanel.featureRequestsEnabled = true;
+									ctrlHandler.deactivate();
+								},
+								"measure": lineMeasurementHandler,
+								"measurepartial": lineMeasurementHandler,
+								"scope": this
+							}
+						}
+					);
+
+					measurementLineButton = new Ext.Button({
+						iconCls: 'measurementLineButton',
+						tooltip: 'Map measurement<br/>For multiple points, hold <b>CTRL</b><br/>For freehand, hold <b>SHIFT</b>',
+						ref: 'measurementLineButton',
+						enableToggle: true,
+						handler: function(button) {
+							enableLineMeasurement(button);
+						}
+					});
+					tools.push(measurementLineButton);
+				}
+
+
+				if (Atlas.conf['mapMeasurementAreaEnabled']) {
+					function enableAreaMeasurement(button) {
+						// The control can only be added to the map when the map is ready.
+						// It's safe to say that the map is ready when the user click the button.
+						if (!areaMeasurementControl.map && that.mapPanel && that.mapPanel.map) {
+							that.mapPanel.map.addControl(areaMeasurementControl);
+						}
+
+						if (areaMeasurementControl.map) {
+							measurementText.setValue();
+							if (button.pressed) {
+								if (measurementLineButton) {
+									measurementLineButton.toggle(false);
+								}
+								if (lineMeasurementControl) {
+									lineMeasurementControl.deactivate();
+								}
+								areaMeasurementControl.activate();
+							} else {
+								areaMeasurementControl.deactivate();
+							}
+						}
+					}
+
+					function areaMeasurementHandler(event) {
+						var geometry = event.geometry;
+						var units = event.units;
+						var order = event.order;
+						var measure = event.measure;
+
+						if (measurementText) {
+							measurementText.setValue(measure.toFixed(1) + " " + units + "²");
+						}
+					}
+
+					// This control has to be activated and deactivated, so it has
+					// to be defined in a variable to keep a reference to it.
+					areaMeasurementControl = new OpenLayers.Control.Measure(
+						OpenLayers.Handler.Polygon,
+						{
+							// persist: The line stay on the map after drawn.
+							persist: true,
+							// immediate: Give the value as the mouse move, using "measurepartial" event.
+							immediate: true,
+							geodesic: true,
+							handlerOptions: {
+								layerOptions: {
+									styleMap: new OpenLayers.StyleMap(measurementStyle)
+								}
+							},
+							eventListeners: {
+								"activate": function() {
+									this.mapPanel.featureRequestsEnabled = false;
+								},
+								"deactivate": function() {
+									this.mapPanel.featureRequestsEnabled = true;
+								},
+								"measure": areaMeasurementHandler,
+								"measurepartial": areaMeasurementHandler,
+								"scope": this
+							}
+						}
+					);
+
+					measurementAreaButton = new Ext.Button({
+						iconCls: 'measurementAreaButton',
+						tooltip: 'Map measurement<br/>For multiple points, hold <b>CTRL</b><br/>For freehand, hold <b>SHIFT</b>',
+						ref: 'measurementAreaButton',
+						enableToggle: true,
+						handler: function(button) {
+							enableAreaMeasurement(button);
+						}
+					});
+					tools.push(measurementAreaButton);
+				}
+
+
 				tools.push(measurementText);
 			}
 

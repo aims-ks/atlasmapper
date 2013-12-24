@@ -180,6 +180,12 @@ public class ClientConfig extends AbstractConfig {
 	private boolean mapMeasurementEnabled;
 
 	@ConfigField
+	private boolean mapMeasurementLineEnabled;
+
+	@ConfigField
+	private boolean mapMeasurementAreaEnabled;
+
+	@ConfigField
 	private boolean enable;
 
 	@ConfigField
@@ -244,6 +250,9 @@ public class ClientConfig extends AbstractConfig {
 	@ConfigField(demoReadOnly = true)
 	private String layerInfoServiceUrl;
 
+	@ConfigField(demoReadOnly = true)
+	private String downloadLoggerServiceUrl;
+
 
 	@ConfigField
 	private String lastGenerated;
@@ -264,7 +273,7 @@ public class ClientConfig extends AbstractConfig {
 							this.getConfigManager().getApplicationFolder(),
 							clientDataSourceId);
 
-					dataSources.put(dataSourceWrapper.getDataSourceId(), dataSourceWrapper);
+					dataSources.put(clientDataSourceId, dataSourceWrapper);
 				}
 			}
 		}
@@ -456,24 +465,29 @@ public class ClientConfig extends AbstractConfig {
 
 		// Apply manual overrides, if needed, and add the layer to the catalog
 		if (dataSources != null && !dataSources.isEmpty()) {
-			for (DataSourceWrapper dataSourceWrapper : dataSources.values()) {
-				String dataSourceId = dataSourceWrapper.getDataSourceId();
-				JSONObject rawLayers = dataSourceWrapper.getLayers();
-				if (rawLayers != null && rawLayers.length() > 0) {
-					Iterator<String> rawLayerIds = rawLayers.keys();
-					while (rawLayerIds.hasNext()) {
-						String rawLayerId = rawLayerIds.next();
+			for (Map.Entry<String, DataSourceWrapper> dataSourceEntry : dataSources.entrySet()) {
+				String dataSourceId = dataSourceEntry.getKey();
+				DataSourceWrapper dataSourceWrapper = dataSourceEntry.getValue();
+				if (dataSourceWrapper == null) {
+					layerCatalog.addWarning("Could not add the data source [" + dataSourceId + "] because it has never been generated.");
+				} else {
+					JSONObject rawLayers = dataSourceWrapper.getLayers();
+					if (rawLayers != null && rawLayers.length() > 0) {
+						Iterator<String> rawLayerIds = rawLayers.keys();
+						while (rawLayerIds.hasNext()) {
+							String rawLayerId = rawLayerIds.next();
 
-						if (clientOverrides.has(rawLayerId) && clientOverrides.optJSONObject(rawLayerId) == null) {
-							layerCatalog.addWarning("Invalid manual override for layer: " + rawLayerId);
-						}
+							if (clientOverrides != null && clientOverrides.has(rawLayerId) && clientOverrides.optJSONObject(rawLayerId) == null) {
+								layerCatalog.addWarning("Invalid manual override for layer: " + rawLayerId);
+							}
 
-						LayerWrapper layerWrapper = new LayerWrapper(rawLayers.optJSONObject(rawLayerId));
-						// Associate the layer to its data source (NOTE: This property may already been overridden)
-						if (layerWrapper.getDataSourceId() == null) {
-							layerWrapper.setDataSourceId(dataSourceId);
+							LayerWrapper layerWrapper = new LayerWrapper(rawLayers.optJSONObject(rawLayerId));
+							// Associate the layer to its data source (NOTE: This property may already been overridden)
+							if (layerWrapper.getDataSourceId() == null) {
+								layerWrapper.setDataSourceId(dataSourceId);
+							}
+							layerCatalog.addLayer(rawLayerId, AbstractLayerConfig.applyGlobalOverrides(rawLayerId, layerWrapper, clientOverrides));
 						}
-						layerCatalog.addLayer(rawLayerId, AbstractLayerConfig.applyGlobalOverrides(rawLayerId, layerWrapper, clientOverrides));
 					}
 				}
 			}
@@ -532,7 +546,7 @@ public class ClientConfig extends AbstractConfig {
 
 							layers.put(
 									layerId,
-									layerWrapper);
+									layerWrapper.getJSON());
 						} catch(Exception ex) {
 							layerCatalog.addError("Unexpected error occurred while parsing the layer override for the layer: " + layerId);
 							LOGGER.log(Level.SEVERE, "Unexpected error occurred while parsing the following layer override for the client [{0}]: {1}\n{2}",
@@ -882,6 +896,22 @@ public class ClientConfig extends AbstractConfig {
 		this.mapMeasurementEnabled = mapMeasurementEnabled;
 	}
 
+	public boolean isMapMeasurementLineEnabled() {
+		return this.mapMeasurementLineEnabled;
+	}
+
+	public void setMapMeasurementLineEnabled(boolean mapMeasurementLineEnabled) {
+		this.mapMeasurementLineEnabled = mapMeasurementLineEnabled;
+	}
+
+	public boolean isMapMeasurementAreaEnabled() {
+		return this.mapMeasurementAreaEnabled;
+	}
+
+	public void setMapMeasurementAreaEnabled(boolean mapMeasurementAreaEnabled) {
+		this.mapMeasurementAreaEnabled = mapMeasurementAreaEnabled;
+	}
+
 	public Double getVersion() {
 		return this.version;
 	}
@@ -1060,6 +1090,14 @@ public class ClientConfig extends AbstractConfig {
 
 	public void setLayerInfoServiceUrl(String layerInfoServiceUrl) {
 		this.layerInfoServiceUrl = layerInfoServiceUrl;
+	}
+
+	public String getDownloadLoggerServiceUrl() {
+		return this.downloadLoggerServiceUrl;
+	}
+
+	public void setDownloadLoggerServiceUrl(String downloadLoggerServiceUrl) {
+		this.downloadLoggerServiceUrl = downloadLoggerServiceUrl;
 	}
 
 	public String getSearchServiceUrl() {

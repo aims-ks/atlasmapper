@@ -99,6 +99,13 @@ public class ClientWrapper extends AbstractWrapper {
 		this.json.put("layerInfoServiceUrl", layerInfoServiceUrl);
 	}
 
+	public String getDownloadLoggerServiceUrl() {
+		return this.json.optString("downloadLoggerServiceUrl", null);
+	}
+	public void setDownloadLoggerServiceUrl(String downloadLoggerServiceUrl) throws JSONException {
+		this.json.put("downloadLoggerServiceUrl", downloadLoggerServiceUrl);
+	}
+
 	public Boolean isShowAddRemoveLayerButtons() {
 		return this.isShowAddRemoveLayerButtons(null);
 	}
@@ -205,6 +212,40 @@ public class ClientWrapper extends AbstractWrapper {
 			this.json.remove("mapMeasurementEnabled");
 		} else {
 			this.json.put("mapMeasurementEnabled", mapMeasurementEnabled);
+		}
+	}
+
+	public Boolean isMapMeasurementLineEnabled() {
+		return this.isMapMeasurementLineEnabled(null);
+	}
+	public Boolean isMapMeasurementLineEnabled(Boolean defaultValue) {
+		if (this.json.isNull("mapMeasurementLineEnabled")) {
+			return defaultValue;
+		}
+		return this.json.optBoolean("mapMeasurementLineEnabled");
+	}
+	public void setMapMeasurementLineEnabled(Boolean mapMeasurementLineEnabled) throws JSONException {
+		if (mapMeasurementLineEnabled == null && !this.json.isNull("mapMeasurementLineEnabled")) {
+			this.json.remove("mapMeasurementLineEnabled");
+		} else {
+			this.json.put("mapMeasurementLineEnabled", mapMeasurementLineEnabled);
+		}
+	}
+
+	public Boolean isMapMeasurementAreaEnabled() {
+		return this.isMapMeasurementAreaEnabled(null);
+	}
+	public Boolean isMapMeasurementAreaEnabled(Boolean defaultValue) {
+		if (this.json.isNull("mapMeasurementAreaEnabled")) {
+			return defaultValue;
+		}
+		return this.json.optBoolean("mapMeasurementAreaEnabled");
+	}
+	public void setMapMeasurementAreaEnabled(Boolean mapMeasurementAreaEnabled) throws JSONException {
+		if (mapMeasurementAreaEnabled == null && !this.json.isNull("mapMeasurementAreaEnabled")) {
+			this.json.remove("mapMeasurementAreaEnabled");
+		} else {
+			this.json.put("mapMeasurementAreaEnabled", mapMeasurementAreaEnabled);
 		}
 	}
 

@@ -129,6 +129,8 @@ Ext.define('Writer.ClientConfigForm', {
 			'saveMapEnabled': true,
 			'mapConfigEnabled': true,
 			'mapMeasurementEnabled': true,
+			'mapMeasurementLineEnabled': true,
+			'mapMeasurementAreaEnabled': true,
 
 			'theme': '',
 			'enable': true
@@ -455,6 +457,13 @@ Ext.define('Writer.ClientConfigForm', {
 								name: 'layerInfoServiceUrl',
 								disabled: demoMode
 							}, {
+								fieldLabel: 'Download logger service URL (<a href="downloadLoggerDoc.html" target="_blank">doc</a>)',
+								qtipTitle: 'Download logger service URL',
+								qtipHtml: 'Download logger service, to log file download usage.'+
+									notAvailableInDemoMode,
+								name: 'downloadLoggerServiceUrl',
+								disabled: demoMode
+							}, {
 								margin: '0 0 15 0',
 								boxLabel: 'Show <i>Add</i> <span style="color:green">[+]</span> and <i>Remove</i> <span style="color:red">[-]</span> layer buttons',
 								qtipHtml: 'Uncheck this box to remove the <i>Add</i> and <i>Remove</i> layer buttons.',
@@ -668,12 +677,22 @@ Ext.define('Writer.ClientConfigForm', {
 								},
 								checkboxToggle: true,
 								checkboxName: 'mapMeasurementEnabled',
-								qtipHtml: 'Uncheck this box remove the ruler tool from the toolbar.',
+								qtipHtml: 'Check this box add the ruler tool in the toolbar.',
 								defaultType: 'textfield',
 								items: [
 									{
 										xtype: 'displayfield',
 										value: 'This feature is under development and any configuration found here may eventually change in the future.'
+									}, {
+										boxLabel: 'Distance measurement',
+										qtipHtml: 'Check this box to add a ruler tool to measure distance.',
+										xtype: 'checkboxfield',
+										name: 'mapMeasurementLineEnabled'
+									}, {
+										boxLabel: 'Area measurement',
+										qtipHtml: 'Check this box to add a ruler tool to measure area.',
+										xtype: 'checkboxfield',
+										name: 'mapMeasurementAreaEnabled'
 									}
 								]
 							}
@@ -808,7 +827,21 @@ Ext.define('Writer.ClientConfigForm', {
 		var form = this.getForm();
 
 		if (form.isValid()) {
-			this.fireEvent('create', this, form.getValues());
+			var values = form.getValues();
+
+			// Save the selected data sources from the grid to the form
+			var dataSourcesValue = [];
+			this.dataSourcesStore.data.each(function(item) {
+				if (item.data.checked) {
+					dataSourcesValue.push(item.data.id);
+				}
+			}, this);
+			// Add dataSources to the values.
+			// NOTE: form.setValues can not be used here because there is currently no field for dataSources
+			//     and the field can not be created with setValues. The simpler the better.
+			values['dataSources'] = dataSourcesValue;
+
+			this.fireEvent('create', this, values);
 			frameset.setSavedMessage('Client created', 500);
 			return true;
 		}
@@ -1418,6 +1451,8 @@ Ext.define('Writer.ClientConfig', {
 		{name: 'saveMapEnabled', type: 'boolean', defaultValue: false},
 		{name: 'mapConfigEnabled', type: 'boolean', defaultValue: false},
 		{name: 'mapMeasurementEnabled', type: 'boolean', defaultValue: false},
+		{name: 'mapMeasurementLineEnabled', type: 'boolean', defaultValue: false},
+		{name: 'mapMeasurementAreaEnabled', type: 'boolean', defaultValue: false},
 
 		'theme',
 		'pageHeader',
@@ -1433,6 +1468,8 @@ Ext.define('Writer.ClientConfig', {
 		'listLayerImageHeight',
 
 		'extraAllowedHosts',
+
+		'downloadLoggerServiceUrl',
 
 		'comment'
 	]/*,

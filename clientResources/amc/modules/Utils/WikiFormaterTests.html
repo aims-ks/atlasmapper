@@ -137,6 +137,36 @@
 							'*not bo*ld (The end of the bold style is inside a word)',
 							'*not bo*ld (The end of the bold style is inside a word)'
 						], [
+							'/Complete italic sentence ending with a dot./',
+							'<i>Complete italic sentence ending with a dot.</i>'
+						], [
+							'/Two lines italic sentence\n' +
+							'ending with a dot./',
+
+							'<i>Two lines italic sentence<br/>\n' +
+							'ending with a dot.</i>'
+						], [
+							'/Two lines italic *sentence*\n' +
+							'ending with a dot./',
+
+							'<i>Two lines italic <b>sentence</b><br/>\n' +
+							'ending with a dot.</i>'
+						], [
+							'/Two lines /italic sentence/\n' +
+							'ending with a dot./',
+
+							'<i>Two lines <i>italic sentence</i><br/>\n' +
+							'ending with a dot.</i>'
+						], [
+							'Sentence ending with a word in /italic/.',
+							'Sentence ending with a word in <i>italic</i>.'
+						], [
+							'Carrots, /apples,/ bananas, /oranges/, pears.',
+							'Carrots, <i>apples,</i> bananas, <i>oranges</i>, pears.'
+						], [
+							'Carrots|*apples,* bananas, [*oranges*], *[pears]*.',
+							'Carrots|<b>apples,</b> bananas, [<b>oranges</b>], <b>[pears]</b>.'
+						], [
 							'Should be (*bold* and -_underline_ and /italic/)',
 							'Should be (<b>bold</b> and -<u>underline</u> and <i>italic</i>)'
 						],
@@ -166,6 +196,9 @@
 						], [
 							'=======Unbalanced (use the minimum between the start and the end)====',
 							'<h3>===Unbalanced (use the minimum between the start and the end)</h3>'
+						], [
+							'====Unbalanced (use the minimum between the start and the end)=======',
+							'<h3>Unbalanced (use the minimum between the start and the end)===</h3>'
 						],
 
 						// Bullet list
@@ -242,10 +275,31 @@
 							'<a href="http://www.google.com/" target="_blank">Google</a>'
 						], [
 							'[[page2.html|*Page /2/*]]',
-							'<a href="page2.html" target="_blank"><b>Page <i>2</i></b></a>'
+							'<a href="page2.html"><b>Page <i>2</i></b></a>'
 						], [
 							'[[IMG|../resources/images/maps-small.jpg|Maps]]',
 							'<img src="../resources/images/maps-small.jpg" alt="Maps" title="Maps"/>'
+						], [
+							'[[IMG|../resources/images/maps-small.jpg|Maps||imgClass]]',
+							'<img src="../resources/images/maps-small.jpg" class="imgClass" alt="Maps" title="Maps"/>'
+						], [
+							'[[IMG|../resources/images/maps-small.jpg|Maps|?X100]]',
+							'<img src="../resources/images/maps-small.jpg" style="height:100px;" alt="Maps" title="Maps"/>'
+						], [
+							'[[IMG|../resources/images/maps-small.jpg|Maps|100]]',
+							'<img src="../resources/images/maps-small.jpg" style="width:100px;" alt="Maps" title="Maps"/>'
+						], [
+							'[[IMG|../resources/images/maps-small.jpg|Maps|100X?]]',
+							'<img src="../resources/images/maps-small.jpg" style="width:100px;" alt="Maps" title="Maps"/>'
+						], [
+							'[[IMG|../resources/images/maps-small.jpg|Maps|10%X?]]',
+							'<img src="../resources/images/maps-small.jpg" style="width:10%;" alt="Maps" title="Maps"/>'
+						], [
+							'[[IMG|../resources/images/maps-small.jpg|Maps|10%X?|imgClass]]',
+							'<img src="../resources/images/maps-small.jpg" class="imgClass" style="width:10%;" alt="Maps" title="Maps"/>'
+						], [
+							'[[IMG|../resources/images/maps-small.jpg|Maps|100X100]]',
+							'<img src="../resources/images/maps-small.jpg" style="width:100px;height:100px;" alt="Maps" title="Maps"/>'
 						], [
 							'[[DOWNLOAD|../resources/images/maps-small.jpg]]',
 							'<a href="../resources/images/maps-small.jpg" download="maps-small.jpg" target="_blank">maps-small.jpg</a>'
@@ -302,7 +356,7 @@
 							'### Nectophrynoides cryptus\n' +
 							'### Nectophrynoides laticeps\n' +
 							'### ...\n' +
-							'End of italic/.\n' +
+							'End of italic./\n' +
 							'\n',
 
 							'<h1>Test multi line <i>Wiki</i> format.</h1>\n' +
@@ -380,7 +434,7 @@
 							'    </ol>\n' +
 							'  </li>\n' +
 							'</ol>\n' +
-							'End of italic</i>.<br/>\n' +
+							'End of italic.</i><br/>\n' +
 							'<br/>\n'
 						]
 					];
@@ -452,6 +506,7 @@
 							10
 						]
 					];
+
 					for (var i=0; i<longURLs.length; i++) {
 						wikiFormater.MAX_URL_LENGTH = longURLs[i][2];
 						var result = wikiFormater.format(longURLs[i][0]);

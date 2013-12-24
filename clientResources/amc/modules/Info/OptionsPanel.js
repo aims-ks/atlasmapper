@@ -252,7 +252,7 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 			}
 
 			if (layer.atlasLayer && layer.atlasLayer.json) {
-				this.layernameLabel.setText(layer.atlasLayer.getTitle(), false);
+				this.layernameLabel.setText(layer.atlasLayer._safeHtml(layer.atlasLayer.getTitle()), false);
 
 				// Set extra options for the selected layer
 

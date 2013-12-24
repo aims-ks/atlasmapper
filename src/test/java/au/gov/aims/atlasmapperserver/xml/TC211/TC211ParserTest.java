@@ -65,7 +65,7 @@ public class TC211ParserTest extends TestCase {
 
 			} else if (linkUrl.equals("http://www.environment.gov.au/metadataexplorer/download_test_form.jsp?dataTitle=Key Ecological Features within the Coral Sea&dataPoCemail=marine.metadata@environment.gov.au&dataFormat=Shapefile")) {
 				assertEquals("Link protocol miss match for link URL: " + linkUrl,
-						TC211Document.Protocol.DATA_FOR_DOWNLOAD_URL, link.getProtocol());
+						TC211Document.Protocol.WWW_LINK_1_0_HTTP_DOWNLOADDATA, link.getProtocol());
 
 				assertNull("Link name miss match for link URL: " + linkUrl,
 						link.getName());
@@ -107,7 +107,7 @@ public class TC211ParserTest extends TestCase {
 
 			if (linkUrl.equals("http://mest.aodn.org.au:80/geonetwork/srv/en/metadata.show?uuid=87263960-92f0-4836-b8c5-8486660ddfe0")) {
 				assertEquals("Link protocol miss match for link URL: " + linkUrl,
-						TC211Document.Protocol.METADATA_URL, link.getProtocol());
+						TC211Document.Protocol.WWW_LINK_1_0_HTTP_METADATA_URL, link.getProtocol());
 
 				assertNull("Link name miss match for link URL: " + linkUrl,
 						link.getName());
@@ -117,7 +117,7 @@ public class TC211ParserTest extends TestCase {
 
 			} else if (linkUrl.equals("")) {
 				assertEquals("Link protocol miss match for link URL: " + linkUrl,
-						TC211Document.Protocol.OGC_WEB_MAP_SERVICE_VER_1_1_1, link.getProtocol());
+						TC211Document.Protocol.OGC_WMS_1_1_1_HTTP_GET_MAP, link.getProtocol());
 
 				assertEquals("Link name miss match for link URL: " + linkUrl,
 						"", link.getName());
@@ -127,7 +127,7 @@ public class TC211ParserTest extends TestCase {
 
 			} else if (linkUrl.equals("http://www.environment.gov.au/metadataexplorer/download_test_form.jsp?dataTitle=Key Ecological Features within the Coral Sea&dataPoCemail=marine.metadata@environment.gov.au&dataFormat=Shapefile")) {
 				assertEquals("Link protocol miss match for link URL: " + linkUrl,
-						TC211Document.Protocol.DATA_FOR_DOWNLOAD_URL, link.getProtocol());
+						TC211Document.Protocol.WWW_LINK_1_0_HTTP_DOWNLOADDATA, link.getProtocol());
 
 				assertNull("Link name miss match for link URL: " + linkUrl,
 						link.getName());
@@ -170,7 +170,7 @@ public class TC211ParserTest extends TestCase {
 					"http://www.lipsum.com/", linkUrl);
 
 			assertEquals("Link protocol miss match",
-					TC211Document.Protocol.METADATA_URL, link.getProtocol());
+					TC211Document.Protocol.WWW_LINK_1_0_HTTP_METADATA_URL, link.getProtocol());
 
 			assertEquals("Link name miss match",
 					"Lorem Ipsum", link.getName());
@@ -210,7 +210,7 @@ public class TC211ParserTest extends TestCase {
 					"http://imos2.ersa.edu.au/geo2/imos/wms", linkUrl);
 
 			assertEquals("Link protocol miss match",
-					TC211Document.Protocol.OGC_WEB_MAP_SERVICE_VER_1_1_1, link.getProtocol());
+					TC211Document.Protocol.OGC_WMS_1_1_1_HTTP_GET_MAP, link.getProtocol());
 
 			assertEquals("Link name miss match",
 					"imos:ctd_profile_vw", link.getName());

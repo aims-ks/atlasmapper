@@ -148,7 +148,7 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 	setDirectParameters: function(params) {},
 
 	canUseWebCache: function(layerParams, newParams) {
-		if (this.json == null || !this.json['webCacheUrl'] || (typeof(this.json['cached']) !== 'undefined' && !this.json['cached'])) {
+		if (this.json == null || !this.json['webCacheUrl'] || typeof this.json['cached'] === 'undefined' || !this.json['cached']) {
 			return false;
 		}
 
@@ -288,7 +288,7 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 			return null;
 		}
 
-		var desc = '<b>' + this.getTitle() + '</b>';
+		var desc = '<b>' + this._safeHtml(this.getTitle()) + '</b>';
 
 		var previewUrl = this.getPreviewUrl();
 		if (previewUrl) {
@@ -321,7 +321,53 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 	},
 
 	getDownloadLinks: function() {
-		return this._wikiFormat(this._safeHtml(this.json['downloadLinks']));
+		var html = null;
+		var downloadLinks = this.json['downloadLinks'];
+		if (downloadLinks !== null) {
+			if (typeof downloadLinks === 'string') {
+				// backward compatibility
+				html = this._wikiFormat(this._safeHtml(this.json['downloadLinks']));
+			} else if (typeof downloadLinks === 'object') {
+				if (Atlas.conf['downloadLoggerServiceUrl']) {
+					var iframeName = this.getUniqueWindowName('downloadLogger_');
+					html = '<ul class="downloadLoggerLinksList">';
+					for (var url in downloadLinks) {
+						if (downloadLinks.hasOwnProperty(url)) {
+							var label = downloadLinks[url];
+							html += '<li>';
+							var downloadLoggerUrl = Atlas.conf['downloadLoggerServiceUrl'];
+							downloadLoggerUrl += (downloadLoggerUrl.indexOf('?') >= 0 ? '&' : '?') +
+									'url=' + encodeURIComponent(url) + '&' +
+									'label=' + encodeURIComponent(label) + '&' +
+									'theme=am';
+							html += '<a href="'+downloadLoggerUrl+'" target="'+iframeName+'">'+this._safeHtml(label)+'</a>'
+							html += '</li>';
+						}
+					}
+					html += '</ul>';
+					html += '<iframe name="'+iframeName+'" class="downloadLogger" frameBorder="0"></iframe>';
+				} else {
+					html = '<ul class="downloadLinksList">';
+					for (var url in downloadLinks) {
+						if (downloadLinks.hasOwnProperty(url)) {
+							var label = downloadLinks[url];
+							html += '<li><a href="'+url+'" target="_blank">'+this._safeHtml(label)+'</a></li>'
+						}
+					}
+					html += '</ul>';
+				}
+			}
+		}
+		return html;
+	},
+
+	getUniqueWindowName: function(prefix) {
+		var i=0, name = prefix + i;
+		// Loop until we find a window that is not in used (maximum of 1000 windows allowed at once).
+		while (typeof window[name] !== 'undefined' && i < 1000) {
+			name = prefix + ++i;
+		}
+		return name;
 	},
 
 	// to override
@@ -330,7 +376,7 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 	},
 
 	_safeHtml: function(input) {
-		if (input == null) { return null; }
+		if (input === null || typeof input !== 'string') { return null; }
 		return input.replace(/&/gi, "&amp;").replace(/</gi, "&lt;").replace(/>/gi, "&gt;");
 	},
 

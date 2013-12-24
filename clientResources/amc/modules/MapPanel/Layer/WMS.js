@@ -407,7 +407,7 @@ Atlas.Layer.WMS = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 			return null;
 		}
 
-		return '<h3>' + this.getTitle() + '</h3>' + responseEvent.text;
+		return responseEvent.text;
 	},
 
 	// override

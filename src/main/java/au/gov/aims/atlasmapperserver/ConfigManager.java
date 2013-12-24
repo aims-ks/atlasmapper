@@ -1381,6 +1381,10 @@ public class ConfigManager {
 			}
 		}
 
+		if (Utils.isNotBlank(clientConfig.getDownloadLoggerServiceUrl())) {
+			clientWrapper.setDownloadLoggerServiceUrl(clientConfig.getDownloadLoggerServiceUrl().trim());
+		}
+
 		clientWrapper.setShowAddRemoveLayerButtons(clientConfig.isShowAddRemoveLayerButtons());
 
 		clientWrapper.setSearchEnabled(clientConfig.isSearchEnabled());
@@ -1388,6 +1392,8 @@ public class ConfigManager {
 		clientWrapper.setSaveMapEnabled(clientConfig.isSaveMapEnabled());
 		clientWrapper.setMapConfigEnabled(clientConfig.isMapConfigEnabled());
 		clientWrapper.setMapMeasurementEnabled(clientConfig.isMapMeasurementEnabled());
+		clientWrapper.setMapMeasurementLineEnabled(clientConfig.isMapMeasurementLineEnabled());
+		clientWrapper.setMapMeasurementAreaEnabled(clientConfig.isMapMeasurementAreaEnabled());
 
 		if (clientConfig.isSearchEnabled()) {
 			if (Utils.isNotBlank(clientConfig.getSearchServiceUrl())) {
@@ -1430,7 +1436,9 @@ public class ConfigManager {
 		if (!dataSources.isEmpty()) {
 			// Add data sources
 			for (DataSourceWrapper dataSource : dataSources.values()) {
-				clientWrapper.addDataSource(dataSource.getDataSourceId(), dataSource.getMainConfigJSON());
+				if (dataSource != null) {
+					clientWrapper.addDataSource(dataSource.getDataSourceId(), dataSource.getMainConfigJSON());
+				}
 			}
 		}
 		// TODO Apply legend parameters overrides here maybe?

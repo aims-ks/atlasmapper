@@ -154,8 +154,8 @@ Atlas.Utils.WikiFormater = OpenLayers.Class({
 					}
 				}
 				if (isURL) {
-					var htmlURL, wikiURL = input.substring(i+2, index-1);
-					var urlStr, filename, label, wikiURLParts = wikiURL.split('|');
+					var wikiURL = input.substring(i+2, index-1);
+					var urlStr, filename, label, dim, cssClass, wikiURLParts = wikiURL.split('|');
 
 					var type = 'URL';
 					if (wikiURLParts.length >= 2) {
@@ -163,6 +163,13 @@ Atlas.Utils.WikiFormater = OpenLayers.Class({
 							// Remove IMG
 							type = wikiURLParts.shift();
 							urlStr = wikiURLParts.shift();
+							if (wikiURLParts.length > 1) {
+								dim = wikiURLParts.pop();
+							}
+							if (wikiURLParts.length > 1) {
+								cssClass = dim;
+								dim = wikiURLParts.pop();
+							}
 							label = wikiURLParts.join('|');
 						} else if (wikiURLParts[0] === 'DOWNLOAD') {
 							// Remove DOWNLOAD
@@ -196,14 +203,34 @@ Atlas.Utils.WikiFormater = OpenLayers.Class({
 						urlStr = wikiURL;
 					}
 
+					if (urlStr.indexOf('://') !== -1) {
+						target = '_blank';
+					}
+
 					if (type === 'IMG') {
-						htmlChunk += '<img src="'+urlStr+'" alt="'+label+'" title="'+label+'"/>';
+						var style = '';
+						if (dim) {
+							dim = dim.split('X');
+							var width = dim[0];
+							var height = dim.length > 1 ? dim[1] : null;
+							if (width && width != '?') {
+								style += 'width:' + width + (isNaN(width) ? '' : 'px') + ';';
+							}
+							if (height && height != '?') {
+								style += 'height:' + height + (isNaN(height) ? '' : 'px') + ';';
+							}
+						}
+						htmlChunk += '<img src="'+urlStr+'"'+(cssClass ? ' class="'+cssClass+'"' : '')+(style ? ' style="'+style+'"' : '')+' alt="'+label+'" title="'+label+'"/>';
 					} else if (type === 'DOWNLOAD') {
 						// NOTE: A[DOWNLOAD] is a HTML5 attribute. It's ignored if the browser do not support it.
 						//     http://www.w3.org/html/wg/drafts/html/master/links.html#downloading-resources
 						htmlChunk += '<a href="'+urlStr+'" download="'+filename+'" target="_blank">'+label+'</a>';
 					} else {
-						htmlChunk += '<a href="'+urlStr+'" target="_blank">'+label+'</a>';
+						var target = '';
+						if (urlStr.indexOf('://') !== -1) {
+							target = '_blank';
+						}
+						htmlChunk += '<a href="'+urlStr+'"'+(target ? ' target="'+target+'"' : '')+'>'+label+'</a>';
 					}
 					i = index;
 					currentChar = i < len ? input.charAt(i) : '';
@@ -370,7 +397,7 @@ Atlas.Utils.WikiFormater = OpenLayers.Class({
 	 *     type: '*',  // '*', '/', '_' or '-'
 	 *     index: 123, // Index of the character in the input string
 	 *     open: true, // Open or close tag
-	 *     tag: '<b>'  // Equivalent HTML tag, either open or close.
+	 *     tag: '<b>'  // Equivalent HTML tag, either opened or closed.
 	 * }
 	 * @private
 	 */
@@ -386,8 +413,8 @@ Atlas.Utils.WikiFormater = OpenLayers.Class({
 		//         "value1|*value2*" => "value2" is bold because it has a pipe before and a end of string at the end.
 		//             The pipe and brakets chars are mostly used to detect style inside element, like in a link label,
 		//             to not accidently consider the label style end with the current style end.
-		//var styleDelimiterRegex = /[\s\.,\|\[\]]/;
-		var styleDelimiterRegex = /[^\w:]/;
+		var styleDelimiterInRegex = /[\w:\.,\[\]\(\){}]/;
+		var styleDelimiterOutRegex = /[^\w:]/;
 
 		// Check if the sequence start with white space
 		var len = input.length, startIndex = index, endIndex = index;
@@ -398,13 +425,24 @@ Atlas.Utils.WikiFormater = OpenLayers.Class({
 			endIndex++;
 		}
 
-		if ((startIndex-1 < 0 || styleDelimiterRegex.test(input.charAt(startIndex-1))) &&
-				(endIndex+1 >= len || !styleDelimiterRegex.test(input.charAt(endIndex+1)))) {
-			tag.open = true;
-		} else if ((startIndex-1 < 0 || !styleDelimiterRegex.test(input.charAt(startIndex-1))) &&
-				(endIndex+1 >= len || styleDelimiterRegex.test(input.charAt(endIndex+1)))) {
+		/*
+		console.log("    TEST [" + (startIndex-1 < 0 ? '^' : input.charAt(startIndex-1)) + input.charAt(startIndex) + (endIndex+1 >= len ? '$' : input.charAt(endIndex+1)) + "] => " +
+			(startIndex-1 < 0 ? '-' : (styleDelimiterInRegex.test(input.charAt(startIndex-1)) ? 'I' : '-')) +
+			(startIndex-1 < 0 ? 'o' : (styleDelimiterOutRegex.test(input.charAt(startIndex-1)) ? 'O' : '-')) + ', ' +
+			(endIndex+1 >= len ? '-' : (styleDelimiterInRegex.test(input.charAt(endIndex+1)) ? 'I' : '-')) +
+			(endIndex+1 >= len ? 'o' : (styleDelimiterOutRegex.test(input.charAt(endIndex+1)) ? 'O' : '-')));
+		*/
+
+		if ((startIndex-1 >= 0 && styleDelimiterInRegex.test(input.charAt(startIndex-1))) &&
+				(endIndex+1 >= len || styleDelimiterOutRegex.test(input.charAt(endIndex+1)))) {
+			//console.log('        CLOSE');
 			tag.open = false;
+		} else if ((startIndex-1 < 0 || styleDelimiterOutRegex.test(input.charAt(startIndex-1))) &&
+				(endIndex+1 <= len && styleDelimiterInRegex.test(input.charAt(endIndex+1)))) {
+			//console.log('        OPEN');
+			tag.open = true;
 		} else {
+			//console.log('        REJECTED');
 			return null;
 		}
 

@@ -63,6 +63,17 @@ Atlas.Layer.Google = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 				scope: this
 			});
 
+			/*
+			TODO GOOGLE LAYER LOAD EVENT!!
+			google.maps.event.addListener(gmaplayer.mapObject, "tilesloaded", function() {
+				console.log("Tiles loaded");
+			});
+			OR
+			GEvent.addListener(gmaplayer.mapObject, "tilesloaded", function() {
+				console.log("Tiles loaded");
+			});
+			*/
+
 			this.setLayer(layer);
 
 			// DPI;
