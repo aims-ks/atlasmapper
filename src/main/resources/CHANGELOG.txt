@@ -1,3 +1,55 @@
+2013-12-24: Version 1.4.8
+	Fixed issues
+		* Issue 26: Feature selection popup ballons show unnecessary scrollbars in Chrome
+		* Issue 28: Feature selection only works on top layer - Often not appropriate
+		* Issue 55: High DPI mode doesn't work with gutter oloptions
+		* Issue 65: Layer re-order sometime fail when moving to the top
+		* Issue 67: HTML / JavaScript injection (Security)
+		* Issue 68: NullPointerException when generating a client without default layers
+		* Issue 70: Misleading error reporting for WMS source with no WMTS service.
+		* Issue 71: Null pointer exception while generating client with none generated data source
+		* Issue 73: Square brackets in download links appear encoded to user.
+		* Issue 75: Typo in Documentation
+		* Issue 77: "Enable Web cache" do not work as expected
+		* Issue 79: Removing a layer while other layers are loading removes loading status
+	Server:
+		* Added configuration for measurement tools and download service
+		* TC211 Parser: Better distinction between normal resources and downloadable resources
+			- Download resources are only shown in the download window
+	Client:
+		* Added area measurement tool and fixed measurement line style
+		* Extended wiki-format support (the wiki format will soon be move server side and the logic will change)
+		* New feature requests system (see issue #28)
+		* Download window
+			- Added a download logger service capability (configurable with the admin)
+			- Added a close button
+		* Doctype changed to HTML5
+		* Added a crash warning for IE 6
+
+2013-11-4: Version 1.4.7
+	Fixed issues
+		* Issue 65: Layer re-order sometime fail when moving to the top
+		* Issue 55: High DPI mode doesn't work with gutter oloptions
+		* Issue 26: Feature selection popup ballons show unnecessary scrollbars in Chrome
+	Server
+		* Improve transfer speed
+			- Added ZIP capabilities for files requests going through the AtlasMapper
+			- Fixed response header to tell the browsers how to cache the files
+		* Fixed issue related to errors not reported correctly when generating a client
+		* Implemented basic layer search (without indexation)
+		* Client configuration - Data sources now displayed in a grid, on a separate tab
+	Client
+		* Added layer search "beta" (using basic regex server side, without indexation)
+		* Added measurement tool "beta" (not configurable - in the future, the tool will create a configurable "layer")
+		* Hide legend (WMS) that contains no images (or broken images)
+		* Implement Hi-DPI with KML
+		* Fixed usability issue related to location search results on the map (the icon used to highlight the result on mouseover. This functionality can not be used since it imply that all vector layers would have mouse over for feature requests, including KML. The click event on search results was not implemented correctly)
+		* Disabled mouse wheel on embedded map
+		* Fixed some issues with the Wiki format (the style delimiter regex has been redesigned to support more cases)
+		* Fixed the look of the coordinate box (mouse position) on the bottom right corner of the map
+		* Loading layer now show a blue animation when selected
+		* Fixed locate feature on ArcGIS layers
+
 2013-07-25: Version 1.4.6
 	Server
 		* Fixed issues related to downloading files through a https server that use an invalid or self-signed certificate.
