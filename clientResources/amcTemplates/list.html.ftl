@@ -32,6 +32,10 @@
 		<link rel="stylesheet" type="text/css" href="resources/css/styles-ie6.css?atlasmapperVer=${version}" />
 	<![endif]-->
 
+	<!--[if IE]>
+		<script type="text/javascript" src="modules/Utils/ECMAScriptPatch.js"></script>
+	<![endif]-->
+
 	<style>
 		div.layerBlock {
 			width: ${layerBoxWidth!202}px;

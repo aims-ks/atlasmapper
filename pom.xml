@@ -25,7 +25,7 @@
 	<groupId>au.gov.aims</groupId>
 	<artifactId>atlasmapper</artifactId>
 	<packaging>war</packaging>
-	<version>1.4.8</version>
+	<version>1.5.0</version>
 	<name>AtlasMapper server and clients</name>
 	<description>This application compiled as a single War, that can be deployed in Tomcat, without any other dependency.\n\
 It contains:\n\
@@ -153,6 +153,17 @@ It contains:\n\
 					<exclude>amc/OpenLayers/OpenLayers-2.12/notes/**</exclude>
 					<exclude>amc/OpenLayers/OpenLayers-2.12/tests/**</exclude>
 					<exclude>amc/OpenLayers/OpenLayers-2.12/tools/**</exclude>
+
+					<exclude>amc/OpenLayers/OpenLayers-2.13.1/apidoc_config/**</exclude>
+					<exclude>amc/OpenLayers/OpenLayers-2.13.1/art/**</exclude>
+					<exclude>amc/OpenLayers/OpenLayers-2.13.1/build/**</exclude>
+					<exclude>amc/OpenLayers/OpenLayers-2.13.1/doc/**</exclude>
+					<exclude>amc/OpenLayers/OpenLayers-2.13.1/doc_config/**</exclude>
+					<exclude>amc/OpenLayers/OpenLayers-2.13.1/examples/**</exclude>
+					<exclude>amc/OpenLayers/OpenLayers-2.13.1/lib/**</exclude>
+					<exclude>amc/OpenLayers/OpenLayers-2.13.1/notes/**</exclude>
+					<exclude>amc/OpenLayers/OpenLayers-2.13.1/tests/**</exclude>
+					<exclude>amc/OpenLayers/OpenLayers-2.13.1/tools/**</exclude>
 
 					<exclude>amc/extjs/3.3.0/ext-3.3.0/docs/**</exclude>
 					<exclude>amc/extjs/3.3.0/ext-3.3.0/examples/**</exclude>

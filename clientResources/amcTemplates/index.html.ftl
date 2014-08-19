@@ -43,6 +43,10 @@
 		<link rel="stylesheet" type="text/css" href="resources/css/styles-ie6.css?atlasmapperVer=${version}" />
 	<![endif]-->
 
+	<!--[if IE]>
+		<script type="text/javascript" src="modules/Utils/ECMAScriptPatch.js"></script>
+	<![endif]-->
+
 	<#if (headExtra?? && headExtra != "")>
 		${headExtra}
 	</#if>
@@ -95,7 +99,7 @@
 	<![endif]-->
 
 	<!-- NOTE: OpenLayer 2.13 is a bit jumpy on the iPad. We will sticking with 2.12 until we find something that justify this upgrade -->
-	<script type="text/javascript" src="OpenLayers/OpenLayers-2.12/OpenLayers.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="OpenLayers/OpenLayers-2.13.1/OpenLayers.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="OpenLayers-ux/Bing.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="OpenLayers-ux/MultiSelectDragFeature.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="OpenLayers-ux/PrintFrame.js?atlasmapperVer=${version}"></script>

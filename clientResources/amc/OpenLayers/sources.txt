@@ -1,1 +1,5 @@
-http://openlayers.org/download/OpenLayers-2.12.tar.gz
+2.12:
+	http://openlayers.org/download/OpenLayers-2.12.tar.gz
+
+2.13.1:
+	http://openlayers.org/download/OpenLayers-2.13.1.tar.gz

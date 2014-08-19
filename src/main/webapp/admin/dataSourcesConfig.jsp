@@ -65,7 +65,7 @@
 						response.setStatus(HttpServletResponse.SC_OK);
 						jsonObj.put("success", true);
 						jsonObj.put("message", "Loaded data");
-						jsonObj.put("data", configManager.getDataSourceConfigsJSon());
+						jsonObj.put("data", configManager.getDataSourceConfigsJSon(true));
 					} catch (Exception e) {
 						LOGGER.log(Level.SEVERE, "An error occurred while retrieving the data source configuration: {0}", Utils.getExceptionMessage(e));
 						LOGGER.log(Level.WARNING, "Stack trace: ", e);
@@ -110,7 +110,7 @@
 						response.setStatus(HttpServletResponse.SC_OK);
 						jsonObj.put("success", true);
 						jsonObj.put("message", "Updated record");
-						jsonObj.put("data", configManager.getDataSourceConfigsJSon());
+						jsonObj.put("data", configManager.getDataSourceConfigsJSon(true));
 					} catch (Exception e) {
 						LOGGER.log(Level.SEVERE, "An error occurred while updating the data source: {0}", Utils.getExceptionMessage(e));
 						LOGGER.log(Level.WARNING, "Stack trace: ", e);
@@ -128,7 +128,7 @@
 						response.setStatus(HttpServletResponse.SC_OK);
 						jsonObj.put("success", true);
 						jsonObj.put("message", "Deleted record");
-						jsonObj.put("data", configManager.getDataSourceConfigsJSon());
+						jsonObj.put("data", configManager.getDataSourceConfigsJSon(true));
 					} catch (Exception e) {
 						LOGGER.log(Level.SEVERE, "An error occurred while deleting the data source: {0}", Utils.getExceptionMessage(e));
 						LOGGER.log(Level.WARNING, "Stack trace: ", e);

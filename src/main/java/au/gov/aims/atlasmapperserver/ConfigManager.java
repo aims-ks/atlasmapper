@@ -250,11 +250,11 @@ public class ConfigManager {
 		}
 	}
 
-	protected synchronized void reloadServerConfig(Reader serverConfigReader) throws JSONException, IOException {
+	private synchronized void reloadServerConfig(Reader serverConfigReader) throws JSONException, IOException {
 		if (serverConfigReader == null) {
 			return;
 		}
-		ServerConfigWrapper jsonServerConfig = null;
+		ServerConfigWrapper jsonServerConfig;
 		try {
 			jsonServerConfig = new ServerConfigWrapper(new JSONObject(new JSONTokener(serverConfigReader)));
 		} catch(JSONException ex) {
@@ -390,7 +390,7 @@ public class ConfigManager {
 		}
 	}
 
-	protected synchronized void reloadUsersConfig(Reader usersConfigReader) throws JSONException {
+	private synchronized void reloadUsersConfig(Reader usersConfigReader) throws JSONException {
 		this.users = new HashMap<String, User>();
 		if (usersConfigReader != null) {
 			UsersConfigWrapper usersConfig = new UsersConfigWrapper(new JSONObject(new JSONTokener(usersConfigReader)));
@@ -497,8 +497,8 @@ public class ConfigManager {
 		}
 
 		config.setVersion(CURRENT_SERVER_CONFIG_VERSION);
-		config.setDataSources(this._getDataSourceConfigsJSon(false));
-		config.setClients(this._getClientConfigsJSon(false));
+		config.setDataSources(this.getDataSourceConfigsJSon(false));
+		config.setClients(this.getClientConfigsJSon(false));
 
 		this.saveJSONConfig(config.getJSON(), serverConfigWriter);
 	}
@@ -582,7 +582,7 @@ public class ConfigManager {
 		if (dataJSonArr != null) {
 			for (int i=0; i<dataJSonArr.length(); i++) {
 				DataSourceWrapper dataSourceWrapper = new DataSourceWrapper(dataJSonArr.optJSONObject(i));
-				if (dataSourceWrapper != null) {
+				if (dataSourceWrapper.getJSON() != null) {
 					Integer id = dataSourceWrapper.getId();
 					if (id == null) {
 						dataSourceWrapper.setId(this.getNextDataSourceId());
@@ -780,40 +780,6 @@ public class ConfigManager {
 		}
 	}
 
-	/*
-	private synchronized void moveClientFolder(File oldClientFolder, File newClientFolder, File oldConfigFolder, File newConfigFolder) throws IOException {
-		boolean folderHasBeenRenamed = false;
-		if (oldClientFolder != null && !oldClientFolder.equals(newClientFolder)) {
-			// The project generation path has changed. The client folder has to be move.
-			if (newClientFolder != null && oldClientFolder.exists()) {
-				File parentFolder = newClientFolder.getParentFile();
-				if (parentFolder != null && !parentFolder.exists()) {
-					parentFolder.mkdirs();
-				}
-				if (!oldClientFolder.renameTo(newClientFolder)) {
-					throw new IOException("Can not move the client folder [" + oldClientFolder.getAbsolutePath() + "] to its new location [" + newClientFolder.getAbsolutePath() + "]");
-				}
-				folderHasBeenRenamed = true;
-			}
-		}
-		if (oldConfigFolder != null && !oldConfigFolder.equals(newConfigFolder)) {
-			// The project generation path has changed. The client folder has to be move.
-			if (newConfigFolder != null && oldConfigFolder.exists()) {
-				File parentFolder = newConfigFolder.getParentFile();
-				if (parentFolder != null && !parentFolder.exists()) {
-					parentFolder.mkdirs();
-				}
-				if (!oldConfigFolder.renameTo(newConfigFolder)) {
-					if (folderHasBeenRenamed) {
-						// Rollback the client folder renaming...
-						newClientFolder.renameTo(oldClientFolder);
-					}
-					throw new IOException("Can not move the config folder [" + oldConfigFolder.getAbsolutePath() + "] to its new location [" + newConfigFolder.getAbsolutePath() + "]");
-				}
-			}
-		}
-	}*/
-
 	public synchronized boolean destroyClientConfig(ServletRequest request) throws JSONException, IOException {
 		if (request == null) { return true; }
 
@@ -823,7 +789,7 @@ public class ConfigManager {
 		if (dataJSonArr != null) {
 			for (int i=0; i<dataJSonArr.length(); i++) {
 				DataSourceWrapper dataSourceWrapper = new DataSourceWrapper(dataJSonArr.optJSONObject(i));
-				if (dataSourceWrapper != null) {
+				if (dataSourceWrapper.getJSON() != null) {
 					Integer clientId = dataSourceWrapper.getId();
 					ClientConfig clientConfig =
 							configs.remove1(clientId);
@@ -926,6 +892,8 @@ public class ConfigManager {
 					String layerName = link.getName();
 
 					if (Utils.isNotBlank(serviceUrl) && Utils.isNotBlank(layerName)) {
+						// Suppress warnings: The JSON library do not use generics properly
+						@SuppressWarnings("unchecked")
 						Iterator<String> foundLayerIDs = clientLayers.keys();
 						while(foundLayerIDs.hasNext() && foundLayer == null) {
 							foundLayerId = foundLayerIDs.next();
@@ -959,6 +927,8 @@ public class ConfigManager {
 					String kmlUrl = link.getUrl();
 
 					if (Utils.isNotBlank(kmlUrl)) {
+						// Suppress warnings: The JSON library do not use generics properly
+						@SuppressWarnings("unchecked")
 						Iterator<String> foundLayerIDs = clientLayers.keys();
 						while(foundLayerIDs.hasNext() && foundLayer == null) {
 							foundLayerId = foundLayerIDs.next();
@@ -1117,10 +1087,7 @@ public class ConfigManager {
 		return configs.get2(dataSourceId);
 	}
 
-	public JSONArray getDataSourceConfigsJSon() throws JSONException, IOException {
-		return this._getDataSourceConfigsJSon(true);
-	}
-	private JSONArray _getDataSourceConfigsJSon(boolean reload) throws JSONException, IOException {
+	public JSONArray getDataSourceConfigsJSon(boolean reload) throws JSONException, IOException {
 		JSONArray dataSourceConfigArray = new JSONArray();
 
 		MultiKeyHashMap<Integer, String, AbstractDataSourceConfig> configs = reload ? this.getDataSourceConfigs() : this.dataSourceConfigs;
@@ -1164,8 +1131,8 @@ public class ConfigManager {
 	/**
 	 * Used for the AtlasMapperServer config page. It has a link to
 	 * view the generated client.
-	 * @param context
-	 * @return
+	 * @param context The ServletContext, used to build the clients' URL
+	 * @return A JSONArray of JSONObjects, representing the clients' config (with URLs)
 	 * @throws JSONException
 	 * @throws IOException
 	 */
@@ -1177,10 +1144,7 @@ public class ConfigManager {
 		return clientConfigArray;
 	}
 
-	public JSONArray getClientConfigsJSon() throws JSONException, IOException {
-		return this._getClientConfigsJSon(true);
-	}
-	private JSONArray _getClientConfigsJSon(boolean reload) throws JSONException, IOException {
+	private JSONArray getClientConfigsJSon(boolean reload) throws JSONException, IOException {
 		JSONArray clientConfigArray = new JSONArray();
 
 		MultiKeyHashMap<Integer, String, ClientConfig> configs = reload ? this.getClientConfigs() : this.clientConfigs;
@@ -1205,7 +1169,7 @@ public class ConfigManager {
 				// Find the enabled client that has the smallest key (oldest client)
 				// The first client is used as a fallback if there is no default client that are enabled.
 				Integer configKey = configEntry.getKey();
-				if (oldestClientConfig == null || (configKey != null && oldestKey != null && configKey != null && oldestKey > configKey)) {
+				if (oldestClientConfig == null || (configKey != null && oldestKey != null && oldestKey > configKey)) {
 					oldestKey = configKey;
 					oldestClientConfig = clientConfig;
 				}
@@ -1260,7 +1224,7 @@ public class ConfigManager {
 	}
 
 	/**
-	 *
+	 * TODO This method used to be almost the same for each cases. It evolved to a point where it would be better to split it into 4 methods.
 	 * @param layerCatalog The client LayerCatalog, to avoid overhead with generation.
 	 * @param clientConfig Client to generate
 	 * @param configType Type of generation requested
@@ -1301,8 +1265,11 @@ public class ConfigManager {
 					mainConfig = new ClientWrapper(this.loadExistingConfig(this.getClientMainConfigFile(clientConfig)));
 				}
 
-				this._setProxyUrl(mainConfig, clientConfig);
-				return mainConfig.getJSON();
+				if (mainConfig != null) {
+					this._setProxyUrl(mainConfig, clientConfig);
+					return mainConfig.getJSON();
+				}
+				return null;
 
 			case EMBEDDED:
 				if (generate) {
@@ -1340,9 +1307,7 @@ public class ConfigManager {
 				// Making a copy of the mainConfig variable (clone) would be better, but the variable is never used
 				// after this, so it's faster (easier) to simply change it into the fullConfig.
 				fullConfig = mainConfig;
-				if (fullConfig != null) {
-					fullConfig.setLayers(layersConfig);
-				}
+				fullConfig.setLayers(layersConfig);
 				return fullConfig.getJSON();
 		}
 		return null;
@@ -1576,6 +1541,7 @@ public class ConfigManager {
 		}
 	}
 
+	/*
 	private synchronized void saveJSONConfig(JSONArray config, Writer writer) throws JSONException, IOException {
 		if (config == null || writer == null) {
 			return;
@@ -1597,7 +1563,7 @@ public class ConfigManager {
 				}
 			}
 		}
-	}
+	}*/
 
 	private JSONObject loadExistingConfig(File configFile) throws JSONException, IOException {
 		if (configFile == null) {
@@ -1680,7 +1646,7 @@ public class ConfigManager {
 
 		JSONObject jsonObj = null;
 		String jsonStr = jsonStrBuf.toString();
-		if (jsonStr != null && jsonStr.length() > 0) {
+		if (jsonStr.length() > 0) {
 			jsonObj = new JSONObject(jsonStrBuf.toString());
 		}
 		return jsonObj;

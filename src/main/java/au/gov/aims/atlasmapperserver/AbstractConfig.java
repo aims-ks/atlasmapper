@@ -81,7 +81,7 @@ public abstract class AbstractConfig implements Cloneable {
 	 * will call:
 	 *     instance.setHexa("#0000FF");
 	 *     instance.setJSONObjectKey("blue");
-	 * @param key
+	 * @param key The name of the attribute use for the key in the JSON object
 	 */
 	public abstract void setJSONObjectKey(String key);
 	public abstract String getJSONObjectKey();
@@ -119,7 +119,7 @@ public abstract class AbstractConfig implements Cloneable {
 	 * This method use reflexion to get all field annoted with ConfigField,
 	 * find the getter for the field, call the getter and fill the JSONObject
 	 * using the values found.
-	 * @return
+	 * @return Return a JSON object sorted alphabetically
 	 * @throws JSONException
 	 */
 	public JSONSortedObject toJSonSortedObject() throws JSONException {
@@ -172,8 +172,8 @@ public abstract class AbstractConfig implements Cloneable {
 	 * * return null for empty String,
 	 * * remove null, JSON Null or empty String from JSONArrays / JSONObjects,
 	 * * return null instead of empty JSONArrays / JSONObjects
-	 * @param rawValue
-	 * @return
+	 * @param rawValue The raw value that may be null, empty or contains some null / empty values
+	 * @return null or a value that is not empty and do not contains any empty value
 	 */
 	private Object cleanValue(Object rawValue) throws JSONException {
 		if (rawValue == null) { return null; }
@@ -205,14 +205,16 @@ public abstract class AbstractConfig implements Cloneable {
 
 		} else if (rawValue instanceof JSONObject) {
 			JSONObject rawJsonObject = (JSONObject)rawValue;
-			JSONObject jsonObject = null;
+			JSONObject jsonObject;
 			if (rawValue instanceof JSONSortedObject) {
 				jsonObject = new JSONSortedObject();
 			} else {
 				jsonObject = new JSONObject();
 			}
-			// Remove null entries
+			// Suppress warnings: The JSON library do not use generics properly
+			@SuppressWarnings("unchecked")
 			Iterator<String> keys = rawJsonObject.keys();
+			// Remove null entries
 			while(keys.hasNext()) {
 				String key = keys.next();
 				if (!rawJsonObject.isNull(key)) {
@@ -383,6 +385,8 @@ public abstract class AbstractConfig implements Cloneable {
 			JSONObject jsonValue = getJSONObject(jsonObj, configName);
 			if (jsonValue != null && jsonValue.length() > 0) {
 				try {
+					// Suppress warnings: Reflection returns raw types that need to be casted
+					@SuppressWarnings("unchecked")
 					AbstractConfig configValue =
 							(AbstractConfig)fieldClass.getConstructor(ConfigManager.class).newInstance(configManager);
 
@@ -418,6 +422,8 @@ public abstract class AbstractConfig implements Cloneable {
 			}
 			if (collectionClass != null && jsonValue != null && jsonValue.length() > 0) {
 				Map<String, Object> configValue = new HashMap<String, Object>();
+				// Suppress warnings: The JSON library do not use generics properly
+				@SuppressWarnings("unchecked")
 				Iterator<String> keys = jsonValue.keys();
 				while(keys.hasNext()) {
 					String key = keys.next();
@@ -445,7 +451,7 @@ public abstract class AbstractConfig implements Cloneable {
 				collectionClass = (Class)collectionTypes[0];
 			}
 			if (collectionClass != null) {
-				Collection<Object> configValue = null;
+				Collection<Object> configValue;
 				if (List.class.isAssignableFrom(fieldClass)) {
 					configValue = new ArrayList<Object>();
 				} else if (Set.class.isAssignableFrom(fieldClass)) {
@@ -453,6 +459,7 @@ public abstract class AbstractConfig implements Cloneable {
 				} else {
 					throw new IllegalAccessException("Unsupported collection type ["+fieldClass.getName()+"]");
 				}
+				// configValue can not be null... for now... I prefer keep the check because I'm not sure how I will support the other types. It may become handy.
 				if (configValue != null) {
 					JSONObject jsonObjValue = null;
 					try {
@@ -476,6 +483,8 @@ public abstract class AbstractConfig implements Cloneable {
 							}
 						}
 					} else if(jsonObjValue.length() > 0) {
+						// Suppress warnings: The JSON library do not use generics properly
+						@SuppressWarnings("unchecked")
 						Iterator<String> keys = jsonObjValue.keys();
 						while(keys.hasNext()) {
 							String key = keys.next();
@@ -525,6 +534,8 @@ public abstract class AbstractConfig implements Cloneable {
 						}
 					}
 				} else if(jsonObjValue.length() > 0) {
+					// Suppress warnings: The JSON library do not use generics properly
+					@SuppressWarnings("unchecked")
 					Iterator<String> keys = jsonObjValue.keys();
 					while(keys.hasNext()) {
 						String key = keys.next();
@@ -542,7 +553,7 @@ public abstract class AbstractConfig implements Cloneable {
 						}
 					}
 				}
-				if (configValue != null && !configValue.isEmpty()) {
+				if (!configValue.isEmpty()) {
 					value = Array.newInstance(arrayType, configValue.size());
 					int i=0;
 					for (Object configVal : configValue) {
@@ -596,6 +607,8 @@ public abstract class AbstractConfig implements Cloneable {
 			if (jsonValue != null && jsonValue.length() > 0) {
 
 				try {
+					// Suppress warnings: Reflection returns raw types that need to be casted
+					@SuppressWarnings("unchecked")
 					AbstractConfig configValue =
 							(AbstractConfig)fieldClass.getConstructor(ConfigManager.class).newInstance(configManager);
 
@@ -624,6 +637,8 @@ public abstract class AbstractConfig implements Cloneable {
 			}
 			if (collectionClass != null && jsonValue != null && jsonValue.length() > 0) {
 				Map<String, Object> configValue = new HashMap<String, Object>();
+				// Suppress warnings: The JSON library do not use generics properly
+				@SuppressWarnings("unchecked")
 				Iterator<String> keys = jsonValue.keys();
 				while(keys.hasNext()) {
 					String key = keys.next();
@@ -660,6 +675,7 @@ public abstract class AbstractConfig implements Cloneable {
 				} else {
 					throw new IllegalAccessException("Unsupported collection type ["+fieldClass.getName()+"]");
 				}
+				// configValue can not be null... for now... I prefer keep the check because I'm not sure how I will support the other types. It may become handy.
 				if (configValue != null) {
 					JSONObject jsonObjValue = null;
 					try{
@@ -688,6 +704,8 @@ public abstract class AbstractConfig implements Cloneable {
 							}
 						}
 					} else if(jsonObjValue.length() > 0) {
+						// Suppress warnings: The JSON library do not use generics properly
+						@SuppressWarnings("unchecked")
 						Iterator<String> keys = jsonObjValue.keys();
 						while(keys.hasNext()) {
 							String key = keys.next();
@@ -732,6 +750,8 @@ public abstract class AbstractConfig implements Cloneable {
 						}
 					}
 				} else if(jsonObjValue.length() > 0) {
+					// Suppress warnings: The JSON library do not use generics properly
+					@SuppressWarnings("unchecked")
 					Iterator<String> keys = jsonObjValue.keys();
 					while(keys.hasNext()) {
 						String key = keys.next();
@@ -749,7 +769,7 @@ public abstract class AbstractConfig implements Cloneable {
 						}
 					}
 				}
-				if (configValue != null && !configValue.isEmpty()) {
+				if (!configValue.isEmpty()) {
 					value = Array.newInstance(arrayType, configValue.size());
 					int i=0;
 					for (Object configVal : configValue) {
@@ -1004,7 +1024,7 @@ public abstract class AbstractConfig implements Cloneable {
 			setter = "set" + capitalizedFieldName;
 		}
 		Method setterMethod = null;
-		if (setter != null && setter.length() > 0) {
+		if (setter.length() > 0) {
 			try {
 				//setterMethod = this.getClass().getDeclaredMethod(setter, type);
 				setterMethod = Utils.getMethod(field.getDeclaringClass(), setter, type);
@@ -1157,7 +1177,7 @@ public abstract class AbstractConfig implements Cloneable {
 								}
 
 							} else if (rawValue.getClass().isArray()) {
-								// Merge Array values
+								// Merge Array values (the variable "newArray" is only for clarity, I could had use "rawValue" instead)
 								Object newArray = rawValue;
 								int newLength = Array.getLength(newArray);
 								if (newLength > 0) {

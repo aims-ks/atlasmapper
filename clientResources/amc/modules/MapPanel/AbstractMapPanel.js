@@ -288,12 +288,14 @@ Atlas.AbstractMapPanel = {
 		 * OpenLayers.Control.PanZoom     // Pan and Zoom controls, in the top left corner
 		 * OpenLayers.Control.ArgParser   // Parse the location bar for lon, lat, zoom, and layers information
 		 * OpenLayers.Control.Attribution // Adds attribution from layers to the map display
+		 *
+		 * NOTE: PinchZoom is integrated within Navigation. Adding it double the events!!
+		 *     OpenLayers.Control.PinchZoom(),     // Mobile device zooming, with 2 fingers
 		 */
 		var controls = [];
 		if (this.embedded) {
 			controls = [
 				new OpenLayers.Control.Zoom(),          // Nice looking, simple zoom box
-				new OpenLayers.Control.PinchZoom(),     // Mobile device zooming, with 2 fingers
 				new OpenLayers.Control.ScaleLine({geodesic: true}),     // Displays a small line indicator representing the current map scale on the map. ("geodesic: true" has to be set to recalculate the scale line when the map get span closer to the poles)
 				//new OpenLayers.Control.Scale(),         // Displays the map scale (example: 1:1M).
 				new OpenLayers.Control.MousePosition({
@@ -306,7 +308,6 @@ Atlas.AbstractMapPanel = {
 		} else {
 			controls = [
 				new OpenLayers.Control.PanZoomBar(),    // Pan and Zoom (with a zoom bar) controls, in the top left corner
-				new OpenLayers.Control.PinchZoom(),     // Mobile device zooming, with 2 fingers
 				new OpenLayers.Control.ScaleLine({geodesic: true}),     // Displays a small line indicator representing the current map scale on the map. ("geodesic: true" has to be set to recalculate the scale line when the map get span closer to the poles)
 				//new OpenLayers.Control.Scale(),         // Displays the map scale (example: 1:1M).
 				new OpenLayers.Control.MousePosition({
@@ -632,6 +633,9 @@ Atlas.AbstractMapPanel = {
 			return null;
 		}
 
+		// IE BUG: IE Ignore empty values when splitting (why??)
+		//     http://blog.stevenlevithan.com/archives/cross-browser-split
+		// See: modules/Utils/ECMAScriptPatch.js
 		var rawValueParts = rawValue.split(/\s*,\s*/);
 		var valueParts = [];
 		for (var i= 0, len=rawValueParts.length; i<len; i++) {
