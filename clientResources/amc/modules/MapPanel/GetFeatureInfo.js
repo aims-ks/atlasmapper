@@ -158,16 +158,16 @@ Atlas.MapPanel.GetFeatureInfo = OpenLayers.Class({
 							var content = featureInfoHTMLArray[i].content;
 							if (content) {
 								nbNoneEmptyContent++;
-								var tabObj = $('tab_'+featureInfoHTMLArray[i].id);
-								var contentObj = $('content_'+featureInfoHTMLArray[i].id);
+								var tabObj = document.getElementById('tab_'+featureInfoHTMLArray[i].id);
+								var contentObj = document.getElementById('content_'+featureInfoHTMLArray[i].id);
 								if (tabObj && contentObj && contentObj.innerHTML !== content) {
 									OpenLayers.Element.removeClass(tabObj, 'hidden');
 									contentObj.innerHTML = content;
 								}
 							} else {
-								var tabObj = $('tab_'+featureInfoHTMLArray[i].id);
+								var tabObj = document.getElementById('tab_'+featureInfoHTMLArray[i].id);
 								if (tabObj) {
-									$('select').removeChild(tabObj);
+									document.getElementById('select').removeChild(tabObj);
 								}
 							}
 						}
@@ -227,7 +227,7 @@ Atlas.MapPanel.GetFeatureInfo = OpenLayers.Class({
 					this.popupBalloon.panMapIfOutOfView = false;
 					this.mapPanel.map.addPopup(this.popupBalloon, true);
 
-					this.addEventListener($('select'), 'change', function(evt) {
+					this.addEventListener(document.getElementById('select'), 'change', function(evt) {
 						// Most common case (of course don't expect that to work on IE)
 						var id = this.value;
 						if (!id) {
@@ -296,17 +296,17 @@ Atlas.MapPanel.GetFeatureInfo = OpenLayers.Class({
 	},
 
 	_activateTab: function(id) {
-		var tab = $('tab_' + id);
-		var content = $('content_' + id);
+		var tab = document.getElementById('tab_' + id);
+		var content = document.getElementById('content_' + id);
 		if (tab && content) {
 			var oldActiveTabId = this.activeTabId;
 			if (oldActiveTabId !== null) {
-				var oldTab = $('tab_' + oldActiveTabId);
+				var oldTab = document.getElementById('tab_' + oldActiveTabId);
 				if (oldTab && oldTab.selected) {
 					delete oldTab.selected;
 					//OpenLayers.Element.removeClass(oldTab, 'active');
 				}
-				var oldContent = $('content_' + oldActiveTabId);
+				var oldContent = document.getElementById('content_' + oldActiveTabId);
 				if (oldContent) {
 					OpenLayers.Element.removeClass(oldContent, 'popup-content-active');
 				}
@@ -337,8 +337,8 @@ Atlas.MapPanel.GetFeatureInfo = OpenLayers.Class({
 		if (tabId === null) {
 			return false;
 		}
-		var tabObj = $('tab_' + tabId);
-		var contentObj = $('content_' + tabId);
+		var tabObj = document.getElementById('tab_' + tabId);
+		var contentObj = document.getElementById('content_' + tabId);
 		return contentObj && tabObj
 				&& !OpenLayers.Element.hasClass(tabObj, 'hidden')
 				&& !OpenLayers.Element.hasClass(tabObj, 'closed');
@@ -346,7 +346,7 @@ Atlas.MapPanel.GetFeatureInfo = OpenLayers.Class({
 
 	closeTab: function(closeTabId) {
 		if (typeof closeTabId !== 'undefined' && closeTabId) {
-			var tabObj = $('tab_' + closeTabId);
+			var tabObj = document.getElementById('tab_' + closeTabId);
 			if (tabObj) {
 				OpenLayers.Element.addClass(tabObj, 'closed');
 				this.swapTab(true);

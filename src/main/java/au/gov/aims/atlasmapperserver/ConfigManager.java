@@ -899,22 +899,18 @@ public class ConfigManager {
 							foundLayerId = foundLayerIDs.next();
 							if (!clientLayers.isNull(foundLayerId)) {
 								LayerWrapper layer = new LayerWrapper(clientLayers.optJSONObject(foundLayerId));
-								if (layer != null) {
-									String foundLayerName = layer.getLayerName();
-									if (layerName.equals(foundLayerName)) {
-										// We found a layer with the same layer ID. We now have to check its data source
-										String foundDataSourceId = layer.getDataSourceId();
-										if (foundDataSourceId != null) {
-											DataSourceWrapper foundDataSource = new DataSourceWrapper(dataSources.optJSONObject(foundDataSourceId));
-											if (foundDataSource != null) {
-												String foundServiceUrl = foundDataSource.getServiceUrl();
+								String foundLayerName = layer.getLayerName();
+								if (layerName.equals(foundLayerName)) {
+									// We found a layer with the same layer ID. We now have to check its data source
+									String foundDataSourceId = layer.getDataSourceId();
+									if (foundDataSourceId != null) {
+										DataSourceWrapper foundDataSource = new DataSourceWrapper(dataSources.optJSONObject(foundDataSourceId));
+										String foundServiceUrl = foundDataSource.getServiceUrl();
 
-												// Check if URLs are similar ("http://www.a.com/?a=b&b=c" == "http://www.a.com:80/?b=c&a=b")
-												if (Utils.equalsWMSUrl(foundServiceUrl, serviceUrl)) {
-													foundLayer = layer;
-													foundLayer.setLayerId(foundLayerId);
-												}
-											}
+										// Check if URLs are similar ("http://www.a.com/?a=b&b=c" == "http://www.a.com:80/?b=c&a=b")
+										if (Utils.equalsWMSUrl(foundServiceUrl, serviceUrl)) {
+											foundLayer = layer;
+											foundLayer.setLayerId(foundLayerId);
 										}
 									}
 								}
@@ -934,13 +930,11 @@ public class ConfigManager {
 							foundLayerId = foundLayerIDs.next();
 							if (!clientLayers.isNull(foundLayerId)) {
 								LayerWrapper layer = new LayerWrapper(clientLayers.optJSONObject(foundLayerId));
-								if (layer != null) {
-									String foundLayerKMLUrl = layer.getKmlUrl();
-									if (kmlUrl.equals(foundLayerKMLUrl)) {
-										// We found a layer with the same KML URL. Let assume it's the good one
-										foundLayer = layer;
-										foundLayer.setLayerId(foundLayerId);
-									}
+								String foundLayerKMLUrl = layer.getKmlUrl();
+								if (kmlUrl.equals(foundLayerKMLUrl)) {
+									// We found a layer with the same KML URL. Let assume it's the good one
+									foundLayer = layer;
+									foundLayer.setLayerId(foundLayerId);
 								}
 							}
 						}
