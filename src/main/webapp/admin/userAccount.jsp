@@ -111,7 +111,7 @@
 				default:
 					response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 					jsonObj.put("success", false);
-					jsonObj.put("errors", new JSONArray().put("Unknown action '"+actionStr+"'."));
+					jsonObj.put("errors", new JSONArray().put("Unknown action '"+actionStr+"'.")); // TODO WATCHOUT FOR INJECTION!!!
 					break;
 			}
 		}

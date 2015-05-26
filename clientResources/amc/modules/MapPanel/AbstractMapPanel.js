@@ -167,7 +167,7 @@ Atlas.AbstractMapPanel = {
 		// Locate: ID of a layer to automatically locate.
 		var urlLocate = this._getRawParameter('loc');
 		if (urlLocate != null) {
-			this.urlState.locate = decodeURIComponent(urlLocate);
+			this.urlState.locate = urlLocate;
 		}
 		// Load default layers:
 		if (typeof(parameters['dl']) !== 'undefined' && parameters['dl'] != null) {
@@ -658,7 +658,7 @@ Atlas.AbstractMapPanel = {
 			var queryPair = queryPart.split("=");
 			var key = decodeURIComponent(queryPair[0]);
 			if (parameter === key) {
-				return queryPair[1];
+				return decodeURIComponent(queryPair[1]);
 			}
 		}
 		return null;

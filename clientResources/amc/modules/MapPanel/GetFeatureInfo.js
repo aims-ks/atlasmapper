@@ -30,6 +30,21 @@
  *     map: mapPanel.map
  * });
  */
+
+/**
+ * Remove decimal value in pixel coordinates.
+ * This happen when the browser window is zoomed in.
+ */
+Atlas.MapPanel.fixCoordinate = function(coord) {
+	if (coord.x) {
+		coord.x = Math.floor(coord.x);
+	}
+	if (coord.y) {
+		coord.y = Math.floor(coord.y);
+	}
+	return coord;
+};
+
 Atlas.MapPanel.GetFeatureInfo = OpenLayers.Class({
 	popupBalloon: null,
 	activePopupId: null,
@@ -95,6 +110,7 @@ Atlas.MapPanel.GetFeatureInfo = OpenLayers.Class({
 
 	// This event is called once per layer, for each feature requests.
 	parseFeatureInfoResponse: function(evt) {
+		evt.xy = Atlas.MapPanel.fixCoordinate(evt.xy);
 		var popupId = evt.xy.x + "-" + evt.xy.y;
 
 		// Only consider responses for the latest request.
@@ -144,6 +160,7 @@ Atlas.MapPanel.GetFeatureInfo = OpenLayers.Class({
 	//     so I'm recreating the popup every time I receive a new response.
 	showPopup: function(evt, featureInfoHTMLArray) {
 		if (evt && featureInfoHTMLArray && featureInfoHTMLArray.length > 0) {
+			evt.xy = Atlas.MapPanel.fixCoordinate(evt.xy);
 			var popupId = evt.xy.x + "-" + evt.xy.y;
 
 			// private references to popups, usable within
@@ -462,6 +479,7 @@ Atlas.MapPanel.SingleLayerFeatureInfo = OpenLayers.Class(OpenLayers.Control.WMSG
 	 */
 	// Override
 	request: function(clickPosition, options) {
+		clickPosition = Atlas.MapPanel.fixCoordinate(clickPosition);
 		if (this.mapPanel.featureRequestsEnabled) {
 			// Only show feature requests for this popup
 			// If request has been sent but not yet received, they will be ignored.
