@@ -25,6 +25,7 @@ window["Atlas"]["Layer"] = window["Atlas"]["Layer"] || {};
 
 Atlas.Layer.KML = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 	KML_ALLOW_JAVASCRIPT: false,
+	supportLoadEvents: false,
 
 	/**
 	 * Constructor: Atlas.Layer.KML

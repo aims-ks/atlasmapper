@@ -24,6 +24,8 @@ window["Atlas"] = window["Atlas"] || {};
 window["Atlas"]["Layer"] = window["Atlas"]["Layer"] || {};
 
 Atlas.Layer.PrintFrame = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
+	supportLoadEvents: false,
+
 	/**
 	 * Constructor: Atlas.Layer.PrintFrame
 	 *

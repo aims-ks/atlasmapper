@@ -30,7 +30,7 @@ Ext.namespace("Ext.ux.form");
 
 Ext.ux.form.MinMaxField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 	// String used to put between the two values - can be override
-	spacer: ',',
+	spacer: '%2C',
 
 	// private
 	minValue: null,

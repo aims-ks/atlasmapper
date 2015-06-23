@@ -41,6 +41,7 @@ Atlas.Layer.SearchResults = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 	searchServiceUrl: null,
 	searchCount: 0,
 	selectedResultId: null,
+	supportLoadEvents: false,
 
 	page: -1,
 	nbPages: 0,
@@ -194,15 +195,15 @@ Atlas.Layer.SearchResults = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 			if (jsonResponse.success) {
 				var value = jsonResponse.data;
 
-				// The server can not always return what the user ask...
-				// If the user ask for the Xth page of a search that now
-				// returns less than X pages, the server will jump to the
-				// first page (very rare case).
-				if (typeof(value.offset) === 'number') {
-					this.page = value.offset / this.NB_RESULTS_PER_PAGE;
-				}
-
 				if (value) {
+					// The server can not always return what the user ask...
+					// If the user ask for the Xth page of a search that now
+					// returns less than X pages, the server will jump to the
+					// first page (very rare case).
+					if (value.hasOwnProperty("offset") && typeof(value.offset) === 'number') {
+						this.page = value.offset / this.NB_RESULTS_PER_PAGE;
+					}
+
 					_nbResults = value.length || 0;
 					this.nbPages = Math.ceil(_nbResults / this.NB_RESULTS_PER_PAGE);
 

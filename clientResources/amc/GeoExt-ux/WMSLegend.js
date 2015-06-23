@@ -298,20 +298,50 @@ GeoExt.ux.WMSLegend = Ext.extend(GeoExt.WMSLegend, {
 			);
 		}
 
-		// add scale parameter - also if we have the url from the record's
-		// styles data field and it is actually a GetLegendGraphic request.
-		if(this.useScaleParameter === true &&
-				url.toLowerCase().indexOf("request=getlegendgraphic") != -1) {
-			var scale = layer.map.getScale();
-			url = Ext.urlAppend(url, "SCALE=" + scale);
-		}
-		var params = this.baseParams || {};
-		Ext.applyIf(params, {FORMAT: 'image/gif'});
-		if(url.indexOf('?') > 0) {
-			url = Ext.urlEncode(params, url);
+		// Extract the parameters from the URL
+		var parameters = OpenLayers.Util.getParameters(url);
+		// NOTE: Only play with the parameters if there is any parameters (i.e. do not mess around if it's a URL to a static image)
+		if (parameters) {
+			// Remove the parameters from the URL, to be able to modify them (instead of just re-adding the same parameter twice)
+			url = url.substring(0, url.indexOf('?'));
+
+			// add scale parameter - also if we have the url from the record's
+			// styles data field and it is actually a GetLegendGraphic request.
+			if (this.useScaleParameter === true) {
+				var requestParameterKey = this._objectGetCaseInsensitiveKey(parameters, "request");
+				var requestParameter = parameters[requestParameterKey];
+				if (requestParameter && requestParameter.toLowerCase() == "getlegendgraphic") {
+					parameters["SCALE"] = layer.map.getScale();
+				}
+			}
+
+			// Modify the parameters
+			var params = this.baseParams || {};
+			Ext.applyIf(params, {FORMAT: 'image/gif'});
+			//Ext.applyIf(params, parameters);
+
+			var transparentParameterKey = this._objectGetCaseInsensitiveKey(parameters, "transparent");
+			var transparentParamKey = this._objectGetCaseInsensitiveKey(params, "transparent");
+			if (transparentParameterKey != null && transparentParamKey != null) {
+				delete parameters[transparentParameterKey];
+			}
+			Ext.applyIf(parameters, params);
+
+			// Craft a new URL with the new parameters
+			url += "?" + Ext.urlEncode(parameters);
 		}
 
 		return url;
+	},
+
+	_objectGetCaseInsensitiveKey: function(obj, key) {
+		key = (key + "").toLowerCase();
+		for (var prop in obj){
+			if(obj.hasOwnProperty(prop) && key == (prop+ "").toLowerCase()){
+				return prop;
+			}
+		}
+		return null;
 	},
 
 	_setLegendDpiSupport: function(legendDpiSupport) {

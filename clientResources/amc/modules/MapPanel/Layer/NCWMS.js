@@ -205,7 +205,7 @@ Atlas.Layer.NCWMS = OpenLayers.Class(Atlas.Layer.WMS, {
 				var scaleMaxVal = null;
 
 				var minmaxField = new Ext.ux.form.MinMaxField({
-					fieldLabel: 'Color ranges',
+					fieldLabel: 'Colour range',
 					name: scaleParam,
 					decimalPrecision: 4,
 					listeners: {
