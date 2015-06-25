@@ -141,12 +141,27 @@ Atlas.Layer.PrintFrame = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 		var values = [0, 25, 50, 100, 125, 200, 250, 400, 500];
 		var defaultValue = 3; // Index of 100
 
+		var topDefaultValue = defaultValue,
+			leftDefaultValue = defaultValue;
+
+		if (this.layer) {
+			topDefaultValue = values.indexOf(this.layer.getTopCoordLabelsDensity() * 100);
+			if (topDefaultValue < 0) {
+				topDefaultValue = defaultValue;
+			}
+
+			leftDefaultValue = values.indexOf(this.layer.getLeftCoordLabelsDensity() * 100);
+			if (leftDefaultValue < 0) {
+				leftDefaultValue = defaultValue;
+			}
+		}
+
 		var topLabelsSliderConfig = {
 			xtype: 'slider',
 			fieldLabel: 'Horizontal labels',
 			aggressive: false,
 			animate: false,
-			value: defaultValue,
+			value: topDefaultValue,
 			minValue: 0,
 			maxValue: values.length - 1,
 			increment: 1,
@@ -164,7 +179,7 @@ Atlas.Layer.PrintFrame = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 			fieldLabel: 'Vertical labels',
 			aggressive: false,
 			animate: false,
-			value: defaultValue,
+			value: leftDefaultValue,
 			minValue: 0,
 			maxValue: values.length - 1,
 			increment: 1,

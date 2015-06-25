@@ -165,12 +165,19 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 		this._coordLinesFeatures = this._drawCoordLines();
 		this.addFeatures(this._coordLinesFeatures);
 	},
+	getTopCoordLabelsDensity: function() {
+		return this._topCoordLabelsDensity;
+	},
+
 	setLeftCoordLabelsDensity: function(leftCoordLabelsDensity) {
 		this._leftCoordLabelsDensity = leftCoordLabelsDensity;
 		// Redraw the lines
 		this.removeFeatures(this._coordLinesFeatures);
 		this._coordLinesFeatures = this._drawCoordLines();
 		this.addFeatures(this._coordLinesFeatures);
+	},
+	getLeftCoordLabelsDensity: function() {
+		return this._leftCoordLabelsDensity;
 	},
 
 	// Get the printed extent (the hole in the frame), in lon/lat projection
