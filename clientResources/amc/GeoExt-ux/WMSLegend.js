@@ -298,8 +298,8 @@ GeoExt.ux.WMSLegend = Ext.extend(GeoExt.WMSLegend, {
 			);
 		}
 
-		// Extract the parameters from the URL
-		var parameters = OpenLayers.Util.getParameters(url);
+		// Extract the parameters from the URL (do NOT split the value when there is a coma in it)
+		var parameters = OpenLayers.Util.getParameters(url, {"splitArgs": false});
 		// NOTE: Only play with the parameters if there is any parameters (i.e. do not mess around if it's a URL to a static image)
 		if (parameters) {
 			// Remove the parameters from the URL, to be able to modify them (instead of just re-adding the same parameter twice)

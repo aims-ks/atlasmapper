@@ -202,7 +202,7 @@ OpenLayers.Layer.ux.NCWMS = OpenLayers.Class(OpenLayers.Layer.WMS, {
 	//     parameter: error (string)
 	// scope: Scope used to call the callbacks
 	getAvailableTimes: function(date, callback, errorCallback, scope) {
-		if (!this.atlasLayer || !this.atlasLayer.json) {
+		if (!this.atlasLayer || !this.atlasLayer.json || !date) {
 			// This should not append
 			return;
 		}
@@ -256,6 +256,9 @@ OpenLayers.Layer.ux.NCWMS = OpenLayers.Class(OpenLayers.Layer.WMS, {
 
 	// private
 	_getAvailableTimesRawCallback: function(result, request, date, callback, errorCallback, scope) {
+		if (!date) {
+			return;
+		}
 		var jsonData = null;
 		try {
 			jsonData = Ext.util.JSON.decode(result.responseText);

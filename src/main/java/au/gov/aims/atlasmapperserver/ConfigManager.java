@@ -1641,7 +1641,7 @@ public class ConfigManager {
 		JSONObject jsonObj = null;
 		String jsonStr = jsonStrBuf.toString();
 		if (jsonStr.length() > 0) {
-			jsonObj = new JSONObject(jsonStrBuf.toString());
+			jsonObj = new JSONObject(jsonStr);
 		}
 		return jsonObj;
 	}

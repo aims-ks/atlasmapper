@@ -383,7 +383,7 @@ Atlas.OptionsPanel = Ext.extend(Ext.form.FormPanel, {
 
 							// Set the actual value.
 							if (actualValue) {
-								inputConfig.value = actualValue;
+								inputConfig.value = decodeURIComponent(actualValue);
 							}
 
 							inputObj = this.extraOptionsFieldSet.add(inputConfig);

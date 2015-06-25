@@ -122,8 +122,10 @@ Ext.ux.form.NCDatetimeField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 		// Override the dateField setValue method to reload timeField values at the same time
 		this.dateField.setValue = function(date) {
 			// NOTE: "this" refer to the dateField instance
-			var dateObj = this.parseDate(date);
-			that.reloadTimes(dateObj, false);
+			if (date) {
+				var dateObj = this.parseDate(date);
+				that.reloadTimes(dateObj, false);
+			}
 			Ext.ux.form.DateField.superclass.setValue.call(this, date);
 		};
 
@@ -176,10 +178,12 @@ Ext.ux.form.NCDatetimeField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 		var that = this;
 		this.layer.getAvailableDates(
 			function(availableDates, defaultDate) {
-				that.dateField.setDisabledDates(["^(?!"+availableDates.join("|")+").*$"]);
+				if (availableDates.length > 0) {
+					that.dateField.setDisabledDates(["^(?!"+availableDates.join("|")+").*$"]);
+				}
 
 				// If there is no value set, set the default value.
-				if (!that.dateField.getValue()) {
+				if (!that.dateField.getValue() && defaultDate) {
 					that.setValue(defaultDate);
 				}
 			},
@@ -191,7 +195,7 @@ Ext.ux.form.NCDatetimeField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 	},
 
 	reloadTimes: function(date, setTime) {
-		if (!this.layer) {
+		if (!this.layer || !date) {
 			// This should not append
 			return;
 		}

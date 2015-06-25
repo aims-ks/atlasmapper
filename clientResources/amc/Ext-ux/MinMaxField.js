@@ -30,7 +30,7 @@ Ext.namespace("Ext.ux.form");
 
 Ext.ux.form.MinMaxField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 	// String used to put between the two values - can be override
-	spacer: '%2C',
+	spacer: ',',
 
 	// private
 	minValue: null,
@@ -131,6 +131,10 @@ Ext.ux.form.MinMaxField = Ext.extend(Ext.ux.form.CompositeFieldAnchor, {
 
 		var minIsNull = min == null || min == '';
 		var maxIsNull = max == null || max == '';
+
+		// Injection protection
+		if (isNaN(min)) { min = 0; }
+		if (isNaN(max)) { max = 0; }
 
 		// Empty values should return an empty string (or null?)
 		if (minIsNull && maxIsNull) {

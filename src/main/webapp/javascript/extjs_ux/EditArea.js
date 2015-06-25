@@ -85,8 +85,8 @@ Ext.apply(Ext.form.field.VTypes, {
 
 		// Check for duplicate entries: the client allow this, not the server
 		// Solution: Remove anything that may be different (white spaces, comas, quotes, non ASCII characters - encoded and unencoded) and compare the result.
-		var parsedResult = Ext.JSON.encode(json).replace(/[\s"',]/g,'').replace(/\\u[0-9a-f]{4}/g,'').replace(/[^\u0000-\u007f]/g,'');
-		var parsedValue = val.replace(/[\s"',]/g,'').replace(/\\u[0-9a-f]{4}/g,'').replace(/[^\u0000-\u007f]/g,'');
+		var parsedResult = Ext.JSON.encode(json).replace(/[\s"',]/g,'').replace(/\\u[0-9a-f]{4}/g,'').replace(/[^\u0000-\u007f]/g,'').replace(/<\\\//g, '</');
+		var parsedValue = val.replace(/[\s"',]/g,'').replace(/\\u[0-9a-f]{4}/g,'').replace(/[^\u0000-\u007f]/g,'').replace(/<\\\//g, '</');
 		if (parsedResult != parsedValue) {
 			this.jsonfieldText = 'An error occurred while parsing the JSON. Ensure that you do not have any <b>duplicate element</b>. See the documentation for more info.';
 			return false;
