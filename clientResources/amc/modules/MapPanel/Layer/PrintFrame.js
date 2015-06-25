@@ -136,6 +136,88 @@ Atlas.Layer.PrintFrame = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 		}
 	},
 
+	// Override
+	setOptions: function(optionsPanel) {
+		var values = [0, 25, 50, 100, 125, 200, 250, 400, 500];
+		var defaultValue = 3; // Index of 100
+
+		var topLabelsSliderConfig = {
+			xtype: 'slider',
+			fieldLabel: 'Horizontal labels',
+			aggressive: false,
+			animate: false,
+			value: defaultValue,
+			minValue: 0,
+			maxValue: values.length - 1,
+			increment: 1,
+			listeners: {
+				change: function(slider, newValue, thumb) {
+					if (this.layer) {
+						this.layer.setTopCoordLabelsDensity(values[newValue] / 100);
+					}
+				},
+				scope: this
+			}
+		};
+		var leftLabelsSliderConfig = {
+			xtype: 'slider',
+			fieldLabel: 'Vertical labels',
+			aggressive: false,
+			animate: false,
+			value: defaultValue,
+			minValue: 0,
+			maxValue: values.length - 1,
+			increment: 1,
+			listeners: {
+				change: function(slider, newValue, thumb) {
+					if (this.layer) {
+						this.layer.setLeftCoordLabelsDensity(values[newValue] / 100);
+					}
+				},
+				scope: this
+			}
+		};
+
+		if (typeof(Ext) === "object" &&
+				typeof(Ext.slider) === "object" &&
+				typeof(Ext.slider.Tip) === "function") {
+
+			topLabelsSliderConfig.plugins = new Ext.slider.Tip({
+				getText: function(thumb){
+					return String.format('{0}%', values[thumb.value]);
+				}
+			});
+			leftLabelsSliderConfig.plugins = new Ext.slider.Tip({
+				getText: function(thumb){
+					return String.format('{0}%', values[thumb.value]);
+				}
+			});
+		}
+
+		// Fix the bug of the thumb on top of other elements.
+		// WARNING: topThumbZIndex is not in the API doc of ExtJS.
+		// IE NOTE: This bug do not occur with IE6 & 7, and the fix give errors,
+		//     but the bug do occur with IE8 and later.
+		if (!Ext.isIE6 && !Ext.isIE7) {
+			topLabelsSliderConfig.topThumbZIndex = 'auto';
+			leftLabelsSliderConfig.topThumbZIndex = 'auto';
+		}
+
+		var slidersFieldsetConfig = {
+			xtype: 'fieldset',
+			title: 'Scale lines',
+			defaults: {
+				anchor:'100%'
+			},
+			items: [
+				topLabelsSliderConfig,
+				leftLabelsSliderConfig
+			]
+		}
+
+		optionsPanel.addOption(this, slidersFieldsetConfig);
+	},
+
 	onRemoveLayer: function(evt) {
 		if (evt.layer === this.layer) {
 			this._unregisterListeners();

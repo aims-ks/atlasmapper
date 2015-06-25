@@ -80,6 +80,8 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 	_scaleFontSize: null,
 	_frameWidth: null,
 	_coordLinesWidth: null,
+	_topCoordLabelsDensity: 1,
+	_leftCoordLabelsDensity: 1,
 
 	// The offset (in pixels) between the clicked location and the
 	// bottom right corner of the frame, calculated before resize start
@@ -154,6 +156,21 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 				[printedFrameBounds.right, printedFrameBounds.bottom]
 			);
 		}
+	},
+
+	setTopCoordLabelsDensity: function(topCoordLabelsDensity) {
+		this._topCoordLabelsDensity = topCoordLabelsDensity;
+		// Redraw the lines
+		this.removeFeatures(this._coordLinesFeatures);
+		this._coordLinesFeatures = this._drawCoordLines();
+		this.addFeatures(this._coordLinesFeatures);
+	},
+	setLeftCoordLabelsDensity: function(leftCoordLabelsDensity) {
+		this._leftCoordLabelsDensity = leftCoordLabelsDensity;
+		// Redraw the lines
+		this.removeFeatures(this._coordLinesFeatures);
+		this._coordLinesFeatures = this._drawCoordLines();
+		this.addFeatures(this._coordLinesFeatures);
 	},
 
 	// Get the printed extent (the hole in the frame), in lon/lat projection
@@ -956,10 +973,6 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 			strokeWidth: this._strokeWidth / 2
 		};
 
-		// Step scaled to the resolution (bigger resolution = bigger font = less place between steps)
-		var MAX_STEP_PIXELS = 600 * this._dpiRatio,
-			MIN_STEP_PIXELS = 100 * this._dpiRatio;
-
 		var bounds = this.getNativePrintedExtent();
 		if (!bounds) {
 			// The frame has not been drawn yet... This should not happen...
@@ -967,141 +980,83 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 		}
 		var printedFrameBounds = this._deproject(bounds.clone());
 
-		var coordLinesStep = null; // This will be configurable in the future
-		var nbSubDivisions = null; // This will be configurable in the future
-
-		// If coordLinesStep is null, undefined, empty string, 0 (0 is an invalid step) or smaller than zero
-		if (!coordLinesStep || coordLinesStep <= 0) {
-			coordLinesStep = 1; // 1 deg
-
-			// Length of 1 deg, in pixels
-			var lengthPixels = this._oneDegreeLength || 1;
-
-			if (lengthPixels < MIN_STEP_PIXELS) {
-				var recommendedNbSubDivisions = 1;
-				// Upscale - Add more degrees per coordinate line
-				while (lengthPixels < MIN_STEP_PIXELS) {
-					if (coordLinesStep == 1) {
-						lengthPixels *= 2;
-						coordLinesStep *= 2;
-						recommendedNbSubDivisions = 2;
-					} else if (coordLinesStep == 2) {
-						lengthPixels *= 2.5;
-						coordLinesStep *= 2.5;
-						recommendedNbSubDivisions = 5;
-					} else if (coordLinesStep == 5) {
-						lengthPixels *= 2;
-						coordLinesStep *= 2;
-						recommendedNbSubDivisions = 10;
-					} else {
-						lengthPixels *= 2;
-						coordLinesStep *= 2;
-						recommendedNbSubDivisions = 2;
-					}
-				}
-
-				if (!nbSubDivisions) {
-					nbSubDivisions = recommendedNbSubDivisions;
-				}
-			} else {
-				var recommendedNbSubDivisions = 10;
-				// Downscale - Add more divisions between degrees
-				while (lengthPixels > MAX_STEP_PIXELS) {
-					if (coordLinesStep == 1) {
-						recommendedNbSubDivisions = 5;
-						lengthPixels /= 2;
-						coordLinesStep /= 2;
-					} else if (coordLinesStep == 0.5) {
-						recommendedNbSubDivisions = 10;
-						lengthPixels /= 5;
-						coordLinesStep /= 5;
-					} else {
-						recommendedNbSubDivisions = 10;
-						lengthPixels /= 10;
-						coordLinesStep /= 10;
-					}
-				}
-
-				if (!nbSubDivisions) {
-					nbSubDivisions = recommendedNbSubDivisions;
-				}
-			}
-		}
-
-		var subCoordLinesStep = coordLinesStep / nbSubDivisions;
-
 		var subCoordLinesWidth = this._coordLinesWidth / 2;
-
-		/**
-		 * Coordinate lines - horizontals
-		 */
-
-		var starty = Math.round(printedFrameBounds.bottom / coordLinesStep) * coordLinesStep;
-		while (starty - coordLinesStep >= printedFrameBounds.bottom) {
-			starty = starty - coordLinesStep;
-		}
-		while (starty < printedFrameBounds.bottom) {
-			starty = starty + coordLinesStep;
-		}
 
 		// List of features that has to be redraw according to the new position of frame
 		var coordLinesFeatures = [];
 		var subCoordLinesFeatures = [];
+		var label;
+
+		/**
+		 * Coordinate lines - horizontals
+		 */
+		var topCoordLinesStep = this._calculateCoodLinesStep(this._topCoordLabelsDensity);
+		var topSubCoordLinesStep = topCoordLinesStep["step"] / topCoordLinesStep["divisions"];
+
+		var startx = Math.round(printedFrameBounds.left / topCoordLinesStep["step"]) * topCoordLinesStep["step"];
+		while (startx - topCoordLinesStep["step"] >= printedFrameBounds.left) {
+			startx = startx - topCoordLinesStep["step"];
+		}
+		while (startx < printedFrameBounds.left) {
+			startx = startx + topCoordLinesStep["step"];
+		}
+
+		// First Sub divisions before the first large line
+		var startSubx = startx;
+		while (startSubx - topSubCoordLinesStep >= printedFrameBounds.left) {
+			startSubx = startSubx - topSubCoordLinesStep;
+		}
+		for (var subx = startSubx; coordLinesFeatures.length + subCoordLinesFeatures.length < maxCoordLines && subx < startx && subx <= printedFrameBounds.right; subx += topSubCoordLinesStep) {
+			subCoordLinesFeatures.push(this._newLine(subx, printedFrameBounds.top, subCoordLinesWidth, 'north', coordSubDivisionLineStyle));
+			subCoordLinesFeatures.push(this._newLine(subx, printedFrameBounds.bottom, subCoordLinesWidth, 'south', coordSubDivisionLineStyle));
+		}
+
+		for (var x = startx; coordLinesFeatures.length < maxCoordLines && x <= printedFrameBounds.right; x += topCoordLinesStep["step"]) {
+			label = this._getLabel(x, 'horizontal');
+			coordLinesFeatures.push(this._newLine(x, printedFrameBounds.top, this._coordLinesWidth, 'north', coordLineStyle, this._labelsFontSize / 3 * 2, label));
+			coordLinesFeatures.push(this._newLine(x, printedFrameBounds.bottom, this._coordLinesWidth, 'south', coordLineStyle));
+			// Sub divisions
+			for (var subx = topSubCoordLinesStep; coordLinesFeatures.length + subCoordLinesFeatures.length < maxCoordLines && subx < topCoordLinesStep["step"] && x + subx <= printedFrameBounds.right; subx += topSubCoordLinesStep) {
+				subCoordLinesFeatures.push(this._newLine(x + subx, printedFrameBounds.top, subCoordLinesWidth, 'north', coordSubDivisionLineStyle));
+				subCoordLinesFeatures.push(this._newLine(x + subx, printedFrameBounds.bottom, subCoordLinesWidth, 'south', coordSubDivisionLineStyle));
+			}
+		}
+
+		/**
+		 * Coordinate lines - verticals
+		 */
+		var leftCoordLinesStep = this._calculateCoodLinesStep(this._leftCoordLabelsDensity);
+		var leftSubCoordLinesStep = leftCoordLinesStep["step"] / leftCoordLinesStep["divisions"];
+
+		var starty = Math.round(printedFrameBounds.bottom / leftCoordLinesStep["step"]) * leftCoordLinesStep["step"];
+		while (starty - leftCoordLinesStep["step"] >= printedFrameBounds.bottom) {
+			starty = starty - leftCoordLinesStep["step"];
+		}
+		while (starty < printedFrameBounds.bottom) {
+			starty = starty + leftCoordLinesStep["step"];
+		}
 
 		// First Sub divisions before the first large line
 		var startSuby = starty;
-		while (startSuby - subCoordLinesStep >= printedFrameBounds.bottom) {
-			startSuby = startSuby - subCoordLinesStep;
+		while (startSuby - leftSubCoordLinesStep >= printedFrameBounds.bottom) {
+			startSuby = startSuby - leftSubCoordLinesStep;
 		}
-		for (var suby = startSuby; coordLinesFeatures.length + subCoordLinesFeatures.length < maxCoordLines && suby < starty && suby <= printedFrameBounds.top; suby += subCoordLinesStep) {
+		for (var suby = startSuby; coordLinesFeatures.length + subCoordLinesFeatures.length < maxCoordLines && suby < starty && suby <= printedFrameBounds.top; suby += leftSubCoordLinesStep) {
 			subCoordLinesFeatures.push(this._newLine(printedFrameBounds.left, suby, subCoordLinesWidth, 'west', coordSubDivisionLineStyle));
 			subCoordLinesFeatures.push(this._newLine(printedFrameBounds.right, suby, subCoordLinesWidth, 'east', coordSubDivisionLineStyle));
 		}
 
-		var label;
-		for (var y = starty; coordLinesFeatures.length < maxCoordLines && y <= printedFrameBounds.top; y += coordLinesStep) {
-			label = this._getLabel(y, 'horizontal');
+		for (var y = starty; coordLinesFeatures.length < maxCoordLines && y <= printedFrameBounds.top; y += leftCoordLinesStep["step"]) {
+			label = this._getLabel(y, 'vertical');
 			coordLinesFeatures.push(this._newLine(printedFrameBounds.left, y, this._coordLinesWidth, 'west', coordLineStyle, 10, label));
 			coordLinesFeatures.push(this._newLine(printedFrameBounds.right, y, this._coordLinesWidth, 'east', coordLineStyle, 10));
 			// Sub divisions
-			for (var suby = subCoordLinesStep; coordLinesFeatures.length + subCoordLinesFeatures.length < maxCoordLines && suby < coordLinesStep && y + suby <= printedFrameBounds.top; suby += subCoordLinesStep) {
+			for (var suby = leftSubCoordLinesStep; coordLinesFeatures.length + subCoordLinesFeatures.length < maxCoordLines && suby < leftCoordLinesStep["step"] && y + suby <= printedFrameBounds.top; suby += leftSubCoordLinesStep) {
 				subCoordLinesFeatures.push(this._newLine(printedFrameBounds.left, y + suby, subCoordLinesWidth, 'west', coordSubDivisionLineStyle));
 				subCoordLinesFeatures.push(this._newLine(printedFrameBounds.right, y + suby, subCoordLinesWidth, 'east', coordSubDivisionLineStyle));
 			}
 		}
 
-		/**
-		 * Coord lines - verticals
-		 */
-
-		var startx = Math.round(printedFrameBounds.left / coordLinesStep) * coordLinesStep;
-		while (startx - coordLinesStep >= printedFrameBounds.left) {
-			startx = startx - coordLinesStep;
-		}
-		while (startx < printedFrameBounds.left) {
-			startx = startx + coordLinesStep;
-		}
-
-		// First Sub divisions before the first large line
-		var startSubx = startx;
-		while (startSubx - subCoordLinesStep >= printedFrameBounds.left) {
-			startSubx = startSubx - subCoordLinesStep;
-		}
-		for (var subx = startSubx; coordLinesFeatures.length + subCoordLinesFeatures.length < maxCoordLines && subx < startx && subx <= printedFrameBounds.right; subx += subCoordLinesStep) {
-			subCoordLinesFeatures.push(this._newLine(subx, printedFrameBounds.top, subCoordLinesWidth, 'north', coordSubDivisionLineStyle));
-			subCoordLinesFeatures.push(this._newLine(subx, printedFrameBounds.bottom, subCoordLinesWidth, 'south', coordSubDivisionLineStyle));
-		}
-
-		for (var x = startx; coordLinesFeatures.length < maxCoordLines && x <= printedFrameBounds.right; x += coordLinesStep) {
-			label = this._getLabel(x, 'vertical');
-			coordLinesFeatures.push(this._newLine(x, printedFrameBounds.top, this._coordLinesWidth, 'north', coordLineStyle, this._labelsFontSize / 3 * 2, label));
-			coordLinesFeatures.push(this._newLine(x, printedFrameBounds.bottom, this._coordLinesWidth, 'south', coordLineStyle));
-			// Sub divisions
-			for (var subx = subCoordLinesStep; coordLinesFeatures.length + subCoordLinesFeatures.length < maxCoordLines && subx < coordLinesStep && x + subx <= printedFrameBounds.right; subx += subCoordLinesStep) {
-				subCoordLinesFeatures.push(this._newLine(x + subx, printedFrameBounds.top, subCoordLinesWidth, 'north', coordSubDivisionLineStyle));
-				subCoordLinesFeatures.push(this._newLine(x + subx, printedFrameBounds.bottom, subCoordLinesWidth, 'south', coordSubDivisionLineStyle));
-			}
-		}
 
 		// There is too many lines... Do not return them
 		if (coordLinesFeatures.length > maxCoordLines) {
@@ -1120,6 +1075,70 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 		}
 
 		return allLines;
+	},
+
+	// Calculate the amount of space between each labels (in degree)
+	// and the amount of intermediate lines between each labels.
+	_calculateCoodLinesStep: function(coordLabelsDensity) {
+		// Step scaled to the resolution (bigger resolution = bigger font = less place between steps)
+		var MAX_STEP_PIXELS = 600 * this._dpiRatio,
+			MIN_STEP_PIXELS = 100 * this._dpiRatio;
+
+		var coordLinesStep = 1; // 1 deg
+		var nbSubDivisions = null;
+
+		// Length of 1 deg, in pixels
+		var lengthPixels = this._oneDegreeLength || 1;
+
+		if (lengthPixels < MIN_STEP_PIXELS) {
+			nbSubDivisions = 1;
+			// Upscale - Add more degrees per coordinate line
+			while (lengthPixels < MIN_STEP_PIXELS) {
+				if (coordLinesStep == 1) {
+					lengthPixels *= 2;
+					coordLinesStep *= 2;
+					nbSubDivisions = 2;
+				} else if (coordLinesStep == 2) {
+					lengthPixels *= 2.5;
+					coordLinesStep *= 2.5;
+					nbSubDivisions = 5;
+				} else if (coordLinesStep == 5) {
+					lengthPixels *= 2;
+					coordLinesStep *= 2;
+					nbSubDivisions = 10;
+				} else {
+					lengthPixels *= 2;
+					coordLinesStep *= 2;
+					nbSubDivisions = 2;
+				}
+			}
+		} else {
+			nbSubDivisions = 10;
+			// Downscale - Add more divisions between degrees
+			while (lengthPixels > MAX_STEP_PIXELS) {
+				if (coordLinesStep == 1) {
+					nbSubDivisions = 5;
+					lengthPixels /= 2;
+					coordLinesStep /= 2;
+				} else if (coordLinesStep == 0.5) {
+					nbSubDivisions = 10;
+					lengthPixels /= 5;
+					coordLinesStep /= 5;
+				} else {
+					nbSubDivisions = 10;
+					lengthPixels /= 10;
+					coordLinesStep /= 10;
+				}
+			}
+		}
+
+		coordLinesStep /= coordLabelsDensity;
+		nbSubDivisions = Math.floor(nbSubDivisions / coordLabelsDensity);
+
+		return {
+			"step": coordLinesStep,
+			"divisions": nbSubDivisions
+		};
 	},
 
 	/**
@@ -1663,12 +1682,12 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 	_getLabel: function(value, orientation) {
 		var epsilon = 0.0000000000001;
 
-		if (orientation === 'vertical') {
+		if (orientation === 'horizontal') {
 			value = this._correctLongitude(value);
 		}
 
 		var label = (value < 0 ? (value*-1) : value).toFixed(6).replace(/00*$/, '').replace(/\.\.*$/, '');
-		if (orientation === 'vertical') {
+		if (orientation === 'horizontal') {
 			label += (value + epsilon < 0 ? 'º W' : 'º E');
 		} else {
 			label += (value + epsilon < 0 ? 'º S' : 'º N');
