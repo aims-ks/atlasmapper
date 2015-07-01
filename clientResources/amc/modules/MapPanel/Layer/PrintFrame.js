@@ -228,7 +228,7 @@ Atlas.Layer.PrintFrame = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 				topLabelsSliderConfig,
 				leftLabelsSliderConfig
 			]
-		}
+		};
 
 		optionsPanel.addOption(this, slidersFieldsetConfig);
 	},
@@ -295,7 +295,7 @@ Atlas.Layer.PrintFrame = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 		// Remove some digits, 5 is about 1 meter resolution. Also remove trailing 0s and the dot if needed:
 		//     5.000002387394
 		//     => (5.000002387394).toFixed(5) = "5.00000"
-		//     => "5.00000".replace(/00*$/, '') = "5."
+		//     => "5.00000".replace(/00*$/, '') = "5." (00* is equivalent to 0+, but quicker)
 		//     => "5.".replace(/\.$/, '') = "5"
 		//     => Return "5"
 		return value.toFixed(5).replace(/00*$/, '').replace(/\.$/, '');

@@ -67,7 +67,7 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 			for (var i=0, len=this.json['options'].length; i < len; i++) {
 				var option = this.json['options'][i];
 				if (option['name'] && typeof(option['defaultValue']) !== 'undefined') {
-					this.json['olParams'][option['name'].toUpperCase()] = encodeURIComponent(option['defaultValue']);
+					this.json['olParams'][option['name'].toUpperCase()] = option['defaultValue'];
 				}
 			}
 		}
@@ -566,7 +566,7 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 		}
 		for (var key in overrides) {
 			if (overrides.hasOwnProperty(key)) {
-				config[key] = encodeURIComponent(overrides[key]);
+				config[key] = overrides[key];
 			}
 		}
 		return config;
