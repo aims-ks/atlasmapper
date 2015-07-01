@@ -82,6 +82,7 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 	_coordLinesWidth: null,
 	_topCoordLabelsDensity: 1,
 	_leftCoordLabelsDensity: 1,
+	_dragControl: null,
 
 	// The offset (in pixels) between the clicked location and the
 	// bottom right corner of the frame, calculated before resize start
@@ -358,19 +359,19 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 		//     one on top, this layer must be added to the
 		//     multiSelectDragFeature, after activate a unique
 		//     DragFeature for the whole layer.
-		var dragControl = new OpenLayers.Control.DragFeature(this, {
+		this._dragControl = new OpenLayers.Control.DragFeature(this, {
 			onStart: this.startDrag,
 			onDrag: this.doDrag,
 			onComplete: this.endDrag
 		});
 
 		// Little hack to enable the drag handler only on specified features
-		dragControl.handlers.feature.geometryTypeMatches = function(feature) {
+		this._dragControl.handlers.feature.geometryTypeMatches = function(feature) {
 			return feature.isDragable === true;
 		};
 
-		this.map.addControl(dragControl);
-		dragControl.activate();
+		this.map.addControl(this._dragControl);
+		this._dragControl.activate();
 
 		var multiSelectDragFeature = OpenLayers.Control.ux.MultiSelectDragFeature.getInstance(this.map);
 		multiSelectDragFeature.addLayer(this);
@@ -659,6 +660,9 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 
 					this._scaleLineFeatures = this._drawScaleLine();
 					this.addFeatures(this._scaleLineFeatures);
+
+					// Call the outFeature function (the element has moved, the mouse might not be on top anymore, the function might not be called)
+					this._dragControl.outFeature(this.bboxScale);
 				}
 			}
 
@@ -693,6 +697,9 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 
 					this._northArrowFeatures = this._drawNorthArrow();
 					this.addFeatures(this._northArrowFeatures);
+
+					// Fire the onleave event (the element has moved, the mouse might not be on top anymore)
+					this._dragControl.outFeature(this.bboxArrow);
 				}
 			}
 		}
