@@ -1441,7 +1441,7 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 	},
 
 	// Recalculate the scale line location (centre)
-	_updateScaleLineLocation() {
+	_updateScaleLineLocation: function() {
 		var res = this.map.getResolution();
 		var height = 30 * this._dpiRatio;
 
@@ -1668,7 +1668,7 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 	},
 
 	// Recalculate the arrow location (centre)
-	_updateNorthArrowLocation() {
+	_updateNorthArrowLocation: function() {
 		var res = this.map.getResolution();
 		var arrowWidthPixels = 15 * this._dpiRatio;
 		var arrowHeightPixels = 30 * this._dpiRatio;
