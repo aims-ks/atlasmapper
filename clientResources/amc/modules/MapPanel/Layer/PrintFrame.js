@@ -138,6 +138,7 @@ Atlas.Layer.PrintFrame = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 
 	// Override
 	setOptions: function(optionsPanel) {
+		// Add coordinate lines sliders, to allow the user to add more labels when needed
 		var values = [0, 25, 50, 100, 125, 200, 250, 400, 500];
 		var defaultValue = 3; // Index of 100
 
@@ -220,7 +221,7 @@ Atlas.Layer.PrintFrame = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 
 		var slidersFieldsetConfig = {
 			xtype: 'fieldset',
-			title: 'Scale lines',
+			title: 'Coordinate lines',
 			defaults: {
 				anchor:'100%'
 			},

@@ -315,18 +315,17 @@ GeoExt.ux.WMSLegend = Ext.extend(GeoExt.WMSLegend, {
 				}
 			}
 
-			// Modify the parameters
+			// Get WMS Legend base parameters (including the one specified by the user in "legendParameters")
 			var params = this.baseParams || {};
+			// Legend are preferably GIF (unless specified in "legendParameters")
+			// Ext.applyIf => Apply if not already present
 			Ext.applyIf(params, {FORMAT: 'image/gif'});
-			//Ext.applyIf(params, parameters);
 
-			var transparentParameterKey = this._objectGetCaseInsensitiveKey(parameters, "transparent");
-			var transparentParamKey = this._objectGetCaseInsensitiveKey(params, "transparent");
-			if (transparentParameterKey != null && transparentParamKey != null) {
-				delete parameters[transparentParameterKey];
-			}
-			Ext.applyIf(parameters, params);
+			// Apply user Legend Parameters to the layer parameters
+			Ext.apply(parameters, params);
+		}
 
+		if (parameters) {
 			// Craft a new URL with the new parameters
 			url += "?" + Ext.urlEncode(parameters);
 		}

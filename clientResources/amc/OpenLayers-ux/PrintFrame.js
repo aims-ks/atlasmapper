@@ -95,8 +95,11 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 	// Offset of the north arrow / scale line, from the top left corner of the printed frame, in unit of the map (degree, meter, etc.).
 	// (array of floats [X, Y])
 	northArrowLocation: null,
+	bboxArrow: null,
 	scaleLineLocation: null,
+	bboxScale: null,
 	attributionsFeature: null,
+
 
 	// private
 	_attributionsLabel: null,
@@ -439,7 +442,7 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 			var resizePointPixel = that.map.getPixelFromLonLat(new OpenLayers.LonLat(that._resizePoint.x, that._resizePoint.y));
 			that._resizeOffset = new OpenLayers.Pixel(resizePointPixel.x - pixel.x, resizePointPixel.y - pixel.y);
 
-			// Resize handle starting to move
+			// Resize handle starting to move - remove the coordinate lines with slow browsers (Internet Explorer)
 			if (!that._coordLinesLiveUpdate) {
 				that.removeFeatures(that._coordLinesFeatures);
 			}
@@ -497,6 +500,7 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 				that.removeFeatures(that._coordLinesFeatures);
 				that._coordLinesFeatures = that._drawCoordLines();
 				that.addFeatures(that._coordLinesFeatures);
+				that._updateWidgetsPosition();
 			}
 			lastPixel = pixel;
 
@@ -526,18 +530,6 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 		// Update the save state URL, if needed
 		if (that.atlasLayer && that.atlasLayer.mapPanel && that.atlasLayer.mapPanel.pullState) {
 			that.atlasLayer.mapPanel.pushState();
-		}
-	},
-
-	_moveFeature: function(feature, x, y) {
-		var geometry = null;
-		if (typeof(feature.geometry) === 'object' && typeof(feature.geometry.move) === 'function') {
-			geometry = feature.geometry;
-		} else if (typeof(feature.move) === 'function') {
-			geometry = feature;
-		}
-		if (geometry) {
-			geometry.move(x, y);
 		}
 	},
 
@@ -580,6 +572,7 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 			if (!that._coordLinesLiveUpdate) {
 				that._coordLinesFeatures = that._drawCoordLines();
 				that.addFeatures(that._coordLinesFeatures);
+				that._updateWidgetsPosition();
 			}
 			that._updateAttributions();
 			for (var i = 0; i < that._frameFeatures.length; i++) {
@@ -590,15 +583,120 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 			for (var i = 0; i < that._scaleLineFeatures.length; i++) {
 				that._scaleLineFeatures[i].state = OpenLayers.State.UPDATE;
 			}
+			that._updateScaleLineLocation();
+			that._updateWidgetsPosition();
 
 		} else if (feature.isNorthArrowHandle) {
 			for (var i = 0; i < that._northArrowFeatures.length; i++) {
 				that._northArrowFeatures[i].state = OpenLayers.State.UPDATE;
 			}
+			that._updateNorthArrowLocation();
+			that._updateWidgetsPosition();
 		}
 	},
 
+	_moveFeature: function(feature, x, y) {
+		var geometry = null;
+		if (typeof(feature.geometry) === 'object' && typeof(feature.geometry.move) === 'function') {
+			geometry = feature.geometry;
+		} else if (typeof(feature.move) === 'function') {
+			geometry = feature;
+		}
+		if (geometry) {
+			geometry.move(x, y);
+		}
+	},
 
+	/**
+	 * Ensure the widgets stay close to the edge of the print frame.
+	 * Widgets: North arrow and scale line
+	 */
+	_updateWidgetsPosition: function() {
+		if (this._scaleLineFeatures || this._northArrowFeatures) {
+			// Constants for better readability
+			var X = 0, Y = 1;
+
+			// Find the actual frame bounds, in the unit of the map
+			var printedFrameBounds = this.getNativePrintedExtent();
+			var frameHoleTopLeft = [printedFrameBounds.left, printedFrameBounds.top];
+			var frameHoleBottomRight = [printedFrameBounds.right, printedFrameBounds.bottom];
+
+			var res = this.map.getResolution();
+			var frameWidthDegree = res * this._frameWidth; // frame width, in the unit of the map (degree, meter, etc.)
+
+			// The bottom right corner of the frame (including the white space)
+			var frameTopLeft = [frameHoleTopLeft[X] - frameWidthDegree, frameHoleTopLeft[Y] + frameWidthDegree];
+			var frameBottomRight = [frameHoleBottomRight[X] + frameWidthDegree, frameHoleBottomRight[Y] - frameWidthDegree];
+
+			if (this._scaleLineFeatures) {
+				var locationModified = false;
+				var newX = this.scaleLineLocation[X];
+				var newY = this.scaleLineLocation[Y];
+
+				if (newX > frameBottomRight[X]) {
+					newX = frameBottomRight[X];
+					locationModified = true;
+				}
+				if (newX < frameTopLeft[X]) {
+					newX = frameTopLeft[X];
+					locationModified = true;
+				}
+
+				if (newY < frameBottomRight[Y]) {
+					newY = frameBottomRight[Y];
+					locationModified = true;
+				}
+				if (newY > frameTopLeft[Y]) {
+					newY = frameTopLeft[Y];
+					locationModified = true;
+				}
+
+				if (locationModified) {
+					this.removeFeatures(this._scaleLineFeatures);
+
+					this.scaleLineLocation[X] = newX;
+					this.scaleLineLocation[Y] = newY;
+
+					this._scaleLineFeatures = this._drawScaleLine();
+					this.addFeatures(this._scaleLineFeatures);
+				}
+			}
+
+			if (this._northArrowFeatures) {
+				var locationModified = false;
+				var newX = this.northArrowLocation[X];
+				var newY = this.northArrowLocation[Y];
+
+				if (newX > frameBottomRight[X]) {
+					newX = frameBottomRight[X];
+					locationModified = true;
+				}
+				if (newX < frameTopLeft[X]) {
+					newX = frameTopLeft[X];
+					locationModified = true;
+				}
+
+				if (newY < frameBottomRight[Y]) {
+					newY = frameBottomRight[Y];
+					locationModified = true;
+				}
+				if (newY > frameTopLeft[Y]) {
+					newY = frameTopLeft[Y];
+					locationModified = true;
+				}
+
+				if (locationModified) {
+					this.removeFeatures(this._northArrowFeatures);
+
+					this.northArrowLocation[X] = newX;
+					this.northArrowLocation[Y] = newY;
+
+					this._northArrowFeatures = this._drawNorthArrow();
+					this.addFeatures(this._northArrowFeatures);
+				}
+			}
+		}
+	},
 
 	_registerListeners: function() {
 		if (this.map) {
@@ -1309,28 +1407,25 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 			bottomUnitScaleLineLabelStyle
 		);
 
-		var bboxScale = new OpenLayers.Feature.Vector(
+		this.bboxScale = new OpenLayers.Feature.Vector(
 			new OpenLayers.Geometry.Polygon([bboxScaleRing]),
 			null, // attributes
 			bboxScaleStyle
 		);
-		bboxScale.isDragable = true;
-		bboxScale.isScaleHandle = true;
+		this.bboxScale.isDragable = true;
+		this.bboxScale.isScaleHandle = true;
 
-		var scaleFeatures = [middleLine, startLine, topUnitLine, bottomUnitLine, topUnitLabel, bottomUnitLabel, bboxScale, this.scaleLineAnchor];
+		var scaleFeatures = [middleLine, startLine, topUnitLine, bottomUnitLine, topUnitLabel, bottomUnitLabel, this.bboxScale, this.scaleLineAnchor];
 
 		// Disable the drag control when the element is deleted
 		function beforeFeatureRemoved(e) {
 			var feature = e.feature;
-			if (feature === bboxScale) {
+			if (feature === that.bboxScale) {
 				// Get a fresh copy of the bounds
 				printedFrameBounds = that.getNativePrintedExtent();
 
-				// Recalculate the arrow location (centre)
-				that.scaleLineLocation = [
-					bboxScale.geometry.bounds.left,
-					bboxScale.geometry.bounds.top - (height/2 * res)
-				];
+				// Recalculate the scale line location (centre)
+				that._updateScaleLineLocation();
 
 				// Remove controls and event listeners
 				that.events.un({
@@ -1343,6 +1438,17 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 		});
 
 		return scaleFeatures;
+	},
+
+	// Recalculate the scale line location (centre)
+	_updateScaleLineLocation() {
+		var res = this.map.getResolution();
+		var height = 30 * this._dpiRatio;
+
+		this.scaleLineLocation = [
+			this.bboxScale.geometry.bounds.left,
+			this.bboxScale.geometry.bounds.top - (height/2 * res)
+		];
 	},
 
 	/**
@@ -1528,28 +1634,25 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 			arrowLabelStyle
 		);
 
-		var bboxArrow = new OpenLayers.Feature.Vector(
+		this.bboxArrow = new OpenLayers.Feature.Vector(
 			new OpenLayers.Geometry.Polygon([bboxArrowRing]),
 			null, // attributes
 			bboxArrowStyle
 		);
-		bboxArrow.isDragable = true;
-		bboxArrow.isNorthArrowHandle = true;
+		this.bboxArrow.isDragable = true;
+		this.bboxArrow.isNorthArrowHandle = true;
 
-		var arrowFeatures = [arrow, whiteArrow, label, bboxArrow, this.northArrowAnchor];
+		var arrowFeatures = [arrow, whiteArrow, label, this.bboxArrow, this.northArrowAnchor];
 
 		// Disable the drag control when the element is deleted
 		function beforeFeatureRemoved(e) {
 			var feature = e.feature;
-			if (feature === bboxArrow) {
+			if (feature === that.bboxArrow) {
 				// Get a fresh copy of the bounds
 				printedFrameBounds = that.getNativePrintedExtent();
 
 				// Recalculate the arrow location (centre)
-				that.northArrowLocation = [
-					bboxArrow.geometry.bounds.left + (arrowWidthPixels/2 * res),
-					bboxArrow.geometry.bounds.top - (arrowHeightPixels/2 * res)
-				];
+				that._updateNorthArrowLocation();
 
 				// Remove controls and event listeners
 				that.events.un({
@@ -1564,7 +1667,17 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 		return arrowFeatures;
 	},
 
+	// Recalculate the arrow location (centre)
+	_updateNorthArrowLocation() {
+		var res = this.map.getResolution();
+		var arrowWidthPixels = 15 * this._dpiRatio;
+		var arrowHeightPixels = 30 * this._dpiRatio;
 
+		this.northArrowLocation = [
+			this.bboxArrow.geometry.bounds.left + (arrowWidthPixels/2 * res),
+			this.bboxArrow.geometry.bounds.top - (arrowHeightPixels/2 * res)
+		];
+	},
 
 	_onZoomChange: function() {
 		var res = this.map.getResolution();
@@ -1572,6 +1685,8 @@ OpenLayers.Layer.ux.PrintFrame = OpenLayers.Class(OpenLayers.Layer.Vector, {
 		// Recalculate the length of one degree
 		this._oneDegreeLength = (this._reproject(new OpenLayers.Geometry.Point(1, 0)).x - this._reproject(new OpenLayers.Geometry.Point(0, 0)).x) / res;
 		if (this._oneDegreeLength < 1) { this._oneDegreeLength = 1; }
+
+		this._updateWidgetsPosition();
 	},
 
 
