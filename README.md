@@ -13,7 +13,7 @@ Note: The demo can only connect to web services that are on the public internet 
 More info
 ---------
 
-For more info, consult the AtlasMapper project page.
+For more info, consult the <a href="http://atlasmapper.org/">AtlasMapper website</a>.
 
 Building the AtlasMapper from Source
 ------------------------------------
