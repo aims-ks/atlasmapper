@@ -316,6 +316,15 @@ Ext.define('Writer.LayerServerConfigForm', {
 				height: 400
 			}, browserSpecificEditAreaConfig
 		);
+		var googleJavaScript = {
+			fieldLabel: 'Google Java Script',
+			qtipTitle: 'Google Java Script',
+			qtipHtml: 'Any extra java script to include for this Google Data Source',
+			xtype: 'textareafield',
+			name: 'googleJavaScript',
+			height: 300
+			};
+
 		var legendParameters = {
 			// For special GeoServer legend params, see:
 			// http://docs.geoserver.org/latest/en/user/services/wms/get_legend_graphic/legendgraphic.html#raster-legends-explained
@@ -553,6 +562,8 @@ Ext.define('Writer.LayerServerConfigForm', {
 
 				advancedItems.push(globalManualOverride);
 				advancedItems.push(blackAndWhiteListedLayers);
+				advancedItems.push(googleJavaScript);
+
 				break;
 
 			case 'BING':
@@ -1596,6 +1607,7 @@ Ext.define('Writer.LayerServerConfig', {
 		{name: 'legendDpiSupport', type: 'boolean', defaultValue: false},
 		'legendParameters',
 		'blackAndWhiteListedLayers',
+		'googleJavaScript',
 		'baseLayers',
 		'overlayLayers',
 		'globalManualOverride',

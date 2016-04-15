@@ -41,9 +41,20 @@ Atlas.Layer.Google = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 		Atlas.Layer.AbstractLayer.prototype.initialize.apply(this, arguments);
 
 		if (this.json != null) {
+
+			ltype = google.maps.MapTypeId[this.json['layerName'] || this.json['layerId']];
+			if ((ltype == undefined) && (customGoogleStyles)){
+				ltype = this.json['layerName'];
+				googleStyle = customGoogleStyles[this.json['layerId']];
+				this.styledMapType = new google.maps.StyledMapType(googleStyle);
+				this.googleLayerName=ltype;
+
+			}
+
+
 			var layerOptions = {
 				// google.maps.MapTypeId.TERRAIN, google.maps.MapTypeId.ROADMAP, google.maps.MapTypeId.HYBRID, google.maps.MapTypeId.SATELLITE
-				type: google.maps.MapTypeId[this.json['layerName'] || this.json['layerId']]
+				type: ltype
 			};
 
 			if (typeof(this.json['olOptions']) !== 'undefined') {

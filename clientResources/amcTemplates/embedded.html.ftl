@@ -84,7 +84,7 @@
 	<![endif]-->
 
 	<!-- NOTE: OpenLayer 2.13 is a bit jumpy on the iPad. We will sticking with 2.12 until we find something that justify this upgrade -->
-	<script type="text/javascript" src="OpenLayers/OpenLayers-2.13.1/OpenLayers.js?atlasmapperVer=${version}"></script>
+	<script type="text/javascript" src="OpenLayers/OpenLayers-2.12/OpenLayers.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="OpenLayers-ux/Bing.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="OpenLayers-ux/MultiSelectDragFeature.js?atlasmapperVer=${version}"></script>
 	<script type="text/javascript" src="OpenLayers-ux/PrintFrame.js?atlasmapperVer=${version}"></script>
@@ -99,6 +99,11 @@
 		<!-- NOTE: Relative URL without scheme (http or https) use the scheme or the current page.
 			This is valid according to the RFC 3986 http://www.ietf.org/rfc/rfc3986.txt -->
 		<script type="text/javascript" src="//maps.google.com/maps/api/js?v=3.7&amp;sensor=false&amp;atlasmapperVer=${version}"></script>
+        <#if (googleJavaScript?? && googleJavaScript != "")>
+			<script type="text/javascript">
+				${googleJavaScript}
+			</script>
+		</#if>
 	</#if>
 
 	<script type="text/javascript" src="extjs/3.3.0/ext-3.3.0/adapter/ext/ext-base.js?atlasmapperVer=${version}"></script>

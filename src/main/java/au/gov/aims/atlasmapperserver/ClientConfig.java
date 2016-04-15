@@ -1485,6 +1485,7 @@ public class ClientConfig extends AbstractConfig {
 			indexValues.put("pageFooter", Utils.safeJsStr(this.getPageFooter()));
 			indexValues.put("timestamp", ""+Utils.getCurrentTimestamp());
 			indexValues.put("useGoogle", googleDataSource != null);
+			indexValues.put("googleJavaScript", googleDataSource.getGoogleJavaScript());
 			indexValues.put("welcomeMsg", this.getWelcomeMsg());
 			indexValues.put("headExtra", this.getHeadExtra());
 			Utils.processTemplate(templatesConfig, "index.html", indexValues, atlasMapperClientFolder);
@@ -1500,6 +1501,7 @@ public class ClientConfig extends AbstractConfig {
 			embeddedValues.put("pageFooter", Utils.safeJsStr(this.getPageFooter()));
 			embeddedValues.put("timestamp", ""+Utils.getCurrentTimestamp());
 			embeddedValues.put("useGoogle", googleDataSource != null);
+			embeddedValues.put("googleJavaScript", googleDataSource.getGoogleJavaScript());
 			// No welcome message
 			Utils.processTemplate(templatesConfig, "embedded.html", embeddedValues, atlasMapperClientFolder);
 

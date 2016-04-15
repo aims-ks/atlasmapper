@@ -119,6 +119,7 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 	@ConfigField
 	private String comment;
 
+
 	// Used to format the elapse time (always put at lease 1 digit before the dot, with maximum 2 digits after)
 	private DecimalFormat elapseTimeFormat = new DecimalFormat("0.##");
 
@@ -350,6 +351,7 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 
 		// 4. Save the data source state into a file
 		clone.save(layerCatalog);
+
 
 		JSONObject errors = new JSONObject();
 		errors.put("errors", layerCatalog.getErrors());
@@ -683,6 +685,7 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 	public void setComment(String comment) {
 		this.comment = comment;
 	}
+
 
 	// Most data source, like WMS, will have all layers as overlay and some exceptions as base layers.
 	// Some data source, like XYZ, will have all layers as base layers and some exceptions as overlay (set this to true).

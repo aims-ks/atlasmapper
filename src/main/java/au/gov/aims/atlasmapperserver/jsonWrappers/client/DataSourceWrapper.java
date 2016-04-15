@@ -188,6 +188,13 @@ public class DataSourceWrapper extends AbstractWrapper {
 		this.setValue("blackAndWhiteListedLayers", blackAndWhiteListedLayers);
 	}
 
+	public String getGoogleJavaScript() {
+		return this.json.optString("googleJavaScript", null);
+	}
+	public void setGoogleJavaScript(String googleJavaScript) throws JSONException {
+		this.setValue("googleJavaScript", googleJavaScript);
+	}
+
 	public JSONArray getWebCacheSupportedParameters() {
 		return this.json.optJSONArray("webCacheSupportedParameters");
 	}
@@ -411,6 +418,7 @@ public class DataSourceWrapper extends AbstractWrapper {
 		dataSourceClone.setBlackAndWhiteListedLayers(null);
 		dataSourceClone.setLastHarvested(null);
 		dataSourceClone.setComment(null);
+		dataSourceClone.setGoogleJavaScript(null);
 
 		return dataSourceClone.getJSON();
 	}

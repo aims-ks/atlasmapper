@@ -978,6 +978,12 @@ Atlas.AbstractMapPanel = {
 			// Add the layer to the Map
 			// NOTE: This method trigger _beforeLayerAdd and _afterLayerAdd
 			this.map.addLayer(atlasLayer.layer);
+
+			if (atlasLayer.googleLayerName) {
+				atlasLayer.layer.mapObject.mapTypes.set(atlasLayer.googleLayerName, atlasLayer.styledMapType);
+
+			}
+
 		}
 	},
 

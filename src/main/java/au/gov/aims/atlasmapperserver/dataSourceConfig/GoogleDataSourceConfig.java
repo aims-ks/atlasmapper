@@ -22,10 +22,16 @@
 package au.gov.aims.atlasmapperserver.dataSourceConfig;
 
 import au.gov.aims.atlasmapperserver.ConfigManager;
+import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
 import au.gov.aims.atlasmapperserver.layerGenerator.GoogleLayerGenerator;
 
 public class GoogleDataSourceConfig extends AbstractDataSourceConfig {
+
+	@ConfigField
+	private String googleJavaScript;
+
+
 	public GoogleDataSourceConfig(ConfigManager configManager) {
 		super(configManager);
 	}
@@ -33,5 +39,13 @@ public class GoogleDataSourceConfig extends AbstractDataSourceConfig {
 	@Override
 	public AbstractLayerGenerator createLayerGenerator() {
 		return new GoogleLayerGenerator();
+	}
+
+	public String getGoogleJavaScript() {
+		return this.googleJavaScript;
+	}
+
+	public void setGoogleJavaScript(String googleJavaScript) {
+		this.googleJavaScript = googleJavaScript;
 	}
 }
