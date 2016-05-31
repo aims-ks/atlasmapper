@@ -111,7 +111,9 @@ Atlas.AbstractMapPanel = {
 			maxZoom: null,
 			locate: null,
 			loadDefaultLayers: false,
-			pullState: false
+			pullState: false,
+			TIME: null, //GREGNEW
+			CQL_FILTER: null //GREGNEW
 		};
 
 		// NOTE: Layers name and styles may contains coma (Geoscience Australia does it), so we can't use OpenLayers parameters here.
@@ -128,6 +130,18 @@ Atlas.AbstractMapPanel = {
 		if (urlStyles != null) {
 			this.urlState.styles = urlStyles;
 		}
+
+		//GREGNEW
+		var urlTime = this._getComaSeparatedParameters('t'+this.mapId);
+		if (urlTime != null) {
+			this.urlState.TIME = urlTime;
+		}
+
+		var urlCql = this._getComaSeparatedParameters('c'+this.mapId);
+		if (urlCql != null) {
+			this.urlState.CQL_FILTER = urlCql;
+		}
+		//GREGNEW
 
 		// Visibility: Coma separated list of 'f' for false, 't' or missing value for true. The order must match the one specified with the layers parameter.
 		if (typeof(parameters['v'+this.mapId]) !== 'undefined' && parameters['v'+this.mapId] != null) {
@@ -498,7 +512,8 @@ Atlas.AbstractMapPanel = {
 		// Add layers specified by the "l"<MapID> URL parameter
 		if (this.urlState != null && this.urlState.layerIds != null) {
 			Atlas.core.requestLayersJSon(this.urlState.layerIds, function(layersJSon) {
-				if (that.urlState.styles != null || that.urlState.visibilities != null || that.urlState.opacities != null) {
+				if (that.urlState.styles != null || that.urlState.visibilities != null || that.urlState.opacities != null
+					|| that.urlState.TIME != null ||  that.urlState.CQL_FILTER!= null) {
 					for (var i=0, leni=layersJSon.length; i<leni; i++) {
 						// Clone the object, to avoid modifying the original
 						layersJSon[i] = clone(layersJSon[i]);
@@ -537,6 +552,20 @@ Atlas.AbstractMapPanel = {
 								});
 							}
 						}
+
+						//GREGNEW
+						if (that.urlState.TIME != null && typeof(that.urlState.TIME[i]) != 'undefined' && that.urlState.TIME[i] != null && that.urlState.TIME[i].length > 0) {
+
+							layersJSon[i].TIME=that.urlState.TIME[i];
+						}
+
+						if (that.urlState.CQL_FILTER != null && typeof(that.urlState.CQL_FILTER[i]) != 'undefined' && that.urlState.CQL_FILTER[i] != null && that.urlState.CQL_FILTER[i].length > 0) {
+
+							layersJSon[i].CQL_FILTER=that.urlState.CQL_FILTER[i];
+						}
+
+						//GREGNEW
+
 
 						// Apply URL opacities
 						if (that.urlState.opacities != null && typeof(that.urlState.opacities[i]) != 'undefined' && that.urlState.opacities[i] != null && that.urlState.opacities[i].length > 0) {
@@ -828,6 +857,8 @@ Atlas.AbstractMapPanel = {
 			var o0 = ""; // Opacity (between 0 and 1, default: 1)
 			var v0 = ""; // Visibility (f for false, default: true)
 			var pf0 = ""; // Print frames
+			var t0= ""; // Time dimension GREGNEW
+			var c0=""; // CQL filter GREGNEW
 			var first = true;
 			for (var i=this.map.layers.length; i>=0; i--) {
 				var layer = this.map.layers[i];
@@ -842,6 +873,8 @@ Atlas.AbstractMapPanel = {
 								s0 += ',';
 								o0 += ',';
 								v0 += ',';
+								t0 += ','; //GREGNEW
+								c0 += ','; //GREGNEW
 							}
 							// Layers (l0)
 							// NOTE: encodeURIComponent() is a native JavaScript function, supported by all major browsers.
@@ -852,6 +885,19 @@ Atlas.AbstractMapPanel = {
 									layer.params['STYLES'].length > 0) {
 								s0 += encodeURIComponent(layer.params['STYLES']);
 							}
+							//GREGNEW
+							if (typeof(layer.params) !== 'undefined' && layer.params != null &&
+								typeof(layer.params['TIME']) !== 'undefined' && layer.params['TIME'] != null &&
+								layer.params['TIME'].length > 0) {
+								t0 += encodeURIComponent(layer.params['TIME']);
+							}
+							if (typeof(layer.params) !== 'undefined' && layer.params != null &&
+								typeof(layer.params['CQL_FILTER']) !== 'undefined' && layer.params['CQL_FILTER'] != null &&
+								layer.params['CQL_FILTER'].length > 0) {
+								c0 += encodeURIComponent(layer.params['CQL_FILTER']);
+							}
+							//GREGNEW
+
 							// Opacities (o0)
 							if (typeof(layer.opacity) !== 'undefined' && layer.opacity != null && layer.opacity !== 1) {
 								o0 += layer.opacity
@@ -884,12 +930,16 @@ Atlas.AbstractMapPanel = {
 			s0 = s0.replace(/,,*$/, '');
 			o0 = o0.replace(/,,*$/, '');
 			v0 = v0.replace(/,,*$/, '');
+			c0 = c0.replace(/,,*$/, ''); //GREGNEW
+			t0 = t0.replace(/,,*$/, ''); //GREGNEW
 			pf0 = pf0.replace(/,,*$/, '');
 			if (l0.length > 0) {
 				state['l0'] = l0;
 				if (s0.length > 0) { state['s0'] = s0; }
 				if (o0.length > 0) { state['o0'] = o0; }
 				if (v0.length > 0) { state['v0'] = v0; }
+				if (c0.length > 0) { state['c0'] = c0; }
+				if (t0.length > 0) { state['t0'] = t0; }
 			}
 			if (pf0.length > 0) {
 				state['pf0'] = pf0;

@@ -257,6 +257,16 @@ Atlas.Layer.WMS = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 			layerParams = this.applyOlOverrides(layerParams, this.json['olParams']);
 		}
 
+//GREGNEW
+		if (this.json.TIME) {
+			layerParams.TIME = this.json.TIME;
+		}
+
+		if (this.json.CQL_FILTER) {
+			layerParams.CQL_FILTER = this.json.CQL_FILTER;
+		}
+
+//GREGNEW
 		return layerParams;
 	},
 
