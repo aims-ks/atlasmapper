@@ -176,7 +176,9 @@ public class URLCache {
 			uri = Utils.toURL(urlStr).toURI();
 		} catch (Exception ex) {
 			responseStatus.setStatusCode(HttpStatus.SC_BAD_REQUEST);
-			responseStatus.setErrorMessage("Can not parse the URL: " + urlStr);
+			final String message = "Can not parse the URL: " + urlStr;
+			responseStatus.setErrorMessage(message);
+			LOGGER.log(Level.SEVERE, message, ex);
 			return responseStatus;
 		}
 		HttpGet httpGet = new HttpGet(uri);
@@ -189,7 +191,10 @@ public class URLCache {
 				responseStatus.setStatusCode(httpStatus.getStatusCode());
 			}
 		} catch (IOException ex) {
-			responseStatus.setErrorMessage(getErrorMessage(ex));
+			final String message = getErrorMessage(ex);
+			responseStatus.setErrorMessage(message);
+			LOGGER.log(Level.SEVERE, message, ex);
+
 		} finally {
 			if (httpGet != null) {
 				// Cancel the connection, if it's still alive
@@ -446,7 +451,9 @@ public class URLCache {
 			uri = Utils.toURL(urlStr).toURI();
 		} catch (Exception ex) {
 			responseStatus.setStatusCode(HttpStatus.SC_BAD_REQUEST);
-			responseStatus.setErrorMessage("Can not parse the URL: " + urlStr);
+			final String message = "Can not parse the URL: " + urlStr;
+			responseStatus.setErrorMessage(message);
+			LOGGER.log(Level.SEVERE, message, ex);
 			return responseStatus;
 		}
 
@@ -489,7 +496,9 @@ public class URLCache {
 			if (file != null && file.exists()) {
 				file.delete();
 			}
-			responseStatus.setErrorMessage(getErrorMessage(ex));
+			final String message = "Error reading URL " + uri.toString() + getErrorMessage(ex);
+			responseStatus.setErrorMessage(message);
+			LOGGER.log(Level.SEVERE, message, ex);
 		} finally {
 			if (httpGet != null) {
 				// Cancel the connection, if it's still alive

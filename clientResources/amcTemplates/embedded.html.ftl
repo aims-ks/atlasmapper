@@ -99,11 +99,9 @@
 		<!-- NOTE: Relative URL without scheme (http or https) use the scheme or the current page.
 			This is valid according to the RFC 3986 http://www.ietf.org/rfc/rfc3986.txt -->
 		<script type="text/javascript" src="//maps.google.com/maps/api/js?v=3.7&amp;sensor=false&amp;atlasmapperVer=${version}"></script>
-        <#if (googleJavaScript?? && googleJavaScript != "")>
-			<script type="text/javascript">
-				${googleJavaScript}
-			</script>
-		</#if>
+	</#if>
+	<#if (googleJavaScript?? && googleJavaScript != "")>
+		${googleJavaScript}
 	</#if>
 
 	<script type="text/javascript" src="extjs/3.3.0/ext-3.3.0/adapter/ext/ext-base.js?atlasmapperVer=${version}"></script>

@@ -1484,8 +1484,16 @@ public class ClientConfig extends AbstractConfig {
 			indexValues.put("pageHeader", Utils.safeJsStr(this.getPageHeader()));
 			indexValues.put("pageFooter", Utils.safeJsStr(this.getPageFooter()));
 			indexValues.put("timestamp", ""+Utils.getCurrentTimestamp());
-			indexValues.put("useGoogle", googleDataSource != null);
-			indexValues.put("googleJavaScript", googleDataSource.getGoogleJavaScript());
+			indexValues.put("useGoogle", googleDataSource != null
+					&& (googleDataSource.getGoogleJavaScript() == null || !googleDataSource.getGoogleJavaScript().contains("maps.google.com/maps/api")));
+			if (googleDataSource != null) {
+				LOGGER.info("Google data source" + googleDataSource.getDataSourceName());
+				LOGGER.info("Google Javascript" + googleDataSource.getGoogleJavaScript());
+				indexValues.put("googleJavaScript", googleDataSource.getGoogleJavaScript());
+			} else {
+				LOGGER.info("Google data source is null");
+				indexValues.put("googleJavaScript", "");
+			}
 			indexValues.put("welcomeMsg", this.getWelcomeMsg());
 			indexValues.put("headExtra", this.getHeadExtra());
 			Utils.processTemplate(templatesConfig, "index.html", indexValues, atlasMapperClientFolder);
@@ -1500,8 +1508,15 @@ public class ClientConfig extends AbstractConfig {
 			embeddedValues.put("pageHeader", Utils.safeJsStr(this.getPageHeader()));
 			embeddedValues.put("pageFooter", Utils.safeJsStr(this.getPageFooter()));
 			embeddedValues.put("timestamp", ""+Utils.getCurrentTimestamp());
-			embeddedValues.put("useGoogle", googleDataSource != null);
-			embeddedValues.put("googleJavaScript", googleDataSource.getGoogleJavaScript());
+			LOGGER.info("Google data source" + googleDataSource.getDataSourceName());
+			embeddedValues.put("useGoogle", googleDataSource != null
+					&& (googleDataSource.getGoogleJavaScript() == null || !googleDataSource.getGoogleJavaScript().contains("maps.google.com/maps/api")));
+			if (googleDataSource != null) {
+				LOGGER.info("Google data source" + googleDataSource.getDataSourceName());
+				embeddedValues.put("googleJavaScript", googleDataSource.getGoogleJavaScript());
+			} else {
+				embeddedValues.put("googleJavaScript", "");
+			}
 			// No welcome message
 			Utils.processTemplate(templatesConfig, "embedded.html", embeddedValues, atlasMapperClientFolder);
 
