@@ -23,7 +23,9 @@
 
 <!-- Generated with AtlasMapper version ${version} -->
 <head>
-	<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE8" />
+	<!--[if IE 9 ]>
+		<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE8" />
+	<![endif]-->
 	<!-- IE9 is not support by GeoExt yet, the emulation mode is supposed to fix this...
 		IMPORTANT!!! The IE-EmulateIE8 MUST be the first line of the header otherwise IE9 ignore it. -->
 	<meta http-equiv="content-type" content="text/html;charset=utf-8" />

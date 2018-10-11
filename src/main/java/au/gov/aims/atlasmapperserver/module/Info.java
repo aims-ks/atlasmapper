@@ -48,11 +48,13 @@ public class Info extends AbstractModule {
 	public JSONObject getJSONConfiguration(ClientConfig clientConfig, DataSourceWrapper layerCatalog, Map<String, DataSourceWrapper> dataSources) throws JSONException {
 		JSONObject layerTabConfig = new JSONObject();
 		layerTabConfig.put("type", "description");
+		layerTabConfig.put("order", 0);
 		layerTabConfig.put("startingTab", true);
 		layerTabConfig.put("defaultContent", "There is no <b>layer information</b> for the selected layer.");
 
 		JSONObject optionsTabConfig = new JSONObject();
 		optionsTabConfig.put("type", "options");
+		optionsTabConfig.put("order", 1);
 		//optionsTabConfig.put("startingTab", true);
 		optionsTabConfig.put("defaultContent", "The selected layer do not have any <b>options</b>.");
 
