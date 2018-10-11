@@ -49,31 +49,29 @@ Atlas.Info = Ext.extend(Ext.Component, {
 					tabObj = {"defaultContent": tab};
 				}
 
-				// Check if the current tab is the starting tab.
-				if (tabObj['startingTab']) {
-					this.startingTab = this.tabs.length;
-				}
-
 				var panelConfig = {
-					mapPanel: this.mapPanel
+					mapPanel: this.mapPanel,
+					startingTab: !!tabObj['startingTab']
 				};
 
 				if (typeof(this.header) === 'undefined' || this.header) {
 					panelConfig.title = tabName;
 				}
 
+				if (tabObj.hasOwnProperty('order')) {
+					panelConfig.order = tabObj['order'];
+				} else {
+					panelConfig.order = tabName
+				}
+
+				panelConfig.tabType = tabObj['type'];
 				if (tabObj['type'] === 'options') {
 					panelConfig.cls = 'infoTab';
 					if (tabObj['defaultContent']) {
 						panelConfig.html = tabObj['defaultContent'];
 					}
-					this.optionsTab = this.tabs.length;
 					this.tabs.push(new Atlas.OptionsPanel(panelConfig));
 				} else {
-					if (tabObj['type'] === 'description') {
-						this.descriptionTab = this.tabs.length;
-					}
-
 					panelConfig.iframe = {
 						mapPanel: this.mapPanel,
 						border: false,
@@ -87,6 +85,29 @@ Atlas.Info = Ext.extend(Ext.Component, {
 					}
 
 					this.tabs.push(new Atlas.DescriptionPanel(panelConfig));
+				}
+			}, this);
+
+			this.tabs.sort(function(a, b) {
+				if (a.order < b.order) {
+					return -1;
+				}
+				if (a.order > b.order) {
+					return 1;
+				}
+				return 0;
+			});
+
+			Ext.iterate(this.tabs, function(panelConfig, index) {
+				// Check if the current tab is the starting tab.
+				if (panelConfig['startingTab']) {
+					this.startingTab = index;
+				}
+
+				if (panelConfig['tabType'] === 'options') {
+					this.optionsTab = index;
+				} else if (panelConfig['tabType'] === 'description') {
+					this.descriptionTab = index;
 				}
 			}, this);
 		}
