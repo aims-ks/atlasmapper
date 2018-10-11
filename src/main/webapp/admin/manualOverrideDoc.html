@@ -1037,6 +1037,28 @@ ea_ea:GBR_UQ_Inshore-pesticides_AvDryPSHeq-2005-6
 			</p>
 		</div>
 
+		<h2 id="google">Google Java Script</h2>
+		<div id="googleDiv">
+			<p>
+				The Google data source configuration works in a quite different way than other data sources.
+			</p>
+
+			<p>
+				The field <i>Google Java Script</i> can be used to add some extra JavaScript to the map client
+				when the Google data source is used. If the JavaScript block contains the string
+				<i>maps.google.com/maps/api</i>, the content of the field will replace the default
+				Google API import block.
+			</p>
+
+			<p>
+				Google Maps now require an API key. When we will have some development time on that project,
+				we should modify the configuration window to add a <i>API Key</i> field.
+				In the time been, the API Key should be added to the JavaScript used to pull the Google API script.
+				You can do that by adding the following line to the <i>Google Java Script</i> field.
+			</p>
+			<pre>&lt;script src="https://maps.google.com/maps/api/js?v=3.7&key=<b>AIzaXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</b>"&gt;&lt;/script&gt;</pre>
+		</div>
+
 		<h2 id="experimental">Experimental features</h2>
 		<div id="experimentalDiv">
 			<p>

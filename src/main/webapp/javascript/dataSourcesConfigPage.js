@@ -316,8 +316,11 @@ Ext.define('Writer.LayerServerConfigForm', {
 				height: 400
 			}, browserSpecificEditAreaConfig
 		);
+
+		// If the behaviour of this field is altered, don't forget to also modify the
+		// documentation associated with it in "manualOverrideDoc.html".
 		var googleJavaScript = {
-			fieldLabel: 'Google Java Script',
+			fieldLabel: 'Google Java Script (<a href="manualOverrideDoc.html#google" target="_blank">doc</a>)',
 			qtipTitle: 'Google Java Script',
 			qtipHtml: 'Any extra java script to include for this Google Data Source',
 			xtype: 'textareafield',
