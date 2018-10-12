@@ -162,6 +162,7 @@ Ext.define('Writer.LayerServerConfigForm', {
 		});
 		this.addEvents('create');
 
+		var notAvailableInDemoMode = demoMode ? "<br/><strong>This function is not available in the Demo version.</strong>" : "";
 
 		/** Define items that appear on all Data Source Types **/
 
@@ -322,7 +323,9 @@ Ext.define('Writer.LayerServerConfigForm', {
 		var googleJavaScript = {
 			fieldLabel: 'Google Java Script (<a href="manualOverrideDoc.html#google" target="_blank">doc</a>)',
 			qtipTitle: 'Google Java Script',
-			qtipHtml: 'Any extra java script to include for this Google Data Source',
+			qtipHtml: 'Any extra java script to include for this Google Data Source' +
+				notAvailableInDemoMode,
+			disabled: demoMode,
 			xtype: 'textareafield',
 			name: 'googleJavaScript',
 			height: 300

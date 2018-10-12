@@ -23,9 +23,11 @@
 	Author     : glafond
 --%>
 
-<%@page import="au.gov.aims.atlasmapperserver.Utils"%>
-<%@page import="au.gov.aims.atlasmapperserver.User"%>
-<%@page contentType="text/html" pageEncoding="UTF-8"%>
+<%@ page import="au.gov.aims.atlasmapperserver.Utils"%>
+<%@ page import="au.gov.aims.atlasmapperserver.ConfigManager"%>
+<%@ page import="au.gov.aims.atlasmapperserver.ConfigHelper"%>
+
+<%@ page contentType="text/html" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
 <html>
 	<head>
@@ -42,6 +44,11 @@
 		<script type="text/javascript" src="../javascript/extjs_ux/FieldWithQTip.js"></script>
 		<script type="text/javascript" src="../javascript/extjs_ux/Checkbox.js"></script>
 		<script type="text/javascript" src="../javascript/Frameset.js"></script>
+
+		<script type="text/javascript">
+			<% ConfigManager manager = ConfigHelper.getConfigManager(this.getServletConfig().getServletContext()); %>
+			var demoMode = <%=manager.isDemoMode() %>;
+		</script>
 		<script type="text/javascript" src="../javascript/dataSourcesConfigPage.js"></script>
 
 		<link rel="stylesheet" type="text/css" href="../resources/statusbar.css" />
