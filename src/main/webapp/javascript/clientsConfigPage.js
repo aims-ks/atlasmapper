@@ -719,7 +719,7 @@ Ext.define('Writer.ClientConfigForm', {
 								xtype: 'textareafield'
 							}, {
 								fieldLabel: 'Base layer - Service URL',
-								qtipHtml: 'Example: http://maps.e-atlas.org.au/maps/wms',
+								qtipHtml: 'Example: https://maps.eatlas.org.au/maps/wms',
 								name: 'listBaseLayerServiceUrl'
 							}, {
 								fieldLabel: 'Base layer - Layer ID',

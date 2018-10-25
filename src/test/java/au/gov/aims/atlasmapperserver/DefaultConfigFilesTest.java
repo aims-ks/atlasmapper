@@ -48,7 +48,7 @@ public class DefaultConfigFilesTest extends TestCase  {
 		assertEquals(5, dataSourceConfigs.size());
 
 		AbstractDataSourceConfig eatlas = dataSourceConfigs.get2("ea");
-		assertEquals("e-Atlas", eatlas.getDataSourceName());
+		assertEquals("eAtlas", eatlas.getDataSourceName());
 
 		AbstractDataSourceConfig opengeo = dataSourceConfigs.get2("og");
 		assertEquals("OpenGeo", opengeo.getDataSourceName());

@@ -28,9 +28,9 @@
 			"webCacheSupportedParameters": "LAYERS, TRANSPARENT, SERVICE, VERSION, REQUEST, EXCEPTIONS, FORMAT, SRS, BBOX, WIDTH, HEIGHT, STYLES",
 			"legendParameters": "FORMAT=image/png\nHEIGHT=10\nWIDTH=20",
 			"globalManualOverride": "{\n    \"ea_ea:World_NED_NE2\": {\"hasLegend\": false},\n    \"ea_GBR_JCU_Bathymetry-3DGBR_Land-and-sea\": {\"hasLegend\": false},\n    \"ea_mangroves\": {\n        \"layerType\": \"GROUP\",\n        \"description\": \"Layer group for the layers \\\"QLD Coastal wetlands - Study regions\\\" and \\\"QLD Coastal wetlands (DEEDI)\\\"\",\n        \"layerBoundingBox\": [\n            134.91053,\n            -29.91797,\n            156.53146999999998,\n            -8.29703\n        ],\n        \"layers\": [\n            \"ea_ea:QLD_DEEDI_Coastal-wetlands\",\n            \"ea_ea:QLD_DEEDI_Coastal-wetlands_Study-regions\"\n        ],\n        \"title\": \"Mangroves\",\n        \"version\": 1.1,\n        \"wmsPath\": \"Terrestrial biology/QLD: Coastal wetlands (DEEDI)\",\n        \"wmsQueryable\": false\n    },\n    \"ea_World_NE2-coast-cities-reefs_Baselayer\": {\"hasLegend\": false}\n}",
-			"comment": "This is an example of a WMS Data Source. It provide layers from e-Atlas, with WebCache capabilities. It also define a \"layer group\", which show multiple layers as one layer in the \"Add layer window\" and as a folder on the \"layer switcher\" once it has been added to the map.\n\nFell free to refer to it as an example, but try to set up your own WMS server as soon as possible.",
-			"serviceUrl": "http://maps.e-atlas.org.au/maps/wms",
-			"dataSourceName": "e-Atlas",
+			"comment": "This is an example of a WMS Data Source. It provide layers from the eAtlas, with WebCache capabilities. It also define a \"layer group\", which show multiple layers as one layer in the \"Add layer window\" and as a folder on the \"layer switcher\" once it has been added to the map.\n\nFell free to refer to it as an example, but try to set up your own WMS server as soon as possible.",
+			"serviceUrl": "https://maps.eatlas.org.au/maps/wms",
+			"dataSourceName": "eAtlas",
 			"layerType": "WMS",
 			"dataSourceId": "ea",
 			"showInLegend": true
@@ -55,15 +55,15 @@
 				{
 					"id": "kml_fictional-bunyip-sightings",
 					"title": "Bunyip sightings",
-					"url": "http://maps.e-atlas.org.au/kmls/fictional-bunyip-sightings.kml"
+					"url": "https://maps.eatlas.org.au/kmls/fictional-bunyip-sightings.kml"
 				},
 				{
 					"id": "kml_fictional-bunyip-tracks",
 					"title": "Bunyip tracks",
-					"url": "http://maps.e-atlas.org.au/kmls/fictional-bunyip-tracks.kml"
+					"url": "https://maps.eatlas.org.au/kmls/fictional-bunyip-tracks.kml"
 				}
 			],
-			"globalManualOverride": "{\n    \"kml_fictional-bunyip-sightings\": {\n        \"legendGroup\": \"Bunyip data\",\n        \"legendTitle\": \"Sightings\",\n        \"legendUrl\": \"http://maps.e-atlas.org.au/kmls/sightings-legend.png\"\n    },\n    \"kml_fictional-bunyip-tracks\": {\n        \"legendGroup\": \"Bunyip data\",\n        \"legendTitle\": \"Tracks\",\n        \"legendUrl\": \"http://maps.e-atlas.org.au/kmls/tracks-legend.png\"\n    }\n}",
+			"globalManualOverride": "{\n    \"kml_fictional-bunyip-sightings\": {\n        \"legendGroup\": \"Bunyip data\",\n        \"legendTitle\": \"Sightings\",\n        \"legendUrl\": \"https://maps.eatlas.org.au/kmls/sightings-legend.png\"\n    },\n    \"kml_fictional-bunyip-tracks\": {\n        \"legendGroup\": \"Bunyip data\",\n        \"legendTitle\": \"Tracks\",\n        \"legendUrl\": \"https://maps.eatlas.org.au/kmls/tracks-legend.png\"\n    }\n}",
 			"comment": "KML Data source having 2 KML in it. See the Advanced tab for the definition of the layer name, description, legend URL, etc.",
 			"dataSourceName": "Demo KML",
 			"layerType": "KML",

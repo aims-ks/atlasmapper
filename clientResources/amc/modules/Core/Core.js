@@ -119,11 +119,11 @@ Atlas.Core = OpenLayers.Class({
 		// http://trac.osgeo.org/openlayers/wiki/FrequentlyAskedQuestions#HowdoIsetupaProxyHost
 		// 1. Install the OpenLayer proxy openlayers/examples/proxy.cgi in /usr/lib/cgi-bin
 		// 2. Configure
-		//     2.1 It the variable allowedHosts, add 'e-atlas.org.au'
+		//     2.1 It the variable allowedHosts, add 'eatlas.org.au'
 		// 3. Restart Apache
 		//     3.1 sudo service apache2 stop
 		//     3.2 sudo service apache2 start
-		// 4. Test: http://localhost/cgi-bin/proxy.cgi?url=http://e-atlas.org.au
+		// 4. Test: http://localhost/cgi-bin/proxy.cgi?url=https://eatlas.org.au
 		// ScriptAlias /cgi-bin/ /usr/lib/cgi-bin/
 		if (Atlas.conf && Atlas.conf['proxyUrl']) {
 			// proxyUrl should looks like this: "/cgi-bin/proxy.cgi?url="

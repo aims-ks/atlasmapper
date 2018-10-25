@@ -333,7 +333,7 @@ Atlas.AbstractMapPanel = {
 					layers: [
 						new OpenLayers.Layer.WMS(
 							"OverviewMap",
-							"http://e-atlas.org.au/maps/wms",
+							"https://eatlas.org.au/maps/wms",
 							{layers: 'ea:World_NED_NE2'}
 						)
 					]

@@ -131,7 +131,7 @@ public class Proxy extends HttpServlet {
 		DEFAULT_ALLOWED_HOSTS.add("demo.opengeo.org");
 		DEFAULT_ALLOWED_HOSTS.add("www.openstreetmap.org");
 		DEFAULT_ALLOWED_HOSTS.add("sample.azavea.com");
-		DEFAULT_ALLOWED_HOSTS.add("e-atlas.org.au");
+		DEFAULT_ALLOWED_HOSTS.add("eatlas.org.au");
 		DEFAULT_ALLOWED_HOSTS.add("ningaloo-atlas.org.au");
 	}
 

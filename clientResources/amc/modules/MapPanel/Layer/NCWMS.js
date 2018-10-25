@@ -104,7 +104,7 @@ Atlas.Layer.NCWMS = OpenLayers.Class(Atlas.Layer.WMS, {
 
 	/**
 	 * Inspired on godiva2.js
-	 * http://e-atlas.org.au/ncwms/js/godiva2.js
+	 * https://eatlas.org.au/ncwms/js/godiva2.js
 	 */
 	_setOptions: function(result, request, optionsPanel) {
 		if (this.layer == (optionsPanel.currentNode ? optionsPanel.currentNode.layer : null)) {

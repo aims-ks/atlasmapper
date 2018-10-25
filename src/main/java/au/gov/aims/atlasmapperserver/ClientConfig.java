@@ -1625,7 +1625,7 @@ public class ClientConfig extends AbstractConfig {
 							serviceUrl = dataSource.getServiceUrl();
 						}
 
-						// http://e-atlas.localhost/maps/ea/wms
+						// https://eatlas.localhost/maps/ea/wms
 						// LAYERS=ea%3AQLD_DEEDI_Coastal-wetlands
 						// FORMAT=image%2Fpng
 						// SERVICE=WMS
@@ -1691,7 +1691,7 @@ public class ClientConfig extends AbstractConfig {
 									String baseLayerId = this.getListBaseLayerId();
 									if (Utils.isNotBlank(baseLayerServiceUrl) && Utils.isNotBlank(baseLayerId)) {
 										// Base layer - Hardcoded
-										// http://maps.e-atlas.org.au/maps/gwc/service/wms
+										// https://maps.eatlas.org.au/maps/gwc/service/wms
 										// LAYERS=ea%3AWorld_NED_NE2
 										// TRANSPARENT=FALSE
 										// SERVICE=WMS
