@@ -161,6 +161,9 @@ public class ClientConfig extends AbstractConfig {
 	private String googleSearchAPIKey;
 
 	@ConfigField
+	private String osmSearchAPIKey;
+
+	@ConfigField
 	private String arcGISSearchUrl;
 
 	@ConfigField
@@ -1121,6 +1124,15 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 
+	public String getOsmSearchAPIKey() {
+		return this.osmSearchAPIKey;
+	}
+
+	public void setOsmSearchAPIKey(String osmSearchAPIKey) {
+		this.osmSearchAPIKey = osmSearchAPIKey;
+	}
+
+
 	public String getArcGISSearchUrl() {
 		return this.arcGISSearchUrl;
 	}
@@ -1254,7 +1266,7 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 
-	public JSONObject locationSearch(String query, String referer, String mapBounds, int offset, int qty) throws JSONException, IOException, TransformException, FactoryException, URISyntaxException {
+	public JSONObject locationSearch(String query, String referer, String mapBounds, int offset, int qty) throws JSONException, IOException {
 		if (Utils.isBlank(query) || qty <= 0) {
 			return null;
 		}
@@ -1283,27 +1295,40 @@ public class ClientConfig extends AbstractConfig {
 			}
 		});
 
-		String googleSearchAPIKey = this.getGoogleSearchAPIKey();
-		if (this.isShowGoogleResults() && Utils.isNotBlank(googleSearchAPIKey)) {
-			List<JSONObject> googleResults = LocationSearch.googleSearch(googleSearchAPIKey, referer, encodedQuery, mapBounds);
-			if (googleResults != null && !googleResults.isEmpty()) {
-				resultsSet.addAll(googleResults);
+		try {
+			String googleSearchAPIKey = this.getGoogleSearchAPIKey();
+			if (this.isShowGoogleResults() && Utils.isNotBlank(googleSearchAPIKey)) {
+				List<JSONObject> googleResults = LocationSearch.googleSearch(googleSearchAPIKey, referer, encodedQuery, mapBounds);
+				if (googleResults != null && !googleResults.isEmpty()) {
+					resultsSet.addAll(googleResults);
+				}
 			}
+		} catch(Exception ex) {
+			LOGGER.log(Level.SEVERE, ex.getMessage(), ex);
 		}
 
-		if (this.isShowOSMResults()) {
-			List<JSONObject> osmNominatimResults = LocationSearch.osmNominatimSearch(referer, encodedQuery, mapBounds);
-			if (osmNominatimResults != null && !osmNominatimResults.isEmpty()) {
-				resultsSet.addAll(osmNominatimResults);
+		try {
+			String osmSearchAPIKey = this.getOsmSearchAPIKey();
+			if (this.isShowOSMResults() && Utils.isNotBlank(osmSearchAPIKey)) {
+				List<JSONObject> osmNominatimResults = LocationSearch.osmNominatimSearch(osmSearchAPIKey, referer, encodedQuery, mapBounds);
+				if (osmNominatimResults != null && !osmNominatimResults.isEmpty()) {
+					resultsSet.addAll(osmNominatimResults);
+				}
 			}
+		} catch(Exception ex) {
+			LOGGER.log(Level.SEVERE, ex.getMessage(), ex);
 		}
 
-		String arcGISSearchUrl = this.getArcGISSearchUrl();
-		if (this.isShowArcGISResults() && Utils.isNotBlank(arcGISSearchUrl)) {
-			List<JSONObject> arcGISResults = LocationSearch.arcGISSearch(referer, arcGISSearchUrl, encodedQuery, mapBounds);
-			if (arcGISResults != null && !arcGISResults.isEmpty()) {
-				resultsSet.addAll(arcGISResults);
+		try {
+			String arcGISSearchUrl = this.getArcGISSearchUrl();
+			if (this.isShowArcGISResults() && Utils.isNotBlank(arcGISSearchUrl)) {
+				List<JSONObject> arcGISResults = LocationSearch.arcGISSearch(referer, arcGISSearchUrl, encodedQuery, mapBounds);
+				if (arcGISResults != null && !arcGISResults.isEmpty()) {
+					resultsSet.addAll(arcGISResults);
+				}
 			}
+		} catch(Exception ex) {
+			LOGGER.log(Level.SEVERE, ex.getMessage(), ex);
 		}
 
 		JSONObject[] results = resultsSet.toArray(new JSONObject[resultsSet.size()]);

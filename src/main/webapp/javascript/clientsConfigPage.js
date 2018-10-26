@@ -602,10 +602,13 @@ Ext.define('Writer.ClientConfigForm', {
 										xtype: 'checkboxfield',
 										name: 'showArcGISResults'
 									}, {
-										fieldLabel: 'Google Search API Key',
-										qtipHtml: 'Set this to enable Google Search. This API Key must be restricted by IP, not by referer.',
-										name: 'googleSearchAPIKey',
-										disabled: demoMode
+										fieldLabel: 'Google Search <a href="https://developers.google.com/maps/documentation/javascript/get-api-key" target="_blank">API Key</a>',
+										qtipHtml: 'Set this to use Google Search. This API Key must be restricted by IP, not by referer.',
+										name: 'googleSearchAPIKey'
+									}, {
+										fieldLabel: 'OSM Search <a href="https://developer.mapquest.com/plan_purchase/steps/business_edition/business_edition_free/register" target="_blank">API Key</a>',
+										qtipHtml: 'Set this to use Open Street Map Search.',
+										name: 'osmSearchAPIKey'
 									}, {
 										fieldLabel: 'ArcGIS search URL',
 										qtipHtml: 'URL used by the server to perform searches against ArcGIS layers.<br/>' +
@@ -1449,6 +1452,7 @@ Ext.define('Writer.ClientConfig', {
 		{name: 'showGoogleResults', type: 'boolean', defaultValue: false},
 		{name: 'showArcGISResults', type: 'boolean', defaultValue: false},
 		'googleSearchAPIKey',
+		'osmSearchAPIKey',
 		'arcGISSearchUrl',
 		{name: 'showOSMResults', type: 'boolean', defaultValue: false},
 		'searchServiceUrl',
