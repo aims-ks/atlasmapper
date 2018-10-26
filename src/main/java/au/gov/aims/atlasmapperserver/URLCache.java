@@ -648,48 +648,51 @@ public class URLCache {
 		return jsonResponse;
 	}
 
-	public static JSONObject getSearchJSONResponse(String urlStr) throws IOException, JSONException, URISyntaxException {
+	public static JSONObject getSearchJSONResponse(String urlStr, String referer) throws IOException, JSONException, URISyntaxException {
 		ResponseWrapper response = getSearchCachedResponse(urlStr);
 
 		if (response == null) {
 			response = new ResponseWrapper();
 			// Set the wrapper in the cache now, it will be filled before the end of the method
-			setSearchCachedResponse(urlStr, response);
+			setSearchCachedResponse(urlStr, response, referer);
 		}
 
 		if (response.jsonResponse == null) {
 			LOGGER.log(Level.INFO, "\n### DOWNLOADING ### JSON Document {0}\n",
 					new String[]{ urlStr });
 
-			response.jsonResponse = new JSONObject(getUncachedResponse(urlStr));
+			response.jsonResponse = new JSONObject(getUncachedResponse(urlStr, referer));
 		}
 
 		return response.jsonResponse;
 	}
 
-	public static JSONArray getSearchJSONArrayResponse(String urlStr) throws IOException, JSONException, URISyntaxException {
+	public static JSONArray getSearchJSONArrayResponse(String urlStr, String referer) throws IOException, JSONException, URISyntaxException {
 		ResponseWrapper response = getSearchCachedResponse(urlStr);
 
 		if (response == null) {
 			response = new ResponseWrapper();
 			// Set the wrapper in the cache now, it will be filled before the end of the method
-			setSearchCachedResponse(urlStr, response);
+			setSearchCachedResponse(urlStr, response, referer);
 		}
 
 		if (response.jsonArrayResponse == null) {
 			LOGGER.log(Level.INFO, "\n### DOWNLOADING ### JSON Document {0}\n",
 					new String[]{ urlStr });
 
-			response.jsonArrayResponse = new JSONArray(getUncachedResponse(urlStr));
+			response.jsonArrayResponse = new JSONArray(getUncachedResponse(urlStr, referer));
 		}
 
 		return response.jsonArrayResponse;
 	}
 
-	public static String getUncachedResponse(String urlStr) throws IOException, JSONException, URISyntaxException {
+	public static String getUncachedResponse(String urlStr, String referer) throws IOException, JSONException, URISyntaxException {
 		URL url = Utils.toURL(urlStr);
 
 		URLConnection connection = url.openConnection();
+		if (Utils.isNotBlank(referer)) {
+			connection.setRequestProperty("Referer", referer);
+		}
 		InputStream in = null;
 		BufferedReader reader = null;
 		StringBuilder sb = new StringBuilder();
@@ -1158,7 +1161,7 @@ public class URLCache {
 		return response;
 	}
 
-	private static void setSearchCachedResponse(String urlStr, ResponseWrapper response) {
+	private static void setSearchCachedResponse(String urlStr, ResponseWrapper response, String referer) {
 		if (urlStr != null && response != null) {
 			// Max cache size reach...
 			if (searchResponseCache.size() >= SEARCH_CACHE_MAXSIZE) {

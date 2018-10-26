@@ -95,7 +95,8 @@
 				JSONObject results = null;
 
 				try {
-					results = clientConfig.locationSearch(query, bounds, offset, qty);
+					String referer = request.getRequestURL().toString();
+					results = clientConfig.locationSearch(query, referer, bounds, offset, qty);
 				} catch (Exception ex) {
 					response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 					jsonObj.put("success", false);

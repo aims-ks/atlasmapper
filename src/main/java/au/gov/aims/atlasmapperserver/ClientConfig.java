@@ -158,6 +158,9 @@ public class ClientConfig extends AbstractConfig {
 	private boolean showArcGISResults;
 
 	@ConfigField
+	private String googleSearchAPIKey;
+
+	@ConfigField
 	private String arcGISSearchUrl;
 
 	@ConfigField
@@ -1109,6 +1112,15 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 
+	public String getGoogleSearchAPIKey() {
+		return this.googleSearchAPIKey;
+	}
+
+	public void setGoogleSearchAPIKey(String googleSearchAPIKey) {
+		this.googleSearchAPIKey = googleSearchAPIKey;
+	}
+
+
 	public String getArcGISSearchUrl() {
 		return this.arcGISSearchUrl;
 	}
@@ -1242,7 +1254,7 @@ public class ClientConfig extends AbstractConfig {
 	}
 
 
-	public JSONObject locationSearch(String query, String mapBounds, int offset, int qty) throws JSONException, IOException, TransformException, FactoryException, URISyntaxException {
+	public JSONObject locationSearch(String query, String referer, String mapBounds, int offset, int qty) throws JSONException, IOException, TransformException, FactoryException, URISyntaxException {
 		if (Utils.isBlank(query) || qty <= 0) {
 			return null;
 		}
@@ -1271,15 +1283,16 @@ public class ClientConfig extends AbstractConfig {
 			}
 		});
 
-		if (this.isShowGoogleResults()) {
-			List<JSONObject> googleResults = LocationSearch.googleSearch(encodedQuery, mapBounds);
+		String googleSearchAPIKey = this.getGoogleSearchAPIKey();
+		if (this.isShowGoogleResults() && Utils.isNotBlank(googleSearchAPIKey)) {
+			List<JSONObject> googleResults = LocationSearch.googleSearch(googleSearchAPIKey, referer, encodedQuery, mapBounds);
 			if (googleResults != null && !googleResults.isEmpty()) {
 				resultsSet.addAll(googleResults);
 			}
 		}
 
 		if (this.isShowOSMResults()) {
-			List<JSONObject> osmNominatimResults = LocationSearch.osmNominatimSearch(encodedQuery, mapBounds);
+			List<JSONObject> osmNominatimResults = LocationSearch.osmNominatimSearch(referer, encodedQuery, mapBounds);
 			if (osmNominatimResults != null && !osmNominatimResults.isEmpty()) {
 				resultsSet.addAll(osmNominatimResults);
 			}
@@ -1287,7 +1300,7 @@ public class ClientConfig extends AbstractConfig {
 
 		String arcGISSearchUrl = this.getArcGISSearchUrl();
 		if (this.isShowArcGISResults() && Utils.isNotBlank(arcGISSearchUrl)) {
-			List<JSONObject> arcGISResults = LocationSearch.arcGISSearch(arcGISSearchUrl, encodedQuery, mapBounds);
+			List<JSONObject> arcGISResults = LocationSearch.arcGISSearch(referer, arcGISSearchUrl, encodedQuery, mapBounds);
 			if (arcGISResults != null && !arcGISResults.isEmpty()) {
 				resultsSet.addAll(arcGISResults);
 			}

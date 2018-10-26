@@ -29,6 +29,7 @@ import org.opengis.referencing.operation.TransformException;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -49,13 +50,24 @@ public class LocationSearch {
 	// Google
 	// API: https://developers.google.com/maps/documentation/geocoding/
 	// URL: http://maps.googleapis.com/maps/api/geocode/json?address={QUERY}&sensor=false
-	public static List<JSONObject> googleSearch(String encodedQuery, String mapBounds) throws JSONException, IOException, TransformException, FactoryException, URISyntaxException {
-		String googleSearchUrl = "http://maps.googleapis.com/maps/api/geocode/json?address={QUERY}&sensor=false";
-		String queryURLStr = googleSearchUrl.replace("{QUERY}", encodedQuery);
+	public static List<JSONObject> googleSearch(String googleSearchAPIKey, String referer, String encodedQuery, String mapBounds) throws JSONException, IOException, TransformException, FactoryException, URISyntaxException {
+		String googleSearchUrl = "https://maps.googleapis.com/maps/api/geocode/json?address={QUERY}&sensor=false&key={APIKEY}";
 
-		JSONObject json = URLCache.getSearchJSONResponse(queryURLStr);
+		String encodedGoogleSearchAPIKey = URLEncoder.encode(googleSearchAPIKey.trim(), "UTF-8");
+		String queryURLStr = googleSearchUrl
+				.replace("{QUERY}", encodedQuery)
+				.replace("{APIKEY}", encodedGoogleSearchAPIKey);
+
+		JSONObject json = URLCache.getSearchJSONResponse(queryURLStr, referer);
 		if (json == null) {
 			return null;
+		}
+
+		// Using the API Key can be messy. The developer can't look at requests / responses in the browser console
+		// since the request is sent by the server.
+		String errorMessage = json.optString("error_message", null);
+		if (errorMessage != null) {
+			LOGGER.log(Level.SEVERE, "Google Search API returned an error: " + errorMessage);
 		}
 
 		JSONArray jsonResults = json.optJSONArray("results");
@@ -127,11 +139,11 @@ public class LocationSearch {
 	// OSM (Should be used to give path from A to B, not for a location search...)
 	// API: http://open.mapquestapi.com/geocoding/
 	// URL: http://open.mapquestapi.com/geocoding/v1/address?location={QUERY}
-	public static List<JSONObject> osmSearch(String encodedQuery, String mapBounds) throws JSONException, IOException, TransformException, FactoryException, URISyntaxException {
+	public static List<JSONObject> osmSearch(String referer, String encodedQuery, String mapBounds) throws JSONException, IOException, TransformException, FactoryException, URISyntaxException {
 		String osmSearchUrl = "http://open.mapquestapi.com/geocoding/v1/address?location={QUERY}";
 		String queryURLStr = osmSearchUrl.replace("{QUERY}", encodedQuery);
 
-		JSONObject json = URLCache.getSearchJSONResponse(queryURLStr);
+		JSONObject json = URLCache.getSearchJSONResponse(queryURLStr, referer);
 		if (json == null) {
 			return null;
 		}
@@ -224,11 +236,11 @@ public class LocationSearch {
 	// OSM Nominatim
 	// API: http://open.mapquestapi.com/nominatim/
 	// URL: http://open.mapquestapi.com/nominatim/v1/search?format=json&q={QUERY}
-	public static List<JSONObject> osmNominatimSearch(String encodedQuery, String mapBounds) throws JSONException, IOException, TransformException, FactoryException, URISyntaxException {
+	public static List<JSONObject> osmNominatimSearch(String referer, String encodedQuery, String mapBounds) throws JSONException, IOException, TransformException, FactoryException, URISyntaxException {
 		String osmSearchUrl = "http://open.mapquestapi.com/nominatim/v1/search?format=json&q={QUERY}";
 		String queryURLStr = osmSearchUrl.replace("{QUERY}", encodedQuery);
 
-		JSONArray jsonResults = URLCache.getSearchJSONArrayResponse(queryURLStr);
+		JSONArray jsonResults = URLCache.getSearchJSONArrayResponse(queryURLStr, referer);
 		if (jsonResults == null) {
 			return null;
 		}
@@ -286,7 +298,7 @@ public class LocationSearch {
 	// ArcGIS
 	// API: http://resources.arcgis.com/en/help/rest/apiref/index.html?find.html
 	// URL example: http://www.gbrmpa.gov.au/spatial_services/gbrmpaBounds/MapServer/find?f=json&contains=true&returnGeometry=true&layers=6%2C0&searchFields=LOC_NAME_L%2CNAME&searchText={QUERY}
-	public static List<JSONObject> arcGISSearch(String arcGISSearchUrl, String encodedQuery, String mapBounds) throws JSONException, IOException, TransformException, FactoryException, URISyntaxException {
+	public static List<JSONObject> arcGISSearch(String referer, String arcGISSearchUrl, String encodedQuery, String mapBounds) throws JSONException, IOException, TransformException, FactoryException, URISyntaxException {
 		if (Utils.isBlank(arcGISSearchUrl)) {
 			return null;
 		}
@@ -297,7 +309,7 @@ public class LocationSearch {
 		String searchFieldsStr = Utils.getUrlParameter(queryURLStr, "searchFields", true);
 		String[] searchFields = searchFieldsStr.split(",");
 
-		JSONObject json = URLCache.getSearchJSONResponse(queryURLStr);
+		JSONObject json = URLCache.getSearchJSONResponse(queryURLStr, referer);
 		if (json == null) {
 			return null;
 		}

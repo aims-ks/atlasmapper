@@ -602,6 +602,11 @@ Ext.define('Writer.ClientConfigForm', {
 										xtype: 'checkboxfield',
 										name: 'showArcGISResults'
 									}, {
+										fieldLabel: 'Google Search API Key',
+										qtipHtml: 'Set this to enable Google Search. This API Key must be restricted by IP, not by referer.',
+										name: 'googleSearchAPIKey',
+										disabled: demoMode
+									}, {
 										fieldLabel: 'ArcGIS search URL',
 										qtipHtml: 'URL used by the server to perform searches against ArcGIS layers.<br/>' +
 											'Example:<br/>' +
@@ -1443,6 +1448,7 @@ Ext.define('Writer.ClientConfig', {
 		{name: 'searchEnabled', type: 'boolean', defaultValue: false},
 		{name: 'showGoogleResults', type: 'boolean', defaultValue: false},
 		{name: 'showArcGISResults', type: 'boolean', defaultValue: false},
+		'googleSearchAPIKey',
 		'arcGISSearchUrl',
 		{name: 'showOSMResults', type: 'boolean', defaultValue: false},
 		'searchServiceUrl',
