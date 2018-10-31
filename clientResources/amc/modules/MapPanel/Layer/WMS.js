@@ -375,6 +375,10 @@ Atlas.Layer.WMS = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 		// so the easiest and more strait forward way to ensure the feature request works is to always add both set
 		// of parameters.
 
+		if (layer.params.STYLES) {
+			params.styles = layer.params.STYLES;
+		}
+
 		// For version 1.3.0
 		var projection = layer.projection;
 		if (!projection) {
