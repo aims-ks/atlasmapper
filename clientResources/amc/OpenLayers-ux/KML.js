@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 2013 Australian Institute of Marine Science
  *
- *  Contact: Gael Lafond <g.lafond@aims.org.au>
+ *  Contact: Gael Lafond <g.lafond@aims.gov.au>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-if (typeof(OpenLayers.Layer.ux) == 'undefined') {
+if (typeof(OpenLayers.Layer.ux) === 'undefined') {
 	OpenLayers.Layer.ux = {};
 }
 

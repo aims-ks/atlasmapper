@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 2011 Australian Institute of Marine Science
  *
- *  Contact: Gael Lafond <g.lafond@aims.org.au>
+ *  Contact: Gael Lafond <g.lafond@aims.gov.au>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -67,6 +67,8 @@ import org.json.JSONTokener;
  */
 public abstract class AbstractDataSourceConfig extends AbstractConfig implements Comparable<AbstractDataSourceConfig>, Cloneable {
 	private static final Logger LOGGER = Logger.getLogger(AbstractDataSourceConfig.class.getName());
+	// Used to format the elapse time (always put at lease 1 digit before the dot, with maximum 2 digits after)
+	private static final DecimalFormat elapseTimeFormat = new DecimalFormat("0.##");
 
 	// Grids records must have an unmutable ID
 	@ConfigField
@@ -118,10 +120,6 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 
 	@ConfigField
 	private String comment;
-
-
-	// Used to format the elapse time (always put at lease 1 digit before the dot, with maximum 2 digits after)
-	private DecimalFormat elapseTimeFormat = new DecimalFormat("0.##");
 
 	protected AbstractDataSourceConfig(ConfigManager configManager) {
 		super(configManager);
@@ -346,8 +344,8 @@ public abstract class AbstractDataSourceConfig extends AbstractConfig implements
 		double elapseTimeMin = elapseTimeSec / 60.0;
 
 		layerCatalog.addMessage("Rebuild time: " + (elapseTimeMin >= 1 ?
-				this.elapseTimeFormat.format(elapseTimeMin) + " min" :
-				this.elapseTimeFormat.format(elapseTimeSec) + " sec"));
+				AbstractDataSourceConfig.elapseTimeFormat.format(elapseTimeMin) + " min" :
+				AbstractDataSourceConfig.elapseTimeFormat.format(elapseTimeSec) + " sec"));
 
 		// 4. Save the data source state into a file
 		clone.save(layerCatalog);

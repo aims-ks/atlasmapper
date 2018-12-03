@@ -3,7 +3,7 @@
  * 
  *  Copyright (C) 2011 Australian Institute of Marine Science
  * 
- *  Contact: Gael Lafond <g.lafond@aims.org.au>
+ *  Contact: Gael Lafond <g.lafond@aims.gov.au>
  * 
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ import org.json.JSONException;
 
 /**
  *
- * @author Gael Lafond <g.lafond@aims.org.au>
+ * @author Gael Lafond <g.lafond@aims.gov.au>
  */
 public class DefaultConfigFilesTest extends TestCase  {
 

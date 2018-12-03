@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 2012 Australian Institute of Marine Science
  *
- *  Contact: Gael Lafond <g.lafond@aims.org.au>
+ *  Contact: Gael Lafond <g.lafond@aims.gov.au>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/**
+/*
  * This class test the URLCache application. It rely on stable URLs that always
  * return the same thing. No online services can be used since they are not stable
  * enough for this kind of tests. Instead, it rely on an other WebApp called
@@ -33,7 +33,7 @@
  *     it will skip all tests.
  */
 
-/**
+/*
  * Tests for all cases:
  *     1st request of a URL
  *         Succeed

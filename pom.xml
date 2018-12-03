@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 2011 Australian Institute of Marine Science
  *
- *  Contact: Gael Lafond <g.lafond@aims.org.au>
+ *  Contact: Gael Lafond <g.lafond@aims.gov.au>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
 	<groupId>au.gov.aims</groupId>
 	<artifactId>atlasmapper</artifactId>
 	<packaging>war</packaging>
-	<version>1.6.5</version>
+	<version>1.6.6</version>
 	<name>AtlasMapper server and clients</name>
 	<description>This application compiled as a single War, that can be deployed in Tomcat, without any other dependency.\n\
 It contains:\n\
