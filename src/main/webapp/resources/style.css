@@ -20,168 +20,182 @@
  */
 
 .icon-user {
-	background-image: url(icons/user.png) !important;
+    background-image: url(icons/user.png) !important;
 }
 
 .icon-user-add {
-	background-image: url(icons/user_add.gif) !important;
+    background-image: url(icons/user_add.gif) !important;
 }
 
 .icon-save {
-	background-image: url(icons/save.gif) !important;
+    background-image: url(icons/save.gif) !important;
 }
 
 .icon-okay {
-	background-image: url(icons/accept.png) !important;
+    background-image: url(icons/accept.png) !important;
 }
 
 .icon-cancel {
-	background-image: url(icons/stop.png) !important;
+    background-image: url(icons/stop.png) !important;
 }
 
 .icon-reset {
-	background-image: url(icons/stop.png) !important;
+    background-image: url(icons/stop.png) !important;
 }
 
 .icon-grid {
-	background-image: url(icons/grid.png) !important;
+    background-image: url(icons/grid.png) !important;
 }
 
 .icon-add {
-	background-image: url(icons/add.png) !important;
+    background-image: url(icons/add.png) !important;
 }
 
 .icon-delete {
-	background-image: url(icons/delete.png) !important;
+    background-image: url(icons/delete.png) !important;
 }
 
 /* ExtJS remove the bullets to start from a known point
-	(some browser (IE) are really bad at following standards)
-	This class Reset bullet for chosen lists */
+    (some browser (IE) are really bad at following standards)
+    This class Reset bullet for chosen lists */
 #about ul,
 div.messageWindow ul,
 div.tooltip ul,
 ul.bullet-list {
-	padding-left: 2em;
-	list-style-type: disc;
+    padding-left: 2em;
+    list-style-type: disc;
 }
 #about ol,
 div.messageWindow ol,
 div.tooltip ol,
 ol.bullet-list {
-	padding-left: 2em;
-	list-style-type: decimal;
+    padding-left: 2em;
+    list-style-type: decimal;
 }
 /* ExtJS remove the bullets on li instead of ul. It has to be reset in both. */
 #about ul > li,
 div.messageWindow ul > li,
 div.tooltip ul > li,
 ul.bullet-list > li {
-	list-style-type: disc;
-	margin: 0.5em 0;
+    list-style-type: disc;
+    margin: 0.5em 0;
 }
 #about ol > li,
 div.messageWindow ol > li,
 div.tooltip ol > li,
 ol.bullet-list > li {
-	list-style-type: decimal;
-	margin: 0.5em 0;
+    list-style-type: decimal;
+    margin: 0.5em 0;
 }
 
+.logs-panel .x-panel-body {
+    background-color: #000000;
+    color: #FFFFFF;
+}
+.logs-list .level_warning {
+    color: #FFFF00;
+}
+.logs-list .level_severe {
+    font-weight: bold;
+    color: #FF0000;
+}
+.logs-list .level_fine {
+    color: #999999;
+}
 
 
 div.messageWindow em,
 div.tooltip em {
-	font-style: italic;
+    font-style: italic;
 }
 div.messageWindow strong,
 div.tooltip strong {
-	font-weight: bold;
+    font-weight: bold;
 }
 
 .grid-icon {
-	margin: 0 5px;
-	cursor: pointer;
+    margin: 0 5px;
+    cursor: pointer;
 }
 
 div.messageWindow p {
-	margin: 0.5em 0;
-	text-align: justify;
+    margin: 0.5em 0;
+    text-align: justify;
 }
 
 div.messageWindow pre.code {
-	margin: 0.2em 2em;
-	padding: 0.2em;
-	background-color: #DDDDDD;
+    margin: 0.2em 2em;
+    padding: 0.2em;
+    background-color: #DDDDDD;
 }
 div.messageWindow .success {
-	color: #00FF00;
+    color: #00FF00;
 }
 div.messageWindow .error {
-	color: #FF0000;
+    color: #FF0000;
 }
 
 #about table {
-	border-collapse:collapse;
-	margin-bottom: 1em;
+    border-collapse:collapse;
+    margin-bottom: 1em;
 }
 
 #about th {
-	font-weight: bold;
+    font-weight: bold;
 }
 
 #about th, #about td {
-	vertical-align: top;
-	padding: 0.5em;
+    vertical-align: top;
+    padding: 0.5em;
 }
 
 #about table, #about th, #about td {
-	border: 1px solid black;
+    border: 1px solid black;
 }
 
 /* Class for the AjaxTextField */
 div.ajaxLoading {
-	position: absolute;
-	top: 0;
-	right: 2px;
-	width: 22px;
-	height: 100%;
-	background: url('icons/statusbar/loading.gif') no-repeat right center;
-	cursor: wait;
+    position: absolute;
+    top: 0;
+    right: 2px;
+    width: 22px;
+    height: 100%;
+    background: url('icons/statusbar/loading.gif') no-repeat right center;
+    cursor: wait;
 }
 
 label .grid-true,
 label .grid-false,
 label .modified-true,
 label .grid-warning {
-	margin-bottom: -3px;
+    margin-bottom: -3px;
 }
 
 .grid-true,
 .grid-false,
 .modified-true,
 .grid-warning {
-	background-repeat: no-repeat;
-	background-position: center;
-	display: inline-block;
-	width: 16px;
-	height: 16px;
+    background-repeat: no-repeat;
+    background-position: center;
+    display: inline-block;
+    width: 16px;
+    height: 16px;
 }
 
 .grid-true {
-	background-image: url("icons/accept.png");
+    background-image: url("icons/accept.png");
 }
 
 .grid-false {
-	background-image: url("icons/cancel.png");
+    background-image: url("icons/cancel.png");
 }
 
 .modified-true {
-	background-image: url("icons/modified.png");
+    background-image: url("icons/modified.png");
 }
 
 .grid-warning {
-	background-image: url("icons/error.png");
+    background-image: url("icons/error.png");
 }
 
 .grid-true .text,
@@ -189,10 +203,10 @@ label .grid-warning {
 .modified-true .text,
 .modified-false .text,
 .grid-warning .text {
-	display: none;
+    display: none;
 }
 
 .grid-ds-id {
-	font-size: 0.9em;
-	color: #999999;
+    font-size: 0.9em;
+    color: #999999;
 }

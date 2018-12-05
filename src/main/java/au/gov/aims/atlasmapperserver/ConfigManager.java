@@ -30,6 +30,7 @@ import au.gov.aims.atlasmapperserver.jsonWrappers.client.LayerWrapper;
 import au.gov.aims.atlasmapperserver.jsonWrappers.server.ServerConfigWrapper;
 import au.gov.aims.atlasmapperserver.jsonWrappers.server.UsersConfigWrapper;
 import au.gov.aims.atlasmapperserver.servlet.FileFinder;
+import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
 import au.gov.aims.atlasmapperserver.xml.TC211.TC211Document;
 import au.gov.aims.atlasmapperserver.xml.TC211.TC211Parser;
 import freemarker.template.TemplateException;
@@ -866,10 +867,10 @@ public class ConfigManager {
 	}
 
 
-	public URLSaveState getMapStateForDataset(ClientConfig clientConfig, String iso19115_19139url) throws Exception {
+	public URLSaveState getMapStateForDataset(ThreadLogger logger, ClientConfig clientConfig, String iso19115_19139url) throws Exception {
 		JSONArray jsonLayers = new JSONArray();
 
-		TC211Document tc211Document = TC211Parser.parseURL(this, null, Utils.toURL(iso19115_19139url), false, true);
+		TC211Document tc211Document = TC211Parser.parseURL(logger, this, null, Utils.toURL(iso19115_19139url), false, true);
 		if (tc211Document == null) {
 			return null;
 		}
@@ -1187,6 +1188,7 @@ public class ConfigManager {
 	}
 
 	// Return error messages, if any
+	/*
 	public Map<String, Errors> generateAllClients(boolean complete) throws Exception {
 		Map<String, Errors> errorMessages = new HashMap<String, Errors>();
 		// Can not loop on client instance directly (this one is quite tricky):
@@ -1204,6 +1206,7 @@ public class ConfigManager {
 
 		return errorMessages;
 	}
+	*/
 
 	public JSONObject getClientConfigFileJSon(ClientConfig clientConfig, ConfigType configType, boolean generate)
 			throws Exception {

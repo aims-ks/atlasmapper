@@ -23,6 +23,7 @@ package au.gov.aims.atlasmapperserver.xml.WMTS;
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.URLCache;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
+import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
 import org.json.JSONException;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXNotRecognizedException;
@@ -34,116 +35,118 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class WMTSParser {
-	private static final Logger LOGGER = Logger.getLogger(WMTSParser.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(WMTSParser.class.getName());
 
-	/**
-	 * Cached
-	 * @param configManager Config manager associated to that URL, for caching purpose
-	 * @param dataSource Data source associated to that URL, for caching purpose
-	 * @param url Url of the document to parse
-	 * @param mandatory True to cancel the client generation if the file cause problem
-	 * @return
-	 * @throws SAXException
-	 * @throws ParserConfigurationException
-	 * @throws IOException
-	 * @throws JSONException
-	 */
-	public static WMTSDocument parseURL(ConfigManager configManager, AbstractDataSourceConfig dataSource, URL url, boolean mandatory)
-			throws SAXException, ParserConfigurationException, IOException, JSONException {
+    /**
+     * Cached
+     * @param configManager Config manager associated to that URL, for caching purpose
+     * @param dataSource Data source associated to that URL, for caching purpose
+     * @param url Url of the document to parse
+     * @param mandatory True to cancel the client generation if the file cause problem
+     * @return
+     * @throws SAXException
+     * @throws ParserConfigurationException
+     * @throws IOException
+     * @throws JSONException
+     */
+    public static WMTSDocument parseURL(ThreadLogger logger, ConfigManager configManager, AbstractDataSourceConfig dataSource, URL url, boolean mandatory)
+            throws SAXException, ParserConfigurationException, IOException, JSONException {
 
-		String urlStr = url.toString();
-		File cachedDocumentFile = null;
+        String urlStr = url.toString();
+        File cachedDocumentFile = null;
 
-		WMTSDocument wmtsDocument = null;
-		try {
-			cachedDocumentFile = URLCache.getURLFile(configManager, dataSource, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, mandatory);
-			wmtsDocument = parseFile(cachedDocumentFile, urlStr);
-			if (wmtsDocument == null) {
-				File rollbackFile = URLCache.rollbackURLFile(configManager, cachedDocumentFile, urlStr, "Invalid WMTS document");
-				wmtsDocument = parseFile(rollbackFile, urlStr);
-			} else {
-				URLCache.commitURLFile(configManager, cachedDocumentFile, urlStr);
-			}
-		} catch (Exception ex) {
-			File rollbackFile = URLCache.rollbackURLFile(configManager, cachedDocumentFile, urlStr, ex);
-			wmtsDocument = parseFile(rollbackFile, urlStr);
-		}
+        WMTSDocument wmtsDocument = null;
+        try {
+            logger.log(Level.INFO, "Getting WMTS GetCapabilities document");
+            cachedDocumentFile = URLCache.getURLFile(logger, configManager, dataSource, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, mandatory);
+            wmtsDocument = parseFile(cachedDocumentFile, urlStr);
+            if (wmtsDocument == null) {
+                File rollbackFile = URLCache.rollbackURLFile(logger, configManager, cachedDocumentFile, urlStr, "Invalid WMTS document");
+                wmtsDocument = parseFile(rollbackFile, urlStr);
+            } else {
+                URLCache.commitURLFile(configManager, cachedDocumentFile, urlStr);
+            }
+        } catch (Exception ex) {
+            File rollbackFile = URLCache.rollbackURLFile(logger, configManager, cachedDocumentFile, urlStr, ex);
+            wmtsDocument = parseFile(rollbackFile, urlStr);
+        }
 
-		return wmtsDocument;
-	}
+        return wmtsDocument;
+    }
 
-	private static SAXParser getSAXParser() throws SAXException, SAXNotRecognizedException, ParserConfigurationException {
-		SAXParserFactory factory = SAXParserFactory.newInstance();
+    private static SAXParser getSAXParser() throws SAXException, SAXNotRecognizedException, ParserConfigurationException {
+        SAXParserFactory factory = SAXParserFactory.newInstance();
 
-		// Disabling DTD loading & validation
-		// Without those 2 lines, initialising XML files takes ages (about 10 minutes for 500kb, down to a few ms with those lines)
-		factory.setFeature("http://apache.org/xml/features/validation/schema", false);
-		factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
-		return factory.newSAXParser();
-	}
+        // Disabling DTD loading & validation
+        // Without those 2 lines, initialising XML files takes ages (about 10 minutes for 500kb, down to a few ms with those lines)
+        factory.setFeature("http://apache.org/xml/features/validation/schema", false);
+        factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+        return factory.newSAXParser();
+    }
 
-	/**
-	 * NOT Cached
-	 * @param file
-	 * @param location For debugging purpose
-	 * @return
-	 * @throws SAXException
-	 * @throws ParserConfigurationException
-	 * @throws IOException
-	 * @throws JSONException
-	 */
-	public static WMTSDocument parseFile(File file, String location)
-			throws SAXException, ParserConfigurationException, IOException, JSONException {
+    /**
+     * NOT Cached
+     * @param file
+     * @param location For debugging purpose
+     * @return
+     * @throws SAXException
+     * @throws ParserConfigurationException
+     * @throws IOException
+     * @throws JSONException
+     */
+    public static WMTSDocument parseFile(File file, String location)
+            throws SAXException, ParserConfigurationException, IOException, JSONException {
 
-		if (file == null || !file.exists()) {
-			return null;
-		}
+        if (file == null || !file.exists()) {
+            return null;
+        }
 
-		SAXParser saxParser = getSAXParser();
+        SAXParser saxParser = getSAXParser();
 
-		WMTSDocument doc = new WMTSDocument(location);
-		WMTSHandler handler = new WMTSHandler(doc);
+        WMTSDocument doc = new WMTSDocument(location);
+        WMTSHandler handler = new WMTSHandler(doc);
 
-		saxParser.parse(file, handler);
+        saxParser.parse(file, handler);
 
-		if (doc.getLayer() == null) {
-			return null;
-		}
+        if (doc.getLayer() == null) {
+            return null;
+        }
 
-		return doc;
-	}
+        return doc;
+    }
 
-	/**
-	 * NOT Cached (Used for tests)
-	 * @param inputStream
-	 * @param location For debugging purpose
-	 * @return
-	 * @throws SAXException
-	 * @throws ParserConfigurationException
-	 * @throws IOException
-	 * @throws JSONException
-	 */
-	public static WMTSDocument parseInputStream(InputStream inputStream, String location)
-			throws SAXException, ParserConfigurationException, IOException, JSONException {
+    /**
+     * NOT Cached (Used for tests)
+     * @param inputStream
+     * @param location For debugging purpose
+     * @return
+     * @throws SAXException
+     * @throws ParserConfigurationException
+     * @throws IOException
+     * @throws JSONException
+     */
+    public static WMTSDocument parseInputStream(InputStream inputStream, String location)
+            throws SAXException, ParserConfigurationException, IOException, JSONException {
 
-		if (inputStream == null) {
-			throw new IllegalArgumentException("Can not parse null XML stream. " + location);
-		}
+        if (inputStream == null) {
+            throw new IllegalArgumentException("Can not parse null XML stream. " + location);
+        }
 
-		SAXParser saxParser = getSAXParser();
+        SAXParser saxParser = getSAXParser();
 
-		WMTSDocument doc = new WMTSDocument(location);
-		WMTSHandler handler = new WMTSHandler(doc);
+        WMTSDocument doc = new WMTSDocument(location);
+        WMTSHandler handler = new WMTSHandler(doc);
 
-		saxParser.parse(inputStream, handler);
+        saxParser.parse(inputStream, handler);
 
-		if (doc.getLayer() == null) {
-			return null;
-		}
+        if (doc.getLayer() == null) {
+            return null;
+        }
 
-		return doc;
-	}
+        return doc;
+    }
 }

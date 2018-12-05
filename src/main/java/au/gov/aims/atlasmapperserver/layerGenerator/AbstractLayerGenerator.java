@@ -21,64 +21,65 @@
 
 package au.gov.aims.atlasmapperserver.layerGenerator;
 
-import au.gov.aims.atlasmapperserver.Errors;
 import au.gov.aims.atlasmapperserver.URLCache;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.jsonWrappers.client.DataSourceWrapper;
 import au.gov.aims.atlasmapperserver.jsonWrappers.client.LayerWrapper;
 import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
+import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
 import org.json.JSONException;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.logging.Level;
 
 public abstract class AbstractLayerGenerator<L extends AbstractLayerConfig, D extends AbstractDataSourceConfig> {
-	protected long instanceTimestamp = -1;
+    protected long instanceTimestamp = -1;
 
-	protected abstract String getUniqueLayerId(L layer, D dataSourceConfig);
+    protected abstract String getUniqueLayerId(L layer, D dataSourceConfig);
 
-	public DataSourceWrapper generateLayerCatalog(D dataSourceConfig, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles) throws IOException, JSONException {
-		// startDate: Used to delete old entries in the cache (entries that do not get
-		//     access after that date are considered unused and are removed)
-		Date startDate = new Date();
+    public DataSourceWrapper generateLayerCatalog(ThreadLogger logger, D dataSourceConfig, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles) throws IOException, JSONException {
+        // startDate: Used to delete old entries in the cache (entries that do not get
+        //     access after that date are considered unused and are removed)
+        Date startDate = new Date();
 
-		LayerCatalog rawLayerCatalog = this.generateRawLayerCatalog(dataSourceConfig, redownloadPrimaryFiles, redownloadSecondaryFiles);
+        D dataSourceConfigClone = (D)dataSourceConfig.clone();
+        LayerCatalog rawLayerCatalog = this.generateRawLayerCatalog(logger, dataSourceConfigClone, redownloadPrimaryFiles, redownloadSecondaryFiles);
 
-		List<URLCache.Category> categories = new ArrayList<URLCache.Category>(3);
-		categories.add(URLCache.Category.CAPABILITIES_DOCUMENT);
-		categories.add(URLCache.Category.MEST_RECORD);
-		categories.add(URLCache.Category.BRUTEFORCE_MEST_RECORD);
-		URLCache.deleteOldEntries(dataSourceConfig, startDate, categories);
+        List<URLCache.Category> categories = new ArrayList<URLCache.Category>(3);
+        categories.add(URLCache.Category.CAPABILITIES_DOCUMENT);
+        categories.add(URLCache.Category.MEST_RECORD);
+        categories.add(URLCache.Category.BRUTEFORCE_MEST_RECORD);
+        URLCache.deleteOldEntries(dataSourceConfigClone, startDate, categories);
 
-		Errors dataSourceErrors = URLCache.getDataSourceErrors(dataSourceConfig, dataSourceConfig.getConfigManager().getApplicationFolder());
+        logger.log(Level.INFO, "Validating data source");
+        URLCache.validateDataSource(dataSourceConfigClone, dataSourceConfigClone.getConfigManager().getApplicationFolder());
 
-		DataSourceWrapper catalogWrapper = new DataSourceWrapper();
-		catalogWrapper.addAllErrors(dataSourceErrors);
-		catalogWrapper.addAllErrors(rawLayerCatalog.getErrors());
-		for (AbstractLayerConfig layer : rawLayerCatalog.getLayers()) {
-			LayerWrapper layerWrapper = new LayerWrapper(layer.toJSonObject());
-			catalogWrapper.addLayer(layer.getLayerId(), layerWrapper);
-		}
+        DataSourceWrapper catalogWrapper = new DataSourceWrapper();
+        for (AbstractLayerConfig layer : rawLayerCatalog.getLayers()) {
+            LayerWrapper layerWrapper = new LayerWrapper(layer.toJSonObject());
+            catalogWrapper.addLayer(layer.getLayerId(), layerWrapper);
+        }
 
-		return catalogWrapper;
-	}
+        return catalogWrapper;
+    }
 
-	// TODO Maybe return a DataSourceWrapper?
-	// Redownload parameters are ignored by most data sources, but some use it (like KML)
-	protected abstract LayerCatalog generateRawLayerCatalog(D dataSourceConfig, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles);
+    // TODO Maybe return a DataSourceWrapper?
+    // Redownload parameters are ignored by most data sources, but some use it (like KML)
+    protected abstract LayerCatalog generateRawLayerCatalog(ThreadLogger logger, D dataSourceConfig, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles);
 
-	// The layer name used to request the layer. Usually, the layerName is
-	// the same as the layerId, so this field is let blank. This attribute
-	// is only used when there is a duplication of layerId.
-	protected void ensureUniqueLayerId(L layer, D dataSourceConfig) {
-		String uniqueLayerId =
-				dataSourceConfig.getDataSourceId() + "_" +
-				this.getUniqueLayerId(layer, dataSourceConfig);
+    // The layer name used to request the layer. Usually, the layerName is
+    // the same as the layerId, so this field is let blank. This attribute
+    // is only used when there is a duplication of layerId.
+    protected void ensureUniqueLayerId(L layer, D dataSourceConfig) {
+        String uniqueLayerId =
+                dataSourceConfig.getDataSourceId() + "_" +
+                this.getUniqueLayerId(layer, dataSourceConfig);
 
-		layer.setLayerName(layer.getLayerId());
-		layer.setLayerId(uniqueLayerId);
-	}
+        layer.setLayerName(layer.getLayerId());
+        layer.setLayerId(uniqueLayerId);
+    }
 }

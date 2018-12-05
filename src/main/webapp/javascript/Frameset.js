@@ -24,383 +24,539 @@
 // description are useless.
 
 Ext.define('Frameset', {
-	extend: 'Ext.container.Viewport',
+    extend: 'Ext.container.Viewport',
 
-	layout: 'border',
-	contentPanel: null,
+    layout: 'border',
+    contentPanel: null,
 
-	waitingTitle: null,
-	waitingContentItems: null,
+    waitingTitle: null,
+    waitingContentItems: null,
 
-	defaults: {
-		split: true
-	},
+    defaults: {
+        split: true
+    },
 
-	statusBar: null,
-	statusWindow: null,
+    statusBar: null,
+    statusWindow: null,
 
-	initComponent: function() {
-		var contentItems = [];
-		if (this.waitingContentItems) {
-			contentItems = this.waitingContentItems;
-			this.waitingContentItems = null;
-		}
+    logsWindow: null,
 
-		var that = this;
-		var contentPanelConfig = {
-			autoScroll: true,
-			collapsible: false,
-			region:'center',
-			bodyPadding: 10,
-			items: contentItems,
+    initComponent: function() {
+        var contentItems = [];
+        if (this.waitingContentItems) {
+            contentItems = this.waitingContentItems;
+            this.waitingContentItems = null;
+        }
 
-			// - Items takes 100% of horizontal space by default -
-			//   Without this, items takes 100% after render,
-			//   but do not adjust their width on window resize.
-			layout: 'anchor'
-		};
+        var that = this;
+        var contentPanelConfig = {
+            autoScroll: true,
+            collapsible: false,
+            region:'center',
+            bodyPadding: 10,
+            items: contentItems,
 
-		if (this.waitingTitle) {
-			contentPanelConfig.title = this.waitingTitle;
-			this.waitingTitle = null;
-		}
+            // - Items takes 100% of horizontal space by default -
+            //   Without this, items takes 100% after render,
+            //   but do not adjust their width on window resize.
+            layout: 'anchor'
+        };
 
-		this.contentPanel = Ext.create('Ext.panel.Panel', contentPanelConfig);
+        if (this.waitingTitle) {
+            contentPanelConfig.title = this.waitingTitle;
+            this.waitingTitle = null;
+        }
 
-		var logoutHTML = '<p style="float: right">';
-		if (userName) {
-			logoutHTML += 'Logged as <a href="../admin/userAccountPage.jsp">' + userName + '</a>. ';
-		}
-		logoutHTML += '<a href="../public/login.jsp?action=logout">[Logout]</a></p>';
+        this.contentPanel = Ext.create('Ext.panel.Panel', contentPanelConfig);
 
-		this.statusBar = Ext.create('Ext.ux.StatusBar', {
-			height: 25,
-			minHeight: 25,
-			maxHeight: 250,
-			region: 'south',
-			defaultText: 'Ready'
-		});
+        var logoutHTML = '<p style="float: right">';
+        if (userName) {
+            logoutHTML += 'Logged as <a href="../admin/userAccountPage.jsp">' + userName + '</a>. ';
+        }
+        logoutHTML += '<a href="../public/login.jsp?action=logout">[Logout]</a></p>';
 
-		this.items = [
-			{
-				html: logoutHTML +
-					'<p><img src="../resources/images/AtlasMapper_logo_shadow_252x50px.png" /></p>',
-				border: false,
-				region: 'north',
-				height: 70,
-				minHeight: 50,
-				maxHeight: 250,
-				bodyPadding: '5',
-				cmargins: '0 0 5 0'
-			}, {
-				html: '<ul class="bullet-list">'+
-						'<li><a href="../admin/dataSourcesConfigPage.jsp">Data sources</a></li>'+
-						'<li><a href="../admin/clientsConfigPage.jsp">AtlasMapper clients</a></li>'+
-						'<li><a href="../admin/manualOverrideDoc.html" target="_blank">Documentation</a></li>'+
-						'<li><a href="../admin/aboutPage.jsp">About</a></li>'+
-					'</ul>',
-				title: 'Navigation',
-				region:'west',
-				width: 200,
-				minWidth: 100,
-				maxWidth: 250,
-				cmargins: '0 5 0 0'
-			},
-			this.contentPanel,
-			this.statusBar
-		];
+        this.statusBar = Ext.create('Ext.ux.StatusBar', {
+            height: 25,
+            minHeight: 25,
+            maxHeight: 250,
+            region: 'south',
+            defaultText: 'Ready'
+        });
 
-		this.callParent(arguments);
-	},
+        this.items = [
+            {
+                html: logoutHTML +
+                    '<p><img src="../resources/images/AtlasMapper_logo_shadow_252x50px.png" /></p>',
+                border: false,
+                region: 'north',
+                height: 70,
+                minHeight: 50,
+                maxHeight: 250,
+                bodyPadding: '5',
+                cmargins: '0 0 5 0'
+            }, {
+                html: '<ul class="bullet-list">'+
+                        '<li><a href="../admin/dataSourcesConfigPage.jsp">Data sources</a></li>'+
+                        '<li><a href="../admin/clientsConfigPage.jsp">AtlasMapper clients</a></li>'+
+                        '<li><a href="../admin/manualOverrideDoc.html" target="_blank">Documentation</a></li>'+
+                        '<li><a href="../admin/aboutPage.jsp">About</a></li>'+
+                    '</ul>',
+                title: 'Navigation',
+                region:'west',
+                width: 200,
+                minWidth: 100,
+                maxWidth: 250,
+                cmargins: '0 5 0 0'
+            },
+            this.contentPanel,
+            this.statusBar
+        ];
 
-	setContentTitle: function(contentTitle) {
-		if (!this.contentPanel) {
-			this.waitingTitle = contentTitle;
-		} else {
-			this.contentPanel.setTitle(contentTitle);
-		}
-	},
+        this.callParent(arguments);
+    },
 
-	addContentDescription: function(contentDesc) {
-		this.addContent({
-			xtype: 'panel',
-			margin: '0 0 15 0',
-			border: false,
-			html: contentDesc
-		});
-	},
+    setContentTitle: function(contentTitle) {
+        if (!this.contentPanel) {
+            this.waitingTitle = contentTitle;
+        } else {
+            this.contentPanel.setTitle(contentTitle);
+        }
+    },
 
-	addContent: function(contentItem) {
-		if (!this.contentPanel) {
-			// Add the content to the waiting list if the panel is not ready.
-			if (!this.waitingContentItems) {
-				this.waitingContentItems = [];
-			}
-			this.waitingContentItems.push(contentItem);
-		} else {
-			this.contentPanel.add(contentItem);
-		}
-	},
+    addContentDescription: function(contentDesc) {
+        this.addContent({
+            xtype: 'panel',
+            margin: '0 0 15 0',
+            border: false,
+            html: contentDesc
+        });
+    },
+
+    addContent: function(contentItem) {
+        if (!this.contentPanel) {
+            // Add the content to the waiting list if the panel is not ready.
+            if (!this.waitingContentItems) {
+                this.waitingContentItems = [];
+            }
+            this.waitingContentItems.push(contentItem);
+        } else {
+            this.contentPanel.add(contentItem);
+        }
+    },
 
 
-	redirectIfNeeded: function(statusCode) {
-		// 401 = UNAUTHORIZED
-		if (statusCode == 401) {
-			Ext.Msg.show({
-				 title: 'Failure',
-				 msg: 'Your session has timed out.<br/>Please wait...',
-				 icon: Ext.Msg.WARNING
-			});
-			// Redirect to the login page
-			window.location = '../public/admin.jsp';
-			return true;
-		}
-		return false;
-	},
+    redirectIfNeeded: function(statusCode) {
+        // 401 = UNAUTHORIZED
+        if (statusCode == 401) {
+            Ext.Msg.show({
+                 title: 'Failure',
+                 msg: 'Your session has timed out.<br/>Please wait...',
+                 icon: Ext.Msg.WARNING
+            });
+            // Redirect to the login page
+            window.location = '../public/admin.jsp';
+            return true;
+        }
+        return false;
+    },
 
-	beforeShow: function() {
-		if (this.statusWindow) {
-			this.statusWindow.close();
-			this.statusWindow = null;
-		}
-	},
+    beforeShow: function() {
+        if (this.statusWindow) {
+            this.statusWindow.close();
+            this.statusWindow = null;
+        }
+    },
 
-	showBusy: function() {
-		this.beforeShow();
-		this.statusBar.showBusy();
-	},
+    showBusy: function() {
+        this.beforeShow();
+        this.statusBar.showBusy();
+    },
 
-	/**
-	 * Display the error message in the status bar and popup a window
-	 * using the error message as a title and the errors from the
-	 * response as content, formated using a bullet list.
-	 * msg: A brief error message
-	 * response: The response object contains errors
-	 */
-	setErrors: function(msg, response, statusCode) {
-		this.beforeShow();
-		if (!this.redirectIfNeeded(statusCode)) {
-			var errorMessages = '';
-			if (response && response.errors) {
-				errorMessages = this.errorsToHtml(response.errors);
-			}
+    setLogs: function(title, msg, requestUrl, requestParameters) {
+        this.beforeShow();
+        this.showLogWindow(title);
 
-			var alertMsg = '<b>' + msg + '</b>';
-			if (errorMessages) {
-				alertMsg += '<br/>\n' + errorMessages;
-			}
-			Ext.Msg.alert('Failure', alertMsg);
-			this.statusBar.setStatus({
-				text: msg,
-				iconCls: 'x-status-error',
-				clear: true // auto-clear after a set interval
-			});
-		}
-	},
-	setErrorsAndWarnings: function(title, msg, response) {
-		this.beforeShow();
-		var errorMessages = '';
+        this._pullLogs(requestUrl, requestParameters);
 
-		if (response && response.messages) {
-			errorMessages += '<div><b>Information:</b>';
-			errorMessages += this.errorsToHtml(response.messages);
-			errorMessages += '</div>\n';
-		}
+        this.statusBar.setStatus({
+            text: msg,
+            iconCls: 'x-status-saving'
+        });
+    },
+    showLogWindow: function(title) {
+        if (this.logsWindow !== null) {
+            this.logsWindow.destroy();
+            this.logsWindow = null;
+        }
 
-		if (response && response.errors) {
-			errorMessages += '<div><b>Errors:</b>';
-			errorMessages += this.errorsToHtml(response.errors);
-			errorMessages += '</div>\n';
-		}
+        this.logsWindow = Ext.create('Ext.window.Window', {
+            layout: 'fit',
+            title: title,
+            closable: true,
+            closeAction: 'hide',
+            resizable: true,
+            plain: true,
+            border: false,
+            width: 550,
+            height: 400,
+            items: [{
+                xtype: 'panel',
+                autoScroll: true,
+                bodyPadding: 5,
+                cls: 'logs-panel',
+                html: ''
+            }],
+            dockedItems: [{
+                xtype: 'toolbar',
+                dock: 'bottom',
+                ui: 'footer',
+                layout:{
+                    pack: 'center'
+                },
+                defaults: { minWidth: 75 },
+                items: [
+                    {
+                        xtype: 'button',
+                        text: 'Close',
+                        padding: '2 10',
+                        handler: function(that) {
+                            return function() {
+                                that.logsWindow.close();
+                                that.logsWindow = null;
+                            };
+                        }(this)
+                    }
+                ]
+            }]
+        }).show();
+    },
+    _pullLogs: function(requestUrl, requestParameters) {
+        Ext.Ajax.request({
+            url: requestUrl,
+            params: requestParameters,
+            success: function(that) {
+                return function(response) {
+                    var responseObj = null;
+                    var statusCode = response ? response.status : null;
+                    if (response && response.responseText) {
+                        try {
+                            responseObj = Ext.decode(response.responseText);
+                        } catch (err) {
+                            responseObj = {errors: [err.toString()]};
+                        }
+                    }
 
-		if (response && response.warnings) {
-			errorMessages += '<div><b>Warnings:</b>';
-			errorMessages += this.errorsToHtml(response.warnings);
-			errorMessages += '</div>\n';
-		}
+                    if (responseObj && responseObj.success) {
+                        var htmlLogs = '';
+                        if (responseObj.logs) {
+                            htmlLogs = that.logsToHtml(responseObj.logs);
+                        }
 
-		var alertMsg = '';
-		if (msg) {
-			alertMsg += '<b>' + msg + '</b><br/>\n<br/>\n';
-		}
-		if (errorMessages) {
-			alertMsg += errorMessages;
-		}
+                        that._setHtmlLogs(htmlLogs);
 
-		Ext.create('Ext.window.Window', {
-			layout: 'fit',
-			title: title,
-			closable: true,
-			resizable: true,
-			plain: true,
-			border: false,
-			width: 550,
-			height: 400,
-			items: [{
-				xtype: 'panel',
-				autoScroll: true,
-				bodyPadding: 5,
-				html: alertMsg
-			}],
-			dockedItems: [{
-				xtype: 'toolbar',
-				dock: 'bottom',
-				ui: 'footer',
-				layout:{
-					pack: 'center'
-				},
-				defaults: { minWidth: 75 },
-				items: [
-					{
-						xtype: 'button',
-						text: 'Close',
-						padding: '2 10',
-						handler: function() {
-							var window = this.ownerCt.ownerCt;
-							window.close();
-						}
-					}
-				]
-			}]
-		}).show();
+                        if (responseObj.done) {
+                            that.clearStatus();
+                        } else {
+                            // Repeat in 1 sec
+                            // TODO Cancel timeout when window is closed
+                            window.setTimeout(function(that) {
+                                return function() {
+                                    that._pullLogs(requestUrl, requestParameters);
+                                }
+                            }(that), 1000);
+                        }
+                    } else {
+                        that._setHtmlLogs("An error occurred while requesting the logs.");
+                        that.statusBar.setStatus({
+                            text: 'Error',
+                            iconCls: 'x-status-error',
+                            clear: true // auto-clear after a set interval
+                        });
+                    }
+                };
+            }(this),
+            failure: function(that) {
+                return function(response) {
+                    that._setHtmlLogs("An error occurred while requesting the logs.");
+                    that.statusBar.setStatus({
+                        text: 'Error',
+                        iconCls: 'x-status-error',
+                        clear: true // auto-clear after a set interval
+                    });
+                };
+            }(this)
+        });
+    },
+    _setHtmlLogs: function(htmlLogs) {
+        if (this.logsWindow) {
+            this.logsWindow.removeAll();
+            this.logsWindow.add({
+                xtype: 'panel',
+                autoScroll: true,
+                bodyPadding: 5,
+                cls: 'logs-panel',
+                html: htmlLogs
+            });
+            this.logsWindow.doLayout();
 
-		this.statusBar.setStatus({
-			text: msg,
-			iconCls: 'x-status-error',
-			clear: true // auto-clear after a set interval
-		});
-	},
-	errorsToHtml: function(errors) {
-		var errorMessages = '<ul class="bullet-list">\n';
-		if (Ext.isArray(errors)) {
-			Ext.each(errors, function(message) {
-				if (typeof(message) === 'string') {
-					errorMessages += '<li>' + this.errorMessageToHtml(message) + '</li>\n';
-				} else {
-					Ext.iterate(message, function(url, messageStr) {
-						errorMessages += '<li>';
-						if (typeof(messageStr) === 'string') {
-							errorMessages += this.errorMessageToHtml(messageStr);
-						} else {
-							var first = true;
-							Ext.each(messageStr, function(messageElStr) {
-								if (first) { first = false; } else { errorMessages += '<br/>\n';}
-								errorMessages += this.errorMessageToHtml(messageElStr);
-							}, this);
-						}
-						if (url) {
-							errorMessages += '<br/>\n' + this.urlToHtmlLink(url);
-						}
-						errorMessages += '</li>\n';
-					}, this);
-				}
-			}, this);
-		} else {
-			Ext.iterate(errors, function(clientName, messageArray) {
-				errorMessages += '<li>' + clientName;
-				errorMessages += this.errorsToHtml(messageArray);
-				errorMessages += '</li>';
-			}, this);
-		}
-		errorMessages += '</ul>\n';
+            // Scroll at the bottom
+            var domElement = this.logsWindow.items.first().body.dom;
+            domElement.scrollTop = domElement.scrollHeight - domElement.offsetHeight;
+        }
+    },
 
-		return errorMessages;
-	},
-	errorMessageToHtml: function(str) {
-		return Ext.String.htmlEncode(str).replace(/\n/g, "<br/>\n");
-	},
-	urlToHtmlLink: function(url) {
-		var urlDisplay = url;
+    logsToHtml: function(logs) {
+        var htmlLogs = '<ul class="bullet-list logs-list">\n';
+        if (Ext.isArray(logs)) {
+            Ext.each(logs, function(log) {
+                htmlLogs += '<li class="level_' + log.level.toLowerCase() + '">';
+                htmlLogs += this.logToHtml(log);
+                htmlLogs += '</li>\n';
+            }, this);
+        }
+        htmlLogs += '</ul>\n';
 
-		var maxUrlLength = 60;
-		if (maxUrlLength > 0 && maxUrlLength < url.length) {
-			var beginningLength = Math.round((maxUrlLength-3) * 3.0/4);
-			var endingLength = maxUrlLength - beginningLength - 3; // 3 is for the "..."
-			if (beginningLength > 1 && endingLength == 0) {
-				beginningLength--;
-				endingLength = 1;
-			}
-			urlDisplay = url.substring(0, beginningLength) + "..." + url.substring(url.length - endingLength);
-		}
+        return htmlLogs;
+    },
+    logToHtml: function(log) {
+        var htmlLog = log.level + ': ' + log.message;
+        if (log.exception) {
+            htmlLog += log.exception;
+        }
+        return Ext.String.htmlEncode(htmlLog).replace(/\n/g, "<br/>\n");
+    },
 
-		return '<a href="'+url+'" target="_blank">'+Ext.String.htmlEncode(urlDisplay)+'</a>';
-	},
+    /**
+     * Display the error message in the status bar and popup a window
+     * using the error message as a title and the errors from the
+     * response as content, formated using a bullet list.
+     * msg: A brief error message
+     * response: The response object contains errors
+     */
+    setErrors: function(msg, response, statusCode) {
+        this.beforeShow();
+        if (!this.redirectIfNeeded(statusCode)) {
+            var errorMessages = '';
+            if (response && response.errors) {
+                errorMessages = this.errorsToHtml(response.errors);
+            }
 
-	setError: function(error, statusCode) {
-		this.beforeShow();
-		if (!this.redirectIfNeeded(statusCode)) {
-			Ext.Msg.alert('Failure', error);
-			this.statusBar.setStatus({
-				text: error,
-				iconCls: 'x-status-error',
-				clear: true // auto-clear after a set interval
-			});
-		}
-	},
+            var alertMsg = '<b>' + msg + '</b>';
+            if (errorMessages) {
+                alertMsg += '<br/>\n' + errorMessages;
+            }
+            Ext.Msg.alert('Failure', alertMsg);
+            this.statusBar.setStatus({
+                text: msg,
+                iconCls: 'x-status-error',
+                clear: true // auto-clear after a set interval
+            });
+        }
+    },
+    setErrorsAndWarnings: function(title, msg, response) {
+        this.beforeShow();
+        var errorMessages = '';
 
-	setValidMessage: function(status) {
-		this.beforeShow();
-		this.statusBar.setStatus({
-			text: status,
-			iconCls: 'x-status-valid',
-			clear: true // auto-clear after a set interval
-		});
-	},
+        if (response && response.messages) {
+            errorMessages += '<div><b>Information:</b>';
+            errorMessages += this.errorsToHtml(response.messages);
+            errorMessages += '</div>\n';
+        }
 
-	setSavingMessage: function(msg) {
-		this.beforeShow();
-		this.statusWindow = Ext.Msg.show({
-			title: msg,
-			msg: 'Please wait...',
-			closable: false,
-			icon: Ext.Msg.INFO,
-			closeAction: 'destroy'
-		});
+        if (response && response.errors) {
+            errorMessages += '<div><b>Errors:</b>';
+            errorMessages += this.errorsToHtml(response.errors);
+            errorMessages += '</div>\n';
+        }
 
-		this.statusBar.setStatus({
-			text: msg,
-			iconCls: 'x-status-saving'
-		});
-	},
+        if (response && response.warnings) {
+            errorMessages += '<div><b>Warnings:</b>';
+            errorMessages += this.errorsToHtml(response.warnings);
+            errorMessages += '</div>\n';
+        }
 
-	setSavedMessage: function(msg, delay, windowTitle) {
-		this.beforeShow();
+        var alertMsg = '';
+        if (msg) {
+            alertMsg += '<b>' + msg + '</b><br/>\n<br/>\n';
+        }
+        if (errorMessages) {
+            alertMsg += errorMessages;
+        }
 
-		if (typeof(windowTitle) != 'undefined') {
-			this.statusWindow = Ext.Msg.show({
-				title: windowTitle,
-				msg: msg,
-				icon: Ext.Msg.INFO,
-				closeAction: 'destroy'
-			});
-		}
+        Ext.create('Ext.window.Window', {
+            layout: 'fit',
+            title: title,
+            closable: true,
+            resizable: true,
+            plain: true,
+            border: false,
+            width: 550,
+            height: 400,
+            items: [{
+                xtype: 'panel',
+                autoScroll: true,
+                bodyPadding: 5,
+                html: alertMsg
+            }],
+            dockedItems: [{
+                xtype: 'toolbar',
+                dock: 'bottom',
+                ui: 'footer',
+                layout:{
+                    pack: 'center'
+                },
+                defaults: { minWidth: 75 },
+                items: [
+                    {
+                        xtype: 'button',
+                        text: 'Close',
+                        padding: '2 10',
+                        handler: function() {
+                            var window = this.ownerCt.ownerCt;
+                            window.close();
+                        }
+                    }
+                ]
+            }]
+        }).show();
 
-		var config = {
-			text: msg,
-			iconCls: 'x-status-saved',
-			clear: true // auto-clear after a set interval
-		};
-		if (delay && delay > 0) {
-			var that = this;
-			Ext.defer(function() {
-				that.statusBar.setStatus(config);
-			}, delay);
-		} else {
-			this.statusBar.setStatus(config);
-		}
-	},
+        this.statusBar.setStatus({
+            text: msg,
+            iconCls: 'x-status-error',
+            clear: true // auto-clear after a set interval
+        });
+    },
+    errorsToHtml: function(errors) {
+        var errorMessages = '<ul class="bullet-list">\n';
+        if (Ext.isArray(errors)) {
+            Ext.each(errors, function(message) {
+                if (typeof(message) === 'string') {
+                    errorMessages += '<li>' + this.errorMessageToHtml(message) + '</li>\n';
+                } else {
+                    Ext.iterate(message, function(url, messageStr) {
+                        errorMessages += '<li>';
+                        if (typeof(messageStr) === 'string') {
+                            errorMessages += this.errorMessageToHtml(messageStr);
+                        } else {
+                            var first = true;
+                            Ext.each(messageStr, function(messageElStr) {
+                                if (first) { first = false; } else { errorMessages += '<br/>\n';}
+                                errorMessages += this.errorMessageToHtml(messageElStr);
+                            }, this);
+                        }
+                        if (url) {
+                            errorMessages += '<br/>\n' + this.urlToHtmlLink(url);
+                        }
+                        errorMessages += '</li>\n';
+                    }, this);
+                }
+            }, this);
+        } else {
+            Ext.iterate(errors, function(clientName, messageArray) {
+                errorMessages += '<li>' + clientName;
+                errorMessages += this.errorsToHtml(messageArray);
+                errorMessages += '</li>';
+            }, this);
+        }
+        errorMessages += '</ul>\n';
 
-	setTextMessage: function(status) {
-		this.beforeShow();
-		this.statusBar.setStatus({
-			text: status,
-			iconCls: 'x-status-text',
-			clear: true // auto-clear after a set interval
-		});
-	},
+        return errorMessages;
+    },
+    errorMessageToHtml: function(str) {
+        return Ext.String.htmlEncode(str).replace(/\n/g, "<br/>\n");
+    },
+    urlToHtmlLink: function(url) {
+        var urlDisplay = url;
 
-	clearStatus: function() {
-		this.beforeShow();
-		this.statusBar.clearStatus({useDefaults:true});
-	}
+        var maxUrlLength = 60;
+        if (maxUrlLength > 0 && maxUrlLength < url.length) {
+            var beginningLength = Math.round((maxUrlLength-3) * 3.0/4);
+            var endingLength = maxUrlLength - beginningLength - 3; // 3 is for the "..."
+            if (beginningLength > 1 && endingLength == 0) {
+                beginningLength--;
+                endingLength = 1;
+            }
+            urlDisplay = url.substring(0, beginningLength) + "..." + url.substring(url.length - endingLength);
+        }
+
+        return '<a href="'+url+'" target="_blank">'+Ext.String.htmlEncode(urlDisplay)+'</a>';
+    },
+
+    setError: function(error, statusCode) {
+        this.beforeShow();
+        if (!this.redirectIfNeeded(statusCode)) {
+            Ext.Msg.alert('Failure', error);
+            this.statusBar.setStatus({
+                text: error,
+                iconCls: 'x-status-error',
+                clear: true // auto-clear after a set interval
+            });
+        }
+    },
+
+    setValidMessage: function(status) {
+        this.beforeShow();
+        this.statusBar.setStatus({
+            text: status,
+            iconCls: 'x-status-valid',
+            clear: true // auto-clear after a set interval
+        });
+    },
+
+    setSavingMessage: function(msg) {
+        this.beforeShow();
+        this.statusWindow = Ext.Msg.show({
+            title: msg,
+            msg: 'Please wait...',
+            closable: false,
+            icon: Ext.Msg.INFO,
+            closeAction: 'destroy'
+        });
+
+        this.statusBar.setStatus({
+            text: msg,
+            iconCls: 'x-status-saving'
+        });
+    },
+
+    setSavedMessage: function(msg, delay, windowTitle) {
+        this.beforeShow();
+
+        if (typeof(windowTitle) != 'undefined') {
+            this.statusWindow = Ext.Msg.show({
+                title: windowTitle,
+                msg: msg,
+                icon: Ext.Msg.INFO,
+                closeAction: 'destroy'
+            });
+        }
+
+        var config = {
+            text: msg,
+            iconCls: 'x-status-saved',
+            clear: true // auto-clear after a set interval
+        };
+        if (delay && delay > 0) {
+            var that = this;
+            Ext.defer(function() {
+                that.statusBar.setStatus(config);
+            }, delay);
+        } else {
+            this.statusBar.setStatus(config);
+        }
+    },
+
+    setTextMessage: function(status) {
+        this.beforeShow();
+        this.statusBar.setStatus({
+            text: status,
+            iconCls: 'x-status-text',
+            clear: true // auto-clear after a set interval
+        });
+    },
+
+    clearStatus: function() {
+        this.beforeShow();
+        this.statusBar.clearStatus({useDefaults:true});
+    }
 });

@@ -160,13 +160,13 @@ public class ClientServlet extends HttpServlet {
 			LOGGER.log(Level.SEVERE, "Problem sending file [{0}]: {1}",
 					new String[]{ filePath, Utils.getExceptionMessage(e) });
 			LOGGER.log(Level.FINE, "Stack trace: ", e);
-			ServletUtils.sendResponse(response, "Problem sending file [" + urlRelativePath + "]: " + e.getMessage());
+			ServletUtils.sendResponse(response, "Problem sending file [" + urlRelativePath + "]: " + Utils.getExceptionMessage(e));
 		} catch (JSONException e) {
 			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 			LOGGER.log(Level.SEVERE, "Error occurred while loading the configuration file [{0}]: {1}",
 					new String[]{ filePath, Utils.getExceptionMessage(e) });
 			LOGGER.log(Level.FINE, "Stack trace: ", e);
-			ServletUtils.sendResponse(response, "Error occurred while loading the configuration file [" + urlRelativePath + "]: " + e.getMessage());
+			ServletUtils.sendResponse(response, "Error occurred while loading the configuration file [" + urlRelativePath + "]: " + Utils.getExceptionMessage(e));
 		}
 	}
 }

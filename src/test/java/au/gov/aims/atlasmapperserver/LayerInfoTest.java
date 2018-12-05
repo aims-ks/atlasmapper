@@ -73,7 +73,7 @@ public class LayerInfoTest extends TestCase {
 			// TODO Test the value of each of the jsonObject fields
 			System.out.println(jsonObject.toString(4));
 		} catch (JSONException ex) {
-			fail("The layer can not be convert to a JSON Object:\n" + ex.getMessage());
+			fail("The layer can not be convert to a JSON Object:\n" + Utils.getExceptionMessage(ex));
 			ex.printStackTrace();
 		}
 	}

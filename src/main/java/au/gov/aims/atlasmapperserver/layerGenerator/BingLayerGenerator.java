@@ -24,49 +24,57 @@ package au.gov.aims.atlasmapperserver.layerGenerator;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.BingDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.BingLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
+import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
+
+import java.util.logging.Level;
 
 public class BingLayerGenerator extends AbstractLayerGenerator<BingLayerConfig, BingDataSourceConfig> {
-	/**
-	 * The number of Bing Layers is fix and they already have unique IDs. Nothing to do here.
-	 * @param layer
-	 * @param dataSourceConfig
-	 * @return
-	 */
-	@Override
-	protected String getUniqueLayerId(BingLayerConfig layer, BingDataSourceConfig dataSourceConfig) {
-		return layer.getLayerId();
-	}
+    /**
+     * The number of Bing Layers is fix and they already have unique IDs. Nothing to do here.
+     * @param layer
+     * @param dataSourceConfig
+     * @return
+     */
+    @Override
+    protected String getUniqueLayerId(BingLayerConfig layer, BingDataSourceConfig dataSourceConfig) {
+        return layer.getLayerId();
+    }
 
-	/**
-	 * Create and return the 3 Bing layers.
-	 *     * Bing Road
-	 *     * Bing Hybrid
-	 *     * Bing Aerial
-	 * @return
-	 * NOTE: Harvest is ignored since there is nothing to harvest.
-	 */
-	@Override
-	public LayerCatalog generateRawLayerCatalog(BingDataSourceConfig dataSourceConfig, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles) {
-		LayerCatalog layerCatalog = new LayerCatalog();
+    /**
+     * Create and return the 3 Bing layers.
+     *     * Bing Road
+     *     * Bing Hybrid
+     *     * Bing Aerial
+     * @return
+     * NOTE: Harvest is ignored since there is nothing to harvest.
+     */
+    @Override
+    public LayerCatalog generateRawLayerCatalog(ThreadLogger logger, BingDataSourceConfig dataSourceConfig, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles) {
+        LayerCatalog layerCatalog = new LayerCatalog();
 
-		layerCatalog.addLayer(this.createBingLayer(dataSourceConfig, "Road", "Bing Road", null));
-		layerCatalog.addLayer(this.createBingLayer(dataSourceConfig, "AerialWithLabels", "Bing Hybrid", null));
-		layerCatalog.addLayer(this.createBingLayer(dataSourceConfig, "Aerial", "Bing Aerial", null));
+        logger.log(Level.INFO, "Adding Road layer");
+        layerCatalog.addLayer(this.createBingLayer(dataSourceConfig, "Road", "Bing Road", null));
 
-		return layerCatalog;
-	}
+        logger.log(Level.INFO, "Adding Aerial with labels layer");
+        layerCatalog.addLayer(this.createBingLayer(dataSourceConfig, "AerialWithLabels", "Bing Hybrid", null));
 
-	private BingLayerConfig createBingLayer(BingDataSourceConfig dataSourceConfig, String bingLayerType, String name, String description) {
-		BingLayerConfig layerConfig = new BingLayerConfig(dataSourceConfig.getConfigManager());
+        logger.log(Level.INFO, "Adding Aerial layer");
+        layerCatalog.addLayer(this.createBingLayer(dataSourceConfig, "Aerial", "Bing Aerial", null));
 
-		layerConfig.setLayerId(bingLayerType);
-		layerConfig.setTitle(name);
-		layerConfig.setDescription(description);
-		layerConfig.setIsBaseLayer(true);
-		layerConfig.setLayerBoundingBox(new double[]{-180, -90, 180, 90});
+        return layerCatalog;
+    }
 
-		this.ensureUniqueLayerId(layerConfig, dataSourceConfig);
+    private BingLayerConfig createBingLayer(BingDataSourceConfig dataSourceConfig, String bingLayerType, String name, String description) {
+        BingLayerConfig layerConfig = new BingLayerConfig(dataSourceConfig.getConfigManager());
 
-		return layerConfig;
-	}
+        layerConfig.setLayerId(bingLayerType);
+        layerConfig.setTitle(name);
+        layerConfig.setDescription(description);
+        layerConfig.setIsBaseLayer(true);
+        layerConfig.setLayerBoundingBox(new double[]{-180, -90, 180, 90});
+
+        this.ensureUniqueLayerId(layerConfig, dataSourceConfig);
+
+        return layerConfig;
+    }
 }

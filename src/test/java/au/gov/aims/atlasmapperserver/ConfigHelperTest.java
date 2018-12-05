@@ -142,7 +142,7 @@ public class ConfigHelperTest extends TestCase {
 			//ConfigHelper.save(stringWriter);
 		} catch (Exception ex) {
 			ex.printStackTrace();
-			fail(ex.getMessage());
+			fail(Utils.getExceptionMessage(ex));
 		} finally {
 			try { stringReader.close(); } catch (Exception e) {}
 			try { stringWriter.close(); } catch (Exception e) {}

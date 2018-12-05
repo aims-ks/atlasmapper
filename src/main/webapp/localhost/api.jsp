@@ -18,9 +18,9 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-	Document   : api
-	Created on : 20/05/2013, 11:00:39 AM
-	Author     : glafond
+    Document   : api
+    Created on : 20/05/2013, 11:00:39 AM
+    Author     : glafond
 
  * This API can be used to execute task on a periodical basis (from the crom for example).
  * NOTE: It can only be called from localhost, to avoid obvious DOS attack.
@@ -55,106 +55,94 @@ page import="au.gov.aims.atlasmapperserver.ConfigManager" %><%@
 page import="au.gov.aims.atlasmapperserver.ConfigHelper" %><%@
 page import="au.gov.aims.atlasmapperserver.ClientConfig" %><%@
 page import="org.json.JSONObject" %><%@
-page import="org.json.JSONArray" %><%@
-page import="au.gov.aims.atlasmapperserver.Errors" %><%@
+page import="au.gov.aims.atlasmapperserver.thread.AbstractConfigThread"%><%@
+page import="au.gov.aims.atlasmapperserver.thread.ThreadLogger"%><%@
+page import="java.util.logging.Level"%><%@
 page contentType="application/json" pageEncoding="UTF-8"%><%
 
-	ConfigManager configManager = ConfigHelper.getConfigManager(this.getServletConfig().getServletContext());
+    ConfigManager configManager = ConfigHelper.getConfigManager(this.getServletConfig().getServletContext());
 
-	String actionStr = request.getParameter("action");
-	String clientIds = request.getParameter("clientIds");
-	String dataSourceIds = request.getParameter("dataSourceIds");
+    String actionStr = request.getParameter("action");
+    String clientIds = request.getParameter("clientIds");
+    String dataSourceIds = request.getParameter("dataSourceIds");
 
-	JSONObject jsonObj = new JSONObject();
+    JSONObject jsonObj = new JSONObject();
 
-	if (Utils.isNotBlank(actionStr)) {
-		APIActionType action = null;
-		try {
-			action = APIActionType.valueOf(actionStr.toUpperCase());
-		} catch (Exception ex) {}
+    ThreadLogger logger = new ThreadLogger();
+    if (Utils.isNotBlank(actionStr)) {
+        APIActionType action = null;
+        try {
+            action = APIActionType.valueOf(actionStr.toUpperCase());
+        } catch (Exception ex) {}
 
-		if (action == null) {
-			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-			jsonObj.put("success", false);
-			jsonObj.put("errors", new JSONArray().put("Unknown action [" + actionStr + "]."));
-		} else {
-			switch(action) {
-				case REFRESH:
-					JSONObject errors = new JSONObject();
-					JSONObject warnings = new JSONObject();
-					JSONObject messages = new JSONObject();
+        if (action == null) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            logger.log(Level.SEVERE, "Unknown action [" + actionStr + "].");
+            jsonObj.put("logs", logger.toJSON());
+            jsonObj.put("success", false);
+        } else {
+            switch(action) {
+                case REFRESH:
+                    // Refresh data sources cache first
+                    if (dataSourceIds != null && !dataSourceIds.isEmpty()) {
+                        String[] dataSourceIdsArray = dataSourceIds.split(",");
+                        for (String dataSourceId : dataSourceIdsArray) {
+                            AbstractDataSourceConfig dataSource = configManager.getDataSourceConfig(dataSourceId);
+                            if (dataSource == null) {
+                                // Invalid data source ID
+                                logger.log(Level.SEVERE, "Invalid data source ID: ["+dataSourceId+"]");
+                            } else {
+                                // Refresh cache and merging error messages
+                                dataSource.process(
+                                        true, // redownloadBrokenFiles
+                                        true, // clearCapabilitiesCache
+                                        false // clearMetadataCache
+                                );
+                                AbstractConfigThread thread = dataSource.getThread();
+                                thread.join();
+                                logger.addAll(thread.getLogger());
+                            }
+                        }
+                    }
 
-					// Refresh data sources cache first
-					if (dataSourceIds != null && !dataSourceIds.isEmpty()) {
-						String[] dataSourceIdsArray = dataSourceIds.split(",");
-						for (String dataSourceId : dataSourceIdsArray) {
-							AbstractDataSourceConfig dataSource = configManager.getDataSourceConfig(dataSourceId);
-							if (dataSource == null) {
-								// Invalid data source ID
-								JSONArray jsonError = new JSONArray();
-								jsonError.put("Invalid data source ID: ["+dataSourceId+"]");
-								errors.put(dataSourceId, jsonError);
-							} else {
-								// Refresh cache and merging error messages
-								JSONObject jsonErrors = dataSource.process(
-										true, // redownloadBrokenFiles
-										true, // clearCapabilitiesCache
-										false // clearMetadataCache
-								);
-								errors.put(dataSourceId, jsonErrors.opt("errors"));
-								warnings.put(dataSourceId, jsonErrors.opt("warnings"));
-								messages.put(dataSourceId, jsonErrors.opt("messages"));
-							}
-						}
-					}
+                    // Refresh (regenerate) clients
+                    if (clientIds != null && !clientIds.isEmpty()) {
+                        String[] clientIdsArray = clientIds.split(",");
+                        for (String clientId : clientIdsArray) {
+                            ClientConfig client = configManager.getClientConfig(clientId);
+                            if (client == null) {
+                                // Invalid client ID
+                                logger.log(Level.SEVERE, "Invalid client ID: ["+clientId+"]");
+                            } else {
+                                // Regenerate client and merging error messages
+                                client.process(false);
+                                AbstractConfigThread thread = client.getThread();
+                                thread.join();
+                                logger.addAll(thread.getLogger());
+                            }
+                        }
+                    }
 
-					// Refresh (regenerate) clients
-					if (clientIds != null && !clientIds.isEmpty()) {
-						String[] clientIdsArray = clientIds.split(",");
-						for (String clientId : clientIdsArray) {
-							ClientConfig client = configManager.getClientConfig(clientId);
-							if (client == null) {
-								// Invalid client ID
-								JSONArray jsonError = new JSONArray();
-								jsonError.put("Invalid client ID: ["+clientId+"]");
-								errors.put(clientId, jsonError);
-							} else {
-								// Regenerate client and merging error messages
-								Errors errorsObj = client.process(false);
-								JSONObject jsonErrors = errorsObj.toJSON();
-								errors.put(clientId, jsonErrors.opt("errors"));
-								warnings.put(clientId, jsonErrors.opt("warnings"));
-								messages.put(clientId, jsonErrors.opt("messages"));
-							}
-						}
-					}
+                    response.setStatus(HttpServletResponse.SC_OK);
+                    jsonObj.put("message", "Config Generated");
+                    jsonObj.put("logs", logger.toJSON());
+                    jsonObj.put("success", logger.getErrorCount() == 0);
 
-					response.setStatus(HttpServletResponse.SC_OK);
-					jsonObj.put("message", "Config Generated");
-					if (errors != null && errors.length() > 0) {
-						jsonObj.put("errors", errors);
-					}
-					if (warnings != null && warnings.length() > 0) {
-						jsonObj.put("warnings", warnings);
-					}
-					if (messages != null && messages.length() > 0) {
-						jsonObj.put("messages", messages);
-					}
-					jsonObj.put("success", !jsonObj.has("errors"));
+                    break;
 
-					break;
-
-				default:
-					response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-					jsonObj.put("success", false);
-					jsonObj.put("errors", new JSONArray().put("Unknown action [" + actionStr + "]."));
-					break;
-			}
-		}
-	} else {
-		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-		jsonObj.put("success", false);
-		jsonObj.put("errors", new JSONArray().put("Missing parameter [action]."));
-	}
+                default:
+                    response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    logger.log(Level.SEVERE, "Unknown action [" + actionStr + "].");
+                    jsonObj.put("logs", logger.toJSON());
+                    jsonObj.put("success", false);
+                    break;
+            }
+        }
+    } else {
+        response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        logger.log(Level.SEVERE, "Missing parameter [action].");
+        jsonObj.put("logs", logger.toJSON());
+        jsonObj.put("success", false);
+    }
 
 %><%=jsonObj.toString(4) %>

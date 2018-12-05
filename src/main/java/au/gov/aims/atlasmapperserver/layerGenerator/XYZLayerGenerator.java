@@ -24,6 +24,7 @@ package au.gov.aims.atlasmapperserver.layerGenerator;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.XYZDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
 import au.gov.aims.atlasmapperserver.layerConfig.XYZLayerConfig;
+import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
 
 public class XYZLayerGenerator extends AbstractLayerGenerator<XYZLayerConfig, XYZDataSourceConfig> {
 	/**
@@ -43,7 +44,7 @@ public class XYZLayerGenerator extends AbstractLayerGenerator<XYZLayerConfig, XY
 	 * NOTE: Harvest is ignored since there is nothing to harvest.
 	 */
 	@Override
-	public LayerCatalog generateRawLayerCatalog(XYZDataSourceConfig dataSourceConfig, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles) {
+	public LayerCatalog generateRawLayerCatalog(ThreadLogger logger, XYZDataSourceConfig dataSourceConfig, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles) {
 		return new LayerCatalog(); // All layers are created using the layer overrides
 	}
 }
