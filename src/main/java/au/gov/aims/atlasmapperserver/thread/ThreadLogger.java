@@ -18,23 +18,23 @@ public class ThreadLogger {
         this.errorCount = 0;
     }
 
-    public void reset() {
+    public synchronized void reset() {
         this.logs.clear();
     }
 
-    public List<ThreadLog> getLogs() {
+    public synchronized List<ThreadLog> getLogs() {
         return this.logs;
     }
 
-    public void log(Level level, String message) {
+    public synchronized void log(Level level, String message) {
         this.log(new ThreadLog(level, message));
     }
 
-    public void log(Level level, String message, Exception ex) {
+    public synchronized void log(Level level, String message, Exception ex) {
         this.log(new ThreadLog(level, message, ex));
     }
 
-    public void log(ThreadLog log) {
+    public synchronized void log(ThreadLog log) {
         this.logs.add(log);
         if (log.isError()) {
             this.errorCount++;
@@ -52,13 +52,13 @@ public class ThreadLogger {
         return this.errorCount;
     }
 
-    public void addAll(ThreadLogger logger) {
-        for (ThreadLog log : logger.logs) {
+    public synchronized void addAll(ThreadLogger logger) {
+        for (ThreadLog log : logger.getLogs()) {
             this.log(log);
         }
     }
 
-    public JSONArray toJSON() throws JSONException {
+    public synchronized JSONArray toJSON() throws JSONException {
         JSONArray json = new JSONArray();
 
         for (ThreadLog log : this.logs) {

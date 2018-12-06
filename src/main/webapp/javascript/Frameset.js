@@ -172,11 +172,20 @@ Ext.define('Frameset', {
         this.statusBar.showBusy();
     },
 
-    setLogs: function(title, msg, requestUrl, requestParameters) {
+    /**
+     *
+     * @param title
+     * @param msg
+     * @param requestUrl
+     * @param requestParameters
+     * @param callback Function that gets called at the end of the process,
+     *     with parameter responseObj, the JSON Object returned by the last request.
+     */
+    setLogsRequest: function(title, msg, requestUrl, requestParameters, callback) {
         this.beforeShow();
         this.showLogWindow(title);
 
-        this._pullLogs(requestUrl, requestParameters);
+        this._pullLogs(requestUrl, requestParameters, callback);
 
         this.statusBar.setStatus({
             text: msg,
@@ -230,7 +239,7 @@ Ext.define('Frameset', {
             }]
         }).show();
     },
-    _pullLogs: function(requestUrl, requestParameters) {
+    _pullLogs: function(requestUrl, requestParameters, callback) {
         Ext.Ajax.request({
             url: requestUrl,
             params: requestParameters,
@@ -256,12 +265,13 @@ Ext.define('Frameset', {
 
                         if (responseObj.done) {
                             that.clearStatus();
+                            callback(responseObj);
                         } else {
                             // Repeat in 1 sec
                             // TODO Cancel timeout when window is closed
                             window.setTimeout(function(that) {
                                 return function() {
-                                    that._pullLogs(requestUrl, requestParameters);
+                                    that._pullLogs(requestUrl, requestParameters, callback);
                                 }
                             }(that), 1000);
                         }

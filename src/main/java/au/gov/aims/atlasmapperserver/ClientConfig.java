@@ -30,11 +30,8 @@ import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
 import au.gov.aims.atlasmapperserver.servlet.FileFinder;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,7 +41,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -52,19 +48,16 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.servlet.ServletContext;
 
-import au.gov.aims.atlasmapperserver.servlet.Proxy;
-import freemarker.template.Configuration;
-import freemarker.template.TemplateException;
+import au.gov.aims.atlasmapperserver.thread.AbstractRunnableConfig;
+import au.gov.aims.atlasmapperserver.thread.ClientConfigThread;
+import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONSortedObject;
-import org.opengis.referencing.FactoryException;
-import org.opengis.referencing.operation.TransformException;
 
 /**
  *
@@ -300,7 +293,7 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
 
     public void process(boolean complete) {
         if (this.isIdle()) {
-            this.configThread.setComplete(complete);
+            this.configThread.setCompleteGeneration(complete);
 
             this.start();
         }
@@ -472,7 +465,7 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
     }
 
     // LayerCatalog - After data source overrides
-    public DataSourceWrapper getLayerCatalog(Map<String, DataSourceWrapper> dataSources) throws IOException, JSONException {
+    public DataSourceWrapper getLayerCatalog(ThreadLogger logger, Map<String, DataSourceWrapper> dataSources) throws IOException, JSONException {
         DataSourceWrapper layerCatalog = new DataSourceWrapper();
 
         JSONObject clientOverrides = this.manualOverride;
@@ -483,7 +476,7 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
                 String dataSourceId = dataSourceEntry.getKey();
                 DataSourceWrapper dataSourceWrapper = dataSourceEntry.getValue();
                 if (dataSourceWrapper == null) {
-                    layerCatalog.addWarning("Could not add the data source [" + dataSourceId + "] because it has never been generated.");
+                    logger.log(Level.WARNING, "Could not add the data source [" + dataSourceId + "] because it has never been generated.");
                 } else {
                     JSONObject rawLayers = dataSourceWrapper.getLayers();
                     if (rawLayers != null && rawLayers.length() > 0) {
@@ -492,7 +485,7 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
                             String rawLayerId = rawLayerIds.next();
 
                             if (clientOverrides != null && clientOverrides.has(rawLayerId) && clientOverrides.optJSONObject(rawLayerId) == null) {
-                                layerCatalog.addWarning("Invalid manual override for layer: " + rawLayerId);
+                                logger.log(Level.WARNING, "Invalid manual override for layer: " + rawLayerId);
                             }
 
                             LayerWrapper layerWrapper = new LayerWrapper(rawLayers.optJSONObject(rawLayerId));
@@ -520,7 +513,7 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
                 if (layers.isNull(layerId)) {
                     LayerWrapper jsonClientLayerOverride = new LayerWrapper(clientOverrides.optJSONObject(layerId));
                     if (jsonClientLayerOverride.getJSON() == null) {
-                        layerCatalog.addWarning("Invalid manual override for new layer: " + layerId);
+                        logger.log(Level.WARNING, "Invalid manual override for new layer: " + layerId);
                     } else {
                         try {
                             DataSourceWrapper dataSource = null;
@@ -531,9 +524,8 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
                                 dataSource = dataSources.get(dataSourceId);
 
                                 if (dataSource == null) {
-                                    layerCatalog.addWarning("Invalid manual override for new layer: " + layerId);
-                                    LOGGER.log(Level.WARNING, "The manual override for the new layer {0} of the client {1} is defining an invalid data source {2}.",
-                                            new String[]{layerId, this.getClientName(), dataSourceId});
+                                    logger.log(Level.WARNING, String.format("The manual override for the new layer %s is defining an invalid data source %s.",
+                                            layerId, dataSourceId));
                                     continue;
                                 }
                             }
@@ -542,9 +534,8 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
                                 if (dataSource != null) {
                                     layerType = dataSource.getLayerType();
                                 } else {
-                                    layerCatalog.addWarning("Invalid manual override for new layer: " + layerId);
-                                    LOGGER.log(Level.WARNING, "The manual override for the new layer {0} of the client {1} can not be created because it do not define its data source type.",
-                                            new String[]{layerId, this.getClientName()});
+                                    logger.log(Level.WARNING, String.format("The manual override for the new layer %s can not be created because it do not define its data source type.",
+                                            layerId));
                                     continue;
                                 }
                             }
@@ -562,10 +553,8 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
                                     layerId,
                                     layerWrapper.getJSON());
                         } catch(Exception ex) {
-                            layerCatalog.addError("Unexpected error occurred while parsing the layer override for the layer: " + layerId);
-                            LOGGER.log(Level.SEVERE, "Unexpected error occurred while parsing the following layer override for the client [{0}]: {1}\n{2}",
-                                    new String[]{this.getClientName(), Utils.getExceptionMessage(ex), jsonClientLayerOverride.getJSON().toString(4)});
-                            LOGGER.log(Level.FINE, "Stack trace: ", ex);
+                            logger.log(Level.SEVERE, String.format("Unexpected error occurred while parsing the layer override for the layer %s: %s",
+                                    layerId, Utils.getExceptionMessage(ex)), ex);
                         }
                     }
                 }
@@ -606,10 +595,9 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
                         String layerName = layerWrapper.getLayerName();
                         if (this.isBaseLayer(layerName)) {
                             // Backward compatibility
-                            layerCatalog.addError("Deprecated layer ID used for base layers of client " + this.getClientName() + ": " +
-                                    "layer id [" + layerName + "] should be [" + layerId + "]");
-                            LOGGER.log(Level.WARNING, "DEPRECATED LAYER ID USED FOR BASE LAYERS OF CLIENT {0}: Layer id [{1}] should be [{2}].",
-                                    new String[]{this.getClientName(), layerName, layerId});
+                            logger.log(Level.WARNING, String.format("Deprecated layer ID used for base layers: " +
+                                    "layer id [%s] should be [%s]",
+                                    layerName, layerId));
                             layerWrapper.setIsBaseLayer(true);
                         }
                     }

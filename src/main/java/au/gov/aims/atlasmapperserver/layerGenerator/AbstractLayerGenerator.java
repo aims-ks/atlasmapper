@@ -41,12 +41,11 @@ public abstract class AbstractLayerGenerator<L extends AbstractLayerConfig, D ex
 
     protected abstract String getUniqueLayerId(L layer, D dataSourceConfig);
 
-    public DataSourceWrapper generateLayerCatalog(ThreadLogger logger, D dataSourceConfig, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles) throws IOException, JSONException {
+    public DataSourceWrapper generateLayerCatalog(ThreadLogger logger, D dataSourceConfigClone, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles) throws IOException, JSONException {
         // startDate: Used to delete old entries in the cache (entries that do not get
         //     access after that date are considered unused and are removed)
         Date startDate = new Date();
 
-        D dataSourceConfigClone = (D)dataSourceConfig.clone();
         LayerCatalog rawLayerCatalog = this.generateRawLayerCatalog(logger, dataSourceConfigClone, redownloadPrimaryFiles, redownloadSecondaryFiles);
 
         List<URLCache.Category> categories = new ArrayList<URLCache.Category>(3);

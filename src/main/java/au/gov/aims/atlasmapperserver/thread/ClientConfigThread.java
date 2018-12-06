@@ -1,12 +1,14 @@
-package au.gov.aims.atlasmapperserver;
+package au.gov.aims.atlasmapperserver.thread;
 
+import au.gov.aims.atlasmapperserver.ClientConfig;
+import au.gov.aims.atlasmapperserver.ConfigType;
+import au.gov.aims.atlasmapperserver.ProjectInfo;
+import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.jsonWrappers.client.ClientWrapper;
 import au.gov.aims.atlasmapperserver.jsonWrappers.client.DataSourceWrapper;
 import au.gov.aims.atlasmapperserver.jsonWrappers.client.LayerWrapper;
 import au.gov.aims.atlasmapperserver.servlet.FileFinder;
 import au.gov.aims.atlasmapperserver.servlet.Proxy;
-import au.gov.aims.atlasmapperserver.thread.AbstractConfigThread;
-import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
 import freemarker.template.Configuration;
 import freemarker.template.TemplateException;
 import org.json.JSONArray;
@@ -31,7 +33,7 @@ public class ClientConfigThread extends AbstractConfigThread {
 
     private ClientConfig clientConfig;
 
-    private boolean complete;
+    private boolean completeGeneration;
 
     public ClientConfig getClientConfig() {
         return this.clientConfig;
@@ -41,18 +43,20 @@ public class ClientConfigThread extends AbstractConfigThread {
         this.clientConfig = clientConfig;
     }
 
-    public boolean isComplete() {
-        return this.complete;
+    public boolean isCompleteGeneration() {
+        return this.completeGeneration;
     }
 
-    public void setComplete(boolean complete) {
-        this.complete = complete;
+    public void setCompleteGeneration(boolean completeGeneration) {
+        this.completeGeneration = completeGeneration;
     }
 
     @Override
     public void run() {
         // Collect error messages
+        Date startDate = new Date();
         ThreadLogger logger = this.getLogger();
+        logger.log(Level.INFO, "Building client: " + this.clientConfig.getClientName());
 
         // Load data sources
         Map<String, DataSourceWrapper> dataSources = null;
@@ -89,7 +93,7 @@ public class ClientConfigThread extends AbstractConfigThread {
         int nbLayers = 0;
         if (logger.getErrorCount() == 0) {
             try {
-                layerCatalog = this.clientConfig.getLayerCatalog(dataSources);
+                layerCatalog = this.clientConfig.getLayerCatalog(logger, dataSources);
                 nbLayers = layerCatalog.getLayers() == null ? 0 : layerCatalog.getLayers().length();
 
                 if (nbLayers <= 0) {
@@ -102,7 +106,7 @@ public class ClientConfigThread extends AbstractConfigThread {
             }
 
             try {
-                this.copyClientFilesIfNeeded(this.complete);
+                this.copyClientFilesIfNeeded(this.completeGeneration);
             } catch (IOException ex) {
                 // Those error are very unlikely to happen since we already checked the folder write access.
                 if (clientFolder.exists()) {
@@ -115,6 +119,7 @@ public class ClientConfigThread extends AbstractConfigThread {
             }
         }
 
+        // Layer validation
         ClientWrapper generatedMainConfig = null;
         ClientWrapper generatedEmbeddedConfig = null;
         JSONObject generatedLayers = null;
@@ -145,14 +150,7 @@ public class ClientConfigThread extends AbstractConfigThread {
             }
         }
 
-        // Transfer layer's errors to the client
-        /*
-        clientErrors.addErrors(layerCatalog.getErrors());
-        clientErrors.addWarnings(layerCatalog.getWarnings());
-        clientErrors.addMessages(layerCatalog.getMessages());
-        */
-
-        // Verify if there is error (it may contains only warnings)
+        // Save config to disk
         if (logger.getErrorCount() == 0) {
             try {
                 this.generateTemplateFiles(layerCatalog, generatedMainConfig, googleDataSource);
@@ -175,6 +173,16 @@ public class ClientConfigThread extends AbstractConfigThread {
                 logger.log(Level.SEVERE, "A JSON exception occurred while generating the client config: " + Utils.getExceptionMessage(ex), ex);
             }
         }
+
+        // Create the elapse time message
+        Date endDate = new Date();
+        long elapseTimeMs = endDate.getTime() - startDate.getTime();
+        double elapseTimeSec = elapseTimeMs / 1000.0;
+        double elapseTimeMin = elapseTimeSec / 60.0;
+
+        logger.log(Level.INFO, "Build time: " + (elapseTimeMin >= 1 ?
+                AbstractConfigThread.ELAPSE_TIME_FORMAT.format(elapseTimeMin) + " min" :
+                AbstractConfigThread.ELAPSE_TIME_FORMAT.format(elapseTimeSec) + " sec"));
 
         // Generation - Conclusion message
         if (logger.getErrorCount() == 0) {

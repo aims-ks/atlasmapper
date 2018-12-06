@@ -312,79 +312,6 @@ public class DataSourceWrapper extends AbstractWrapper {
         return "WMS".equals(this.getLayerType());
     }
 
-    @Deprecated
-    public JSONArray getErrors() {
-        return this.json.optJSONArray("errors");
-    }
-    @Deprecated
-    public void setErrors(JSONArray errors) throws JSONException {
-        this.json.put("errors", errors);
-    }
-    // Add either a String (error message) or a JSONObject (url: error message)
-    @Deprecated
-    public void addError(Object error) throws JSONException {
-        JSONArray errors = this.getErrors();
-        if (errors == null) {
-            errors = new JSONArray();
-            this.setErrors(errors);
-        }
-        errors.put(error);
-    }
-
-    @Deprecated
-    public JSONArray getWarnings() {
-        return this.json.optJSONArray("warnings");
-    }
-    @Deprecated
-    public void setWarnings(JSONArray warnings) throws JSONException {
-        this.json.put("warnings", warnings);
-    }
-    // Add either a String (warning message) or a JSONObject (url: warning message)
-    @Deprecated
-    public void addWarning(Object warning) throws JSONException {
-        JSONArray warnings = this.getWarnings();
-        if (warnings == null) {
-            warnings = new JSONArray();
-            this.setWarnings(warnings);
-        }
-        warnings.put(warning);
-    }
-    @Deprecated
-    public void addWarnings(JSONArray warnings) throws JSONException {
-        if (warnings != null) {
-            for (int i=0, len=warnings.length(); i<len; i++) {
-                this.addWarning(warnings.get(i));
-            }
-        }
-    }
-
-    @Deprecated
-    public JSONArray getMessages() {
-        return this.json.optJSONArray("messages");
-    }
-    @Deprecated
-    public void setMessages(JSONArray messages) throws JSONException {
-        this.json.put("messages", messages);
-    }
-    // Add either a String (message) or a JSONObject (url: message)
-    @Deprecated
-    public void addMessage(Object message) throws JSONException {
-        JSONArray messages = this.getMessages();
-        if (messages == null) {
-            messages = new JSONArray();
-            this.setMessages(messages);
-        }
-        messages.put(message);
-    }
-    @Deprecated
-    public void addMessages(JSONArray messages) throws JSONException {
-        if (messages != null) {
-            for (int i=0, len=messages.length(); i<len; i++) {
-                this.addMessage(messages.get(i));
-            }
-        }
-    }
-
     public boolean isLayerCatalogEmpty() {
         JSONObject layers = this.getLayers();
         return layers == null || layers.length() <= 0;
@@ -403,9 +330,6 @@ public class DataSourceWrapper extends AbstractWrapper {
         dataSourceClone.setId(null);
         dataSourceClone.setLayers(null);
         dataSourceClone.setGlobalManualOverride(null);
-        dataSourceClone.setWarnings(null);
-        dataSourceClone.setErrors(null);
-        dataSourceClone.setMessages(null);
         dataSourceClone.setBlackAndWhiteListedLayers(null);
         dataSourceClone.setLastHarvested(null);
         dataSourceClone.setComment(null);

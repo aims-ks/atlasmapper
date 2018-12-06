@@ -785,7 +785,9 @@ public class URLCache {
             }
 
             try {
+                logger.log(Level.INFO, "Getting WMS GetCapabilities document: " + urlStr);
                 capabilitiesFile = URLCache.getURLFile(logger, configManager, dataSource, urlStr, category, mandatory);
+                logger.log(Level.INFO, "Parsing WMS GetCapabilities document: " + urlStr);
                 wmsCapabilities = URLCache.getCapabilities(capabilitiesFile);
                 URLCache.commitURLFile(configManager, capabilitiesFile, urlStr);
             } catch (Exception ex) {

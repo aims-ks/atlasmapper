@@ -167,43 +167,32 @@
                     break;
 
                 case GETLOGS:
-                    if (Utils.isBlank(idStr)) {
+                    if (Utils.isBlank(dataSourceId)) {
                         response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                         jsonObj.put("success", false);
-                        jsonObj.put("errors", new JSONArray().put("Missing parameter [id]."));
+                        jsonObj.put("errors", new JSONArray().put("Missing parameter [dataSourceId]."));
                     } else {
-                        Integer id = null;
                         try {
-                            id = Integer.valueOf(idStr);
-                        } catch(Exception e) {
-                            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                            jsonObj.put("success", false);
-                            jsonObj.put("errors", new JSONArray().put("Invalid id format. Expected integer."));
-                        }
-
-                        if (id != null) {
-                            try {
-                                AbstractDataSourceConfig foundDataSourceConfig = configManager.getDataSourceConfig(id);
-                                if (foundDataSourceConfig == null) {
-                                    response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                                    jsonObj.put("success", false);
-                                    jsonObj.put("errors", new JSONArray().put("Data source ID ["+id+"] not found."));
-                                } else {
-                                    ThreadLogger logger = foundDataSourceConfig.getThread().getLogger();
-                                    response.setStatus(HttpServletResponse.SC_OK);
-                                    jsonObj.put("message", "Data source rebuilt logs");
-                                    jsonObj.put("dataSourceName", foundDataSourceConfig.getDataSourceName());
-                                    jsonObj.put("dataSourceId", foundDataSourceConfig.getDataSourceId());
-                                    jsonObj.put("logs", logger.toJSON());
-                                    jsonObj.put("done", foundDataSourceConfig.isIdle());
-                                    jsonObj.put("success", true);
-                                }
-                            } catch(Exception e) {
-                                LOGGER.log(Level.SEVERE, "An error occurred while generating the Data source catalogue: " + Utils.getExceptionMessage(e), e);
-                                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                            AbstractDataSourceConfig foundDataSourceConfig = configManager.getDataSourceConfig(dataSourceId);
+                            if (foundDataSourceConfig == null) {
+                                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                                 jsonObj.put("success", false);
-                                jsonObj.put("errors", new JSONArray().put("An error occurred while generating the Data source catalogue. Check your server log."));
+                                jsonObj.put("errors", new JSONArray().put("Data source ID ["+dataSourceId+"] not found."));
+                            } else {
+                                ThreadLogger logger = foundDataSourceConfig.getThread().getLogger();
+                                response.setStatus(HttpServletResponse.SC_OK);
+                                jsonObj.put("message", "Data source rebuilt logs");
+                                jsonObj.put("dataSourceName", foundDataSourceConfig.getDataSourceName());
+                                jsonObj.put("dataSourceId", foundDataSourceConfig.getDataSourceId());
+                                jsonObj.put("logs", logger.toJSON());
+                                jsonObj.put("done", foundDataSourceConfig.isIdle());
+                                jsonObj.put("success", true);
                             }
+                        } catch(Exception e) {
+                            LOGGER.log(Level.SEVERE, "An error occurred while generating the Data source catalogue: " + Utils.getExceptionMessage(e), e);
+                            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                            jsonObj.put("success", false);
+                            jsonObj.put("errors", new JSONArray().put("An error occurred while generating the Data source catalogue. Check your server log."));
                         }
                     }
                     break;

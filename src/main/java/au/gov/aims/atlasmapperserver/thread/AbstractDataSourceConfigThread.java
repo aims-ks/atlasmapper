@@ -1,19 +1,17 @@
-package au.gov.aims.atlasmapperserver.dataSourceConfig;
+package au.gov.aims.atlasmapperserver.thread;
 
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.collection.BlackAndWhiteListFilter;
+import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.jsonWrappers.client.DataSourceWrapper;
 import au.gov.aims.atlasmapperserver.jsonWrappers.client.LayerWrapper;
 import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
-import au.gov.aims.atlasmapperserver.thread.AbstractConfigThread;
 import au.gov.aims.atlasmapperserver.URLCache;
-import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
 import org.json.JSONObject;
 import org.json.JSONSortedObject;
 
-import java.text.DecimalFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -23,9 +21,6 @@ import java.util.logging.Logger;
 
 public class AbstractDataSourceConfigThread extends AbstractConfigThread {
     private static final Logger LOGGER = Logger.getLogger(AbstractDataSourceConfigThread.class.getName());
-
-    // Used to format the elapse time (always put at lease 1 digit before the dot, with maximum 2 digits after)
-    private static final DecimalFormat elapseTimeFormat = new DecimalFormat("0.##");
 
     private AbstractDataSourceConfig dataSourceConfig;
     private boolean redownloadBrokenFiles;
@@ -69,6 +64,7 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
         // startDate: Used to log the elapse time
         Date startDate = new Date();
         ThreadLogger logger = this.getLogger();
+        logger.log(Level.INFO, "Generating data source: " + this.dataSourceConfig.getDataSourceName());
 
         logger.log(Level.INFO, "Refresh disk cache");
         try {
@@ -97,12 +93,23 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
         logger.log(Level.INFO, "Generate layer catalogue");
         DataSourceWrapper layerCatalog = null;
         try {
+            // Clone the data source
+            // - The rebuild process can take several minutes. Other user may modify the config
+            //     during the rebuild. The clone ensure integrity of the config during the whole build.
+            // - The rebuild process modify attributes of the data source config, such as service URL.
+            //     This is a not the best design choice, but that was the simplest way to do it.
+            //     Those modifications should not be applied to the live data source, which is
+            //     another reason to justify the clone.
+            // - The state of the data source is stored in the data source config clone,
+            //     then saved to disk.
+            AbstractDataSourceConfig dataSourceConfigClone = (AbstractDataSourceConfig)this.dataSourceConfig.clone();
+
             // Download / parse the capabilities doc
             // Set the layers and capabilities overrides into the clone
-            layerCatalog = this.getLayerCatalog(logger, this.clearCapabilitiesCache, this.clearMetadataCache);
+            layerCatalog = this.getLayerCatalog(logger, dataSourceConfigClone, this.clearCapabilitiesCache, this.clearMetadataCache);
 
             // Save the data source state into a file
-            this.dataSourceConfig.save(logger, layerCatalog);
+            dataSourceConfigClone.save(logger, layerCatalog);
         } catch(Exception ex) {
             logger.log(Level.SEVERE, "An error occurred while generating the layer catalogue: " + Utils.getExceptionMessage(ex), ex);
         }
@@ -113,9 +120,9 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
         double elapseTimeSec = elapseTimeMs / 1000.0;
         double elapseTimeMin = elapseTimeSec / 60.0;
 
-        logger.log(Level.INFO, "Rebuild time: " + (elapseTimeMin >= 1 ?
-                AbstractDataSourceConfigThread.elapseTimeFormat.format(elapseTimeMin) + " min" :
-                AbstractDataSourceConfigThread.elapseTimeFormat.format(elapseTimeSec) + " sec"));
+        logger.log(Level.INFO, "Generation time: " + (elapseTimeMin >= 1 ?
+                AbstractConfigThread.ELAPSE_TIME_FORMAT.format(elapseTimeMin) + " min" :
+                AbstractConfigThread.ELAPSE_TIME_FORMAT.format(elapseTimeSec) + " sec"));
 
         try {
             URLCache.saveDiskCacheMap(this.dataSourceConfig.getConfigManager().getApplicationFolder());
@@ -125,12 +132,12 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
     }
 
     // LayerCatalog - Before data source overrides
-    private DataSourceWrapper getRawLayerCatalog(ThreadLogger logger, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles) throws Exception {
+    private DataSourceWrapper getRawLayerCatalog(ThreadLogger logger, AbstractDataSourceConfig dataSourceConfigClone, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles) throws Exception {
         DataSourceWrapper rawLayerCatalog = null;
 
-        AbstractLayerGenerator layerGenerator = this.dataSourceConfig.createLayerGenerator();
+        AbstractLayerGenerator layerGenerator = dataSourceConfigClone.createLayerGenerator();
         if (layerGenerator != null) {
-            rawLayerCatalog = layerGenerator.generateLayerCatalog(logger, this.dataSourceConfig, redownloadPrimaryFiles, redownloadSecondaryFiles);
+            rawLayerCatalog = layerGenerator.generateLayerCatalog(logger, dataSourceConfigClone, redownloadPrimaryFiles, redownloadSecondaryFiles);
         }
 
         return rawLayerCatalog;
@@ -138,14 +145,14 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
 
     // LayerCatalog - After data source overrides
 
-    private DataSourceWrapper getLayerCatalog(ThreadLogger logger, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles) throws Exception {
+    private DataSourceWrapper getLayerCatalog(ThreadLogger logger, AbstractDataSourceConfig dataSourceConfigClone, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles) throws Exception {
         // LayerCatalog before overrides
-        DataSourceWrapper rawLayerCatalog = this.getRawLayerCatalog(logger, redownloadPrimaryFiles, redownloadSecondaryFiles);
+        DataSourceWrapper rawLayerCatalog = this.getRawLayerCatalog(logger, dataSourceConfigClone, redownloadPrimaryFiles, redownloadSecondaryFiles);
 
         // Map of layers, after overrides, used to create the final layer catalog
         HashMap<String, LayerWrapper> layersMap = new HashMap<String, LayerWrapper>();
 
-        JSONSortedObject globalOverrides = this.dataSourceConfig.getGlobalManualOverride();
+        JSONSortedObject globalOverrides = dataSourceConfigClone.getGlobalManualOverride();
 
         // Apply manual overrides, if needed
         if (!rawLayerCatalog.isLayerCatalogEmpty()) {
@@ -175,7 +182,7 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
                     if (jsonLayerOverride != null && jsonLayerOverride.getJSON().length() > 0) {
                         try {
                             AbstractLayerConfig manualLayer = LayerCatalog.createLayer(
-                                    jsonLayerOverride.getLayerType(), jsonLayerOverride, this.dataSourceConfig.getConfigManager());
+                                    jsonLayerOverride.getLayerType(), jsonLayerOverride, dataSourceConfigClone.getConfigManager());
 
                             LayerWrapper layerWrapper = new LayerWrapper(manualLayer.toJSonObject());
                             layersMap.put(
@@ -186,7 +193,7 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
                             LOGGER.log(
                                 Level.SEVERE,
                                 String.format("Unexpected error occurred while parsing the following layer override for the data source [%s], layer id [%s]: %s%n%s",
-                                    this.dataSourceConfig.getDataSourceName(), layerId, Utils.getExceptionMessage(ex), jsonLayerOverride.getJSON().toString(4)),
+                                    dataSourceConfigClone.getDataSourceName(), layerId, Utils.getExceptionMessage(ex), jsonLayerOverride.getJSON().toString(4)),
                                 ex
                             );
                         }
@@ -201,13 +208,13 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
             LayerWrapper layerWrapper = layerWrapperEntry.getValue();
 
             // Only set the attribute if the layer IS a base layer (i.e. the default is false)
-            if (this.dataSourceConfig.isBaseLayer(layerId)) {
+            if (dataSourceConfigClone.isBaseLayer(layerId)) {
                 layerWrapper.setIsBaseLayer(true);
             }
 
             // Backward compatibility for AtlasMapper client ver. 1.2
-            if (this.dataSourceConfig.isDefaultAllBaseLayers()) {
-                if (!this.dataSourceConfig.isBaseLayer(layerWrapper.getLayerName())) {
+            if (dataSourceConfigClone.isDefaultAllBaseLayers()) {
+                if (!dataSourceConfigClone.isBaseLayer(layerWrapper.getLayerName())) {
                     logger.log(Level.WARNING, "Deprecated layer ID used for overlay layers: " +
                             "layer id [" + layerWrapper.getLayerName() + "] should be [" + layerId + "]");
                     LOGGER.log(Level.WARNING, "DEPRECATED LAYER ID USED FOR OVERLAY LAYERS: Layer id [{0}] should be [{1}].",
@@ -215,7 +222,7 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
                     layerWrapper.setIsBaseLayer(false);
                 }
             } else {
-                if (this.dataSourceConfig.isBaseLayer(layerWrapper.getLayerName())) {
+                if (dataSourceConfigClone.isBaseLayer(layerWrapper.getLayerName())) {
                     logger.log(Level.WARNING, "Deprecated layer ID used for base layers: " +
                             "layer id [" + layerWrapper.getLayerName() + "] should be [" + layerId + "]");
                     LOGGER.log(Level.WARNING, "DEPRECATED LAYER ID USED FOR BASE LAYERS: Layer id [{0}] should be [{1}].",
@@ -226,7 +233,7 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
         }
 
         // Show warning if a base layer / overlay layer is not in the layer catalog
-        String[] overlayLayers = this.dataSourceConfig.getOverlayLayers();
+        String[] overlayLayers = dataSourceConfigClone.getOverlayLayers();
         if (overlayLayers != null) {
             for (String layerId : overlayLayers) {
                 if (!layersMap.containsKey(layerId)) {
@@ -235,7 +242,7 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
             }
         }
 
-        String[] baseLayers = this.dataSourceConfig.getBaseLayers();
+        String[] baseLayers = dataSourceConfigClone.getBaseLayers();
         if (baseLayers != null) {
             for (String layerId : baseLayers) {
                 if (!layersMap.containsKey(layerId)) {
@@ -246,7 +253,7 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
 
         // Remove blacklisted layers
         BlackAndWhiteListFilter<LayerWrapper> blackAndWhiteFilter =
-                new BlackAndWhiteListFilter<LayerWrapper>(this.dataSourceConfig.getBlackAndWhiteListedLayers());
+                new BlackAndWhiteListFilter<LayerWrapper>(dataSourceConfigClone.getBlackAndWhiteListedLayers());
         layersMap = blackAndWhiteFilter.filter(layersMap);
 
         if (layersMap.isEmpty()) {

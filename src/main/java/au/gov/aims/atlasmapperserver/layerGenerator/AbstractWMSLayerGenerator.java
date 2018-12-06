@@ -110,7 +110,6 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 
         WMSCapabilities wmsCapabilities = null;
         try {
-            logger.log(Level.INFO, "Getting WMS GetCapabilities document");
             wmsCapabilities = URLCache.getWMSCapabilitiesResponse(logger, configManager, this.wmsVersion, dataSourceClone, dataSourceServiceUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, true);
         } catch (Exception ex) {
             logger.log(Level.WARNING, "Error occurred while parsing the capabilities document for the service URL [" + dataSourceServiceUrlStr + "]: " + Utils.getExceptionMessage(ex), ex);

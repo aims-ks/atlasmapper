@@ -21,7 +21,7 @@
 
 package au.gov.aims.atlasmapperserver.dataSourceConfig;
 
-import au.gov.aims.atlasmapperserver.AbstractRunnableConfig;
+import au.gov.aims.atlasmapperserver.thread.AbstractRunnableConfig;
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
@@ -44,6 +44,7 @@ import java.util.regex.Pattern;
 import au.gov.aims.atlasmapperserver.jsonWrappers.client.DataSourceWrapper;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
 import au.gov.aims.atlasmapperserver.servlet.FileFinder;
+import au.gov.aims.atlasmapperserver.thread.AbstractDataSourceConfigThread;
 import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
 import org.json.JSONArray;
 import org.json.JSONException;

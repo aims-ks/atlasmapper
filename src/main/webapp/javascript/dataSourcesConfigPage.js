@@ -1089,10 +1089,12 @@ Ext.define('Writer.LayerServerConfigGrid', {
         var that = this;
         var layerType = 'ALL';
         var windowTitle = 'Rebuild all data source';
+        var dataSourceId = null;
         var dataSourceName = null;
         if (rec) {
             layerType = rec.get('layerType');
-            dataSourceName = rec.get('dataSourceName') + ' (' + rec.get('dataSourceId') + ')';
+            dataSourceId = rec.get('dataSourceId');
+            dataSourceName = rec.get('dataSourceName') + ' (' + dataSourceId + ')';
             windowTitle = 'Rebuild <i>' + dataSourceName + '</i>';
         }
 
@@ -1277,51 +1279,10 @@ Ext.define('Writer.LayerServerConfigGrid', {
                                 url: 'dataSourcesConfig.jsp',
                                 timeout: timeout,
                                 params: ajaxParams,
-                                success: function(response){
-                                    var responseObj = null;
-                                    var statusCode = response ? response.status : null;
-                                    if (response && response.responseText) {
-                                        try {
-                                            responseObj = Ext.decode(response.responseText);
-                                        } catch (err) {
-                                            responseObj = {errors: [err.toString()]};
-                                        }
-                                    }
-                                    if (dataSourceName === null) {
-                                        if(responseObj && responseObj.success){
-                                            if (responseObj.errors || responseObj.warnings) {
-                                                frameset.setErrorsAndWarnings('Rebuild of all data sources passed', 'Warning(s) occurred while rebuilding some data sources.', responseObj, statusCode);
-                                            } else if (responseObj.messages) {
-                                                frameset.setErrorsAndWarnings('Rebuild of all data sources succeed', null, responseObj, statusCode);
-                                            } else {
-                                                frameset.setSavedMessage('Rebuild of all data sources succeed');
-                                            }
-                                        } else {
-                                            frameset.setErrorsAndWarnings('Rebuild failed for some data sources', 'Error(s) / warning(s) occurred while rebuilding some data sources.', responseObj, statusCode);
-                                        }
-                                        this.showAllDataSourceRebuildLog(frameset);
-                                    } else {
-                                        if(responseObj && responseObj.success){
-                                            if (responseObj.errors || responseObj.warnings) {
-                                                frameset.setErrorsAndWarnings('Data source rebuild passed for <i>'+dataSourceName+'</i>', 'Warning(s) occurred while rebuilding the data source.', responseObj, statusCode);
-                                            } else if (responseObj.messages) {
-                                                frameset.setErrorsAndWarnings('Data source rebuild succeed for <i>'+dataSourceName+'</i>', null, responseObj, statusCode);
-                                            } else {
-                                                frameset.setSavedMessage('Data source rebuild successfully for <i>'+dataSourceName+'</i>.');
-                                            }
-                                        } else {
-                                            frameset.setErrorsAndWarnings('Rebuild failed for <i>'+dataSourceName+'</i>', 'Error(s) / warning(s) occurred while rebuilding the data source.', responseObj, statusCode);
-                                        }
-                                        that.showDataSourceRebuildLog(frameset, rec.get('id'), dataSourceName);
-                                    }
-                                    that.onReload();
-                                },
-                                failure: function(response) {
-                                    if (response.timedout) {
-                                        frameset.setError('Request timed out.', 408);
-                                    } else {
-                                        var statusCode = response ? response.status : null;
+                                success: function(that, dataSourceId, dataSourceName) {
+                                    return function(response) {
                                         var responseObj = null;
+                                        var statusCode = response ? response.status : null;
                                         if (response && response.responseText) {
                                             try {
                                                 responseObj = Ext.decode(response.responseText);
@@ -1330,13 +1291,59 @@ Ext.define('Writer.LayerServerConfigGrid', {
                                             }
                                         }
                                         if (dataSourceName === null) {
-                                            frameset.setErrors('An error occurred while rebuilding the data sources.', responseObj, statusCode);
+                                            if (responseObj && responseObj.success){
+                                                if (responseObj.errors || responseObj.warnings) {
+                                                    frameset.setErrorsAndWarnings('Rebuild of all data sources passed', 'Warning(s) occurred while rebuilding some data sources.', responseObj, statusCode);
+                                                } else if (responseObj.messages) {
+                                                    frameset.setErrorsAndWarnings('Rebuild of all data sources succeed', null, responseObj, statusCode);
+                                                } else {
+                                                    frameset.setSavedMessage('Rebuild of all data sources succeed');
+                                                }
+                                            } else {
+                                                frameset.setErrorsAndWarnings('Rebuild failed for some data sources', 'Error(s) / warning(s) occurred while rebuilding some data sources.', responseObj, statusCode);
+                                            }
+                                            that.showAllDataSourceRebuildLogWindow(frameset);
                                         } else {
-                                            frameset.setErrors('An error occurred while rebuilding the data source <i>'+dataSourceName+'</i>.', responseObj, statusCode);
+                                            if(responseObj && responseObj.success){
+                                                if (responseObj.errors || responseObj.warnings) {
+                                                    frameset.setErrorsAndWarnings('Data source rebuild passed for <i>'+dataSourceName+'</i>', 'Warning(s) occurred while rebuilding the data source.', responseObj, statusCode);
+                                                } else if (responseObj.messages) {
+                                                    frameset.setErrorsAndWarnings('Data source rebuild succeed for <i>'+dataSourceName+'</i>', null, responseObj, statusCode);
+                                                } else {
+                                                    frameset.setSavedMessage('Data source rebuild successfully for <i>'+dataSourceName+'</i>.');
+                                                    that.showDataSourceRebuildLogWindow(frameset, dataSourceId, dataSourceName);
+                                                }
+                                            } else {
+                                                frameset.setErrorsAndWarnings('Rebuild failed for <i>'+dataSourceName+'</i>', 'Error(s) / warning(s) occurred while rebuilding the data source.', responseObj, statusCode);
+                                            }
                                         }
-                                    }
-                                    that.onReload();
-                                }
+                                        that.onReload();
+                                    };
+                                }(that, dataSourceId, dataSourceName),
+
+                                failure: function(that, dataSourceName) {
+                                    return function(response) {
+                                        if (response.timedout) {
+                                            frameset.setError('Request timed out.', 408);
+                                        } else {
+                                            var statusCode = response ? response.status : null;
+                                            var responseObj = null;
+                                            if (response && response.responseText) {
+                                                try {
+                                                    responseObj = Ext.decode(response.responseText);
+                                                } catch (err) {
+                                                    responseObj = {errors: [err.toString()]};
+                                                }
+                                            }
+                                            if (dataSourceName === null) {
+                                                frameset.setErrors('An error occurred while rebuilding the data sources.', responseObj, statusCode);
+                                            } else {
+                                                frameset.setErrors('An error occurred while rebuilding the data source <i>'+dataSourceName+'</i>.', responseObj, statusCode);
+                                            }
+                                        }
+                                        that.onReload();
+                                    };
+                                }(that, dataSourceName)
                             });
 
                             window.close();
@@ -1359,20 +1366,28 @@ Ext.define('Writer.LayerServerConfigGrid', {
     /**
      * Open the log window and periodically request logs to the server until the process is done.
      * @param frameset The frameset object used to handle the logs window
-     * @param dataSourceId The internal numeric ID of the Data Source
+     * @param dataSourceId The Data Source string ID chosen by the user
+     *     (this is more robust than the numerical ID since the grid may change during the build process)
      * @param dataSourceName The name of the Data Source, to be shown in the window title.
      */
-    showDataSourceRebuildLog: function(frameset, dataSourceId, dataSourceName) {
-        frameset.setLogs('Rebuilding data source <i>'+dataSourceName+'</i>', 'Rebuilding data source',
+    showDataSourceRebuildLogWindow: function(frameset, dataSourceId, dataSourceName) {
+        frameset.setLogsRequest(
+            'Rebuilding data source <i>'+dataSourceName+'</i>',
+            'Rebuilding data source',
             'dataSourcesConfig.jsp',
             {
                 'action': 'GETLOGS',
-                'id': dataSourceId
-            }
+                'dataSourceId': dataSourceId
+            },
+            function(that) {
+                return function(responseObj) {
+                    that.onReload();
+                };
+            }(this)
         );
     },
 
-    showAllDataSourceRebuildLog: function(frameset) {
+    showAllDataSourceRebuildLogWindow: function(frameset) {
     },
 
     getDataSourceLayerTypeFormWindow: function() {

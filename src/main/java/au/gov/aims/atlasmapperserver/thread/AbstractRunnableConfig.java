@@ -1,6 +1,7 @@
-package au.gov.aims.atlasmapperserver;
+package au.gov.aims.atlasmapperserver.thread;
 
-import au.gov.aims.atlasmapperserver.thread.AbstractConfigThread;
+import au.gov.aims.atlasmapperserver.AbstractConfig;
+import au.gov.aims.atlasmapperserver.ConfigManager;
 
 public abstract class AbstractRunnableConfig<T extends AbstractConfigThread> extends AbstractConfig {
     protected T configThread;
@@ -26,7 +27,11 @@ public abstract class AbstractRunnableConfig<T extends AbstractConfigThread> ext
         return this.configThread == null || !this.configThread.isAlive();
     }
 
-    public AbstractConfigThread getThread() {
+    public T getThread() {
         return this.configThread;
+    }
+
+    public void setThread(T configThread) {
+        this.configThread = configThread;
     }
 }

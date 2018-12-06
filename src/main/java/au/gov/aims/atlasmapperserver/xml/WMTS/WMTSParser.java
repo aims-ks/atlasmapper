@@ -63,6 +63,7 @@ public class WMTSParser {
         try {
             logger.log(Level.INFO, "Getting WMTS GetCapabilities document");
             cachedDocumentFile = URLCache.getURLFile(logger, configManager, dataSource, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, mandatory);
+            logger.log(Level.INFO, "Parsing WMTS GetCapabilities document");
             wmtsDocument = parseFile(cachedDocumentFile, urlStr);
             if (wmtsDocument == null) {
                 File rollbackFile = URLCache.rollbackURLFile(logger, configManager, cachedDocumentFile, urlStr, "Invalid WMTS document");
