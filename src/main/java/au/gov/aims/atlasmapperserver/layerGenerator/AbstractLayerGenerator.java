@@ -54,9 +54,7 @@ public abstract class AbstractLayerGenerator<L extends AbstractLayerConfig, D ex
         categories.add(URLCache.Category.BRUTEFORCE_MEST_RECORD);
         URLCache.deleteOldEntries(dataSourceConfigClone, startDate, categories);
 
-        logger.log(Level.INFO, "Validating data source");
-        URLCache.validateDataSource(dataSourceConfigClone, dataSourceConfigClone.getConfigManager().getApplicationFolder());
-
+        logger.log(Level.INFO, "Building data source layer catalogue");
         DataSourceWrapper catalogWrapper = new DataSourceWrapper();
         for (AbstractLayerConfig layer : rawLayerCatalog.getLayers()) {
             LayerWrapper layerWrapper = new LayerWrapper(layer.toJSonObject());

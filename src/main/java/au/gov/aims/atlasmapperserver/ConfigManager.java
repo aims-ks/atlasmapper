@@ -888,7 +888,7 @@ public class ConfigManager {
     public URLSaveState getMapStateForDataset(ThreadLogger logger, ClientConfig clientConfig, String iso19115_19139url) throws Exception {
         JSONArray jsonLayers = new JSONArray();
 
-        TC211Document tc211Document = TC211Parser.parseURL(logger, this, null, Utils.toURL(iso19115_19139url), false, true);
+        TC211Document tc211Document = TC211Parser.parseURL(logger, "client " + clientConfig.getClientName(), this, null, Utils.toURL(iso19115_19139url), false, true);
         if (tc211Document == null) {
             return null;
         }

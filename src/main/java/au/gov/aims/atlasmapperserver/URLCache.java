@@ -72,6 +72,7 @@ import java.security.cert.X509Certificate;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -220,6 +221,9 @@ public class URLCache {
      *         jsonResponse = parseFile(rollbackFile, urlStr);
      *     }
      *
+     * @param logger
+     * @param downloadedEntityName String representing the entity to download, used in log messages.
+     *     For example: "layer ea:baselayer" or "GetCapabilities document"
      * @param configManager
      * @param dataSource
      * @param urlStr
@@ -231,12 +235,11 @@ public class URLCache {
      * @throws IOException
      * @throws JSONException
      */
-    public static File getURLFile(ThreadLogger logger, ConfigManager configManager, AbstractDataSourceConfig dataSource, String urlStr, Category category, boolean mandatory) throws IOException, JSONException {
-        return getURLFile(logger, configManager, dataSource, urlStr, category, mandatory, 0);
+    public static File getURLFile(ThreadLogger logger, String downloadedEntityName, ConfigManager configManager, AbstractDataSourceConfig dataSource, String urlStr, Category category, boolean mandatory) throws IOException, JSONException {
+        return getURLFile(logger, downloadedEntityName, configManager, dataSource, urlStr, category, mandatory, 0);
     }
-    private static File getURLFile(ThreadLogger logger, ConfigManager configManager, AbstractDataSourceConfig dataSource, String urlStr, Category category, boolean mandatory, int followRedirectionCount) throws IOException, JSONException {
+    private static File getURLFile(ThreadLogger logger, String downloadedEntityName, ConfigManager configManager, AbstractDataSourceConfig dataSource, String urlStr, Category category, boolean mandatory, int followRedirectionCount) throws IOException, JSONException {
         File applicationFolder = getApplicationFolder(configManager);
-
         String dataSourceId = null;
         Boolean activeDownload = null;
         if (dataSource != null) {
@@ -253,8 +256,6 @@ public class URLCache {
         File cacheFolder = FileFinder.getDiskCacheFolder(applicationFolder);
         CachedFile cachedFile = getCachedFile(applicationFolder, urlStr);
 
-        boolean downloaded = false; // Used for logs
-
         // Check if the disk cache is valid (we might have to do a little clean-up of the text file if it has been left in a inconsistent state).
         if (!cachedFile.isEmpty()) {
             if (dataSourceId != null && !cachedFile.hasDataSourceId(dataSourceId)) {
@@ -267,10 +268,12 @@ public class URLCache {
                 if (followRedirectionCount < MAX_FOLLOW_REDIRECTION) {
                     // Touch the cache entry; set the last access date to "now"
                     cachedFile.setLastAccessDate();
-                    return getURLFile(logger, configManager, dataSource, redirectionUrl, category, mandatory, followRedirectionCount+1);
+                    return getURLFile(logger, downloadedEntityName, configManager, dataSource, redirectionUrl, category, mandatory, followRedirectionCount+1);
                 } else {
                     // Hopefully this error will never occurred
-                    logger.log(Level.SEVERE, "Maximum URL follow reach. There is probably a cycle in the cache, which create potential infinite loops.");
+                    logger.log(Level.SEVERE, String.format("Maximum URL redirection reach for %s URL %s. " +
+                        "There is probably a cycle in the cache, which create potential infinite loops.",
+                        downloadedEntityName, urlStr));
                     throw new IOException("Cycle in the cache follow URLs");
                 }
             }
@@ -300,13 +303,13 @@ public class URLCache {
 
                 File tmpFile = new File(cachedFile.getCachedFileFolder(), tmpFilename);
 
-                logger.log(Level.INFO, String.format("Re-downloading URL %s, cached in file %s", urlStr, tmpFilename));
-                downloaded = true;
+                logger.log(Level.INFO, String.format("Re-downloading %s URL %s", downloadedEntityName, urlStr));
 
                 ResponseStatus responseStatus = loadURLToFile(logger, urlStr, tmpFile);
+                String errorMessage = responseStatus.getErrorMessage();
                 cachedFile.setMarkedForReDownload(false);
                 cachedFile.setTemporaryHttpStatusCode(responseStatus.getStatusCode());
-                cachedFile.setLatestErrorMessage(responseStatus.getErrorMessage());
+                cachedFile.setLatestErrorMessage(errorMessage);
                 cachedFile.cleanUpFilenames();
             }
         }
@@ -320,14 +323,14 @@ public class URLCache {
 
             File file = new File(cachedFile.getCachedFileFolder(), filename);
 
-            logger.log(Level.INFO, String.format("Downloading URL %s, cached in file %s", urlStr, filename));
-            downloaded = true;
+            logger.log(Level.INFO, String.format("Downloading %s URL %s", downloadedEntityName, urlStr));
 
             ResponseStatus responseStatus = loadURLToFile(logger, urlStr, file);
+            String errorMessage = responseStatus.getErrorMessage();
             cachedFile.setHttpStatusCode(responseStatus.getStatusCode());
-            cachedFile.setLatestErrorMessage(responseStatus.getErrorMessage());
+            cachedFile.setLatestErrorMessage(errorMessage);
             cachedFile.cleanUpFilenames();
-            if (Utils.isNotBlank(responseStatus.getErrorMessage())) {
+            if (Utils.isNotBlank(errorMessage)) {
                 cachedFile.setApproved(false);
             }
         }
@@ -339,11 +342,17 @@ public class URLCache {
 
             file = cachedFile.hasTemporaryData() ? cachedFile.getTemporaryFile() : cachedFile.getFile();
 
+            String errorMessage = cachedFile.getLatestErrorMessage();
+            if (Utils.isNotBlank(errorMessage)) {
+                logger.log(Level.WARNING, String.format("Error received from %s URL %s, %s", downloadedEntityName, urlStr, errorMessage));
+            }
+
             // If we already know that something went wrong, rollback.
-            if (Utils.isNotBlank(cachedFile.getLatestErrorMessage()) || file == null || !file.exists()) {
-                file = rollbackURLFile(logger, configManager, file, urlStr, (String) null);
-            } else if (!downloaded) {
-                logger.log(Level.INFO, String.format("URL %s found in cached file %s", urlStr, file.getName()));
+            if (Utils.isNotBlank(errorMessage) || file == null || !file.exists()) {
+                File rollbackFile = rollbackURLFile(logger, downloadedEntityName, configManager, file, urlStr, (String) null);
+                if (rollbackFile != null && rollbackFile.exists()) {
+                    file = rollbackFile;
+                }
             }
         }
 
@@ -410,10 +419,10 @@ public class URLCache {
      * @param urlStr
      * @return
      */
-    public static File rollbackURLFile(ThreadLogger logger, ConfigManager configManager, File unapprovedFile, String urlStr, Exception reason) throws IOException, JSONException {
-        return rollbackURLFile(logger, configManager, unapprovedFile, urlStr, Utils.getExceptionMessage(reason));
+    public static File rollbackURLFile(ThreadLogger logger, String downloadedEntityName, ConfigManager configManager, File unapprovedFile, String urlStr, Exception reason) throws IOException, JSONException {
+        return rollbackURLFile(logger, downloadedEntityName, configManager, unapprovedFile, urlStr, Utils.getExceptionMessage(reason));
     }
-    public static File rollbackURLFile(ThreadLogger logger, ConfigManager configManager, File unapprovedFile, String urlStr, String reasonStr) throws IOException, JSONException {
+    public static File rollbackURLFile(ThreadLogger logger, String downloadedEntityName, ConfigManager configManager, File unapprovedFile, String urlStr, String reasonStr) throws IOException, JSONException {
         File backupFile = unapprovedFile;
         File applicationFolder = getApplicationFolder(configManager);
         CachedFile cachedFile = getCachedFile(applicationFolder, urlStr);
@@ -424,15 +433,17 @@ public class URLCache {
             //     Everything between "single quote" are interpreted as literal string.
             //     To print a "single quote", you have to use two "single quote".
             if (INVALID_FILE_CACHE_TIMEOUT >= 0) {
-                logger.log(Level.WARNING, String.format("Invalid downloaded file: %s%nThe application won't try to re-download it for %s minutes.",
+                logger.log(Level.WARNING, String.format("Invalid downloaded file: %s, the application won't try to re-download it for %s minutes.",
                         urlStr, "" + INVALID_FILE_CACHE_TIMEOUT));
             }
         }
 
         if (backupFile != null && backupFile.exists()) {
-            logger.log(Level.INFO, String.format("Invalid response received from URL: %s%nused last good cached file: %s", urlStr, backupFile.getName()));
+            logger.log(Level.INFO, String.format("Invalid response received for %s from URL: %s, used last good cached file: %s",
+                    downloadedEntityName, urlStr, backupFile.getName()));
         } else {
-            logger.log(Level.WARNING, String.format("Invalid response received from URL: %s%nno cached version found.", urlStr));
+            logger.log(Level.WARNING, String.format("Invalid response received for %s from URL: %s, no cached version found.",
+                    downloadedEntityName, urlStr));
         }
 
         return backupFile;
@@ -485,8 +496,8 @@ public class URLCache {
                     // The file size may be unknown on the server. This method stop streaming when the file size reach the limit.
                     Utils.binaryCopy(in, out, maxFileSizeMb * (1024*1024));
                 } else {
-                    logger.log(Level.WARNING, String.format("File size exceeded for URL %s%n" +
-                            "      File size is %d Mb, expected less than %d Mb.", urlStr, entity.getContentLength(), maxFileSizeMb));
+                    logger.log(Level.WARNING, String.format("File size exceeded for URL %s. " +
+                            "File size is %d Mb, expected less than %d Mb.", urlStr, entity.getContentLength(), maxFileSizeMb));
                     responseStatus.setErrorMessage("File size exceeded. File size is " + entity.getContentLength() + " Mb, expected less than " + maxFileSizeMb + " Mb.");
                 }
             }
@@ -604,16 +615,16 @@ public class URLCache {
         return loadedTime < configFile.lastModified();
     }
 
-    public static JSONObject getJSONResponse(ThreadLogger logger, ConfigManager configManager, AbstractDataSourceConfig dataSource, String urlStr, Category category, boolean mandatory) throws IOException, JSONException {
+    public static JSONObject getJSONResponse(ThreadLogger logger, String downloadedEntityName, ConfigManager configManager, AbstractDataSourceConfig dataSource, String urlStr, Category category, boolean mandatory) throws IOException, JSONException {
         File jsonFile = null;
 
         JSONObject jsonResponse = null;
         try {
-            jsonFile = getURLFile(logger, configManager, dataSource, urlStr, category, mandatory);
+            jsonFile = getURLFile(logger, downloadedEntityName, configManager, dataSource, urlStr, category, mandatory);
             jsonResponse = parseFile(jsonFile, urlStr);
             commitURLFile(configManager, jsonFile, urlStr);
         } catch(Exception ex) {
-            File rollbackFile = rollbackURLFile(logger, configManager, jsonFile, urlStr, ex);
+            File rollbackFile = rollbackURLFile(logger, downloadedEntityName, configManager, jsonFile, urlStr, ex);
             jsonResponse = parseFile(rollbackFile, urlStr);
         }
 
@@ -721,39 +732,6 @@ public class URLCache {
         return sb.toString();
     }
 
-
-    public static void validateDataSource(AbstractDataSourceConfig dataSourceConfig, File applicationFolder) throws IOException, JSONException {
-        ThreadLogger logger = dataSourceConfig.getThread().getLogger();
-        JSONObject jsonCache = getDiskCacheMap(applicationFolder);
-
-        // Add errors reported by the disk cache utility (filter by specified data source)
-        if (jsonCache != null && jsonCache.length() > 0) {
-            Iterator<String> urls = jsonCache.keys();
-            String url;
-            while (urls.hasNext()) {
-                url = urls.next();
-                CachedFile cachedFile = getCachedFile(applicationFolder, url);
-                // Ignore empty entries (should not have any) or MEST entry concerning brute force records (these produce heaps of useless warnings)
-                if (!cachedFile.isEmpty() && !Category.BRUTEFORCE_MEST_RECORD.equals(cachedFile.getCategory())) {
-                    String errorMsg = cachedFile.getLatestErrorMessage();
-                    if (Utils.isNotBlank(errorMsg)) {
-                        for (String dataSourceId : cachedFile.getDataSourceIds()) {
-                            if (dataSourceConfig.getDataSourceId().equals(dataSourceId)) {
-                                if (cachedFile.isMandatory()) {
-                                    //errors.addError(url, errorMsg);
-                                    logger.log(Level.SEVERE, url + ": " + errorMsg);
-                                } else {
-                                    //errors.addWarning(url, errorMsg);
-                                    logger.log(Level.WARNING, url + ": " + errorMsg);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     public static WMSCapabilities getWMSCapabilitiesResponse(
             ThreadLogger logger,
             ConfigManager configManager,
@@ -785,13 +763,12 @@ public class URLCache {
             }
 
             try {
-                logger.log(Level.INFO, "Getting WMS GetCapabilities document: " + urlStr);
-                capabilitiesFile = URLCache.getURLFile(logger, configManager, dataSource, urlStr, category, mandatory);
+                capabilitiesFile = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, dataSource, urlStr, category, mandatory);
                 logger.log(Level.INFO, "Parsing WMS GetCapabilities document: " + urlStr);
                 wmsCapabilities = URLCache.getCapabilities(capabilitiesFile);
                 URLCache.commitURLFile(configManager, capabilitiesFile, urlStr);
             } catch (Exception ex) {
-                File rollbackFile = URLCache.rollbackURLFile(logger, configManager, capabilitiesFile, urlStr, ex);
+                File rollbackFile = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, capabilitiesFile, urlStr, ex);
                 wmsCapabilities = URLCache.getCapabilities(rollbackFile);
             }
         }

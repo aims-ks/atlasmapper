@@ -1,0 +1,12 @@
+[X] Reduce noise in logs
+        Reduced from 20,000 to about 200. Will reduce more after implementing H2 cache
+[ ] Handle internet failure better (continue when Internet comes back)
+[ ] Stop button
+[ ] Bring logs window back (generate button changes into loading icon)
+[ ] Generate all
+
+[ ] H2 cache
+[ ] Do not show multiple warning / error for the same URL
+[ ] Keep returned file even when status code is 500 (TC211Parser.java line 93) - NOTE: Multiple layers may share same metadata URL (do not retry URL for a given time?)
+[ ] Craft Mest URL for New and Old GeoNetwork (using configurable array of templates? Not everyone does proper server side redirections)
+[ ] Level of logging with cache (we could log error for TC211 docs as DEBUG)

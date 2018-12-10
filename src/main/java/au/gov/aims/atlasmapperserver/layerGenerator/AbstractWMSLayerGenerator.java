@@ -50,9 +50,11 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -560,18 +562,24 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
         TC211Document tc211Document = null;
         List<MetadataURL> metadataUrls = layer.getMetadataURL();
         if (metadataUrls != null && !metadataUrls.isEmpty()) {
+            // Keep track or URLs that has been tried to avoid trying the same URL multiple times for the same record.
+            Set<String> triedUrls = new HashSet<String>();
             for (MetadataURL metadataUrl : metadataUrls) {
                 if (tc211Document == null && "TC211".equalsIgnoreCase(metadataUrl.getType()) && "text/xml".equalsIgnoreCase(metadataUrl.getFormat())) {
                     URL url = metadataUrl.getUrl();
                     if (url != null) {
-                        try {
-                            tc211Document = TC211Parser.parseURL(logger, dataSourceClone.getConfigManager(), dataSourceClone, url, false, true);
-                            if (tc211Document == null || tc211Document.isEmpty()) { tc211Document = null; }
-                        } catch (Exception e) {
-                            logger.log(Level.WARNING, String.format("Unexpected exception while parsing the metadata document URL: %s%n" +
-                                    "The information provided by the GetCapabilities document indicate that the file is a " +
-                                    "TC211 text/xml file, which seems to not be the case: %s",
-                                    url.toString(), Utils.getExceptionMessage(e)), e);
+                        String urlStr = url.toString();
+                        if (!triedUrls.contains(urlStr)) {
+                            triedUrls.add(urlStr);
+                            try {
+                                tc211Document = TC211Parser.parseURL(logger, "metadata for layer " + layerName, dataSourceClone.getConfigManager(), dataSourceClone, url, false, true);
+                                if (tc211Document == null || tc211Document.isEmpty()) { tc211Document = null; }
+                            } catch (Exception e) {
+                                logger.log(Level.WARNING, String.format("Unexpected exception while parsing the metadata document URL: %s. " +
+                                        "The information provided by the GetCapabilities document indicate that the file is a " +
+                                        "TC211 text/xml file, which seems to not be the case: %s",
+                                        urlStr, Utils.getExceptionMessage(e)), e);
+                            }
                         }
                     }
                 }
@@ -581,42 +589,53 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
             // Sometime, there is valid metadata URL but they have been entered incorrectly.
             // Brute force through all metadata URL and cross fingers to find one that will provide some usable info.
             if (tc211Document == null) {
-                logger.log(Level.WARNING, String.format("Could not find a valid TC211 text/xml metadata document for layer %s of %s. Trying them all whatever their specified mime type.",
-                        layerName, dataSourceClone.getDataSourceName()));
+                //logger.log(Level.WARNING, String.format("Could not find a valid TC211 text/xml metadata document for layer %s. " +
+                //        "Trying all metadata URL whatever their specified mime type.",
+                //        layerName));
                 MetadataURL validMetadataUrl = null;
                 for (MetadataURL metadataUrl : metadataUrls) {
                     if (tc211Document == null) {
                         URL url = metadataUrl.getUrl();
                         if (url != null) {
-                            try {
-                                tc211Document = TC211Parser.parseURL(logger, dataSourceClone.getConfigManager(), dataSourceClone, url, false, false);
-                                if (tc211Document != null && !tc211Document.isEmpty()) {
-                                    validMetadataUrl = metadataUrl;
-                                } else {
-                                    logger.log(Level.FINE, String.format("Invalid metadata document: %s%n      Identified as \"%s - %s\"",
-                                            url.toString(),
+                            String urlStr = url.toString();
+                            if (!triedUrls.contains(urlStr)) {
+                                triedUrls.add(urlStr);
+                                try {
+                                    tc211Document = TC211Parser.parseURL(logger, "metadata for layer " + layerName, dataSourceClone.getConfigManager(), dataSourceClone, url, false, false);
+                                    if (tc211Document != null && !tc211Document.isEmpty()) {
+                                        validMetadataUrl = metadataUrl;
+                                    } else {
+                                        tc211Document = null;
+                                    }
+                                } catch (Exception ex) {
+                                    LOGGER.log(Level.FINE, String.format("Invalid metadata document: %s identified as \"%s - %s\". Exception message: %s",
+                                            urlStr,
                                             metadataUrl.getType(),
-                                            metadataUrl.getFormat()
-                                    ));
-                                    tc211Document = null;
+                                            metadataUrl.getFormat(),
+                                            Utils.getExceptionMessage(ex)
+                                    ), ex);
                                 }
-                            } catch (Exception ex) {
-                                LOGGER.log(Level.FINE, String.format("Invalid metadata document: %s%n      Identified as \"%s - %s\"%n      Exception message: %s",
-                                        url.toString(),
-                                        metadataUrl.getType(),
-                                        metadataUrl.getFormat(),
-                                        Utils.getExceptionMessage(ex)
-                                ), ex);
                             }
                         }
                     }
                 }
-                if (tc211Document != null && validMetadataUrl != null) {
-                    logger.log(Level.INFO, String.format("Valid metadata document: %s%n      Identified as \"%s - %s\"",
-                            validMetadataUrl.getUrl().toString(),
-                            validMetadataUrl.getType(),
-                            validMetadataUrl.getFormat()
-                    ));
+                if (tc211Document != null) {
+                    if (validMetadataUrl != null) {
+                        logger.log(Level.INFO, String.format("Valid TC211 metadata document found for layer %s identified as \"%s - %s\" at URL %s",
+                                layerName,
+                                validMetadataUrl.getType(),
+                                validMetadataUrl.getFormat(),
+                                validMetadataUrl.getUrl().toString()
+                        ));
+                    } else {
+                        // Should not happen
+                        logger.log(Level.INFO, String.format("Valid TC211 metadata document found for layer %s.",
+                                layerName
+                        ));
+                    }
+                } else {
+                    logger.log(Level.WARNING, String.format("Could not find a valid TC211 text/xml metadata document for layer %s.",
+                            layerName));
                 }
             }
         }

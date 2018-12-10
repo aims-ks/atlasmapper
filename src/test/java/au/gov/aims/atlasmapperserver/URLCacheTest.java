@@ -151,7 +151,7 @@ public class URLCacheTest extends TestCase {
 
             String urlStr = HTTPMOCKUP_SERVICE_URL + "?content=abcd";
 
-            File file = URLCache.getURLFile(logger, configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Validate the downloaded info
             String content = readFile(file);
@@ -193,7 +193,7 @@ public class URLCacheTest extends TestCase {
 
             String urlStr = HTTPMOCKUP_SERVICE_URL + "?content=abcd";
 
-            File file = URLCache.getURLFile(logger, configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Validate the downloaded info
             String content = readFile(file);
@@ -207,7 +207,7 @@ public class URLCacheTest extends TestCase {
             assertNull(cachedFile.getLatestErrorMessage());
             assertFalse(cachedFile.isApproved());
 
-            URLCache.rollbackURLFile(logger, configManager, file, urlStr, "Invalid");
+            URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file, urlStr, "Invalid");
 
             assertEquals(SC_OK, cachedFile.getHttpStatusCode());
             assertNull(cachedFile.getFilename()); // Deleted file
@@ -235,7 +235,7 @@ public class URLCacheTest extends TestCase {
 
             String urlStr = NONE_EXISTING_URL;
 
-            File file = URLCache.getURLFile(logger, configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Validate the downloaded info
             assertNull(file);
@@ -276,7 +276,7 @@ public class URLCacheTest extends TestCase {
 
             String urlStr = NONE_EXISTING_URL;
 
-            File file = URLCache.getURLFile(logger, configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Validate the downloaded info
             assertNull(file);
@@ -289,7 +289,7 @@ public class URLCacheTest extends TestCase {
             assertNotNull(cachedFile.getLatestErrorMessage());
             assertFalse(cachedFile.isApproved());
 
-            URLCache.rollbackURLFile(logger, configManager, file, urlStr, "New error message");
+            URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file, urlStr, "New error message");
 
             assertNull(cachedFile.getHttpStatusCode());
             //assertEquals(file.getName(), cachedFile.getFilename());
@@ -321,14 +321,14 @@ public class URLCacheTest extends TestCase {
             String urlStr = HTTPMOCKUP_SERVICE_URL + "?content=abcd";
 
             // Download the file for the 1st time
-            File file1 = URLCache.getURLFile(logger, configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file1 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Commit (approve) the file
             URLCache.commitURLFile(configManager, file1, urlStr);
 
 
             // Re-request the file - the timeout hasn't expired, it must give the same cached file
-            File file2 = URLCache.getURLFile(logger, configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file2 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is the cached file
             assertEquals(file1, file2);
@@ -375,14 +375,14 @@ public class URLCacheTest extends TestCase {
             String urlStr = HTTPMOCKUP_SERVICE_URL + "?content=abcd";
 
             // Download the file for the 1st time
-            File file1 = URLCache.getURLFile(logger, configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file1 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Commit (approve) the file
             URLCache.commitURLFile(configManager, file1, urlStr);
 
 
             // Re-request the file - the timeout hasn't expired, it must give the same cached file
-            File file2 = URLCache.getURLFile(logger, configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file2 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is the cached file
             assertEquals(file1, file2);
@@ -399,7 +399,7 @@ public class URLCacheTest extends TestCase {
             assertNull(cachedFile.getLatestErrorMessage());
             assertTrue(cachedFile.isApproved());
 
-            File file3 = URLCache.rollbackURLFile(logger, configManager, file2, urlStr, "New error message");
+            File file3 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file2, urlStr, "New error message");
 
             // Ensure the returned file is the first one (proper rollback)
             assertEquals(file1, file3);
@@ -435,7 +435,7 @@ public class URLCacheTest extends TestCase {
             String urlStr = HTTPMOCKUP_SERVICE_URL + "?content=abcd";
 
             // Download the file for the 1st time
-            File file1 = URLCache.getURLFile(logger, configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file1 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Commit (approve) the file
             URLCache.commitURLFile(configManager, file1, urlStr);
@@ -447,7 +447,7 @@ public class URLCacheTest extends TestCase {
 
 
             // Re-request the file - the timeout has expired, it must re-download the file
-            File file2 = URLCache.getURLFile(logger, configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file2 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is NOT the cached file
             assertFalse(file1.equals(file2));
@@ -498,7 +498,7 @@ public class URLCacheTest extends TestCase {
             String urlStr = HTTPMOCKUP_SERVICE_URL + "?content=abcd";
 
             // Download the file for the 1st time
-            File file1 = URLCache.getURLFile(logger, configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file1 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Commit (approve) the file
             URLCache.commitURLFile(configManager, file1, urlStr);
@@ -510,7 +510,7 @@ public class URLCacheTest extends TestCase {
 
 
             // Re-request the file - the timeout has expired, it must re-download the file
-            File file2 = URLCache.getURLFile(logger, configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file2 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is NOT the cached file
             assertFalse(file1.equals(file2));
@@ -530,7 +530,7 @@ public class URLCacheTest extends TestCase {
             assertNull(cachedFile.getLatestErrorMessage());
             assertTrue(cachedFile.isApproved());
 
-            File file3 = URLCache.rollbackURLFile(logger, configManager, file2, urlStr, "New error message");
+            File file3 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file2, urlStr, "New error message");
 
             // Ensure the returned file is the first one (proper rollback)
             assertEquals(file1, file3);
@@ -566,7 +566,7 @@ public class URLCacheTest extends TestCase {
             String invalidUrlStr = NONE_EXISTING_URL;
 
             // Download the file for the 1st time
-            File file1 = URLCache.getURLFile(logger, configManager, null, validUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file1 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, validUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Commit (approve) the file
             URLCache.commitURLFile(configManager, file1, validUrlStr);
@@ -581,7 +581,7 @@ public class URLCacheTest extends TestCase {
 
 
             // Re-request the file - the timeout has expired, it must re-download the file
-            File file2 = URLCache.getURLFile(logger, configManager, null, invalidUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file2 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, invalidUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // The URLCache can not download the new file, so it automatically rollback and return the first file
             assertEquals(file1, file2);
@@ -627,7 +627,7 @@ public class URLCacheTest extends TestCase {
             String invalidUrlStr = NONE_EXISTING_URL;
 
             // Download the file for the 1st time
-            File file1 = URLCache.getURLFile(logger, configManager, null, validUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file1 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, validUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Commit (approve) the file
             URLCache.commitURLFile(configManager, file1, validUrlStr);
@@ -642,7 +642,7 @@ public class URLCacheTest extends TestCase {
 
 
             // Re-request the file - the timeout has expired, it must re-download the file
-            File file2 = URLCache.getURLFile(logger, configManager, null, invalidUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file2 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, invalidUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // The URLCache can not download the new file, so it automatically rollback and return the first file
             assertEquals(file1, file2);
@@ -656,7 +656,7 @@ public class URLCacheTest extends TestCase {
             assertNotNull(cachedFile.getLatestErrorMessage());
             assertTrue(cachedFile.isApproved());
 
-            File file3 = URLCache.rollbackURLFile(logger, configManager, file2, invalidUrlStr, "New error message");
+            File file3 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file2, invalidUrlStr, "New error message");
 
             // Ensure the returned file is the first one (proper rollback)
             assertEquals(file1, file3);
@@ -694,17 +694,17 @@ public class URLCacheTest extends TestCase {
             String urlStr = HTTPMOCKUP_SERVICE_URL + "?content=abcd";
 
             // Download the file for the 1st time
-            File file1 = URLCache.getURLFile(logger, configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file1 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Rollback (refuse) the file
-            File file2 = URLCache.rollbackURLFile(logger, configManager, file1, urlStr, "New error message");
+            File file2 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file1, urlStr, "New error message");
 
             // Ensure the returned file is the cached file
             assertNull(file2);
 
 
             // Re-request the file - the timeout hasn't expired, it must give the same cached file
-            File file3 = URLCache.getURLFile(logger, configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file3 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is the cached file (refused => null)
             assertNull(file3);
@@ -748,17 +748,17 @@ public class URLCacheTest extends TestCase {
             String urlStr = HTTPMOCKUP_SERVICE_URL + "?content=abcd";
 
             // Download the file for the 1st time
-            File file1 = URLCache.getURLFile(logger, configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file1 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Rollback (refuse) the file
-            File file2 = URLCache.rollbackURLFile(logger, configManager, file1, urlStr, "New error message");
+            File file2 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file1, urlStr, "New error message");
 
             // Ensure the returned file is the cached file
             assertNull(file2);
 
 
             // Re-request the file - the timeout hasn't expired, it must give the same cached file
-            File file3 = URLCache.getURLFile(logger, configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file3 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is the cached file (refused => null)
             assertNull(file3);
@@ -771,7 +771,7 @@ public class URLCacheTest extends TestCase {
             assertNotNull(cachedFile.getLatestErrorMessage());
             assertFalse(cachedFile.isApproved());
 
-            File file4 = URLCache.rollbackURLFile(logger, configManager, file3, urlStr, "New error message");
+            File file4 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file3, urlStr, "New error message");
 
             // Ensure the returned file is the cached file (refused => null)
             assertNull(file4);
@@ -807,10 +807,10 @@ public class URLCacheTest extends TestCase {
             String urlStr = HTTPMOCKUP_SERVICE_URL + "?content=abcd";
 
             // Download the file for the 1st time
-            File file1 = URLCache.getURLFile(logger, configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file1 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Rollback (refuse) the file
-            File file2 = URLCache.rollbackURLFile(logger, configManager, file1, urlStr, "New error message");
+            File file2 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file1, urlStr, "New error message");
 
             // Ensure the returned file is the cached file
             assertNull(file2);
@@ -822,7 +822,7 @@ public class URLCacheTest extends TestCase {
 
 
             // Re-request the file - the timeout has expired, it must re-download the file
-            File file3 = URLCache.getURLFile(logger, configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file3 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Validate the downloaded info
             String content = readFile(file3);
@@ -874,10 +874,10 @@ public class URLCacheTest extends TestCase {
             String urlStr = HTTPMOCKUP_SERVICE_URL + "?content=abcd";
 
             // Download the file for the 1st time
-            File file1 = URLCache.getURLFile(logger, configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file1 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Rollback (refuse) the file
-            File file2 = URLCache.rollbackURLFile(logger, configManager, file1, urlStr, "New error message");
+            File file2 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file1, urlStr, "New error message");
 
             // Ensure the returned file is the cached file
             assertNull(file2);
@@ -889,7 +889,7 @@ public class URLCacheTest extends TestCase {
 
 
             // Re-request the file - the timeout has expired, it must re-download the file
-            File file3 = URLCache.getURLFile(logger, configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file3 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Validate the downloaded info
             String content = readFile(file3);
@@ -906,7 +906,7 @@ public class URLCacheTest extends TestCase {
             assertNull(cachedFile.getLatestErrorMessage());
             assertFalse(cachedFile.isApproved());
 
-            File file4 = URLCache.rollbackURLFile(logger, configManager, file3, urlStr, "New error message");
+            File file4 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file3, urlStr, "New error message");
 
             assertEquals(SC_OK, cachedFile.getHttpStatusCode());
             assertNull(file4);
@@ -940,10 +940,10 @@ public class URLCacheTest extends TestCase {
             String invalidUrlStr = NONE_EXISTING_URL;
 
             // Download the file for the 1st time
-            File file1 = URLCache.getURLFile(logger, configManager, null, validUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file1 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, validUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Rollback (refuse) the file
-            File file2 = URLCache.rollbackURLFile(logger, configManager, file1, validUrlStr, "New error message");
+            File file2 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file1, validUrlStr, "New error message");
 
             // Ensure the returned file is the cached file
             assertNull(file2);
@@ -958,7 +958,7 @@ public class URLCacheTest extends TestCase {
 
 
             // Re-request the file - the timeout has expired, it must re-download the file
-            File file3 = URLCache.getURLFile(logger, configManager, null, invalidUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file3 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, invalidUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // The URLCache can not download the new file, so it automatically rollback and return the first file
             assertNull(file3);
@@ -1007,10 +1007,10 @@ public class URLCacheTest extends TestCase {
             String invalidUrlStr = NONE_EXISTING_URL;
 
             // Download the file for the 1st time
-            File file1 = URLCache.getURLFile(logger, configManager, null, validUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file1 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, validUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Rollback (refuse) the file
-            File file2 = URLCache.rollbackURLFile(logger, configManager, file1, validUrlStr, "New error message");
+            File file2 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file1, validUrlStr, "New error message");
 
             // Ensure the returned file is the cached file
             assertNull(file2);
@@ -1025,7 +1025,7 @@ public class URLCacheTest extends TestCase {
 
 
             // Re-request the file - the timeout has expired, it must re-download the file
-            File file3 = URLCache.getURLFile(logger, configManager, null, invalidUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file3 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, invalidUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // The URLCache can not download the new file, so it automatically rollback and return the first file
             assertNull(file3);
@@ -1041,7 +1041,7 @@ public class URLCacheTest extends TestCase {
             assertNotNull(cachedFile.getLatestErrorMessage());
             assertFalse(cachedFile.isApproved());
 
-            File file4 = URLCache.rollbackURLFile(logger, configManager, file3, invalidUrlStr, "New error message");
+            File file4 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file3, invalidUrlStr, "New error message");
 
             // The URLCache can not download the new file, so it automatically rollback and return the first file
             assertNull(file3);
@@ -1079,20 +1079,20 @@ public class URLCacheTest extends TestCase {
             String urlStr = NONE_EXISTING_URL;
 
             // Download the file for the 1st time
-            File file1 = URLCache.getURLFile(logger, configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file1 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is null
             assertNull(file1);
 
             // Rollback (refuse) the file
-            File file2 = URLCache.rollbackURLFile(logger, configManager, file1, urlStr, "New error message");
+            File file2 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file1, urlStr, "New error message");
 
             // Ensure the returned file is the cached file
             assertNull(file2);
 
 
             // Re-request the file - the timeout hasn't expired, it must give the same cached file
-            File file3 = URLCache.getURLFile(logger, configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file3 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is the cached file (refused => null)
             assertNull(file3);
@@ -1136,20 +1136,20 @@ public class URLCacheTest extends TestCase {
             String urlStr = NONE_EXISTING_URL;
 
             // Download the file for the 1st time
-            File file1 = URLCache.getURLFile(logger, configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file1 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is null
             assertNull(file1);
 
             // Rollback (refuse) the file
-            File file2 = URLCache.rollbackURLFile(logger, configManager, file1, urlStr, "New error message");
+            File file2 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file1, urlStr, "New error message");
 
             // Ensure the returned file is the cached file
             assertNull(file2);
 
 
             // Re-request the file - the timeout hasn't expired, it must give the same cached file
-            File file3 = URLCache.getURLFile(logger, configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file3 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is the cached file (refused => null)
             assertNull(file3);
@@ -1162,7 +1162,7 @@ public class URLCacheTest extends TestCase {
             assertNotNull(cachedFile.getLatestErrorMessage());
             assertFalse(cachedFile.isApproved());
 
-            File file4 = URLCache.rollbackURLFile(logger, configManager, file3, urlStr, "New error message");
+            File file4 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file3, urlStr, "New error message");
 
             // Ensure the returned file is the cached file (refused => null)
             assertNull(file4);
@@ -1199,13 +1199,13 @@ public class URLCacheTest extends TestCase {
             String invalidUrlStr = NONE_EXISTING_URL;
 
             // Download the file for the 1st time
-            File file1 = URLCache.getURLFile(logger, configManager, null, invalidUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file1 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, invalidUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is null
             assertNull(file1);
 
             // Rollback (refuse) the file
-            File file2 = URLCache.rollbackURLFile(logger, configManager, file1, invalidUrlStr, "New error message");
+            File file2 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file1, invalidUrlStr, "New error message");
 
             // Ensure the returned file is the cached file
             assertNull(file2);
@@ -1220,7 +1220,7 @@ public class URLCacheTest extends TestCase {
 
 
             // Re-request the file - the timeout has expired, it must re-download the file
-            File file3 = URLCache.getURLFile(logger, configManager, null, validUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file3 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, validUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Validate the downloaded info
             String content = readFile(file3);
@@ -1270,13 +1270,13 @@ public class URLCacheTest extends TestCase {
             String invalidUrlStr = NONE_EXISTING_URL;
 
             // Download the file for the 1st time
-            File file1 = URLCache.getURLFile(logger, configManager, null, invalidUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file1 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, invalidUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is null
             assertNull(file1);
 
             // Rollback (refuse) the file
-            File file2 = URLCache.rollbackURLFile(logger, configManager, file1, invalidUrlStr, "New error message");
+            File file2 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file1, invalidUrlStr, "New error message");
 
             // Ensure the returned file is the cached file
             assertNull(file2);
@@ -1291,7 +1291,7 @@ public class URLCacheTest extends TestCase {
 
 
             // Re-request the file - the timeout has expired, it must re-download the file
-            File file3 = URLCache.getURLFile(logger, configManager, null, validUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file3 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, validUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Validate the downloaded info
             String content = readFile(file3);
@@ -1308,7 +1308,7 @@ public class URLCacheTest extends TestCase {
             assertNull(cachedFile.getLatestErrorMessage());
             assertFalse(cachedFile.isApproved());
 
-            File file4 = URLCache.rollbackURLFile(logger, configManager, file3, validUrlStr, "New error message");
+            File file4 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file3, validUrlStr, "New error message");
 
             assertNull(cachedFile.getHttpStatusCode());
             assertNull(file4);
@@ -1341,13 +1341,13 @@ public class URLCacheTest extends TestCase {
             String urlStr = NONE_EXISTING_URL;
 
             // Download the file for the 1st time
-            File file1 = URLCache.getURLFile(logger, configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file1 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is null
             assertNull(file1);
 
             // Rollback (refuse) the file
-            File file2 = URLCache.rollbackURLFile(logger, configManager, file1, urlStr, "New error message");
+            File file2 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file1, urlStr, "New error message");
 
             // Ensure the returned file is the cached file
             assertNull(file2);
@@ -1359,7 +1359,7 @@ public class URLCacheTest extends TestCase {
 
 
             // Re-request the file - the timeout has expired, it must re-download the file
-            File file3 = URLCache.getURLFile(logger, configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file3 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // The URLCache can not download the new file, so it automatically rollback and return the first file
             assertNull(file3);
@@ -1407,13 +1407,13 @@ public class URLCacheTest extends TestCase {
             String urlStr = NONE_EXISTING_URL;
 
             // Download the file for the 1st time
-            File file1 = URLCache.getURLFile(logger, configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file1 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is null
             assertNull(file1);
 
             // Rollback (refuse) the file
-            File file2 = URLCache.rollbackURLFile(logger, configManager, file1, urlStr, "New error message");
+            File file2 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file1, urlStr, "New error message");
 
             // Ensure the returned file is the cached file
             assertNull(file2);
@@ -1425,7 +1425,7 @@ public class URLCacheTest extends TestCase {
 
 
             // Re-request the file - the timeout has expired, it must re-download the file
-            File file3 = URLCache.getURLFile(logger, configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file3 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // The URLCache can not download the new file, so it automatically rollback and return the first file
             assertNull(file3);
@@ -1441,7 +1441,7 @@ public class URLCacheTest extends TestCase {
             assertNotNull(cachedFile.getLatestErrorMessage());
             assertFalse(cachedFile.isApproved());
 
-            File file4 = URLCache.rollbackURLFile(logger, configManager, file3, urlStr, "New error message");
+            File file4 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file3, urlStr, "New error message");
 
             assertNull(cachedFile.getHttpStatusCode());
             assertNull(cachedFile.getFilename());
@@ -1473,10 +1473,10 @@ public class URLCacheTest extends TestCase {
             String hundredMbUrlStr = HTTPMOCKUP_SERVICE_URL + "?randomascii=" + (500 * 1024 * 1024);
 
             // Download the file for the 1st time
-            File tooLarge = URLCache.getURLFile(logger, configManager, null, hundredMbUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File tooLarge = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, hundredMbUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
             assertNull(tooLarge);
 
-            File stillTooLarge = URLCache.rollbackURLFile(logger, configManager, tooLarge, hundredMbUrlStr, "The file is too large.");
+            File stillTooLarge = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, tooLarge, hundredMbUrlStr, "The file is too large.");
             assertNull(stillTooLarge);
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
@@ -1498,11 +1498,11 @@ public class URLCacheTest extends TestCase {
             String capUrlStr = HTTPMOCKUP_SERVICE_URL + "?resource=getCapabilities.xml";
 
             // Download the file for the 1st time
-            File nullCap = URLCache.getURLFile(logger, configManager, null, invalidUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File nullCap = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, invalidUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
             assertNull(nullCap);
 
             // Rollback (refuse) the file
-            File stillNullCap = URLCache.rollbackURLFile(logger, configManager, nullCap, invalidUrlStr, "The capabilities document is empty.");
+            File stillNullCap = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, nullCap, invalidUrlStr, "The capabilities document is empty.");
             assertNull(stillNullCap);
 
             // Timeout
@@ -1516,7 +1516,7 @@ public class URLCacheTest extends TestCase {
 
 
             // Download the file for the 1st time
-            File validCap = URLCache.getURLFile(logger, configManager, null, capUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File validCap = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, capUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Validate the cached info
             cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), capUrlStr);
@@ -1557,7 +1557,7 @@ public class URLCacheTest extends TestCase {
             String hundredMbUrlStr = HTTPMOCKUP_SERVICE_URL + "?randomascii=" + (100 * 1024 * 1024);
 
             // Download the file for the 1st time
-            File validFile = URLCache.getURLFile(logger, configManager, null, capUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File validFile = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, capUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
             assertNotNull(validFile);
 
             URLCache.commitURLFile(configManager, validFile, capUrlStr);
@@ -1573,7 +1573,7 @@ public class URLCacheTest extends TestCase {
 
 
             // The file is too big, auto-rollback, return previous file.
-            File previousFile = URLCache.getURLFile(logger, configManager, null, hundredMbUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File previousFile = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, hundredMbUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
             assertEquals(validFile, previousFile);
 
             assertEquals(SC_OK, cachedFile.getHttpStatusCode());
@@ -1741,7 +1741,7 @@ public class URLCacheTest extends TestCase {
             String htmlTC211UrlStr = HTTPMOCKUP_SERVICE_URL + "?resource=tc211.html";
             String xmlTC211UrlStr = HTTPMOCKUP_SERVICE_URL + "?resource=tc211.xml";
 
-            TC211Document brokenTC211Document = TC211Parser.parseURL(logger, configManager, null, new URL(htmlTC211UrlStr), false, true);
+            TC211Document brokenTC211Document = TC211Parser.parseURL(logger, "WMS GetCapabilities document", configManager, null, new URL(htmlTC211UrlStr), false, true);
             URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), htmlTC211UrlStr);
             File brokenTC211File = cachedFile.getFile();
 
@@ -1758,7 +1758,7 @@ public class URLCacheTest extends TestCase {
 
 
             // Download the file for the 2nd time (not broken this time)
-            TC211Document tc211Document = TC211Parser.parseURL(logger, configManager, null, new URL(xmlTC211UrlStr), false, true);
+            TC211Document tc211Document = TC211Parser.parseURL(logger, "WMS GetCapabilities document", configManager, null, new URL(xmlTC211UrlStr), false, true);
             cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), xmlTC211UrlStr);
             File tc211File = cachedFile.getFile();
 
@@ -1786,7 +1786,7 @@ public class URLCacheTest extends TestCase {
             String htmlTC211UrlStr = HTTPMOCKUP_SERVICE_URL + "?resource=tc211.html";
             String xmlTC211UrlStr = HTTPMOCKUP_SERVICE_URL + "?resource=tc211.xml";
 
-            TC211Document tc211Document = TC211Parser.parseURL(logger, configManager, null, new URL(xmlTC211UrlStr), false, true);
+            TC211Document tc211Document = TC211Parser.parseURL(logger, "WMS GetCapabilities document", configManager, null, new URL(xmlTC211UrlStr), false, true);
             URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), xmlTC211UrlStr);
             File tc211File = cachedFile.getFile();
 
@@ -1802,7 +1802,7 @@ public class URLCacheTest extends TestCase {
             URLCache.getDiskCacheMap(getTestApplicationFolder()).put(htmlTC211UrlStr, cachedFile.toJSON());
 
 
-            TC211Document previousTC211Document = TC211Parser.parseURL(logger, configManager, null, new URL(htmlTC211UrlStr), false, true);
+            TC211Document previousTC211Document = TC211Parser.parseURL(logger, "WMS GetCapabilities document", configManager, null, new URL(htmlTC211UrlStr), false, true);
             cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), htmlTC211UrlStr);
             File previousTC211File = cachedFile.getFile();
 
@@ -1837,13 +1837,13 @@ public class URLCacheTest extends TestCase {
             // *** DOWNLOAD URL 1 ***
 
             // Download the file for the 1st time
-            File file1_1 = URLCache.getURLFile(logger, configManager, null, url1Str, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file1_1 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, url1Str, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is null
             assertNull(file1_1);
 
             // Rollback (refuse) the file
-            File file1_2 = URLCache.rollbackURLFile(logger, configManager, file1_1, url1Str, "Server not found");
+            File file1_2 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file1_1, url1Str, "Server not found");
 
             // Ensure the returned file is the cached file
             assertNull(file1_2);
@@ -1852,7 +1852,7 @@ public class URLCacheTest extends TestCase {
             // *** DOWNLOAD URL 2 ***
 
             // Download the file for the 1st time
-            File file2_1 = URLCache.getURLFile(logger, configManager, null, url2Str, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file2_1 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, url2Str, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is not null
             assertNotNull(file2_1);
@@ -1867,13 +1867,13 @@ public class URLCacheTest extends TestCase {
             // *** DOWNLOAD URL 1 AGAIN ***
 
             // Download the file for the 1st time
-            File file1_3 = URLCache.getURLFile(logger, configManager, null, url1Str, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file1_3 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, url1Str, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is null
             assertNull(file1_3);
 
             // Rollback (refuse) the file
-            File file1_4 = URLCache.rollbackURLFile(logger, configManager, file1_3, url1Str, "Server not found");
+            File file1_4 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file1_3, url1Str, "Server not found");
 
             // Ensure the returned file is the cached file
             assertNull(file1_4);
@@ -1907,7 +1907,7 @@ public class URLCacheTest extends TestCase {
             // *** DOWNLOAD URL 1 ***
 
             // Download the file for the 1st time
-            File file1_1 = URLCache.getURLFile(logger, configManager, null, url1Str, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file1_1 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, url1Str, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is null
             assertNull(file1_1);
@@ -1919,7 +1919,7 @@ public class URLCacheTest extends TestCase {
             // *** DOWNLOAD URL 2 ***
 
             // Download the file for the 1st time
-            File file2_1 = URLCache.getURLFile(logger, configManager, null, url2Str, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file2_1 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, url2Str, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is not null
             assertNotNull(file2_1);
@@ -1934,13 +1934,13 @@ public class URLCacheTest extends TestCase {
             // *** DOWNLOAD URL 1 AGAIN ***
 
             // Download the file for the 1st time
-            File file1_3 = URLCache.getURLFile(logger, configManager, null, url1Str, URLCache.Category.CAPABILITIES_DOCUMENT, false);
+            File file1_3 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, url1Str, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is null
             assertNull(file1_3);
 
             // Rollback (refuse) the file
-            File file1_4 = URLCache.rollbackURLFile(logger, configManager, file1_3, url1Str, "Server not found");
+            File file1_4 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file1_3, url1Str, "Server not found");
 
             // Ensure the returned file is the cached file
             assertNull(file1_4);
@@ -1997,9 +1997,9 @@ public class URLCacheTest extends TestCase {
 
             // Create some entries in the cache
             Date startDate1 = new Date();
-            File otherCapabilitiesDoc = URLCache.getURLFile(logger, configManager, otherDataSource, otherCapDocUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, true);
-            File otherMestRecord1 = URLCache.getURLFile(logger, configManager, otherDataSource, otherMestRecord1UrlStr, URLCache.Category.MEST_RECORD, false);
-            File otherMestRecord2 = URLCache.getURLFile(logger, configManager, otherDataSource, otherMestRecord2UrlStr, URLCache.Category.BRUTEFORCE_MEST_RECORD, false);
+            File otherCapabilitiesDoc = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, otherDataSource, otherCapDocUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, true);
+            File otherMestRecord1 = URLCache.getURLFile(logger, "MEST record", configManager, otherDataSource, otherMestRecord1UrlStr, URLCache.Category.MEST_RECORD, false);
+            File otherMestRecord2 = URLCache.getURLFile(logger, "MEST record", configManager, otherDataSource, otherMestRecord2UrlStr, URLCache.Category.BRUTEFORCE_MEST_RECORD, false);
 
 
             // Ensure that the cache now contains the 3 elements
@@ -2024,10 +2024,10 @@ public class URLCacheTest extends TestCase {
 
             // Simulate a data source processing; download capabilities document (and other files) for a given data source and call the "deleteOldEntries" method.
             Date startDate2 = new Date();
-            File oldCapabilitiesDoc = URLCache.getURLFile(logger, configManager, dataSource, oldCapDocUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, true);
-            File capabilitiesDoc = URLCache.getURLFile(logger, configManager, dataSource, capDocUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, true);
-            File mestRecord1 = URLCache.getURLFile(logger, configManager, dataSource, mestRecord1UrlStr, URLCache.Category.MEST_RECORD, false);
-            File mestRecord2 = URLCache.getURLFile(logger, configManager, dataSource, mestRecord2UrlStr, URLCache.Category.BRUTEFORCE_MEST_RECORD, false);
+            File oldCapabilitiesDoc = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, dataSource, oldCapDocUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, true);
+            File capabilitiesDoc = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, dataSource, capDocUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, true);
+            File mestRecord1 = URLCache.getURLFile(logger, "MEST record", configManager, dataSource, mestRecord1UrlStr, URLCache.Category.MEST_RECORD, false);
+            File mestRecord2 = URLCache.getURLFile(logger, "MEST record", configManager, dataSource, mestRecord2UrlStr, URLCache.Category.BRUTEFORCE_MEST_RECORD, false);
 
 
             // Verify that all entries are in the cache
@@ -2111,10 +2111,10 @@ public class URLCacheTest extends TestCase {
 
             // Change the URL of the capabilities document and repeat the simulation. The "deleteOldEntries" method should delete the old capability document since it hasn't been accessed during the last simulation.
             Date startDate3 = new Date();
-            File newCapabilitiesDoc = URLCache.getURLFile(logger, configManager, dataSource, newCapDocUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, true);
-            capabilitiesDoc = URLCache.getURLFile(logger, configManager, dataSource, capDocUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, true);
-            mestRecord1 = URLCache.getURLFile(logger, configManager, dataSource, mestRecord1UrlStr, URLCache.Category.MEST_RECORD, false);
-            mestRecord2 = URLCache.getURLFile(logger, configManager, dataSource, mestRecord2UrlStr, URLCache.Category.BRUTEFORCE_MEST_RECORD, false);
+            File newCapabilitiesDoc = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, dataSource, newCapDocUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, true);
+            capabilitiesDoc = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, dataSource, capDocUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, true);
+            mestRecord1 = URLCache.getURLFile(logger, "MEST record", configManager, dataSource, mestRecord1UrlStr, URLCache.Category.MEST_RECORD, false);
+            mestRecord2 = URLCache.getURLFile(logger, "MEST record", configManager, dataSource, mestRecord2UrlStr, URLCache.Category.BRUTEFORCE_MEST_RECORD, false);
 
             // At this point, the old and new data should be in the cache, including deprecated data.
             // The deprecated data do not need to be in the cache, so it's not needed to test the cache

@@ -61,18 +61,17 @@ public class WMTSParser {
 
         WMTSDocument wmtsDocument = null;
         try {
-            logger.log(Level.INFO, "Getting WMTS GetCapabilities document");
-            cachedDocumentFile = URLCache.getURLFile(logger, configManager, dataSource, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, mandatory);
+            cachedDocumentFile = URLCache.getURLFile(logger, "WMTS GetCapabilities document", configManager, dataSource, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, mandatory);
             logger.log(Level.INFO, "Parsing WMTS GetCapabilities document");
             wmtsDocument = parseFile(cachedDocumentFile, urlStr);
             if (wmtsDocument == null) {
-                File rollbackFile = URLCache.rollbackURLFile(logger, configManager, cachedDocumentFile, urlStr, "Invalid WMTS document");
+                File rollbackFile = URLCache.rollbackURLFile(logger, "WMTS GetCapabilities document", configManager, cachedDocumentFile, urlStr, "Invalid WMTS document");
                 wmtsDocument = parseFile(rollbackFile, urlStr);
             } else {
                 URLCache.commitURLFile(configManager, cachedDocumentFile, urlStr);
             }
         } catch (Exception ex) {
-            File rollbackFile = URLCache.rollbackURLFile(logger, configManager, cachedDocumentFile, urlStr, ex);
+            File rollbackFile = URLCache.rollbackURLFile(logger, "WMTS GetCapabilities document", configManager, cachedDocumentFile, urlStr, ex);
             wmtsDocument = parseFile(rollbackFile, urlStr);
         }
 

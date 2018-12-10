@@ -90,7 +90,6 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
             logger.log(Level.SEVERE, "An error occurred while invalidating the disk cache: " + Utils.getExceptionMessage(ex), ex);
         }
 
-        logger.log(Level.INFO, "Generate layer catalogue");
         DataSourceWrapper layerCatalog = null;
         try {
             // Clone the data source

@@ -176,7 +176,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
         JSONObject json;
         try {
             json = URLCache.getJSONResponse(
-                    logger,
+                    logger, "ArcGIS JSON service",
                     dataSourceConfig.getConfigManager(),
                     dataSourceConfig,
                     jsonUrl,
@@ -215,7 +215,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 
                             try {
                                 jsonGroupExtra = URLCache.getJSONResponse(
-                                        logger,
+                                        logger, "ArcGIS JSON group extra",
                                         dataSourceConfig.getConfigManager(),
                                         dataSourceConfig,
                                         groupExtraJsonUrl,
@@ -250,7 +250,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 
                             try {
                                 jsonLayerExtra = URLCache.getJSONResponse(
-                                        logger,
+                                        logger, "ArcGIS JSON layer extra",
                                         dataSourceConfig.getConfigManager(),
                                         dataSourceConfig,
                                         layerExtraJsonUrl,
@@ -345,7 +345,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 
                         try {
                             jsonServiceExtra = URLCache.getJSONResponse(
-                                    logger,
+                                    logger, "ArcGIS JSON service extra",
                                     dataSourceConfig.getConfigManager(),
                                     dataSourceConfig,
                                     serviceExtraJsonUrl,
@@ -605,21 +605,21 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                 try {
                     reprojectedExtent = Utils.reprojectWKIDCoordinatesToDegrees(extent, "EPSG:" + wkid);
                 } catch (NoSuchAuthorityCodeException ex) {
-                    logger.log(Level.WARNING, String.format("The layer [%s] from the data source [%s] has an unknown extent WKID [%s]: %s",
-                            layerTitle, dataSourceTitle, wkid, Utils.getExceptionMessage(ex)), ex);
+                    logger.log(Level.WARNING, String.format("The layer %s has an unknown extent WKID %s: %s",
+                            layerTitle, wkid, Utils.getExceptionMessage(ex)), ex);
                 } catch (Exception ex) {
-                    logger.log(Level.WARNING, String.format("The layer [%s] from the data source [%s] has an unsupported extent: %s",
-                            layerTitle, dataSourceTitle, Utils.getExceptionMessage(ex)), ex);
+                    logger.log(Level.WARNING, String.format("The layer %s has an unsupported extent: %s",
+                            layerTitle, Utils.getExceptionMessage(ex)), ex);
                 }
             } else if (Utils.isNotBlank(wkt)) {
                 try {
                     reprojectedExtent = Utils.reprojectWKTCoordinatesToDegrees(extent, wkt);
                 } catch (NoSuchAuthorityCodeException ex) {
-                    logger.log(Level.WARNING, String.format("The layer [%s] from the data source [%s] has an unknown extent WKT [%s]: %s",
-                            layerTitle, dataSourceTitle, wkt, Utils.getExceptionMessage(ex)), ex);
+                    logger.log(Level.WARNING, String.format("The layer %s has an unknown extent WKT %s: %s",
+                            layerTitle, wkt, Utils.getExceptionMessage(ex)), ex);
                 } catch (Exception ex) {
-                    logger.log(Level.WARNING, String.format("The layer [%s] from the data source [%s] has an unsupported extent: %s",
-                            layerTitle, dataSourceTitle, Utils.getExceptionMessage(ex)), ex);
+                    logger.log(Level.WARNING, String.format("The layer %s has an unsupported extent: %s",
+                            layerTitle, Utils.getExceptionMessage(ex)), ex);
                 }
             }
         }

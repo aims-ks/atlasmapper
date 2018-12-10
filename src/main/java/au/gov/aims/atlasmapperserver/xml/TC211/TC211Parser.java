@@ -60,7 +60,7 @@ public class TC211Parser {
      * @throws IOException
      * @throws JSONException
      */
-    public static TC211Document parseURL(ThreadLogger logger, ConfigManager configManager, AbstractDataSourceConfig dataSource, URL url, boolean mandatory, boolean validMimeType)
+    public static TC211Document parseURL(ThreadLogger logger, String downloadedEntityName, ConfigManager configManager, AbstractDataSourceConfig dataSource, URL url, boolean mandatory, boolean validMimeType)
             throws SAXException, ParserConfigurationException, IOException, JSONException {
 
         String urlStr = url.toString();
@@ -69,7 +69,7 @@ public class TC211Parser {
         TC211Document tc211Document = null;
         try {
             cachedDocumentFile = URLCache.getURLFile(
-                    logger,
+                    logger, downloadedEntityName,
                     configManager,
                     dataSource,
                     urlStr,
@@ -77,54 +77,63 @@ public class TC211Parser {
                     mandatory);
             tc211Document = parseFile(cachedDocumentFile, urlStr);
             if (tc211Document == null) {
-                File rollbackFile = URLCache.rollbackURLFile(logger, configManager, cachedDocumentFile, urlStr, "Invalid TC211 document");
+                File rollbackFile = URLCache.rollbackURLFile(logger, downloadedEntityName, configManager, cachedDocumentFile, urlStr, "Invalid TC211 document");
                 tc211Document = parseFile(rollbackFile, urlStr);
             } else {
                 URLCache.commitURLFile(configManager, cachedDocumentFile, urlStr);
             }
         } catch (Exception ex) {
             // Parsing a file that has already been accepted - Very unlikely to throw an exception here
-            File rollbackFile = URLCache.rollbackURLFile(logger, configManager, cachedDocumentFile, urlStr, ex);
+            File rollbackFile = URLCache.rollbackURLFile(logger, downloadedEntityName, configManager, cachedDocumentFile, urlStr, ex);
             tc211Document = parseFile(rollbackFile, urlStr);
         }
 
-        // Still no document? Assuming the MEST service is GeoNetwork, try to craft a better URL
+        // Still no metadata document found
         if (tc211Document == null) {
-            URL craftedUrl = null;
-            try {
-                craftedUrl = craftGeoNetworkMestUrl(url);
-            } catch (Exception ex) {
-                // This should not happen
-                LOGGER.log(Level.WARNING, "Unexpected error occurred while crafting a GeoNetwork URL", ex);
-            }
-            if (craftedUrl != null) {
-                String craftedUrlStr = craftedUrl.toString();
-                try {
+            // Check if GeoNetwork returned an access denied (we can't rely on response HTTP code, GeoNetwork does not follow standards)
+            // TODO!!! cachedDocumentFile is null, findInFile doesn't do anything
+            if (Utils.findInFile("Operation not allowed", cachedDocumentFile)) {
+                logger.log(Level.WARNING, String.format("Unauthorised access to %s URL %s. Ensure the document is published.", downloadedEntityName, urlStr));
 
-                    cachedDocumentFile = URLCache.getURLFile(
-                            logger,
-                            configManager,
-                            dataSource,
-                            craftedUrlStr,
-                            validMimeType ? URLCache.Category.MEST_RECORD : URLCache.Category.BRUTEFORCE_MEST_RECORD,
-                            mandatory);
-                    tc211Document = parseFile(cachedDocumentFile, craftedUrlStr);
-                    if (tc211Document == null) {
-                        File rollbackFile = URLCache.rollbackURLFile(logger, configManager, cachedDocumentFile, craftedUrlStr, "Invalid TC211 document");
-                        tc211Document = parseFile(rollbackFile, craftedUrlStr);
-                    } else {
-                        // NOTE: The capabilities document refer to a MEST document, but the URL is not
-                        //     an actual TC211 MEST record. Using some basic URL crafting, the AtlasMapper
-                        //     managed to find a URL that returns a valid MEST record. Therefore, the
-                        //     invalid URL should be linked (redirection) to the valid crafted one,
-                        //     so the application will not try to re-download the HTML one again.
-                        URLCache.setRedirection(configManager, urlStr, craftedUrlStr);
-                        URLCache.commitURLFile(configManager, cachedDocumentFile, craftedUrlStr);
-                    }
+            } else {
+                // Assuming the MEST service is GeoNetwork, try to craft a better URL
+                URL craftedUrl = null;
+                try {
+                    craftedUrl = TC211Parser.craftGeoNetworkMestUrl(url);
                 } catch (Exception ex) {
-                    // Parsing a file that has already been accepted - Very unlikely to throw an exception here
-                    File rollbackFile = URLCache.rollbackURLFile(logger, configManager, cachedDocumentFile, craftedUrlStr, "Invalid TC211 document");
-                    tc211Document = parseFile(rollbackFile, craftedUrlStr);
+                    // This should not happen
+                    logger.log(Level.WARNING, "Unexpected error occurred while crafting a GeoNetwork URL", ex);
+                }
+                if (craftedUrl != null) {
+                    String craftedUrlStr = craftedUrl.toString();
+                    if (!craftedUrlStr.equals(urlStr)) {
+                        try {
+                            cachedDocumentFile = URLCache.getURLFile(
+                                    logger, downloadedEntityName,
+                                    configManager,
+                                    dataSource,
+                                    craftedUrlStr,
+                                    validMimeType ? URLCache.Category.MEST_RECORD : URLCache.Category.BRUTEFORCE_MEST_RECORD,
+                                    mandatory);
+                            tc211Document = parseFile(cachedDocumentFile, craftedUrlStr);
+                            if (tc211Document == null) {
+                                File rollbackFile = URLCache.rollbackURLFile(logger, downloadedEntityName, configManager, cachedDocumentFile, craftedUrlStr, "Invalid TC211 document");
+                                tc211Document = parseFile(rollbackFile, craftedUrlStr);
+                            } else {
+                                // NOTE: The capabilities document refer to a MEST document, but the URL is not
+                                //     an actual TC211 MEST record. Using some basic URL crafting, the AtlasMapper
+                                //     managed to find a URL that returns a valid MEST record. Therefore, the
+                                //     invalid URL should be linked (redirection) to the valid crafted one,
+                                //     so the application will not try to re-download the HTML one again.
+                                URLCache.setRedirection(configManager, urlStr, craftedUrlStr);
+                                URLCache.commitURLFile(configManager, cachedDocumentFile, craftedUrlStr);
+                            }
+                        } catch (Exception ex) {
+                            // Parsing a file that has already been accepted - Very unlikely to throw an exception here
+                            File rollbackFile = URLCache.rollbackURLFile(logger, downloadedEntityName, configManager, cachedDocumentFile, craftedUrlStr, "Invalid TC211 document");
+                            tc211Document = parseFile(rollbackFile, craftedUrlStr);
+                        }
+                    }
                 }
             }
         }

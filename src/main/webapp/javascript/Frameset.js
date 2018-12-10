@@ -329,11 +329,14 @@ Ext.define('Frameset', {
         return htmlLogs;
     },
     logToHtml: function(log) {
-        var htmlLog = log.level + ': ' + log.message;
+        var htmlLog = log.level + ': ' + this._sanitizeLogMessage(log.message);
         if (log.exception) {
-            htmlLog += log.exception;
+            htmlLog += this._sanitizeLogMessage(log.exception);
         }
         return Ext.String.htmlEncode(htmlLog).replace(/\n/g, "<br/>\n");
+    },
+    _sanitizeLogMessage: function(msg) {
+        return msg.replace('\n', '<br/>');
     },
 
     /**
