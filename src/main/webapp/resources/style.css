@@ -109,6 +109,17 @@ ol.bullet-list > li {
     color: #999999;
 }
 
+.logs-list .stacktrace {
+    color: #999999;
+    font-size: 0.8em;
+}
+.logs-list .stacktrace .uncollapse {
+    text-decoration: underline;
+    cursor: pointer;
+}
+.logs-list .stacktrace .collapsed {
+    display: none;
+}
 
 div.messageWindow em,
 div.tooltip em {

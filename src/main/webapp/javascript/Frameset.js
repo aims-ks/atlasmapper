@@ -23,6 +23,15 @@
 // ExtJS implement a nice tool to decode JSON. Unfortunatly it's errors
 // description are useless.
 
+function showStacktrace(button) {
+    var collapserEls = button.parentElement.getElementsByClassName('collapsed');
+    if (collapserEls && collapserEls.length > 0) {
+        for (var i=0; i<collapserEls.length; i++) {
+            collapserEls[i].classList.remove('collapsed');
+        }
+    }
+}
+
 Ext.define('Frameset', {
     extend: 'Ext.container.Viewport',
 
@@ -346,12 +355,26 @@ Ext.define('Frameset', {
     },
     logToHtml: function(log) {
         var htmlLog = log.level + ': ' + log.message;
-        if (log.exception) {
-            htmlLog += "\n" + log.exception;
-        }
         var encodedMessage = Ext.String.htmlEncode(htmlLog).replace(/\n/g, "<br/>\n");
-        // Parse Markdown code if the function marked is available.
-        return marked && typeof marked === "function" ? marked(encodedMessage) : encodedMessage;
+        // Parse Markdown code if the function "marked" is available.
+        if (marked && typeof marked === "function") {
+            encodedMessage = marked(encodedMessage);
+        }
+
+        // Add exception stacktrace if available
+        var stacktrace = '';
+        if (log.stacktrace && log.stacktrace.length > 0) {
+            stacktrace += '<div class="stacktrace">';
+            stacktrace += '<div class="uncollapse" onclick="showStacktrace(this);">[Stacktrace]</div>';
+            stacktrace += '<div class="collapsed"><ul>';
+            for (var i=0; i<log.stacktrace.length; i++) {
+                stacktrace += '<li>' + Ext.String.htmlEncode(log.stacktrace[i]) + '</li>';
+            }
+            stacktrace += '</ul></div>';
+            stacktrace += '</div>';
+        }
+
+        return encodedMessage + stacktrace;
     },
 
     /**

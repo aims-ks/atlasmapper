@@ -45,7 +45,11 @@ public class ThreadLog {
 
         json.put("level", this.level.getName());
         json.put("message", this.getMessage());
-        json.put("exception", this.getException());
+
+        Exception ex = this.getException();
+        if (ex != null) {
+            json.put("stacktrace", ex.getStackTrace());
+        }
 
         return json;
     }
