@@ -476,7 +476,8 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
                 String dataSourceId = dataSourceEntry.getKey();
                 DataSourceWrapper dataSourceWrapper = dataSourceEntry.getValue();
                 if (dataSourceWrapper == null) {
-                    logger.log(Level.WARNING, "Could not add the data source [" + dataSourceId + "] because it has never been generated.");
+                    logger.log(Level.WARNING, String.format("Could not add the data source %s because it has never been generated.",
+                            dataSourceId));
                 } else {
                     JSONObject rawLayers = dataSourceWrapper.getLayers();
                     if (rawLayers != null && rawLayers.length() > 0) {
@@ -485,7 +486,8 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
                             String rawLayerId = rawLayerIds.next();
 
                             if (clientOverrides != null && clientOverrides.has(rawLayerId) && clientOverrides.optJSONObject(rawLayerId) == null) {
-                                logger.log(Level.WARNING, "Invalid manual override for layer: " + rawLayerId);
+                                logger.log(Level.WARNING, String.format("Invalid manual override for layer: %s",
+                                        rawLayerId));
                             }
 
                             LayerWrapper layerWrapper = new LayerWrapper(rawLayers.optJSONObject(rawLayerId));
@@ -513,7 +515,8 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
                 if (layers.isNull(layerId)) {
                     LayerWrapper jsonClientLayerOverride = new LayerWrapper(clientOverrides.optJSONObject(layerId));
                     if (jsonClientLayerOverride.getJSON() == null) {
-                        logger.log(Level.WARNING, "Invalid manual override for new layer: " + layerId);
+                        logger.log(Level.WARNING, String.format("Invalid manual override for new layer: %s",
+                                layerId));
                     } else {
                         try {
                             DataSourceWrapper dataSource = null;
@@ -595,8 +598,7 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
                         String layerName = layerWrapper.getLayerName();
                         if (this.isBaseLayer(layerName)) {
                             // Backward compatibility
-                            logger.log(Level.WARNING, String.format("Deprecated layer ID used for base layers: " +
-                                    "layer id [%s] should be [%s]",
+                            logger.log(Level.WARNING, String.format("Deprecated layer ID used for base layers. Layer id %s should be %s",
                                     layerName, layerId));
                             layerWrapper.setIsBaseLayer(true);
                         }

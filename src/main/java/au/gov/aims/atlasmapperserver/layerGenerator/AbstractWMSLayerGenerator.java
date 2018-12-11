@@ -114,7 +114,8 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
         try {
             wmsCapabilities = URLCache.getWMSCapabilitiesResponse(logger, configManager, this.wmsVersion, dataSourceClone, dataSourceServiceUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, true);
         } catch (Exception ex) {
-            logger.log(Level.WARNING, "Error occurred while parsing the capabilities document for the service URL [" + dataSourceServiceUrlStr + "]: " + Utils.getExceptionMessage(ex), ex);
+            logger.log(Level.WARNING, String.format("Error occurred while parsing the [GetCapabilities document](%s): %s",
+                    dataSourceServiceUrlStr, Utils.getExceptionMessage(ex)), ex);
         }
 
         if (wmsCapabilities != null) {
@@ -124,7 +125,8 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                     try {
                         wmsServiceUrl = Utils.toURL(dataSourceClone.getGetMapUrl());
                     } catch (Exception ex) {
-                        logger.log(Level.WARNING, "Can not create a URL object from the string [" + dataSourceClone.getGetMapUrl() + "]: " + Utils.getExceptionMessage(ex), ex);
+                        logger.log(Level.WARNING, String.format("Can not create a URL object from the string %s: %s",
+                                dataSourceClone.getGetMapUrl(), Utils.getExceptionMessage(ex)), ex);
                     }
                 } else {
                     wmsServiceUrl = this.getOperationUrl(wmsRequestCapabilities.getGetMap());
@@ -156,7 +158,8 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
             try {
                 wmsServiceUrl = Utils.toURL(dataSourceServiceUrlStr);
             } catch (Exception ex) {
-                logger.log(Level.WARNING, "Can not create a URL object from the string [" + dataSourceServiceUrlStr + "]: " + Utils.getExceptionMessage(ex), ex);
+                logger.log(Level.WARNING, String.format("Can not create a URL object from the string %s: %s",
+                        dataSourceServiceUrlStr, Utils.getExceptionMessage(ex)), ex);
             }
         }
 
@@ -166,9 +169,10 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                 layers = new ArrayList<L>(layersMap.size());
                 Map<String, L> cachedLayers = null;
                 try {
-                    cachedLayers = this.generateRawCachedLayerConfigs(logger, dataSourceClone, wmsServiceUrl, layerCatalog);
+                    cachedLayers = this.generateRawCachedLayerConfigs(logger, dataSourceClone, wmsServiceUrl);
                 } catch (Exception ex) {
-                    logger.log(Level.WARNING, "Error occurred while parsing the WMTS capabilities document for the service URL [" + wmsServiceUrl + "]: " + Utils.getExceptionMessage(ex), ex);
+                    logger.log(Level.WARNING, String.format("Error occurred while parsing the [WMTS capabilities document](%s): %s",
+                            wmsServiceUrl, Utils.getExceptionMessage(ex)), ex);
                 }
 
                 // Since we are not parsing the Cache server WMS capability document, we can not find which version of WMS it is using...
@@ -240,13 +244,13 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
         }
     }
 
-    private Map<String, L> generateRawCachedLayerConfigs(ThreadLogger logger, D dataSourceClone, URL wmsServiceUrl, LayerCatalog layerCatalog) throws Exception {
+    private Map<String, L> generateRawCachedLayerConfigs(ThreadLogger logger, D dataSourceClone, URL wmsServiceUrl) throws Exception {
         // When the webCacheEnable checkbox is unchecked, no layers are cached.
         if (dataSourceClone.isWebCacheEnable() == null || dataSourceClone.isWebCacheEnable() == false) {
             return null;
         }
 
-        WMTSDocument gwcCapabilities = this.getGWCDocument(logger, dataSourceClone.getConfigManager(), wmsServiceUrl, layerCatalog, dataSourceClone);
+        WMTSDocument gwcCapabilities = this.getGWCDocument(logger, dataSourceClone.getConfigManager(), wmsServiceUrl, dataSourceClone);
 
         Map<String, L> layerConfigs = null;
 
@@ -279,7 +283,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
      *     If that didn't work, try to rectify the WMTS capabilities document URL and try again.
      *     If that didn't work, return null and add an error.
      */
-    public WMTSDocument getGWCDocument(ThreadLogger logger, ConfigManager configManager, URL wmsServiceUrl, LayerCatalog layerCatalog, D dataSourceClone) {
+    public WMTSDocument getGWCDocument(ThreadLogger logger, ConfigManager configManager, URL wmsServiceUrl, D dataSourceClone) {
         // GWC service is not mandatory; failing to parse this won't cancel the generation of the client.
         boolean gwcMandatory = false;
 
@@ -304,7 +308,8 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
             gwcBaseURL = new URL(baseURL, gwcSubPath+"/");
         } catch (Exception ex) {
             // Error occurred while crafting the GWC URL. This is unlikely to happen.
-            logger.log(Level.FINE, "Fail to craft a GWC URL using the WMS URL", ex);
+            logger.log(Level.FINE, String.format("Fail to craft a GWC URL using the [WMS URL](%s): %s",
+                    wmsServiceUrl, Utils.getExceptionMessage(ex)), ex);
         }
 
         // Get GWC URL or craft it from WMS URL
@@ -318,7 +323,8 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                 }
             } catch (Exception ex) {
                 // This should not happen
-                logger.log(Level.WARNING, "Fail craft the GWC URL.", ex);
+                logger.log(Level.WARNING, String.format("Fail craft the GWC URL: %s",
+                        Utils.getExceptionMessage(ex)), ex);
             }
         }
 
@@ -341,7 +347,8 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
             }
         } catch (Exception ex) {
             // This should not happen
-            logger.log(Level.WARNING, "Fail craft the GWC Capabilities Document URL.", ex);
+            logger.log(Level.WARNING, String.format("Fail craft the GWC Capabilities Document URL: %s",
+                    Utils.getExceptionMessage(ex)), ex);
         }
 
 
@@ -380,11 +387,13 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
             } catch (Exception ex) {
                 // This happen every time the admin set a GWC base URL instead of a WMTS capabilities document.
                 // The next block try to work around this by crafting a WMTS URL.
-                logger.log(errorLevel, "Fail to parse the GWC URL [" + gwcCapUrlStr + "] as a WMTS capabilities document: " + Utils.getExceptionMessage(ex), ex);
+                logger.log(errorLevel, String.format("Fail to parse the [GWC URL](%s) as a WMTS capabilities document: %s",
+                        gwcCapUrlStr, Utils.getExceptionMessage(ex)), ex);
             }
 
-            // Try to add some parameters to the given GWC cap url (the provided URL may be incomplete, something like http://domain.com:80/geoserver/gwc/service/wmts)
-            if (document == null) {
+            // Try to add some parameters to the given GWC cap url (the provided URL may be incomplete,
+            //   something like http://domain.com:80/geoserver/gwc/service/wmts)
+            if (document == null && gwcCapUrl != null) {
                 // Add a slash a the end of the URL, just in case the URL ends like this: .../geoserver/gwc
                 String urlPath = gwcCapUrl.getPath() + "/";
                 // Look for "/gwc/"
@@ -410,7 +419,8 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                         }
                     } catch (Exception ex) {
                         // Error occurred while crafting the GWC URL. This is unlikely to happen.
-                        logger.log(errorLevel, "Fail to craft a GWC URL using the given GWC URL: " + Utils.getExceptionMessage(ex), ex);
+                        logger.log(errorLevel, String.format("Fail to craft a valid GWC URL using the given [GWC URL](%s): %s",
+                                gwcCapUrl, Utils.getExceptionMessage(ex)), ex);
                     }
                 }
             }
@@ -575,7 +585,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                                 tc211Document = TC211Parser.parseURL(logger, "metadata for layer " + layerName, dataSourceClone.getConfigManager(), dataSourceClone, url, false, true);
                                 if (tc211Document == null || tc211Document.isEmpty()) { tc211Document = null; }
                             } catch (Exception e) {
-                                logger.log(Level.WARNING, String.format("Unexpected exception while parsing the metadata document URL: %s. " +
+                                logger.log(Level.WARNING, String.format("Unexpected exception while parsing the [metadata document URL](%s). " +
                                         "The information provided by the GetCapabilities document indicate that the file is a " +
                                         "TC211 text/xml file, which seems to not be the case: %s",
                                         urlStr, Utils.getExceptionMessage(e)), e);
@@ -608,7 +618,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                                         tc211Document = null;
                                     }
                                 } catch (Exception ex) {
-                                    LOGGER.log(Level.FINE, String.format("Invalid metadata document: %s identified as \"%s - %s\". Exception message: %s",
+                                    LOGGER.log(Level.FINE, String.format("Invalid [metadata document](%s) identified as \"%s - %s\". Exception message: %s",
                                             urlStr,
                                             metadataUrl.getType(),
                                             metadataUrl.getFormat(),
@@ -621,11 +631,11 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                 }
                 if (tc211Document != null) {
                     if (validMetadataUrl != null) {
-                        logger.log(Level.INFO, String.format("Valid TC211 metadata document found for layer %s identified as \"%s - %s\" at URL %s",
+                        logger.log(Level.INFO, String.format("Valid [TC211 metadata document](%s) found for layer %s identified as \"%s - %s\".",
+                                validMetadataUrl.getUrl().toString(),
                                 layerName,
                                 validMetadataUrl.getType(),
-                                validMetadataUrl.getFormat(),
-                                validMetadataUrl.getUrl().toString()
+                                validMetadataUrl.getFormat()
                         ));
                     } else {
                         // Should not happen

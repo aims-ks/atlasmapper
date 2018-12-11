@@ -110,7 +110,7 @@ It contains:\n\
 		<dependency>
 			<groupId>org.apache.httpcomponents</groupId>
 			<artifactId>httpclient</artifactId>
-			<version>4.2.2</version>
+			<version>4.5.6</version>
 		</dependency>
 
 		<!-- Used for JUnit tests - Not included in the war -->

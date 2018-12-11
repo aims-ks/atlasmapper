@@ -58,6 +58,12 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.ssl.SSLContextBuilder;
 import org.geotools.geometry.jts.JTS;
 import org.geotools.measure.Latitude;
 import org.geotools.measure.Longitude;
@@ -119,6 +125,36 @@ public class Utils {
             LOGGER.log(Level.SEVERE, "Can not create the JSON map of supported projections: {0}", Utils.getExceptionMessage(ex));
             LOGGER.log(Level.FINE, "Stack trace:", ex);
         }
+    }
+
+    // Create a HTTP Client used by URLCache and Proxy
+    // Java DOC:
+    //     http://hc.apache.org/httpcomponents-core-ga/httpcore/apidocs/index.html
+    //     http://hc.apache.org/httpcomponents-client-ga/httpclient/apidocs/index.html
+    // Example: http://hc.apache.org/httpcomponents-client-ga/tutorial/html/fundamentals.html#d5e37
+    public static CloseableHttpClient createHttpClient() {
+        // Set a pool of multiple connections so more than one client can be generated simultaneously
+        // See: http://stackoverflow.com/questions/12799006/how-to-solve-error-invalid-use-of-basicclientconnmanager-make-sure-to-release
+//        PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
+//        connectionManager.setMaxTotal(100);
+//        connectionManager.setDefaultMaxPerRoute(20);
+
+        HttpClientBuilder httpClientBuilder = HttpClients.custom();
+//                .setConnectionManager(connectionManager);
+
+        // Try to add support for Self Signed SSL certificates
+        try {
+            SSLContextBuilder selfSignedSSLCertContextBuilder = new SSLContextBuilder();
+            selfSignedSSLCertContextBuilder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
+            SSLConnectionSocketFactory selfSignedSSLCertSocketFactory = new SSLConnectionSocketFactory(
+                    selfSignedSSLCertContextBuilder.build());
+
+            httpClientBuilder = httpClientBuilder.setSSLSocketFactory(selfSignedSSLCertSocketFactory);
+        } catch(Exception ex) {
+            LOGGER.log(Level.WARNING, "Could not create a HttpClient which accept Self Signed SSL certificates.", ex);
+        }
+
+        return httpClientBuilder.build();
     }
 
     public static boolean isBlank(String str) {
@@ -1007,5 +1043,4 @@ public class Utils {
             return (startCmp == 0 ? this.end - o.end : startCmp);
         }
     }
-
 }

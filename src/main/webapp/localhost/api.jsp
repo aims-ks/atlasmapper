@@ -77,7 +77,7 @@ page contentType="application/json" pageEncoding="UTF-8"%><%
 
         if (action == null) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            logger.log(Level.SEVERE, "Unknown action [" + actionStr + "].");
+            logger.log(Level.SEVERE, String.format("Unknown action %s.", actionStr));
             jsonObj.put("logs", logger.toJSON());
             jsonObj.put("success", false);
         } else {
@@ -90,7 +90,7 @@ page contentType="application/json" pageEncoding="UTF-8"%><%
                             AbstractDataSourceConfig dataSource = configManager.getDataSourceConfig(dataSourceId);
                             if (dataSource == null) {
                                 // Invalid data source ID
-                                logger.log(Level.SEVERE, "Invalid data source ID: ["+dataSourceId+"]");
+                                logger.log(Level.SEVERE, String.format("Invalid data source ID: %s", dataSourceId));
                             } else {
                                 // Refresh cache and merging error messages
                                 dataSource.process(
@@ -112,7 +112,7 @@ page contentType="application/json" pageEncoding="UTF-8"%><%
                             ClientConfig client = configManager.getClientConfig(clientId);
                             if (client == null) {
                                 // Invalid client ID
-                                logger.log(Level.SEVERE, "Invalid client ID: ["+clientId+"]");
+                                logger.log(Level.SEVERE, String.format("Invalid client ID: %s", clientId));
                             } else {
                                 // Regenerate client and merging error messages
                                 client.process(false);
@@ -132,7 +132,7 @@ page contentType="application/json" pageEncoding="UTF-8"%><%
 
                 default:
                     response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                    logger.log(Level.SEVERE, "Unknown action [" + actionStr + "].");
+                    logger.log(Level.SEVERE, String.format("Unknown action %s.", actionStr));
                     jsonObj.put("logs", logger.toJSON());
                     jsonObj.put("success", false);
                     break;
@@ -140,7 +140,7 @@ page contentType="application/json" pageEncoding="UTF-8"%><%
         }
     } else {
         response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-        logger.log(Level.SEVERE, "Missing parameter [action].");
+        logger.log(Level.SEVERE, "Missing parameter *action*.");
         jsonObj.put("logs", logger.toJSON());
         jsonObj.put("success", false);
     }

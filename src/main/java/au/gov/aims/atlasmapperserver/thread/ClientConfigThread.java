@@ -76,15 +76,19 @@ public class ClientConfigThread extends AbstractConfigThread {
         if (clientFolder.exists()) {
             // The client do exists, check if we have write access to it.
             if (!clientFolder.canWrite()) {
-                logger.log(Level.SEVERE, "The client could not be generated; The AtlasMapper do not have write access to the client folder [" + clientFolder.getAbsolutePath() + "]. " +
-                        "Give write access to the user \"" + tomcatUser + "\" to the client folder and try regenerating the client.");
+                logger.log(Level.SEVERE, String.format("The client could not be generated. " +
+                        "The AtlasMapper do not have write access to the client folder %s. " +
+                        "Give write access to the user %s to the client folder and try regenerating the client.",
+                        clientFolder.getAbsolutePath(), tomcatUser));
             }
         } else {
             // The client do not exists, check if it can be created.
             if (!Utils.recursiveIsWritable(clientFolder)) {
-                logger.log(Level.SEVERE, "The client could not be generated; The AtlasMapper can not create the client folder [" + clientFolder.getAbsolutePath() + "]. " +
-                        "Give write access to the user \"" + tomcatUser + "\" to the parent folder or " +
-                        "create the client folder manually with write access to the user \"" + tomcatUser + "\" and try regenerating the client.");
+                logger.log(Level.SEVERE, String.format("The client could not be generated. " +
+                        "The AtlasMapper can not create the client folder %s. " +
+                        "Give write access to the user %s to the parent folder or " +
+                        "create the client folder manually with write access to the user %s and try regenerating the client.",
+                        clientFolder.getAbsolutePath(), tomcatUser, tomcatUser));
             }
         }
 
@@ -110,11 +114,13 @@ public class ClientConfigThread extends AbstractConfigThread {
             } catch (IOException ex) {
                 // Those error are very unlikely to happen since we already checked the folder write access.
                 if (clientFolder.exists()) {
-                    logger.log(Level.SEVERE, "An unexpected exception occurred while copying the client files to the folder [" + clientFolder.getAbsolutePath() + "]: " + Utils.getExceptionMessage(ex), ex);
+                    logger.log(Level.SEVERE, String.format("An unexpected exception occurred while copying the client files to the folder %s: %s",
+                            clientFolder.getAbsolutePath(), Utils.getExceptionMessage(ex)), ex);
                 } else {
-                    logger.log(Level.SEVERE, "The client could not be generated; The AtlasMapper were not able to create the client folder [" + clientFolder.getAbsolutePath() + "]. " +
-                            "Give write access to the user \"" + tomcatUser + "\" to the parent folder or " +
-                            "create the client folder manually with write access to the user \"" + tomcatUser + "\" and try regenerating the client.", ex);
+                    logger.log(Level.SEVERE, String.format("The client could not be generated; The AtlasMapper were not able to create the client folder %s. " +
+                            "Give write access to the user %s to the parent folder or " +
+                            "create the client folder manually with write access to the user %s and try regenerating the client: %s",
+                            clientFolder.getAbsolutePath(), tomcatUser, tomcatUser, Utils.getExceptionMessage(ex)), ex);
                 }
             }
         }
@@ -136,7 +142,8 @@ public class ClientConfigThread extends AbstractConfigThread {
                     if (jsonLayers != null) {
                         for (String defaultLayerId : defaultLayerIds) {
                             if (!jsonLayers.has(defaultLayerId)) {
-                                logger.log(Level.WARNING, "The layer ID [" + defaultLayerId + "], specified in the default layers, could not be found in the layer catalog.");
+                                logger.log(Level.WARNING, String.format("The layer ID %s, specified in the default layers, could not be found in the layer catalog.",
+                                        defaultLayerId));
                             }
                         }
                     }
@@ -191,7 +198,11 @@ public class ClientConfigThread extends AbstractConfigThread {
             } else {
                 logger.log(Level.INFO, "Client generation passed.");
             }
-            logger.log(Level.INFO, "The client has " + nbLayers + " layer" + (nbLayers > 1 ? "s" : "") + " available.");
+            if (nbLayers > 1) {
+                logger.log(Level.INFO, String.format("The client has %d layers available.", nbLayers));
+            } else {
+                logger.log(Level.INFO, String.format("The client has %d layer available.", nbLayers));
+            }
         } else {
             logger.log(Level.INFO, "Client generation failed.");
         }
@@ -402,7 +413,7 @@ public class ClientConfigThread extends AbstractConfigThread {
                     }
 
                     if (dataSource == null) {
-                        logger.log(Level.WARNING, String.format("The client [%s] define a layer [%s] using an invalid data source [%s].",
+                        logger.log(Level.WARNING, String.format("The client %s define a layer %s using an invalid data source %s.",
                                 this.clientConfig.getClientName(), layerName, dataSourceId));
                     } else {
                         String dataSourceName = dataSource.getDataSourceName();

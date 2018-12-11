@@ -55,6 +55,7 @@
 		<script type="text/javascript" src="../javascript/extjs_ux/FieldWithQTip.js"></script>
 		<script type="text/javascript" src="../javascript/extjs_ux/Checkbox.js"></script>
 		<script type="text/javascript" src="../javascript/Frameset.js"></script>
+		<script type="text/javascript" src="../javascript/marked/marked.min.js"></script>
 		<!-- Send the client name to the clients config page -->
 		<script type="text/javascript">
 			<% ConfigManager manager = ConfigHelper.getConfigManager(this.getServletConfig().getServletContext()); %>

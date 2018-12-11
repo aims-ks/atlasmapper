@@ -162,14 +162,16 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 
         String serviceUrl = dataSourceConfig.getServiceUrl();
         if (serviceUrl == null) {
-            logger.log(Level.WARNING, "The data source [" + dataSourceConfig.getDataSourceName() + "] as no service URL.");
+            logger.log(Level.WARNING, String.format("The data source %s as no service URL.",
+                    dataSourceConfig.getDataSourceName()));
         }
 
         String jsonUrl;
         try {
             jsonUrl = this.getJSONUrl(serviceUrl, arcGISPath, type);
         } catch (Exception ex) {
-            logger.log(Level.WARNING, "Error occurred while generating the service JSON URL: " + Utils.getExceptionMessage(ex), ex);
+            logger.log(Level.WARNING, String.format("Error occurred while generating the service JSON URL: %s",
+                    Utils.getExceptionMessage(ex)), ex);
             return null;
         }
 
@@ -184,7 +186,8 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                     true
             );
         } catch (Exception ex) {
-            logger.log(Level.WARNING, "Error occurred while parsing the service JSON URL [" + jsonUrl + "]: " + Utils.getExceptionMessage(ex), ex);
+            logger.log(Level.WARNING, String.format("Error occurred while parsing the [service JSON URL](%s): %s",
+                    jsonUrl, Utils.getExceptionMessage(ex)), ex);
             return null;
         }
 
@@ -223,7 +226,8 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                                         true
                                 );
                             } catch (Exception ex) {
-                                logger.log(Level.WARNING, "Error occurred while parsing the group extra JSON URL [" + groupExtraJsonUrl + "]: " + Utils.getExceptionMessage(ex), ex);
+                                logger.log(Level.WARNING, String.format("Error occurred while parsing the [group extra JSON URL](%s): %s",
+                                        groupExtraJsonUrl, Utils.getExceptionMessage(ex)), ex);
                                 return null;
                             }
                         }
@@ -258,7 +262,8 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                                         true
                                 );
                             } catch (Exception ex) {
-                                logger.log(Level.WARNING, "Error occurred while parsing the layer extra JSON URL [" + layerExtraJsonUrl + "]: " + Utils.getExceptionMessage(ex), ex);
+                                logger.log(Level.WARNING, String.format("Error occurred while parsing the [layer extra JSON URL](%s): %s",
+                                        layerExtraJsonUrl, Utils.getExceptionMessage(ex)), ex);
                                 return null;
                             }
                         }
@@ -279,7 +284,8 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                         allLayers.put(layer.getLayerId(), layer);
                         children.add(layer);
                     } else {
-                        logger.log(Level.SEVERE, "Two layers from the data source ["+dataSourceConfig.getDataSourceName()+"] are returning the same ID: ["+layer.getLayerId()+"]");
+                        logger.log(Level.SEVERE, String.format("Two layers from the data source %s are returning the same ID: %s",
+                                dataSourceConfig.getDataSourceName(), layer.getLayerId()));
                         return null;
                     }
                 }
@@ -353,7 +359,8 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                                     true
                             );
                         } catch (Exception ex) {
-                            logger.log(Level.WARNING, "Error occurred while parsing the service extra JSON URL [" + serviceExtraJsonUrl + "]: " + Utils.getExceptionMessage(ex), ex);
+                            logger.log(Level.WARNING, String.format("Error occurred while parsing the [service extra JSON URL](%s): %s",
+                                    serviceExtraJsonUrl, Utils.getExceptionMessage(ex)), ex);
                             return null;
                         }
                     }
@@ -372,7 +379,8 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                             allLayers.put(layerService.getLayerId(), layerService);
                             children.add(layerService);
                         } else {
-                            logger.log(Level.SEVERE, "Two layers from the data source ["+dataSourceConfig.getDataSourceName()+"] are returning the same ID: ["+layerService.getLayerId()+"]");
+                            logger.log(Level.SEVERE, String.format("Two layers from the data source %s are returning the same ID: %s",
+                                    dataSourceConfig.getDataSourceName(), layerService.getLayerId()));
                             return null;
                         }
                     }

@@ -93,7 +93,8 @@ public class TC211Parser {
             // Check if GeoNetwork returned an access denied (we can't rely on response HTTP code, GeoNetwork does not follow standards)
             // TODO!!! cachedDocumentFile is null, findInFile doesn't do anything
             if (Utils.findInFile("Operation not allowed", cachedDocumentFile)) {
-                logger.log(Level.WARNING, String.format("Unauthorised access to %s URL %s. Ensure the document is published.", downloadedEntityName, urlStr));
+                logger.log(Level.WARNING, String.format("Unauthorised access to [%s](%s). Ensure the document is published.",
+                        downloadedEntityName, urlStr));
 
             } else {
                 // Assuming the MEST service is GeoNetwork, try to craft a better URL
@@ -102,7 +103,8 @@ public class TC211Parser {
                     craftedUrl = TC211Parser.craftGeoNetworkMestUrl(url);
                 } catch (Exception ex) {
                     // This should not happen
-                    logger.log(Level.WARNING, "Unexpected error occurred while crafting a GeoNetwork URL", ex);
+                    logger.log(Level.WARNING, String.format("Unexpected error occurred while crafting a GeoNetwork URL: %s",
+                            Utils.getExceptionMessage(ex)), ex);
                 }
                 if (craftedUrl != null) {
                     String craftedUrlStr = craftedUrl.toString();

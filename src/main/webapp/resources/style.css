@@ -92,14 +92,20 @@ ol.bullet-list > li {
     background-color: #000000;
     color: #FFFFFF;
 }
-.logs-list .level_warning {
+.logs-panel .x-panel-body a {
+    color: #FFFFFF;
+}
+.logs-list .level_warning,
+.logs-list .level_warning a {
     color: #FFFF00;
 }
-.logs-list .level_severe {
+.logs-list .level_severe,
+.logs-list .level_severe a {
     font-weight: bold;
     color: #FF0000;
 }
-.logs-list .level_fine {
+.logs-list .level_fine,
+.logs-list .level_fine a {
     color: #999999;
 }
 

@@ -267,13 +267,13 @@ Ext.define('Frameset', {
                             that.clearStatus();
                             callback(responseObj);
                         } else {
-                            // Repeat in 1 sec
+                            // Repeat in 2 sec
                             // TODO Cancel timeout when window is closed
                             window.setTimeout(function(that) {
                                 return function() {
                                     that._pullLogs(requestUrl, requestParameters, callback);
                                 }
-                            }(that), 1000);
+                            }(that), 2000);
                         }
                     } else {
                         that._setHtmlLogs("An error occurred while requesting the logs.");
@@ -282,6 +282,14 @@ Ext.define('Frameset', {
                             iconCls: 'x-status-error',
                             clear: true // auto-clear after a set interval
                         });
+
+                        // Repeat in 5 sec
+                        // TODO Cancel timeout when window is closed
+                        window.setTimeout(function(that) {
+                            return function() {
+                                that._pullLogs(requestUrl, requestParameters, callback);
+                            }
+                        }(that), 5000);
                     }
                 };
             }(this),
@@ -293,6 +301,14 @@ Ext.define('Frameset', {
                         iconCls: 'x-status-error',
                         clear: true // auto-clear after a set interval
                     });
+
+                    // Repeat in 5 sec
+                    // TODO Cancel timeout when window is closed
+                    window.setTimeout(function(that) {
+                        return function() {
+                            that._pullLogs(requestUrl, requestParameters, callback);
+                        }
+                    }(that), 5000);
                 };
             }(this)
         });
@@ -329,14 +345,13 @@ Ext.define('Frameset', {
         return htmlLogs;
     },
     logToHtml: function(log) {
-        var htmlLog = log.level + ': ' + this._sanitizeLogMessage(log.message);
+        var htmlLog = log.level + ': ' + log.message;
         if (log.exception) {
-            htmlLog += this._sanitizeLogMessage(log.exception);
+            htmlLog += "\n" + log.exception;
         }
-        return Ext.String.htmlEncode(htmlLog).replace(/\n/g, "<br/>\n");
-    },
-    _sanitizeLogMessage: function(msg) {
-        return msg.replace('\n', '<br/>');
+        var encodedMessage = Ext.String.htmlEncode(htmlLog).replace(/\n/g, "<br/>\n");
+        // Parse Markdown code if the function marked is available.
+        return marked && typeof marked === "function" ? marked(encodedMessage) : encodedMessage;
     },
 
     /**

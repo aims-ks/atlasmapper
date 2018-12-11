@@ -29,16 +29,8 @@ import org.apache.commons.httpclient.HttpStatus;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
-import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.conn.scheme.Scheme;
-import org.apache.http.conn.scheme.SchemeRegistry;
-import org.apache.http.conn.ssl.AllowAllHostnameVerifier;
-import org.apache.http.conn.ssl.SSLSocketFactory;
-import org.apache.http.conn.ssl.TrustStrategy;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.impl.conn.PoolingClientConnectionManager;
-import org.apache.http.impl.conn.SchemeRegistryFactory;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.geotools.data.ows.WMSCapabilities;
 import org.geotools.data.wms.xml.WMSSchema;
 import org.geotools.ows.ServiceException;
@@ -67,12 +59,9 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -130,38 +119,6 @@ public class URLCache {
      */
     private static long loadedTime = -1;
 
-    // NOTE: The Proxy has a very similar http client
-    private static HttpClient httpClient = null;
-    static {
-        SchemeRegistry schemeRegistry = SchemeRegistryFactory.createDefault();
-        // Try to set the SSL scheme factory: Accept all SSL certificates
-        try {
-            SSLSocketFactory sslSocketFactory = new SSLSocketFactory(
-                // All certificates are trusted
-                new TrustStrategy() {
-                    public boolean isTrusted(final X509Certificate[] chain, String authType) throws CertificateException {
-                        return true;
-                    }
-                },
-                // Do not check if the hostname match the certificate
-                new AllowAllHostnameVerifier()
-            );
-
-            Scheme httpsScheme = new Scheme("https", 443, sslSocketFactory);
-            schemeRegistry.register(httpsScheme);
-        } catch(Exception ex) {
-            LOGGER.log(Level.SEVERE, "Can not initiate the SSLSocketFactory, needed to accept all SSL self signed certificates.", ex);
-        }
-
-        // Set a pool of multiple connections so more than one client can be generated simultaneously
-        // See: http://stackoverflow.com/questions/12799006/how-to-solve-error-invalid-use-of-basicclientconnmanager-make-sure-to-release
-        PoolingClientConnectionManager cxMgr = new PoolingClientConnectionManager(schemeRegistry);
-        cxMgr.setMaxTotal(100);
-        cxMgr.setDefaultMaxPerRoute(20);
-
-        httpClient = new DefaultHttpClient(cxMgr);
-    }
-
     private static File getApplicationFolder(ConfigManager configManager) {
         if (configManager == null) {
             // Can be used for running the tests
@@ -180,12 +137,15 @@ public class URLCache {
             responseStatus.setStatusCode(HttpStatus.SC_BAD_REQUEST);
             final String message = "Can not parse the URL: " + urlStr;
             responseStatus.setErrorMessage(message);
-            LOGGER.log(Level.SEVERE, message, ex);
+            LOGGER.log(Level.FINE, message, ex);
             return responseStatus;
         }
-        HttpGet httpGet = new HttpGet(uri);
 
+        CloseableHttpClient httpClient = null;
+        HttpGet httpGet = null;
         try {
+            httpClient = Utils.createHttpClient();
+            httpGet = new HttpGet(uri);
             HttpResponse response = httpClient.execute(httpGet);
 
             StatusLine httpStatus = response.getStatusLine();
@@ -195,7 +155,7 @@ public class URLCache {
         } catch (IOException ex) {
             final String message = Utils.getExceptionMessage(ex);
             responseStatus.setErrorMessage(message);
-            LOGGER.log(Level.SEVERE, message, ex);
+            LOGGER.log(Level.FINE, message, ex);
 
         } finally {
             if (httpGet != null) {
@@ -203,6 +163,11 @@ public class URLCache {
                 httpGet.abort();
                 // Close connections
                 httpGet.reset();
+            }
+            if (httpClient != null) {
+                try { httpClient.close(); } catch (Exception e) {
+                    LOGGER.log(Level.WARNING, "Error occur while closing the HttpClient: " + Utils.getExceptionMessage(e), e);
+                }
             }
         }
 
@@ -271,7 +236,7 @@ public class URLCache {
                     return getURLFile(logger, downloadedEntityName, configManager, dataSource, redirectionUrl, category, mandatory, followRedirectionCount+1);
                 } else {
                     // Hopefully this error will never occurred
-                    logger.log(Level.SEVERE, String.format("Maximum URL redirection reach for %s URL %s. " +
+                    logger.log(Level.SEVERE, String.format("Maximum URL redirection reach for [%s](%s). " +
                         "There is probably a cycle in the cache, which create potential infinite loops.",
                         downloadedEntityName, urlStr));
                     throw new IOException("Cycle in the cache follow URLs");
@@ -303,7 +268,7 @@ public class URLCache {
 
                 File tmpFile = new File(cachedFile.getCachedFileFolder(), tmpFilename);
 
-                logger.log(Level.INFO, String.format("Re-downloading %s URL %s", downloadedEntityName, urlStr));
+                logger.log(Level.INFO, String.format("Re-downloading [%s](%s)", downloadedEntityName, urlStr));
 
                 ResponseStatus responseStatus = loadURLToFile(logger, urlStr, tmpFile);
                 String errorMessage = responseStatus.getErrorMessage();
@@ -323,7 +288,7 @@ public class URLCache {
 
             File file = new File(cachedFile.getCachedFileFolder(), filename);
 
-            logger.log(Level.INFO, String.format("Downloading %s URL %s", downloadedEntityName, urlStr));
+            logger.log(Level.INFO, String.format("Downloading [%s](%s)", downloadedEntityName, urlStr));
 
             ResponseStatus responseStatus = loadURLToFile(logger, urlStr, file);
             String errorMessage = responseStatus.getErrorMessage();
@@ -344,7 +309,7 @@ public class URLCache {
 
             String errorMessage = cachedFile.getLatestErrorMessage();
             if (Utils.isNotBlank(errorMessage)) {
-                logger.log(Level.WARNING, String.format("Error received from %s URL %s, %s", downloadedEntityName, urlStr, errorMessage));
+                logger.log(Level.WARNING, String.format("Error received from [%s](%s), %s", downloadedEntityName, urlStr, errorMessage));
             }
 
             // If we already know that something went wrong, rollback.
@@ -439,10 +404,10 @@ public class URLCache {
         }
 
         if (backupFile != null && backupFile.exists()) {
-            logger.log(Level.INFO, String.format("Invalid response received for %s from URL: %s, used last good cached file: %s",
+            logger.log(Level.INFO, String.format("Invalid response received for [%s](%s), used last good cached file: %s",
                     downloadedEntityName, urlStr, backupFile.getName()));
         } else {
-            logger.log(Level.WARNING, String.format("Invalid response received for %s from URL: %s, no cached version found.",
+            logger.log(Level.WARNING, String.format("Invalid response received for [%s](%s), no cached version found.",
                     downloadedEntityName, urlStr));
         }
 
@@ -463,20 +428,18 @@ public class URLCache {
             responseStatus.setStatusCode(HttpStatus.SC_BAD_REQUEST);
             final String message = "Can not parse the URL: " + urlStr;
             responseStatus.setErrorMessage(message);
-            logger.log(Level.WARNING, message, ex);
+            logger.log(Level.WARNING, String.format("Can not parse the [URL](%s): %s", urlStr, Utils.getExceptionMessage(ex)), ex);
             return responseStatus;
         }
 
-        HttpGet httpGet = new HttpGet(uri);
-        HttpEntity entity = null;
+        HttpGet httpGet = null;
         InputStream in = null;
         FileOutputStream out = null;
-
+        CloseableHttpClient httpClient = null;
         try {
-            // Java DOC:
-            //     http://hc.apache.org/httpcomponents-core-ga/httpcore/apidocs/index.html
-            //     http://hc.apache.org/httpcomponents-client-ga/httpclient/apidocs/index.html
-            // Example: http://hc.apache.org/httpcomponents-client-ga/tutorial/html/fundamentals.html#d5e37
+            httpClient = Utils.createHttpClient();
+            httpGet = new HttpGet(uri);
+
             HttpResponse response = httpClient.execute(httpGet);
 
             StatusLine httpStatus = response.getStatusLine();
@@ -485,7 +448,7 @@ public class URLCache {
             }
 
             // The entity is streamed
-            entity = response.getEntity();
+            HttpEntity entity = response.getEntity();
             if (entity != null) {
                 long contentSizeMb = entity.getContentLength() / (1024*1024); // in megabytes
                 // long value can go over 8 millions terabytes
@@ -506,7 +469,7 @@ public class URLCache {
             if (file != null && file.exists()) {
                 file.delete();
             }
-            final String message = "Error reading URL " + uri.toString() + Utils.getExceptionMessage(ex);
+            final String message = String.format("Error reading [URL](%s), %s", uri, Utils.getExceptionMessage(ex));
             responseStatus.setErrorMessage(message);
             logger.log(Level.WARNING, message, ex);
         } finally {
@@ -518,12 +481,17 @@ public class URLCache {
             }
             if (in != null) {
                 try { in.close(); } catch (Exception e) {
-                    logger.log(Level.WARNING, "Error occur while closing the URL: " + Utils.getExceptionMessage(e), e);
+                    logger.log(Level.WARNING, String.format("Error occur while closing the [URL](%s): %s", uri, Utils.getExceptionMessage(e)), e);
                 }
             }
             if (out != null) {
                 try { out.close(); } catch (Exception e) {
                     logger.log(Level.WARNING, "Error occur while closing the file: " + Utils.getExceptionMessage(e), e);
+                }
+            }
+            if (httpClient != null) {
+                try { httpClient.close(); } catch (Exception e) {
+                    logger.log(Level.WARNING, "Error occur while closing the HttpClient: " + Utils.getExceptionMessage(e), e);
                 }
             }
         }
@@ -764,7 +732,7 @@ public class URLCache {
 
             try {
                 capabilitiesFile = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, dataSource, urlStr, category, mandatory);
-                logger.log(Level.INFO, "Parsing WMS GetCapabilities document: " + urlStr);
+                logger.log(Level.INFO, String.format("Parsing [WMS GetCapabilities document](%s)", urlStr));
                 wmsCapabilities = URLCache.getCapabilities(capabilitiesFile);
                 URLCache.commitURLFile(configManager, capabilitiesFile, urlStr);
             } catch (Exception ex) {
@@ -802,7 +770,7 @@ public class URLCache {
         }
     }
 
-    private static WMSCapabilities getCapabilities(InputStream inputStream) throws IOException, SAXException {
+    private static WMSCapabilities getCapabilities(InputStream inputStream) throws SAXException {
         Map<String, Object> hints = new HashMap<String, Object>();
         hints.put(DocumentHandler.DEFAULT_NAMESPACE_HINT_KEY, WMSSchema.getInstance());
         hints.put(DocumentFactory.VALIDATION_HINT, Boolean.FALSE);
@@ -921,7 +889,9 @@ public class URLCache {
         }
     }
 
-    public static void markCacheForReDownload(ConfigManager configManager, AbstractDataSourceConfig dataSource, boolean removeBrokenEntry, Category category) throws JSONException, IOException {
+    public static void markCacheForReDownload(ConfigManager configManager, AbstractDataSourceConfig dataSource, boolean removeBrokenEntry, Category category)
+            throws JSONException, IOException {
+
         File applicationFolder = configManager.getApplicationFolder();
 
         if (dataSource == null || applicationFolder == null) {
@@ -1045,7 +1015,9 @@ public class URLCache {
         }
     }
 
-    public static void deleteOldEntries(AbstractDataSourceConfig dataSourceConfig, Date thresholdDate, List<URLCache.Category> categories) throws IOException, JSONException {
+    public static void deleteOldEntries(AbstractDataSourceConfig dataSourceConfig, Date thresholdDate, List<URLCache.Category> categories)
+            throws IOException, JSONException {
+
         if (thresholdDate != null && categories != null && !categories.isEmpty()) {
             File applicationFolder = dataSourceConfig.getConfigManager().getApplicationFolder();
             boolean allCategories = categories.contains(Category.ALL);
@@ -1379,7 +1351,10 @@ public class URLCache {
             return CachedFile.getCachedFileFolder(this.cacheFolder);
         }
         private static File getCachedFileFolder(File cacheFolder) {
-            File cacheFileFolder = (URLCache.CACHE_FILES_FOLDER == null || URLCache.CACHE_FILES_FOLDER.isEmpty() ? cacheFolder : new File(cacheFolder, URLCache.CACHE_FILES_FOLDER));
+            File cacheFileFolder = (URLCache.CACHE_FILES_FOLDER == null || URLCache.CACHE_FILES_FOLDER.isEmpty() ?
+                    cacheFolder :
+                    new File(cacheFolder, URLCache.CACHE_FILES_FOLDER));
+
             cacheFileFolder.mkdirs();
             return cacheFileFolder;
         }

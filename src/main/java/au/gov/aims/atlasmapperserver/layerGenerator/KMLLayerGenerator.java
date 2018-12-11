@@ -77,13 +77,15 @@ public class KMLLayerGenerator extends AbstractLayerGenerator<KMLLayerConfig, KM
                     // Validate the URL, show a warning if not valid, add layer if valid.
                     String urlStr = kmlInfo.optString("url", null);
                     if (Utils.isBlank(urlStr)) {
-                        logger.log(Level.WARNING, "Invalid entry for KML id [" + kmlId + "]: The KML URL field is mandatory.");
+                        logger.log(Level.WARNING, String.format("Invalid entry for KML id %s: The KML URL field is mandatory.",
+                                kmlId));
                     } else {
                         URL url = null;
                         try {
                             url = Utils.toURL(urlStr);
                         } catch(Exception ex) {
-                            logger.log(Level.WARNING, "Invalid entry for KML id [" + kmlId + "]: The KML url [" + urlStr + "] is not valid.\n" + Utils.getExceptionMessage(ex));
+                            logger.log(Level.WARNING, String.format("Invalid entry for KML id %s: The KML url %s is not valid.%n%s",
+                                    kmlId, urlStr, Utils.getExceptionMessage(ex)));
                         }
 
                         if (url != null) {
@@ -91,18 +93,21 @@ public class KMLLayerGenerator extends AbstractLayerGenerator<KMLLayerConfig, KM
                                 URLCache.ResponseStatus responseStatus = URLCache.getResponseStatus(url.toString());
                                 Integer statusCode = responseStatus.getStatusCode();
                                 if (responseStatus.getErrorMessage() != null) {
-                                    logger.log(Level.WARNING, "Invalid entry for KML id [" + kmlId + "]: The KML url [" + urlStr + "] is not accessible. Please look for typos.\n" + responseStatus.getErrorMessage());
+                                    logger.log(Level.WARNING, String.format("Invalid entry for KML id %s: The KML url %s is not accessible. Please look for typos.%n%s",
+                                            kmlId, urlStr, responseStatus.getErrorMessage()));
                                 } else {
                                     if (statusCode == null) {
                                         // This should not happen; the statusCode is never null when there is no error message.
-                                        logger.log(Level.WARNING, "Invalid entry for KML id [" + kmlId + "]: The KML url [" + urlStr + "] could not be downloaded.");
+                                        logger.log(Level.WARNING, String.format("Invalid entry for KML id %s: The KML url %s could not be downloaded.",
+                                                kmlId, urlStr));
                                     } else {
                                         if (statusCode >= 200 && statusCode < 300) {
                                             layer.setKmlUrl(url.toString());
                                             // Add the layer only if its configuration is valid
                                             layerCatalog.addLayer(layer);
                                         } else {
-                                            logger.log(Level.WARNING, "Invalid entry for KML id [" + kmlId + "]: The KML url [" + urlStr + "] returned the status code [" + statusCode + "].");
+                                            logger.log(Level.WARNING, String.format("Invalid entry for KML id %s: The KML url %s returned the status code %d.",
+                                                    kmlId, urlStr, statusCode));
                                         }
                                     }
                                 }

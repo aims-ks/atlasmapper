@@ -1,6 +1,8 @@
 [X] Reduce noise in logs
         Reduced from 20,000 to about 200. Will reduce more after implementing H2 cache
-[ ] Handle internet failure better (continue when Internet comes back)
+[X] Handle internet failure better (continue when Internet comes back)
+        Upgraded HttpClient
+        Repeat request on failure after 5 sec delay
 [ ] Stop button
 [ ] Bring logs window back (generate button changes into loading icon)
 [ ] Generate all

@@ -25,8 +25,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLDecoder;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -56,16 +54,8 @@ import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
-import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.conn.scheme.Scheme;
-import org.apache.http.conn.scheme.SchemeRegistry;
-import org.apache.http.conn.ssl.AllowAllHostnameVerifier;
-import org.apache.http.conn.ssl.SSLSocketFactory;
-import org.apache.http.conn.ssl.TrustStrategy;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.impl.conn.PoolingClientConnectionManager;
-import org.apache.http.impl.conn.SchemeRegistryFactory;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -82,38 +72,6 @@ import org.json.JSONObject;
 public class Proxy extends HttpServlet {
     private static final Logger LOGGER = Logger.getLogger(Proxy.class.getName());
     private static final String URL_PARAM = "url";
-
-    // NOTE: The URL Cache has a very similar http client
-    private static HttpClient httpClient = null;
-    static {
-        SchemeRegistry schemeRegistry = SchemeRegistryFactory.createDefault();
-        // Try to set the SSL scheme factory: Accept all SSL certificates
-        try {
-            SSLSocketFactory sslSocketFactory = new SSLSocketFactory(
-                // All certificates are trusted
-                new TrustStrategy() {
-                    public boolean isTrusted(final X509Certificate[] chain, String authType) throws CertificateException {
-                        return true;
-                    }
-                },
-                // Do not check if the hostname match the certificate
-                new AllowAllHostnameVerifier()
-            );
-
-            Scheme httpsScheme = new Scheme("https", 443, sslSocketFactory);
-            schemeRegistry.register(httpsScheme);
-        } catch(Exception ex) {
-            LOGGER.log(Level.SEVERE, "Can not initiate the SSLSocketFactory, needed to accept all SSL self signed certificates.", ex);
-        }
-
-        // Set a pool of multiple connections so more than one client can be generated simultaneously
-        // See: http://stackoverflow.com/questions/12799006/how-to-solve-error-invalid-use-of-basicclientconnmanager-make-sure-to-release
-        PoolingClientConnectionManager cxMgr = new PoolingClientConnectionManager(schemeRegistry);
-        cxMgr.setMaxTotal(100);
-        cxMgr.setDefaultMaxPerRoute(20);
-
-        httpClient = new DefaultHttpClient(cxMgr);
-    }
 
     // Cached list of allowed hosts, for each clients
     private static Map<String, Set<String>> generatedClientsAllowedHostCache = null;
@@ -366,10 +324,13 @@ public class Proxy extends HttpServlet {
 
                         ServletUtils.sendResponse(response, responseTxt);
                     } else if (protocol.equals("http") || protocol.equals("https")) {
-                        HttpGet httpGet = new HttpGet(url.toURI());
-                        HttpEntity entity = null;
+
+                        CloseableHttpClient httpClient = null;
+                        HttpGet httpGet = null;
 
                         try {
+                            httpClient = Utils.createHttpClient();
+                            httpGet = new HttpGet(url.toURI());
                             HttpResponse httpClientResponse = httpClient.execute(httpGet);
                             StatusLine httpStatus = httpClientResponse.getStatusLine();
                             int responseCode = -1;
@@ -380,7 +341,7 @@ public class Proxy extends HttpServlet {
 
                             if (responseCode < 400) {
                                 // The entity is streamed
-                                entity = httpClientResponse.getEntity();
+                                HttpEntity entity = httpClientResponse.getEntity();
                                 String contentType = null;
                                 if (entity != null) {
                                     Header header = entity.getContentType();
@@ -448,6 +409,11 @@ public class Proxy extends HttpServlet {
                                 httpGet.abort();
                                 // Close connections
                                 httpGet.reset();
+                            }
+                            if (httpClient != null) {
+                                try { httpClient.close(); } catch (Exception e) {
+                                    logger.log(Level.WARNING, "Error occur while closing the HttpClient: " + Utils.getExceptionMessage(e), e);
+                                }
                             }
                         }
                     } else {

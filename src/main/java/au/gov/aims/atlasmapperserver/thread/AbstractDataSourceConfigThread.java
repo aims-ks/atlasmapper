@@ -188,11 +188,12 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
                                     layerId,
                                     layerWrapper);
                         } catch(Exception ex) {
-                            logger.log(Level.WARNING, "Invalid layer override for layer id: " + layerId, ex);
+                            logger.log(Level.WARNING, String.format("Invalid layer override for layer id %s: %s",
+                                    layerId, Utils.getExceptionMessage(ex)), ex);
                             LOGGER.log(
                                 Level.SEVERE,
-                                String.format("Unexpected error occurred while parsing the following layer override for the data source [%s], layer id [%s]: %s%n%s",
-                                    dataSourceConfigClone.getDataSourceName(), layerId, Utils.getExceptionMessage(ex), jsonLayerOverride.getJSON().toString(4)),
+                                String.format("Unexpected error occurred while parsing the override for layer %s: %s%n%s",
+                                        layerId, Utils.getExceptionMessage(ex), jsonLayerOverride.getJSON().toString(4)),
                                 ex
                             );
                         }
@@ -214,18 +215,18 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
             // Backward compatibility for AtlasMapper client ver. 1.2
             if (dataSourceConfigClone.isDefaultAllBaseLayers()) {
                 if (!dataSourceConfigClone.isBaseLayer(layerWrapper.getLayerName())) {
-                    logger.log(Level.WARNING, "Deprecated layer ID used for overlay layers: " +
-                            "layer id [" + layerWrapper.getLayerName() + "] should be [" + layerId + "]");
-                    LOGGER.log(Level.WARNING, "DEPRECATED LAYER ID USED FOR OVERLAY LAYERS: Layer id [{0}] should be [{1}].",
-                            new String[]{ layerWrapper.getLayerName(), layerId });
+                    logger.log(Level.WARNING, String.format("Deprecated layer ID used for overlay layer. Layer id %s should be %s",
+                            layerWrapper.getLayerName(), layerId));
+                    LOGGER.log(Level.WARNING, String.format("DEPRECATED LAYER ID USED FOR OVERLAY LAYERS: Layer id %s should be %s",
+                            layerWrapper.getLayerName(), layerId));
                     layerWrapper.setIsBaseLayer(false);
                 }
             } else {
                 if (dataSourceConfigClone.isBaseLayer(layerWrapper.getLayerName())) {
-                    logger.log(Level.WARNING, "Deprecated layer ID used for base layers: " +
-                            "layer id [" + layerWrapper.getLayerName() + "] should be [" + layerId + "]");
-                    LOGGER.log(Level.WARNING, "DEPRECATED LAYER ID USED FOR BASE LAYERS: Layer id [{0}] should be [{1}].",
-                            new String[]{ layerWrapper.getLayerName(), layerId });
+                    logger.log(Level.WARNING, String.format("Deprecated layer ID used for base layer. Layer id %s should be %s",
+                            layerWrapper.getLayerName(), layerId));
+                    LOGGER.log(Level.WARNING, String.format("DEPRECATED LAYER ID USED FOR BASE LAYERS: Layer id %s should be %s",
+                            layerWrapper.getLayerName(), layerId));
                     layerWrapper.setIsBaseLayer(true);
                 }
             }
@@ -236,7 +237,8 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
         if (overlayLayers != null) {
             for (String layerId : overlayLayers) {
                 if (!layersMap.containsKey(layerId)) {
-                    logger.log(Level.WARNING, "The layer ID [" + layerId + "], specified in the overlay layers, could not be found in the layer catalog.");
+                    logger.log(Level.WARNING, String.format("The layer ID %s, specified in the overlay layers, could not be found in the layer catalog.",
+                            layerId));
                 }
             }
         }
@@ -245,7 +247,8 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
         if (baseLayers != null) {
             for (String layerId : baseLayers) {
                 if (!layersMap.containsKey(layerId)) {
-                    logger.log(Level.WARNING, "The layer ID [" + layerId + "], specified in the base layers, could not be found in the layer catalog.");
+                    logger.log(Level.WARNING, String.format("The layer ID %s, specified in the base layers, could not be found in the layer catalog.",
+                            layerId));
                 }
             }
         }
@@ -270,7 +273,13 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
         int nbLayers = layers == null ? 0 : layers.length();
 
         // TODO Log number of cached layers
-        logger.log(Level.INFO, "The data source contains " + nbLayers + " layer" + (nbLayers > 1 ? "s" : ""));
+        if (nbLayers > 1) {
+            logger.log(Level.INFO, String.format("The data source contains %d layers.",
+                    nbLayers));
+        } else {
+            logger.log(Level.INFO, String.format("The data source contains %d layer.",
+                    nbLayers));
+        }
 
         return layerCatalog;
     }
