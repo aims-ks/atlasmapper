@@ -24,6 +24,8 @@ package au.gov.aims.atlasmapperserver.layerGenerator;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.GoogleDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.GoogleLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
+import au.gov.aims.atlasmapperserver.thread.RevivableThread;
+import au.gov.aims.atlasmapperserver.thread.RevivableThreadInterruptedException;
 import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
 
 import java.util.logging.Level;
@@ -40,7 +42,11 @@ public class GoogleLayerGenerator extends AbstractLayerGenerator<GoogleLayerConf
      * @return
      */
     @Override
-    protected String getUniqueLayerId(GoogleLayerConfig layer, GoogleDataSourceConfig dataSourceConfig) {
+    protected String getUniqueLayerId(GoogleLayerConfig layer, GoogleDataSourceConfig dataSourceConfig)
+            throws RevivableThreadInterruptedException {
+
+        RevivableThread.checkForInterruption();
+
         return layer.getLayerId();
     }
 
@@ -54,7 +60,15 @@ public class GoogleLayerGenerator extends AbstractLayerGenerator<GoogleLayerConf
      * NOTE: Harvest is ignored since there is nothing to harvest.
      */
     @Override
-    public LayerCatalog generateRawLayerCatalog(ThreadLogger logger, GoogleDataSourceConfig dataSourceConfig, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles) {
+    public LayerCatalog generateRawLayerCatalog(
+            ThreadLogger logger,
+            GoogleDataSourceConfig dataSourceConfig,
+            boolean redownloadPrimaryFiles,
+            boolean redownloadSecondaryFiles
+    ) throws RevivableThreadInterruptedException {
+
+        RevivableThread.checkForInterruption();
+
         LayerCatalog layerCatalog = new LayerCatalog();
 
         logger.log(Level.INFO, "Adding Terrain layer");
@@ -75,7 +89,16 @@ public class GoogleLayerGenerator extends AbstractLayerGenerator<GoogleLayerConf
         return layerCatalog;
     }
 
-    private GoogleLayerConfig createGoogleLayer(GoogleDataSourceConfig dataSourceConfig, String googleLayerType, String name, String description, Integer numZoomLevels) {
+    private GoogleLayerConfig createGoogleLayer(
+            GoogleDataSourceConfig dataSourceConfig,
+            String googleLayerType,
+            String name,
+            String description,
+            Integer numZoomLevels
+    ) throws RevivableThreadInterruptedException {
+
+        RevivableThread.checkForInterruption();
+
         GoogleLayerConfig layerConfig = new GoogleLayerConfig(dataSourceConfig.getConfigManager());
 
         layerConfig.setLayerId(googleLayerType);
@@ -89,6 +112,7 @@ public class GoogleLayerGenerator extends AbstractLayerGenerator<GoogleLayerConf
         }
 
         this.ensureUniqueLayerId(layerConfig, dataSourceConfig);
+        RevivableThread.checkForInterruption();
 
         return layerConfig;
     }

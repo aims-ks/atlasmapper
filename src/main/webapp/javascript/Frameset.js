@@ -49,6 +49,7 @@ Ext.define('Frameset', {
     statusWindow: null,
 
     logsWindow: null,
+    logsWindowTimer: null,
 
     initComponent: function() {
         var contentItems = [];
@@ -190,9 +191,9 @@ Ext.define('Frameset', {
      * @param callback Function that gets called at the end of the process,
      *     with parameter responseObj, the JSON Object returned by the last request.
      */
-    setLogsRequest: function(title, msg, requestUrl, requestParameters, callback) {
+    setLogsRequest: function(title, msg, requestUrl, requestParameters, stopRequestUrl, stopRequestParameters, callback) {
         this.beforeShow();
-        this.showLogWindow(title);
+        this.showLogWindow(title, stopRequestUrl, stopRequestParameters);
 
         this._pullLogs(requestUrl, requestParameters, callback);
 
@@ -201,7 +202,12 @@ Ext.define('Frameset', {
             iconCls: 'x-status-saving'
         });
     },
-    showLogWindow: function(title) {
+    showLogWindow: function(title, stopRequestUrl, stopRequestParameters) {
+        if (this.logsWindowTimer !== null) {
+            window.clearTimeout(this.logsWindowTimer);
+            this.logsWindowTimer = null;
+        }
+
         if (this.logsWindow !== null) {
             this.logsWindow.destroy();
             this.logsWindow = null;
@@ -211,7 +217,6 @@ Ext.define('Frameset', {
             layout: 'fit',
             title: title,
             closable: true,
-            closeAction: 'hide',
             resizable: true,
             plain: true,
             border: false,
@@ -241,8 +246,26 @@ Ext.define('Frameset', {
                             return function() {
                                 that.logsWindow.close();
                                 that.logsWindow = null;
+
+                                window.clearTimeout(that.logsWindowTimer);
+                                that.logsWindowTimer = null;
                             };
                         }(this)
+                    },
+                    {
+                        xtype: 'button',
+                        text: 'Stop',
+                        padding: '2 10',
+                        handler: function(that, stopRequestUrl, stopRequestParameters) {
+                            return function() {
+                                Ext.Ajax.request({
+                                    url: stopRequestUrl,
+                                    params: stopRequestParameters,
+                                    success: function(response) {},
+                                    failure: function(response) {}
+                                });
+                            };
+                        }(this, stopRequestUrl, stopRequestParameters)
                     }
                 ]
             }]
@@ -277,8 +300,7 @@ Ext.define('Frameset', {
                             callback(responseObj);
                         } else {
                             // Repeat in 2 sec
-                            // TODO Cancel timeout when window is closed
-                            window.setTimeout(function(that) {
+                            that.logsWindowTimer = window.setTimeout(function(that) {
                                 return function() {
                                     that._pullLogs(requestUrl, requestParameters, callback);
                                 }
@@ -293,8 +315,7 @@ Ext.define('Frameset', {
                         });
 
                         // Repeat in 5 sec
-                        // TODO Cancel timeout when window is closed
-                        window.setTimeout(function(that) {
+                        that.logsWindowTimer = window.setTimeout(function(that) {
                             return function() {
                                 that._pullLogs(requestUrl, requestParameters, callback);
                             }
@@ -312,8 +333,7 @@ Ext.define('Frameset', {
                     });
 
                     // Repeat in 5 sec
-                    // TODO Cancel timeout when window is closed
-                    window.setTimeout(function(that) {
+                    that.logsWindowTimer = window.setTimeout(function(that) {
                         return function() {
                             that._pullLogs(requestUrl, requestParameters, callback);
                         }

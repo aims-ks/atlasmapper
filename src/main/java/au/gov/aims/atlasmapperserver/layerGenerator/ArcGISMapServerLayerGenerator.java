@@ -29,6 +29,8 @@ import au.gov.aims.atlasmapperserver.layerConfig.ArcGISCacheLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.ArcGISMapServerLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.GroupLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
+import au.gov.aims.atlasmapperserver.thread.RevivableThread;
+import au.gov.aims.atlasmapperserver.thread.RevivableThreadInterruptedException;
 import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -57,7 +59,11 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
      * @return
      */
     @Override
-    protected String getUniqueLayerId(AbstractLayerConfig layer, ArcGISMapServerDataSourceConfig dataSourceConfig) {
+    protected String getUniqueLayerId(AbstractLayerConfig layer, ArcGISMapServerDataSourceConfig dataSourceConfig)
+            throws RevivableThreadInterruptedException {
+
+        RevivableThread.checkForInterruption();
+
         StringBuilder layerUniqueId = new StringBuilder();
         String arcGISPath = null;
 
@@ -80,11 +86,21 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
             layerUniqueId.append("_");
             layerUniqueId.append(layer.getTitle());
         }
+        RevivableThread.checkForInterruption();
+
         return layerUniqueId.toString().trim();
     }
 
     @Override
-    public LayerCatalog generateRawLayerCatalog(ThreadLogger logger, ArcGISMapServerDataSourceConfig dataSourceConfig, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles) {
+    public LayerCatalog generateRawLayerCatalog(
+            ThreadLogger logger,
+            ArcGISMapServerDataSourceConfig dataSourceConfig,
+            boolean redownloadPrimaryFiles,
+            boolean redownloadSecondaryFiles
+    ) throws RevivableThreadInterruptedException {
+
+        RevivableThread.checkForInterruption();
+
         LayerCatalog layerCatalog = new LayerCatalog();
         if (dataSourceConfig == null) {
             throw new IllegalArgumentException("ArcGIS Map Server generation requested for a null data source.");
@@ -94,6 +110,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 
         // Fill the Map of layers
         this.parseJSON(logger, layers, null, null, null, dataSourceConfig);
+        RevivableThread.checkForInterruption();
 
         layerCatalog.addLayers(layers.values());
 
@@ -153,10 +170,14 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
             String treePath,
             String arcGISPath,
             String type,
-            ArcGISMapServerDataSourceConfig dataSourceConfig) {
+            ArcGISMapServerDataSourceConfig dataSourceConfig
+    ) throws RevivableThreadInterruptedException {
+
+        RevivableThread.checkForInterruption();
 
         // We currently only support MapServer. Other possible values: GlobeServer
         if (type != null && !this.isServiceSupported(type)) {
+            RevivableThread.checkForInterruption();
             return null;
         }
 
@@ -170,6 +191,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
         try {
             jsonUrl = this.getJSONUrl(serviceUrl, arcGISPath, type);
         } catch (Exception ex) {
+            RevivableThread.checkForInterruption();
             logger.log(Level.WARNING, String.format("Error occurred while generating the service JSON URL: %s",
                     Utils.getExceptionMessage(ex)), ex);
             return null;
@@ -186,6 +208,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                     true
             );
         } catch (Exception ex) {
+            RevivableThread.checkForInterruption();
             logger.log(Level.WARNING, String.format("Error occurred while parsing the [service JSON URL](%s): %s",
                     jsonUrl, Utils.getExceptionMessage(ex)), ex);
             return null;
@@ -212,6 +235,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                             try {
                                 groupExtraJsonUrl = this.getJSONUrl(dataSourceConfig.getServiceUrl(), arcGISPath, type, groupId);
                             } catch (Exception ex) {
+                                RevivableThread.checkForInterruption();
                                 logger.log(Level.WARNING, "Error occurred while generating the group extra JSON URL: " + Utils.getExceptionMessage(ex), ex);
                                 return null;
                             }
@@ -226,6 +250,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                                         true
                                 );
                             } catch (Exception ex) {
+                                RevivableThread.checkForInterruption();
                                 logger.log(Level.WARNING, String.format("Error occurred while parsing the [group extra JSON URL](%s): %s",
                                         groupExtraJsonUrl, Utils.getExceptionMessage(ex)), ex);
                                 return null;
@@ -248,6 +273,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                             try {
                                 layerExtraJsonUrl = this.getJSONUrl(dataSourceConfig.getServiceUrl(), arcGISPath, type, layerId);
                             } catch (Exception ex) {
+                                RevivableThread.checkForInterruption();
                                 logger.log(Level.WARNING, "Error occurred while generating the layer extra JSON URL: " + Utils.getExceptionMessage(ex), ex);
                                 return null;
                             }
@@ -262,6 +288,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                                         true
                                 );
                             } catch (Exception ex) {
+                                RevivableThread.checkForInterruption();
                                 logger.log(Level.WARNING, String.format("Error occurred while parsing the [layer extra JSON URL](%s): %s",
                                         layerExtraJsonUrl, Utils.getExceptionMessage(ex)), ex);
                                 return null;
@@ -284,11 +311,14 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                         allLayers.put(layer.getLayerId(), layer);
                         children.add(layer);
                     } else {
+                        RevivableThread.checkForInterruption();
                         logger.log(Level.SEVERE, String.format("Two layers from the data source %s are returning the same ID: %s",
                                 dataSourceConfig.getDataSourceName(), layer.getLayerId()));
                         return null;
                     }
                 }
+
+                RevivableThread.checkForInterruption();
 
                 // Set children layer ID properly and remove layers that are children of an other layer
                 List<AbstractLayerConfig> childrenToRemove = new ArrayList<AbstractLayerConfig>();
@@ -318,6 +348,8 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                 }
             }
 
+            RevivableThread.checkForInterruption();
+
             if (jsonFolders != null) {
                 for (int i = 0; i < jsonFolders.length(); i++) {
                     String childArcGISPath = this.getArcGISPath(jsonFolders.optString(i, null), dataSourceConfig);
@@ -345,6 +377,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                         try {
                             serviceExtraJsonUrl = this.getJSONUrl(dataSourceConfig.getServiceUrl(), childArcGISPath, childType);
                         } catch (Exception ex) {
+                            RevivableThread.checkForInterruption();
                             logger.log(Level.WARNING, "Error occurred while generating the service extra JSON URL: " + Utils.getExceptionMessage(ex), ex);
                             return null;
                         }
@@ -359,6 +392,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                                     true
                             );
                         } catch (Exception ex) {
+                            RevivableThread.checkForInterruption();
                             logger.log(Level.WARNING, String.format("Error occurred while parsing the [service extra JSON URL](%s): %s",
                                     serviceExtraJsonUrl, Utils.getExceptionMessage(ex)), ex);
                             return null;
@@ -379,6 +413,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                             allLayers.put(layerService.getLayerId(), layerService);
                             children.add(layerService);
                         } else {
+                            RevivableThread.checkForInterruption();
                             logger.log(Level.SEVERE, String.format("Two layers from the data source %s are returning the same ID: %s",
                                     dataSourceConfig.getDataSourceName(), layerService.getLayerId()));
                             return null;
@@ -388,6 +423,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
             }
         }
 
+        RevivableThread.checkForInterruption();
         return children.isEmpty() ? null : children;
     }
 

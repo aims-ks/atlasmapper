@@ -26,6 +26,8 @@ import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.KMLDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.KMLLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
+import au.gov.aims.atlasmapperserver.thread.RevivableThread;
+import au.gov.aims.atlasmapperserver.thread.RevivableThreadInterruptedException;
 import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -41,7 +43,11 @@ public class KMLLayerGenerator extends AbstractLayerGenerator<KMLLayerConfig, KM
      * @return
      */
     @Override
-    protected String getUniqueLayerId(KMLLayerConfig layer, KMLDataSourceConfig dataSourceConfig) {
+    protected String getUniqueLayerId(KMLLayerConfig layer, KMLDataSourceConfig dataSourceConfig)
+            throws RevivableThreadInterruptedException {
+
+        RevivableThread.checkForInterruption();
+
         return layer.getLayerId();
     }
 
@@ -51,7 +57,15 @@ public class KMLLayerGenerator extends AbstractLayerGenerator<KMLLayerConfig, KM
      * @return
      */
     @Override
-    public LayerCatalog generateRawLayerCatalog(ThreadLogger logger, KMLDataSourceConfig dataSourceConfig, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles) {
+    public LayerCatalog generateRawLayerCatalog(
+            ThreadLogger logger,
+            KMLDataSourceConfig dataSourceConfig,
+            boolean redownloadPrimaryFiles,
+            boolean redownloadSecondaryFiles
+    ) throws RevivableThreadInterruptedException {
+
+        RevivableThread.checkForInterruption();
+
         LayerCatalog layerCatalog = new LayerCatalog();
 
         JSONArray kmlData = dataSourceConfig.getKmlData();
@@ -90,7 +104,7 @@ public class KMLLayerGenerator extends AbstractLayerGenerator<KMLLayerConfig, KM
 
                         if (url != null) {
                             if (redownloadPrimaryFiles) {
-                                URLCache.ResponseStatus responseStatus = URLCache.getResponseStatus(url.toString());
+                                URLCache.ResponseStatus responseStatus = URLCache.getHttpHead(url.toString());
                                 Integer statusCode = responseStatus.getStatusCode();
                                 if (responseStatus.getErrorMessage() != null) {
                                     logger.log(Level.WARNING, String.format("Invalid entry for KML id %s: The KML url %s is not accessible. Please look for typos.%n%s",
@@ -120,6 +134,7 @@ public class KMLLayerGenerator extends AbstractLayerGenerator<KMLLayerConfig, KM
                         }
                     }
                 }
+                RevivableThread.checkForInterruption();
             }
         }
 

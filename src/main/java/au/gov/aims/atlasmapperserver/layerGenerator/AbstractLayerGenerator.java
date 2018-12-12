@@ -27,6 +27,8 @@ import au.gov.aims.atlasmapperserver.jsonWrappers.client.DataSourceWrapper;
 import au.gov.aims.atlasmapperserver.jsonWrappers.client.LayerWrapper;
 import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
+import au.gov.aims.atlasmapperserver.thread.RevivableThread;
+import au.gov.aims.atlasmapperserver.thread.RevivableThreadInterruptedException;
 import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
 import org.json.JSONException;
 
@@ -39,20 +41,28 @@ import java.util.logging.Level;
 public abstract class AbstractLayerGenerator<L extends AbstractLayerConfig, D extends AbstractDataSourceConfig> {
     protected long instanceTimestamp = -1;
 
-    protected abstract String getUniqueLayerId(L layer, D dataSourceConfig);
+    protected abstract String getUniqueLayerId(L layer, D dataSourceConfig) throws RevivableThreadInterruptedException;
 
-    public DataSourceWrapper generateLayerCatalog(ThreadLogger logger, D dataSourceConfigClone, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles) throws IOException, JSONException {
+    public DataSourceWrapper generateLayerCatalog(
+            ThreadLogger logger,
+            D dataSourceConfigClone,
+            boolean redownloadPrimaryFiles,
+            boolean redownloadSecondaryFiles
+    ) throws IOException, JSONException, RevivableThreadInterruptedException {
+
         // startDate: Used to delete old entries in the cache (entries that do not get
         //     access after that date are considered unused and are removed)
         Date startDate = new Date();
 
         LayerCatalog rawLayerCatalog = this.generateRawLayerCatalog(logger, dataSourceConfigClone, redownloadPrimaryFiles, redownloadSecondaryFiles);
+        RevivableThread.checkForInterruption();
 
         List<URLCache.Category> categories = new ArrayList<URLCache.Category>(3);
         categories.add(URLCache.Category.CAPABILITIES_DOCUMENT);
         categories.add(URLCache.Category.MEST_RECORD);
         categories.add(URLCache.Category.BRUTEFORCE_MEST_RECORD);
         URLCache.deleteOldEntries(dataSourceConfigClone, startDate, categories);
+        RevivableThread.checkForInterruption();
 
         logger.log(Level.INFO, "Building data source layer catalogue");
         DataSourceWrapper catalogWrapper = new DataSourceWrapper();
@@ -60,18 +70,25 @@ public abstract class AbstractLayerGenerator<L extends AbstractLayerConfig, D ex
             LayerWrapper layerWrapper = new LayerWrapper(layer.toJSonObject());
             catalogWrapper.addLayer(layer.getLayerId(), layerWrapper);
         }
+        RevivableThread.checkForInterruption();
 
         return catalogWrapper;
     }
 
     // TODO Maybe return a DataSourceWrapper?
     // Redownload parameters are ignored by most data sources, but some use it (like KML)
-    protected abstract LayerCatalog generateRawLayerCatalog(ThreadLogger logger, D dataSourceConfig, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles);
+    protected abstract LayerCatalog generateRawLayerCatalog(
+            ThreadLogger logger,
+            D dataSourceConfig,
+            boolean redownloadPrimaryFiles,
+            boolean redownloadSecondaryFiles) throws RevivableThreadInterruptedException;
 
     // The layer name used to request the layer. Usually, the layerName is
     // the same as the layerId, so this field is let blank. This attribute
     // is only used when there is a duplication of layerId.
-    protected void ensureUniqueLayerId(L layer, D dataSourceConfig) {
+    protected void ensureUniqueLayerId(L layer, D dataSourceConfig) throws RevivableThreadInterruptedException {
+        RevivableThread.checkForInterruption();
+
         String uniqueLayerId =
                 dataSourceConfig.getDataSourceId() + "_" +
                 this.getUniqueLayerId(layer, dataSourceConfig);

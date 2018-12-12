@@ -133,14 +133,7 @@ public class Utils {
     //     http://hc.apache.org/httpcomponents-client-ga/httpclient/apidocs/index.html
     // Example: http://hc.apache.org/httpcomponents-client-ga/tutorial/html/fundamentals.html#d5e37
     public static CloseableHttpClient createHttpClient() {
-        // Set a pool of multiple connections so more than one client can be generated simultaneously
-        // See: http://stackoverflow.com/questions/12799006/how-to-solve-error-invalid-use-of-basicclientconnmanager-make-sure-to-release
-//        PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
-//        connectionManager.setMaxTotal(100);
-//        connectionManager.setDefaultMaxPerRoute(20);
-
         HttpClientBuilder httpClientBuilder = HttpClients.custom();
-//                .setConnectionManager(connectionManager);
 
         // Try to add support for Self Signed SSL certificates
         try {

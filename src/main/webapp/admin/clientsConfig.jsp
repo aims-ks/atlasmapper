@@ -65,7 +65,7 @@
                         if (clientConfigs == null) {
                             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                             jsonObj.put("success", false);
-                            jsonObj.put("errors", new JSONArray().put("An error occurred while loading the configuration. Check your server log."));
+                            jsonObj.put("errors", new JSONArray().put("An error occurred while loading the configuration. Check your server logs."));
                         } else {
                             response.setStatus(HttpServletResponse.SC_OK);
                             jsonObj.put("success", true);
@@ -77,7 +77,7 @@
                         LOGGER.log(Level.WARNING, "Stack trace: ", e);
                         response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                         jsonObj.put("success", false);
-                        jsonObj.put("errors", new JSONArray().put("An error occurred while retrieving the client configuration. Check your server log."));
+                        jsonObj.put("errors", new JSONArray().put("An error occurred while retrieving the client configuration. Check your server logs."));
                     }
                     break;
 
@@ -88,7 +88,7 @@
                         if (clientConfigs == null || clientConfigs.isEmpty()) {
                             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                             jsonObj.put("success", false);
-                            jsonObj.put("errors", new JSONArray().put("An error occurred while creating the client. Check your server log."));
+                            jsonObj.put("errors", new JSONArray().put("An error occurred while creating the client. Check your server logs."));
                         } else {
                             JSONArray clientJSonArr = new JSONArray();
                             for (ClientConfig clientConfig : clientConfigs) {
@@ -100,7 +100,7 @@
                             if (clientJSonArr == null) {
                                 response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                                 jsonObj.put("success", false);
-                                jsonObj.put("errors", new JSONArray().put("An error occurred while generating the client JSON configuration. Check your server log."));
+                                jsonObj.put("errors", new JSONArray().put("An error occurred while generating the client JSON configuration. Check your server logs."));
                             } else {
                                 ConfigHelper.save();
                                 response.setStatus(HttpServletResponse.SC_OK);
@@ -114,7 +114,7 @@
                         LOGGER.log(Level.WARNING, "Stack trace: ", e);
                         response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                         jsonObj.put("success", false);
-                        jsonObj.put("errors", new JSONArray().put("An error occurred while creating the client. Check your server log."));
+                        jsonObj.put("errors", new JSONArray().put("An error occurred while creating the client. Check your server logs."));
                     }
                     break;
 
@@ -132,7 +132,7 @@
                         LOGGER.log(Level.WARNING, "Stack trace: ", e);
                         response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                         jsonObj.put("success", false);
-                        jsonObj.put("errors", new JSONArray().put("An error occurred while updating the client: " + Utils.getExceptionMessage(e) + "\nCheck your server log."));
+                        jsonObj.put("errors", new JSONArray().put("An error occurred while updating the client: " + Utils.getExceptionMessage(e) + "\nCheck your server logs."));
                     }
                     break;
 
@@ -156,7 +156,7 @@
                         LOGGER.log(Level.WARNING, "Stack trace: ", e);
                         response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                         jsonObj.put("success", false);
-                        jsonObj.put("errors", new JSONArray().put("An error occurred while deleting the client. Check your server log."));
+                        jsonObj.put("errors", new JSONArray().put("An error occurred while deleting the client. Check your server logs."));
                     }
                     break;
 
@@ -182,7 +182,7 @@
                         LOGGER.log(Level.WARNING, "Stack trace: ", e);
                         response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                         jsonObj.put("success", false);
-                        jsonObj.put("errors", new JSONArray().put("An error occurred while validating the client ID. Check your server log."));
+                        jsonObj.put("errors", new JSONArray().put("An error occurred while validating the client ID. Check your server logs."));
                     }
                     break;
 
@@ -202,7 +202,7 @@
                         LOGGER.log(Level.WARNING, "Stack trace: ", e);
                         response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                         jsonObj.put("success", false);
-                        jsonObj.put("errors", new JSONArray().put("An error occurred while getting the supported projections. Check your server log."));
+                        jsonObj.put("errors", new JSONArray().put("An error occurred while getting the supported projections. Check your server logs."));
                     }
                     break;
 
@@ -221,7 +221,7 @@
                             } else {
                                 ThreadLogger logger = foundClientConfig.getThread().getLogger();
                                 response.setStatus(HttpServletResponse.SC_OK);
-                                jsonObj.put("message", "Logs");
+                                jsonObj.put("message", "Client generation logs");
                                 jsonObj.put("clientName", foundClientConfig.getClientName());
                                 jsonObj.put("clientId", foundClientConfig.getClientId());
                                 jsonObj.put("logs", logger.toJSON());
@@ -232,7 +232,7 @@
                             LOGGER.log(Level.SEVERE, "An error occurred while generating the Client configuration: " + Utils.getExceptionMessage(e), e);
                             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                             jsonObj.put("success", false);
-                            jsonObj.put("errors", new JSONArray().put("An error occurred while generating the Client configuration. Check your server log."));
+                            jsonObj.put("errors", new JSONArray().put("An error occurred while getting the Client generation logs. Check your server logs."));
                         }
                     }
                     break;
@@ -273,8 +273,37 @@
                                 LOGGER.log(Level.SEVERE, "An error occurred while generating the Client configuration: " + Utils.getExceptionMessage(e), e);
                                 response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                                 jsonObj.put("success", false);
-                                jsonObj.put("errors", new JSONArray().put("An error occurred while generating the Client configuration. Check your server log."));
+                                jsonObj.put("errors", new JSONArray().put("An error occurred while generating the Client configuration. Check your server logs."));
                             }
+                        }
+                    }
+                    break;
+
+                case STOP_GENERATE:
+                    if (Utils.isBlank(clientId)) {
+                        response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                        jsonObj.put("success", false);
+                        jsonObj.put("errors", new JSONArray().put("Missing parameter [clientId]."));
+                    } else {
+                        try {
+                            ClientConfig foundClientConfig = configManager.getClientConfig(clientId);
+                            if (foundClientConfig == null) {
+                                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                                jsonObj.put("success", false);
+                                jsonObj.put("errors", new JSONArray().put("Client ID ["+clientId+"] not found."));
+                            } else {
+                                foundClientConfig.stop();
+                                response.setStatus(HttpServletResponse.SC_OK);
+                                jsonObj.put("message", "Client generation cancelled");
+                                jsonObj.put("clientName", foundClientConfig.getClientName());
+                                jsonObj.put("clientId", foundClientConfig.getClientId());
+                                jsonObj.put("success", true);
+                            }
+                        } catch(Exception e) {
+                            LOGGER.log(Level.SEVERE, "An error occurred while generating the Client configuration: " + Utils.getExceptionMessage(e), e);
+                            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                            jsonObj.put("success", false);
+                            jsonObj.put("errors", new JSONArray().put("An error occurred while getting the Client generation logs. Check your server logs."));
                         }
                     }
                     break;
@@ -302,7 +331,7 @@
                         LOGGER.log(Level.WARNING, "Stack trace: ", e);
                         response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                         jsonObj.put("success", false);
-                        jsonObj.put("errors", new JSONArray().put("An error occurred while generating the Client configurations. Check your server log."));
+                        jsonObj.put("errors", new JSONArray().put("An error occurred while generating the Client configurations. Check your server logs."));
                     }
 */
                     break;

@@ -104,22 +104,19 @@
 package au.gov.aims.atlasmapperserver;
 
 import au.gov.aims.atlasmapperserver.dataSourceConfig.WMSDataSourceConfig;
+import au.gov.aims.atlasmapperserver.thread.RevivableThreadInterruptedException;
 import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
 import au.gov.aims.atlasmapperserver.xml.TC211.TC211Document;
 import au.gov.aims.atlasmapperserver.xml.TC211.TC211Parser;
 import junit.framework.TestCase;
 import org.geotools.data.ows.WMSCapabilities;
-import org.json.JSONException;
 import org.json.JSONObject;
-import org.xml.sax.SAXException;
 
-import javax.xml.parsers.ParserConfigurationException;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
@@ -142,7 +139,7 @@ public class URLCacheTest extends TestCase {
     // 1st request of a URL
     //     Succeed
     //         Commit                            [test_New_Commit]
-    public void test_New_Commit() throws IOException, JSONException {
+    public void test_New_Commit() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();
@@ -184,7 +181,7 @@ public class URLCacheTest extends TestCase {
     // 1st request of a URL
     //     Succeed
     //         Rollback                          [test_New_Rollback]
-    public void test_New_Rollback() throws IOException, JSONException {
+    public void test_New_Rollback() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();
@@ -226,7 +223,7 @@ public class URLCacheTest extends TestCase {
     // 1st request of a URL
     //     Failed (an error occurred and null is returned)
     //         Commit                            [test_New_FailedCommit]
-    public void test_New_FailedCommit() throws IOException, JSONException {
+    public void test_New_FailedCommit() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();
@@ -267,7 +264,7 @@ public class URLCacheTest extends TestCase {
     // 1st request of a URL
     //     Failed (an error occurred and null is returned)
     //         Rollback                          [test_New_FailedRollback]
-    public void test_New_FailedRollback() throws IOException, JSONException {
+    public void test_New_FailedRollback() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();
@@ -311,7 +308,7 @@ public class URLCacheTest extends TestCase {
     // 1st request was approved
     //     Before timeout (should return what is in the cache, no re-download)
     //         2nd request (cached) - Commit     [test_Approved_Commit]
-    public void test_Approved_Commit() throws IOException, JSONException {
+    public void test_Approved_Commit() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();
@@ -365,7 +362,7 @@ public class URLCacheTest extends TestCase {
     // 1st request was approved
     //     Before timeout (should return what is in the cache, no re-download)
     //         2nd request (cached) - Rollback   [test_Approved_Rollback]
-    public void test_Approved_Rollback() throws IOException, JSONException {
+    public void test_Approved_Rollback() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();
@@ -425,7 +422,7 @@ public class URLCacheTest extends TestCase {
     //     After timeout (re-download)
     //         2nd request - Succeed
     //             Commit                        [test_ApprovedTimeout_Commit]
-    public void test_ApprovedTimeout_Commit() throws IOException, JSONException {
+    public void test_ApprovedTimeout_Commit() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();
@@ -488,7 +485,7 @@ public class URLCacheTest extends TestCase {
     //     After timeout (re-download)
     //         2nd request - Succeed
     //             Rollback                      [test_ApprovedTimeout_Rollback]
-    public void test_ApprovedTimeout_Rollback() throws IOException, JSONException {
+    public void test_ApprovedTimeout_Rollback() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();
@@ -555,7 +552,7 @@ public class URLCacheTest extends TestCase {
     //     After timeout (re-download)
     //         2nd request - Failed (an error occurred and null is returned)
     //             Commit                        [test_ApprovedTimeout_FailedCommit]
-    public void test_ApprovedTimeout_FailedCommit() throws IOException, JSONException {
+    public void test_ApprovedTimeout_FailedCommit() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();
@@ -616,7 +613,7 @@ public class URLCacheTest extends TestCase {
     //     After timeout (re-download)
     //         2nd request - Failed (an error occurred and null is returned)
     //             Rollback                      [test_ApprovedTimeout_FailedRollback]
-    public void test_ApprovedTimeout_FailedRollback() throws IOException, JSONException {
+    public void test_ApprovedTimeout_FailedRollback() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();
@@ -684,7 +681,7 @@ public class URLCacheTest extends TestCase {
     // 1st request was NOT approved
     //     Before timeout (should return what is in the cache, no re-download)
     //         2nd request (cached) - Commit     [test_NotApproved_Commit]
-    public void test_NotApproved_Commit() throws IOException, JSONException {
+    public void test_NotApproved_Commit() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();
@@ -738,7 +735,7 @@ public class URLCacheTest extends TestCase {
     // 1st request was NOT approved
     //     Before timeout (should return what is in the cache, no re-download)
     //         2nd request (cached) - Rollback   [test_NotApproved_Rollback]
-    public void test_NotApproved_Rollback() throws IOException, JSONException {
+    public void test_NotApproved_Rollback() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();
@@ -797,7 +794,7 @@ public class URLCacheTest extends TestCase {
     //     After timeout (re-download)
     //         2nd request - Succeed
     //             Commit                        [test_NotApprovedTimeout_Commit]
-    public void test_NotApprovedTimeout_Commit() throws IOException, JSONException {
+    public void test_NotApprovedTimeout_Commit() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();
@@ -864,7 +861,7 @@ public class URLCacheTest extends TestCase {
     //     After timeout (re-download)
     //         2nd request - Succeed
     //             Rollback                      [test_NotApprovedTimeout_Rollback]
-    public void test_NotApprovedTimeout_Rollback() throws IOException, JSONException {
+    public void test_NotApprovedTimeout_Rollback() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();
@@ -929,7 +926,7 @@ public class URLCacheTest extends TestCase {
     //     After timeout (re-download)
     //         2nd request - Failed (an error occurred and null is returned)
     //             Commit                        [test_NotApprovedTimeout_FailedCommit]
-    public void test_NotApprovedTimeout_FailedCommit() throws IOException, JSONException {
+    public void test_NotApprovedTimeout_FailedCommit() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();
@@ -996,7 +993,7 @@ public class URLCacheTest extends TestCase {
     //     After timeout (re-download)
     //         2nd request - Failed (an error occurred and null is returned)
     //             Rollback                      [test_NotApprovedTimeout_FailedRollback]
-    public void test_NotApprovedTimeout_FailedRollback() throws IOException, JSONException {
+    public void test_NotApprovedTimeout_FailedRollback() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();
@@ -1069,7 +1066,7 @@ public class URLCacheTest extends TestCase {
     // 1st request returned null
     //     Before timeout (should return what is in the cache, no re-download)
     //         2nd request (cached) - Commit     [test_Null_Commit]
-    public void test_Null_Commit() throws IOException, JSONException {
+    public void test_Null_Commit() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();
@@ -1126,7 +1123,7 @@ public class URLCacheTest extends TestCase {
     // 1st request returned null
     //     Before timeout (should return what is in the cache, no re-download)
     //         2nd request (cached) - Rollback   [test_Null_Rollback]
-    public void test_Null_Rollback() throws IOException, JSONException {
+    public void test_Null_Rollback() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();
@@ -1188,7 +1185,7 @@ public class URLCacheTest extends TestCase {
     //     After timeout (re-download)
     //         2nd request - Succeed
     //             Commit                        [test_NullTimeout_Commit]
-    public void test_NullTimeout_Commit() throws IOException, JSONException {
+    public void test_NullTimeout_Commit() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();
@@ -1259,7 +1256,7 @@ public class URLCacheTest extends TestCase {
     //     After timeout (re-download)
     //         2nd request - Succeed
     //             Rollback                      [test_NullTimeout_Rollback]
-    public void test_NullTimeout_Rollback() throws IOException, JSONException {
+    public void test_NullTimeout_Rollback() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();
@@ -1331,7 +1328,7 @@ public class URLCacheTest extends TestCase {
     //     After timeout (re-download)
     //         2nd request - Failed (an error occurred and null is returned)
     //             Commit                        [test_NullTimeout_FailedCommit]
-    public void test_NullTimeout_FailedCommit() throws IOException, JSONException {
+    public void test_NullTimeout_FailedCommit() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();
@@ -1397,7 +1394,7 @@ public class URLCacheTest extends TestCase {
     //     After timeout (re-download)
     //         2nd request - Failed (an error occurred and null is returned)
     //             Rollback                      [test_NullTimeout_FailedRollback]
-    public void test_NullTimeout_FailedRollback() throws IOException, JSONException {
+    public void test_NullTimeout_FailedRollback() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();
@@ -1463,7 +1460,7 @@ public class URLCacheTest extends TestCase {
 
     //     [testFailTooLongNoFileSize]
     //         Request file, it's now too large, return null, rollback. Ensure it do not download the whole thing.
-    public void testFailTooLongNoFileSize() throws IOException, JSONException {
+    public void testFailTooLongNoFileSize() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();
@@ -1486,7 +1483,7 @@ public class URLCacheTest extends TestCase {
 
     //     [testDownloadFailThenSucceed]
     //         Receive null at first request, rollback - timeout - receive something at 2nd request, commit
-    public void testDownloadFailThenSucceed() throws IOException, JSONException {
+    public void testDownloadFailThenSucceed() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();
@@ -1546,7 +1543,7 @@ public class URLCacheTest extends TestCase {
     //     [testSucceedThenTooLong]
     //         Request file, commit - timeout - request same file, it's now too large, return null, rollback
     // TODO REDO THIS TEST - LOGIC HAS CHANGED
-    public void testSucceedThenTooLong() throws IOException, JSONException {
+    public void testSucceedThenTooLong() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();
@@ -1593,7 +1590,7 @@ public class URLCacheTest extends TestCase {
 
     //     [testSucceedTwiceWithSameResult]
     //         Get XML GetCapabilities document, parse, commit - timeout - receive same doc after timeout, parse, commit
-    public void testSucceedTwiceWithSameResult() throws IOException, JSONException, URISyntaxException, SAXException {
+    public void testSucceedTwiceWithSameResult() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();
@@ -1637,7 +1634,7 @@ public class URLCacheTest extends TestCase {
 
     //     [testParseFailThenSucceed]
     //         Get XML GetCapabilities document with stacktrace, unable to parse, rollback - timeout - receive valid document, parse, commit
-    public void testParseFailThenSucceed() throws IOException, JSONException, URISyntaxException, SAXException {
+    public void testParseFailThenSucceed() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();
@@ -1683,7 +1680,7 @@ public class URLCacheTest extends TestCase {
 
     //     [testSucceedThenParseFail]
     //         Get XML GetCapabilities document, parse, commit - timeout - receive document with stacktrace, unable to parse, rollback
-    public void testSucceedThenParseFail() throws IOException, JSONException, URISyntaxException, SAXException {
+    public void testSucceedThenParseFail() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();
@@ -1731,7 +1728,7 @@ public class URLCacheTest extends TestCase {
 
     //     [testTC211ParseFailThenTC211Succeed]
     //         Request TC211 document, receive HTML, unable to parse, rollback - timeout - receive valid TC211 document, parse, commit
-    public void testTC211ParseFailThenTC211Succeed() throws IOException, JSONException, SAXException, ParserConfigurationException {
+    public void testTC211ParseFailThenTC211Succeed() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();
@@ -1776,7 +1773,7 @@ public class URLCacheTest extends TestCase {
 
     //     [testTC211SucceedThenTC211ParseFail]
     //         Request TC211 document, parse, commit - timeout - receive HTML doc instead of TC211 document, unable to parse, rollback
-    public void testTC211SucceedThenTC211ParseFail() throws IOException, JSONException, SAXException, ParserConfigurationException {
+    public void testTC211SucceedThenTC211ParseFail() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();
@@ -1823,7 +1820,7 @@ public class URLCacheTest extends TestCase {
     //     [testMultiUrl_Fail1_Success2_Fail1_WithRollback]
     //         URL1 return null, rollback - URL2 (same domain) return file, commit - request URL1 again (before timeout), expect null
     // NOTE: This test may fail if the URL Cache class do not remove the filename when the file is deleted or not created.
-    public void testMultiUrl_Fail1_Success2_Fail1_WithRollback() throws IOException, JSONException {
+    public void testMultiUrl_Fail1_Success2_Fail1_WithRollback() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();
@@ -1893,7 +1890,7 @@ public class URLCacheTest extends TestCase {
     //     [testMultiUrl_Fail1_Success2_Fail1_WithCommit]
     //         URL1 return null, commit - URL2 (same domain) return file, commit - request URL1 again (before timeout), expect null
     // NOTE: This test may fail if the URL Cache class do not remove the filename when the file is deleted or not created.
-    public void testMultiUrl_Fail1_Success2_Fail1_WithCommit() throws IOException, JSONException {
+    public void testMultiUrl_Fail1_Success2_Fail1_WithCommit() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();
@@ -1956,7 +1953,7 @@ public class URLCacheTest extends TestCase {
         }
     }
 
-    public void testDeleteOldEntries() throws IOException, JSONException, InterruptedException {
+    public void testDeleteOldEntries() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
             ConfigManager configManager = getConfigManager();

@@ -1379,6 +1379,11 @@ Ext.define('Writer.LayerServerConfigGrid', {
                 'action': 'GETLOGS',
                 'dataSourceId': dataSourceId
             },
+            'dataSourcesConfig.jsp',
+            {
+                'action': 'STOP_PROCESS',
+                'dataSourceId': dataSourceId
+            },
             function(that) {
                 return function(responseObj) {
                     that.onReload();

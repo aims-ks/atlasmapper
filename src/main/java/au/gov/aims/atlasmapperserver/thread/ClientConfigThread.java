@@ -53,158 +53,174 @@ public class ClientConfigThread extends AbstractConfigThread {
 
     @Override
     public void run() {
-        // Collect error messages
-        Date startDate = new Date();
         ThreadLogger logger = this.getLogger();
-        logger.log(Level.INFO, "Building client: " + this.clientConfig.getClientName());
 
-        // Load data sources
-        Map<String, DataSourceWrapper> dataSources = null;
-        DataSourceWrapper googleDataSource = null;
         try {
-            dataSources = this.clientConfig.loadDataSources();
+            // Collect error messages
+            Date startDate = new Date();
+            logger.log(Level.INFO, "Building client: " + this.clientConfig.getClientName());
 
-            // Find a google data source, if any (to find out if we need to add google support)
-            googleDataSource = this.clientConfig.getFirstGoogleDataSource(dataSources);
-        } catch(Exception ex) {
-            logger.log(Level.SEVERE, "Error occurred while loading the datasource: " + Utils.getExceptionMessage(ex), ex);
-        }
+            RevivableThread.checkForInterruption();
 
-        // Check for write access before doing any processing,
-        File clientFolder = FileFinder.getClientFolder(this.clientConfig.getConfigManager().getApplicationFolder(), this.clientConfig);
-        String tomcatUser = System.getProperty("user.name");
-        if (clientFolder.exists()) {
-            // The client do exists, check if we have write access to it.
-            if (!clientFolder.canWrite()) {
-                logger.log(Level.SEVERE, String.format("The client could not be generated. " +
-                        "The AtlasMapper do not have write access to the client folder %s. " +
-                        "Give write access to the user %s to the client folder and try regenerating the client.",
-                        clientFolder.getAbsolutePath(), tomcatUser));
-            }
-        } else {
-            // The client do not exists, check if it can be created.
-            if (!Utils.recursiveIsWritable(clientFolder)) {
-                logger.log(Level.SEVERE, String.format("The client could not be generated. " +
-                        "The AtlasMapper can not create the client folder %s. " +
-                        "Give write access to the user %s to the parent folder or " +
-                        "create the client folder manually with write access to the user %s and try regenerating the client.",
-                        clientFolder.getAbsolutePath(), tomcatUser, tomcatUser));
-            }
-        }
-
-        // Get the layer catalog from the data source save state and the client layer overrides.
-        DataSourceWrapper layerCatalog = null;
-        int nbLayers = 0;
-        if (logger.getErrorCount() == 0) {
+            // Load data sources
+            Map<String, DataSourceWrapper> dataSources = null;
+            DataSourceWrapper googleDataSource = null;
             try {
-                layerCatalog = this.clientConfig.getLayerCatalog(logger, dataSources);
-                nbLayers = layerCatalog.getLayers() == null ? 0 : layerCatalog.getLayers().length();
+                dataSources = this.clientConfig.loadDataSources();
 
-                if (nbLayers <= 0) {
-                    logger.log(Level.WARNING, "The client has no available layers");
+                // Find a google data source, if any (to find out if we need to add google support)
+                googleDataSource = this.clientConfig.getFirstGoogleDataSource(dataSources);
+            } catch(Exception ex) {
+                logger.log(Level.SEVERE, "Error occurred while loading the datasource: " + Utils.getExceptionMessage(ex), ex);
+            }
+
+            RevivableThread.checkForInterruption();
+
+            // Check for write access before doing any processing,
+            File clientFolder = FileFinder.getClientFolder(this.clientConfig.getConfigManager().getApplicationFolder(), this.clientConfig);
+            String tomcatUser = System.getProperty("user.name");
+            if (clientFolder.exists()) {
+                // The client do exists, check if we have write access to it.
+                if (!clientFolder.canWrite()) {
+                    logger.log(Level.SEVERE, String.format("The client could not be generated. " +
+                            "The AtlasMapper do not have write access to the client folder %s. " +
+                            "Give write access to the user %s to the client folder and try regenerating the client.",
+                            clientFolder.getAbsolutePath(), tomcatUser));
                 }
-            } catch (IOException ex) {
-                logger.log(Level.SEVERE, "An IO exception occurred while generating the layer catalog: " + Utils.getExceptionMessage(ex), ex);
-            } catch (JSONException ex) {
-                logger.log(Level.SEVERE, "A JSON exception occurred while generating the layer catalog: " + Utils.getExceptionMessage(ex), ex);
-            }
-
-            try {
-                this.copyClientFilesIfNeeded(this.completeGeneration);
-            } catch (IOException ex) {
-                // Those error are very unlikely to happen since we already checked the folder write access.
-                if (clientFolder.exists()) {
-                    logger.log(Level.SEVERE, String.format("An unexpected exception occurred while copying the client files to the folder %s: %s",
-                            clientFolder.getAbsolutePath(), Utils.getExceptionMessage(ex)), ex);
-                } else {
-                    logger.log(Level.SEVERE, String.format("The client could not be generated; The AtlasMapper were not able to create the client folder %s. " +
+            } else {
+                // The client do not exists, check if it can be created.
+                if (!Utils.recursiveIsWritable(clientFolder)) {
+                    logger.log(Level.SEVERE, String.format("The client could not be generated. " +
+                            "The AtlasMapper can not create the client folder %s. " +
                             "Give write access to the user %s to the parent folder or " +
-                            "create the client folder manually with write access to the user %s and try regenerating the client: %s",
-                            clientFolder.getAbsolutePath(), tomcatUser, tomcatUser, Utils.getExceptionMessage(ex)), ex);
+                            "create the client folder manually with write access to the user %s and try regenerating the client.",
+                            clientFolder.getAbsolutePath(), tomcatUser, tomcatUser));
                 }
             }
-        }
 
-        // Layer validation
-        ClientWrapper generatedMainConfig = null;
-        ClientWrapper generatedEmbeddedConfig = null;
-        JSONObject generatedLayers = null;
-        if (logger.getErrorCount() == 0) {
-            try {
-                generatedMainConfig = new ClientWrapper(this.clientConfig.getConfigManager().getClientConfigFileJSon(layerCatalog, dataSources, this.clientConfig, ConfigType.MAIN, true));
-                generatedEmbeddedConfig = new ClientWrapper(this.clientConfig.getConfigManager().getClientConfigFileJSon(layerCatalog, dataSources, this.clientConfig, ConfigType.EMBEDDED, true));
-                generatedLayers = this.clientConfig.getConfigManager().getClientConfigFileJSon(layerCatalog, dataSources, this.clientConfig, ConfigType.LAYERS, true);
+            RevivableThread.checkForInterruption();
 
-                // Show warning for each default layers that are not defined in the layer catalog.
-                List<String> defaultLayerIds = this.clientConfig.getDefaultLayersList();
-                if (layerCatalog != null && defaultLayerIds != null && !defaultLayerIds.isEmpty()) {
-                    JSONObject jsonLayers = layerCatalog.getLayers();
-                    if (jsonLayers != null) {
-                        for (String defaultLayerId : defaultLayerIds) {
-                            if (!jsonLayers.has(defaultLayerId)) {
-                                logger.log(Level.WARNING, String.format("The layer ID %s, specified in the default layers, could not be found in the layer catalog.",
-                                        defaultLayerId));
+            // Get the layer catalog from the data source save state and the client layer overrides.
+            DataSourceWrapper layerCatalog = null;
+            int nbLayers = 0;
+            if (logger.getErrorCount() == 0) {
+                try {
+                    layerCatalog = this.clientConfig.getLayerCatalog(logger, dataSources);
+                    nbLayers = layerCatalog.getLayers() == null ? 0 : layerCatalog.getLayers().length();
+
+                    if (nbLayers <= 0) {
+                        logger.log(Level.WARNING, "The client has no available layers");
+                    }
+                } catch (IOException ex) {
+                    logger.log(Level.SEVERE, "An IO exception occurred while generating the layer catalog: " + Utils.getExceptionMessage(ex), ex);
+                } catch (JSONException ex) {
+                    logger.log(Level.SEVERE, "A JSON exception occurred while generating the layer catalog: " + Utils.getExceptionMessage(ex), ex);
+                }
+
+                try {
+                    this.copyClientFilesIfNeeded(this.completeGeneration);
+                } catch (IOException ex) {
+                    // Those error are very unlikely to happen since we already checked the folder write access.
+                    if (clientFolder.exists()) {
+                        logger.log(Level.SEVERE, String.format("An unexpected exception occurred while copying the client files to the folder %s: %s",
+                                clientFolder.getAbsolutePath(), Utils.getExceptionMessage(ex)), ex);
+                    } else {
+                        logger.log(Level.SEVERE, String.format("The client could not be generated; The AtlasMapper were not able to create the client folder %s. " +
+                                "Give write access to the user %s to the parent folder or " +
+                                "create the client folder manually with write access to the user %s and try regenerating the client: %s",
+                                clientFolder.getAbsolutePath(), tomcatUser, tomcatUser, Utils.getExceptionMessage(ex)), ex);
+                    }
+                }
+            }
+
+            RevivableThread.checkForInterruption();
+
+            // Layer validation
+            ClientWrapper generatedMainConfig = null;
+            ClientWrapper generatedEmbeddedConfig = null;
+            JSONObject generatedLayers = null;
+            if (logger.getErrorCount() == 0) {
+                try {
+                    generatedMainConfig = new ClientWrapper(this.clientConfig.getConfigManager().getClientConfigFileJSon(layerCatalog, dataSources, this.clientConfig, ConfigType.MAIN, true));
+                    generatedEmbeddedConfig = new ClientWrapper(this.clientConfig.getConfigManager().getClientConfigFileJSon(layerCatalog, dataSources, this.clientConfig, ConfigType.EMBEDDED, true));
+                    generatedLayers = this.clientConfig.getConfigManager().getClientConfigFileJSon(layerCatalog, dataSources, this.clientConfig, ConfigType.LAYERS, true);
+
+                    // Show warning for each default layers that are not defined in the layer catalog.
+                    List<String> defaultLayerIds = this.clientConfig.getDefaultLayersList();
+                    if (layerCatalog != null && defaultLayerIds != null && !defaultLayerIds.isEmpty()) {
+                        JSONObject jsonLayers = layerCatalog.getLayers();
+                        if (jsonLayers != null) {
+                            for (String defaultLayerId : defaultLayerIds) {
+                                if (!jsonLayers.has(defaultLayerId)) {
+                                    logger.log(Level.WARNING, String.format("The layer ID %s, specified in the default layers, could not be found in the layer catalog.",
+                                            defaultLayerId));
+                                }
                             }
                         }
                     }
+                } catch (IOException ex) {
+                    // Very unlikely to happen
+                    logger.log(Level.SEVERE, "An IO exception occurred while generating the client config: " + Utils.getExceptionMessage(ex), ex);
+                } catch (JSONException ex) {
+                    // Very unlikely to happen
+                    logger.log(Level.SEVERE, "A JSON exception occurred while generating the client config: " + Utils.getExceptionMessage(ex), ex);
                 }
-            } catch (IOException ex) {
-                // Very unlikely to happen
-                logger.log(Level.SEVERE, "An IO exception occurred while generating the client config: " + Utils.getExceptionMessage(ex), ex);
-            } catch (JSONException ex) {
-                // Very unlikely to happen
-                logger.log(Level.SEVERE, "A JSON exception occurred while generating the client config: " + Utils.getExceptionMessage(ex), ex);
             }
-        }
 
-        // Save config to disk
-        if (logger.getErrorCount() == 0) {
-            try {
-                this.generateTemplateFiles(layerCatalog, generatedMainConfig, googleDataSource);
-                this.saveGeneratedConfigs(generatedMainConfig, generatedEmbeddedConfig, generatedLayers);
+            RevivableThread.checkForInterruption();
 
-                // Flush the proxy cache
-                Proxy.reloadConfig(generatedMainConfig, generatedLayers, this.clientConfig);
+            // Save config to disk
+            if (logger.getErrorCount() == 0) {
+                try {
+                    this.generateTemplateFiles(layerCatalog, generatedMainConfig, googleDataSource);
+                    this.saveGeneratedConfigs(generatedMainConfig, generatedEmbeddedConfig, generatedLayers);
 
-                this.clientConfig.setLastGeneratedDate(new Date());
-                // Write the changes to disk
-                this.clientConfig.getConfigManager().saveServerConfig();
-            } catch (TemplateException ex) {
-                // May happen if a template is modified.
-                logger.log(Level.SEVERE, "Can not process the client templates: " + Utils.getExceptionMessage(ex), ex);
-            } catch (IOException ex) {
-                // May happen if a template is modified.
-                logger.log(Level.SEVERE, "An IO exception occurred while generating the client config: " + Utils.getExceptionMessage(ex), ex);
-            } catch (JSONException ex) {
-                // Very unlikely to happen
-                logger.log(Level.SEVERE, "A JSON exception occurred while generating the client config: " + Utils.getExceptionMessage(ex), ex);
+                    // Flush the proxy cache
+                    Proxy.reloadConfig(generatedMainConfig, generatedLayers, this.clientConfig);
+
+                    this.clientConfig.setLastGeneratedDate(new Date());
+                    // Write the changes to disk
+                    this.clientConfig.getConfigManager().saveServerConfig();
+                } catch (TemplateException ex) {
+                    // May happen if a template is modified.
+                    logger.log(Level.SEVERE, "Can not process the client templates: " + Utils.getExceptionMessage(ex), ex);
+                } catch (IOException ex) {
+                    // May happen if a template is modified.
+                    logger.log(Level.SEVERE, "An IO exception occurred while generating the client config: " + Utils.getExceptionMessage(ex), ex);
+                } catch (JSONException ex) {
+                    // Very unlikely to happen
+                    logger.log(Level.SEVERE, "A JSON exception occurred while generating the client config: " + Utils.getExceptionMessage(ex), ex);
+                }
             }
-        }
 
-        // Create the elapse time message
-        Date endDate = new Date();
-        long elapseTimeMs = endDate.getTime() - startDate.getTime();
-        double elapseTimeSec = elapseTimeMs / 1000.0;
-        double elapseTimeMin = elapseTimeSec / 60.0;
+            // Create the elapse time message
+            Date endDate = new Date();
+            long elapseTimeMs = endDate.getTime() - startDate.getTime();
+            double elapseTimeSec = elapseTimeMs / 1000.0;
+            double elapseTimeMin = elapseTimeSec / 60.0;
 
-        logger.log(Level.INFO, "Build time: " + (elapseTimeMin >= 1 ?
-                AbstractConfigThread.ELAPSE_TIME_FORMAT.format(elapseTimeMin) + " min" :
-                AbstractConfigThread.ELAPSE_TIME_FORMAT.format(elapseTimeSec) + " sec"));
+            logger.log(Level.INFO, "Build time: " + (elapseTimeMin >= 1 ?
+                    AbstractConfigThread.ELAPSE_TIME_FORMAT.format(elapseTimeMin) + " min" :
+                    AbstractConfigThread.ELAPSE_TIME_FORMAT.format(elapseTimeSec) + " sec"));
 
-        // Generation - Conclusion message
-        if (logger.getErrorCount() == 0) {
-            if (logger.getWarningCount() == 0) {
-                logger.log(Level.INFO, "Client generated successfully.");
+            // Generation - Conclusion message
+            if (logger.getErrorCount() == 0) {
+                if (logger.getWarningCount() == 0) {
+                    logger.log(Level.INFO, "Client generated successfully.");
+                } else {
+                    logger.log(Level.INFO, "Client generation passed.");
+                }
+                if (nbLayers > 1) {
+                    logger.log(Level.INFO, String.format("The client has %d layers available.", nbLayers));
+                } else {
+                    logger.log(Level.INFO, String.format("The client has %d layer available.", nbLayers));
+                }
             } else {
-                logger.log(Level.INFO, "Client generation passed.");
+                logger.log(Level.INFO, "Client generation failed.");
             }
-            if (nbLayers > 1) {
-                logger.log(Level.INFO, String.format("The client has %d layers available.", nbLayers));
-            } else {
-                logger.log(Level.INFO, String.format("The client has %d layer available.", nbLayers));
-            }
-        } else {
-            logger.log(Level.INFO, "Client generation failed.");
+
+        } catch (RevivableThreadInterruptedException ex) {
+            logger.log(Level.SEVERE, "Client generation cancelled by user.", ex);
         }
     }
 

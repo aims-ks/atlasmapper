@@ -18,9 +18,9 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-	Document   : userAccount
-	Created on : 28/06/2011, 4:08:39 PM
-	Author     : glafond
+    Document   : userAccount
+    Created on : 28/06/2011, 4:08:39 PM
+    Author     : glafond
 --%>
 
 <%@page import="java.util.logging.Level"%>
@@ -35,90 +35,90 @@
 <%@page import="au.gov.aims.atlasmapperserver.ConfigManager"%>
 <%@page contentType="application/json" pageEncoding="UTF-8"%>
 <%
-	Logger LOGGER = Logger.getLogger("userAccount.jsp");
+    Logger LOGGER = Logger.getLogger("userAccount.jsp");
 
-	ConfigManager configManager = ConfigHelper.getConfigManager(this.getServletConfig().getServletContext());
-	User loggedUser = LoginServlet.getLoggedUser(session);
+    ConfigManager configManager = ConfigHelper.getConfigManager(this.getServletConfig().getServletContext());
+    User loggedUser = LoginServlet.getLoggedUser(session);
 
-	String actionStr = request.getParameter("action");
+    String actionStr = request.getParameter("action");
 
-	JSONObject jsonObj = new JSONObject();
+    JSONObject jsonObj = new JSONObject();
 
-	if (Utils.isNotBlank(actionStr)) {
-		ActionType action = null;
-		try {
-			action = ActionType.valueOf(actionStr.toUpperCase());
-		} catch (Exception ex) { }
+    if (Utils.isNotBlank(actionStr)) {
+        ActionType action = null;
+        try {
+            action = ActionType.valueOf(actionStr.toUpperCase());
+        } catch (Exception ex) { }
 
-		if (action == null) {
-			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-			jsonObj.put("success", false);
-			jsonObj.put("errors", new JSONArray().put("Unknown action ["+actionStr+"]."));
-		} else {
-			switch(action) {
-				case READ:
-					try {
-						response.setStatus(HttpServletResponse.SC_OK);
-						jsonObj.put("success", true);
-						jsonObj.put("message", "Loaded data");
-						jsonObj.put("data", loggedUser.toJSonObject());
-					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "An error occurred while retrieving the user configuration: {0}", Utils.getExceptionMessage(e));
-						LOGGER.log(Level.WARNING, "Stack trace: ", e);
-						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-						jsonObj.put("success", false);
-						jsonObj.put("errors", new JSONArray().put("An error occurred while retrieving the user configuration: " + Utils.getExceptionMessage(e) + "\nCheck your server log."));
-					}
-					break;
+        if (action == null) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            jsonObj.put("success", false);
+            jsonObj.put("errors", new JSONArray().put("Unknown action ["+actionStr+"]."));
+        } else {
+            switch(action) {
+                case READ:
+                    try {
+                        response.setStatus(HttpServletResponse.SC_OK);
+                        jsonObj.put("success", true);
+                        jsonObj.put("message", "Loaded data");
+                        jsonObj.put("data", loggedUser.toJSonObject());
+                    } catch (Exception e) {
+                        LOGGER.log(Level.SEVERE, "An error occurred while retrieving the user configuration: {0}", Utils.getExceptionMessage(e));
+                        LOGGER.log(Level.WARNING, "Stack trace: ", e);
+                        response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                        jsonObj.put("success", false);
+                        jsonObj.put("errors", new JSONArray().put("An error occurred while retrieving the user configuration: " + Utils.getExceptionMessage(e) + "\nCheck your server logs."));
+                    }
+                    break;
 
-				case UPDATE:
-					// Get data from the form, update the config, save it, display the result
-					try {
-						loggedUser.update(request.getParameterMap());
-						String newPassword = request.getParameter("password");
-						if (Utils.isNotBlank(newPassword) && !configManager.isDemoMode()) {
-							String currentPassword = request.getParameter("currentPassword");
-							String passwordConfirm = request.getParameter("passwordConfirm");
-							if (loggedUser.verifyPassword(currentPassword) && newPassword.equals(passwordConfirm)) {
-								loggedUser.setPassword(newPassword);
+                case UPDATE:
+                    // Get data from the form, update the config, save it, display the result
+                    try {
+                        loggedUser.update(request.getParameterMap());
+                        String newPassword = request.getParameter("password");
+                        if (Utils.isNotBlank(newPassword) && !configManager.isDemoMode()) {
+                            String currentPassword = request.getParameter("currentPassword");
+                            String passwordConfirm = request.getParameter("passwordConfirm");
+                            if (loggedUser.verifyPassword(currentPassword) && newPassword.equals(passwordConfirm)) {
+                                loggedUser.setPassword(newPassword);
 
-								configManager.saveUsersConfig();
-								response.setStatus(HttpServletResponse.SC_OK);
-								jsonObj.put("success", true);
-								jsonObj.put("message", "Updated record");
-								jsonObj.put("data", configManager.getUser(loggedUser.getLoginName()));
-							} else {
-								response.setStatus(HttpServletResponse.SC_OK);
-								jsonObj.put("success", false);
-								jsonObj.put("errors", new JSONArray().put("The current password is invalid."));
-							}
-						} else {
-							configManager.saveUsersConfig();
-							response.setStatus(HttpServletResponse.SC_OK);
-							jsonObj.put("success", true);
-							jsonObj.put("message", "Updated record");
-							jsonObj.put("data", configManager.getUser(loggedUser.getLoginName()));
-						}
-					} catch (Exception e) {
-						LOGGER.log(Level.SEVERE, "An error occurred while updating the user configuration: {0}", Utils.getExceptionMessage(e));
-						LOGGER.log(Level.WARNING, "Stack trace: ", e);
-						response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-						jsonObj.put("success", false);
-						jsonObj.put("errors", new JSONArray().put("An error occurred while updating the user configuration: " + Utils.getExceptionMessage(e) + "\nCheck your server log."));
-					}
-					break;
+                                configManager.saveUsersConfig();
+                                response.setStatus(HttpServletResponse.SC_OK);
+                                jsonObj.put("success", true);
+                                jsonObj.put("message", "Updated record");
+                                jsonObj.put("data", configManager.getUser(loggedUser.getLoginName()));
+                            } else {
+                                response.setStatus(HttpServletResponse.SC_OK);
+                                jsonObj.put("success", false);
+                                jsonObj.put("errors", new JSONArray().put("The current password is invalid."));
+                            }
+                        } else {
+                            configManager.saveUsersConfig();
+                            response.setStatus(HttpServletResponse.SC_OK);
+                            jsonObj.put("success", true);
+                            jsonObj.put("message", "Updated record");
+                            jsonObj.put("data", configManager.getUser(loggedUser.getLoginName()));
+                        }
+                    } catch (Exception e) {
+                        LOGGER.log(Level.SEVERE, "An error occurred while updating the user configuration: {0}", Utils.getExceptionMessage(e));
+                        LOGGER.log(Level.WARNING, "Stack trace: ", e);
+                        response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                        jsonObj.put("success", false);
+                        jsonObj.put("errors", new JSONArray().put("An error occurred while updating the user configuration: " + Utils.getExceptionMessage(e) + "\nCheck your server logs."));
+                    }
+                    break;
 
-				default:
-					response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-					jsonObj.put("success", false);
-					jsonObj.put("errors", new JSONArray().put("Unknown action '"+actionStr+"'.")); // TODO WATCHOUT FOR INJECTION!!!
-					break;
-			}
-		}
-	} else {
-		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-		jsonObj.put("success", false);
-		jsonObj.put("errors", new JSONArray().put("Missing parameter [action]."));
-	}
+                default:
+                    response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    jsonObj.put("success", false);
+                    jsonObj.put("errors", new JSONArray().put("Unknown action '"+actionStr+"'.")); // TODO WATCHOUT FOR INJECTION!!!
+                    break;
+            }
+        }
+    } else {
+        response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        jsonObj.put("success", false);
+        jsonObj.put("errors", new JSONArray().put("Missing parameter [action]."));
+    }
 %>
 <%=jsonObj.toString() %>

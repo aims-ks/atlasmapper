@@ -28,6 +28,8 @@ import au.gov.aims.atlasmapperserver.dataSourceConfig.WMSDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerStyleConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.WMSLayerConfig;
+import au.gov.aims.atlasmapperserver.thread.RevivableThread;
+import au.gov.aims.atlasmapperserver.thread.RevivableThreadInterruptedException;
 import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
 import au.gov.aims.atlasmapperserver.xml.TC211.TC211Document;
 import au.gov.aims.atlasmapperserver.xml.TC211.TC211Parser;
@@ -45,6 +47,7 @@ import org.json.JSONSortedObject;
 import org.opengis.util.InternationalString;
 
 import java.io.File;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
@@ -98,12 +101,22 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
      * @return
      */
     @Override
-    protected String getUniqueLayerId(WMSLayerConfig layer, WMSDataSourceConfig dataSourceConfig) {
+    protected String getUniqueLayerId(WMSLayerConfig layer, WMSDataSourceConfig dataSourceConfig) throws RevivableThreadInterruptedException {
+        RevivableThread.checkForInterruption();
+
         return layer.getLayerId();
     }
 
     @Override
-    public LayerCatalog generateRawLayerCatalog(ThreadLogger logger, D dataSourceClone, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles) {
+    public LayerCatalog generateRawLayerCatalog(
+            ThreadLogger logger,
+            D dataSourceClone,
+            boolean redownloadPrimaryFiles,
+            boolean redownloadSecondaryFiles
+    ) throws RevivableThreadInterruptedException {
+
+        RevivableThread.checkForInterruption();
+
         LayerCatalog layerCatalog = new LayerCatalog();
         Map<String, L> layersMap = null;
         URL wmsServiceUrl = null;
@@ -112,7 +125,14 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 
         WMSCapabilities wmsCapabilities = null;
         try {
-            wmsCapabilities = URLCache.getWMSCapabilitiesResponse(logger, configManager, this.wmsVersion, dataSourceClone, dataSourceServiceUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, true);
+            wmsCapabilities = URLCache.getWMSCapabilitiesResponse(
+                    logger,
+                    configManager,
+                    this.wmsVersion,
+                    dataSourceClone,
+                    dataSourceServiceUrlStr,
+                    URLCache.Category.CAPABILITIES_DOCUMENT,
+                    true);
         } catch (Exception ex) {
             logger.log(Level.WARNING, String.format("Error occurred while parsing the [GetCapabilities document](%s): %s",
                     dataSourceServiceUrlStr, Utils.getExceptionMessage(ex)), ex);
@@ -163,17 +183,14 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
             }
         }
 
+        RevivableThread.checkForInterruption();
+
         Collection<L> layers = null;
         if (layersMap != null && !layersMap.isEmpty()) {
             if (dataSourceClone.isWebCacheEnable() != null && dataSourceClone.isWebCacheEnable() && wmsServiceUrl != null) {
                 layers = new ArrayList<L>(layersMap.size());
-                Map<String, L> cachedLayers = null;
-                try {
-                    cachedLayers = this.generateRawCachedLayerConfigs(logger, dataSourceClone, wmsServiceUrl);
-                } catch (Exception ex) {
-                    logger.log(Level.WARNING, String.format("Error occurred while parsing the [WMTS capabilities document](%s): %s",
-                            wmsServiceUrl, Utils.getExceptionMessage(ex)), ex);
-                }
+                Map<String, L> cachedLayers = this.generateRawCachedLayerConfigs(logger, dataSourceClone, wmsServiceUrl);
+                RevivableThread.checkForInterruption();
 
                 // Since we are not parsing the Cache server WMS capability document, we can not find which version of WMS it is using...
                 // Fallback to 1.1.1, it's very well supported.
@@ -202,6 +219,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 
                     layers.add(layer);
                 }
+                RevivableThread.checkForInterruption();
 
                 if (fallback) {
                     logger.log(Level.WARNING, "Could not find a valid WMTS capability document. " +
@@ -214,6 +232,8 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
             }
         }
         layerCatalog.addLayers(layers);
+
+        RevivableThread.checkForInterruption();
 
         return layerCatalog;
     }
@@ -244,13 +264,18 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
         }
     }
 
-    private Map<String, L> generateRawCachedLayerConfigs(ThreadLogger logger, D dataSourceClone, URL wmsServiceUrl) throws Exception {
+    private Map<String, L> generateRawCachedLayerConfigs(ThreadLogger logger, D dataSourceClone, URL wmsServiceUrl)
+            throws RevivableThreadInterruptedException {
+
+        RevivableThread.checkForInterruption();
+
         // When the webCacheEnable checkbox is unchecked, no layers are cached.
         if (dataSourceClone.isWebCacheEnable() == null || dataSourceClone.isWebCacheEnable() == false) {
             return null;
         }
 
         WMTSDocument gwcCapabilities = this.getGWCDocument(logger, dataSourceClone.getConfigManager(), wmsServiceUrl, dataSourceClone);
+        RevivableThread.checkForInterruption();
 
         Map<String, L> layerConfigs = null;
 
@@ -266,6 +291,8 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                 this._propagateLayersInfoMapFromGeoToolRootLayer(logger, layerConfigs, rootLayer, new LinkedList<String>(), dataSourceClone, true);
             }
         }
+
+        RevivableThread.checkForInterruption();
 
         return layerConfigs;
     }
@@ -283,7 +310,11 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
      *     If that didn't work, try to rectify the WMTS capabilities document URL and try again.
      *     If that didn't work, return null and add an error.
      */
-    public WMTSDocument getGWCDocument(ThreadLogger logger, ConfigManager configManager, URL wmsServiceUrl, D dataSourceClone) {
+    private WMTSDocument getGWCDocument(ThreadLogger logger, ConfigManager configManager, URL wmsServiceUrl, D dataSourceClone)
+            throws RevivableThreadInterruptedException {
+
+        RevivableThread.checkForInterruption();
+
         // GWC service is not mandatory; failing to parse this won't cancel the generation of the client.
         boolean gwcMandatory = false;
 
@@ -306,9 +337,9 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 
             // gwcBaseURL = http://domain.com:80/geoserver/gwc/
             gwcBaseURL = new URL(baseURL, gwcSubPath+"/");
-        } catch (Exception ex) {
+        } catch (MalformedURLException ex) {
             // Error occurred while crafting the GWC URL. This is unlikely to happen.
-            logger.log(Level.FINE, String.format("Fail to craft a GWC URL using the [WMS URL](%s): %s",
+            logger.log(Level.FINE, String.format("Fail to craft a WMTS GetCapabilities URL using the [WMS URL](%s): %s",
                     wmsServiceUrl, Utils.getExceptionMessage(ex)), ex);
         }
 
@@ -321,9 +352,9 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                     gwcUrl = new URL(gwcBaseURL, "service/wms");
                     dataSourceClone.setWebCacheUrl(gwcUrl.toString());
                 }
-            } catch (Exception ex) {
+            } catch (MalformedURLException ex) {
                 // This should not happen
-                logger.log(Level.WARNING, String.format("Fail craft the GWC URL: %s",
+                logger.log(Level.WARNING, String.format("Fail craft the WMTS GetCapabilities URL: %s",
                         Utils.getExceptionMessage(ex)), ex);
             }
         }
@@ -347,10 +378,9 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
             }
         } catch (Exception ex) {
             // This should not happen
-            logger.log(Level.WARNING, String.format("Fail craft the GWC Capabilities Document URL: %s",
+            logger.log(Level.WARNING, String.format("Fail craft the WMTS GetCapabilities URL: %s",
                     Utils.getExceptionMessage(ex)), ex);
         }
-
 
         // Parsing of the GWC cap doc (WMTS)
         WMTSDocument document = null;
@@ -358,14 +388,15 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
         Level errorLevel = gwcMandatory ? Level.SEVERE : Level.WARNING;
 
         if (gwcCapUrl == null && gwcCapFile == null) {
-            logger.log(errorLevel, "Can not determine the GWC Capabilities document URL.");
+            logger.log(errorLevel, "Can not determine the WMTS GetCapabilities URL.");
         } else {
             try {
                 if (gwcCapFile != null) {
                     document = WMTSParser.parseFile(gwcCapFile, gwcCapUrlStr);
                 } else {
-                    // Get HTTP headers first. Only try to parse it if it returns a 200 (or equivalent)
-                    URLCache.ResponseStatus status = URLCache.getResponseStatus(gwcCapUrl.toString());
+                    // Get HTTP HEAD first. Only try to parse it if it returns a 200 (or equivalent)
+                    logger.log(Level.INFO, String.format("Verifying [WMTS GetCapabilities URL](%s)", gwcCapUrl));
+                    URLCache.ResponseStatus status = URLCache.getHttpHead(gwcCapUrl.toString());
                     if (status == null) {
                         logger.log(errorLevel, "Invalid URL: " + gwcCapUrl.toString());
                     } else {
@@ -387,9 +418,11 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
             } catch (Exception ex) {
                 // This happen every time the admin set a GWC base URL instead of a WMTS capabilities document.
                 // The next block try to work around this by crafting a WMTS URL.
-                logger.log(errorLevel, String.format("Fail to parse the [GWC URL](%s) as a WMTS capabilities document: %s",
+                logger.log(errorLevel, String.format("Fail to parse the [WMTS GetCapabilities](%s) as a WMTS capabilities document: %s",
                         gwcCapUrlStr, Utils.getExceptionMessage(ex)), ex);
             }
+
+            RevivableThread.checkForInterruption();
 
             // Try to add some parameters to the given GWC cap url (the provided URL may be incomplete,
             //   something like http://domain.com:80/geoserver/gwc/service/wmts)
@@ -405,8 +438,9 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                         // Add WMTS URL part
                         URL modifiedGwcCapUrl = new URL(modifiedGwcBaseURL, "service/wmts?REQUEST=getcapabilities");
 
-                        // Get HTTP headers again, but no error message. This URL has been crafted, no need to bother the user with it.
-                        URLCache.ResponseStatus status = URLCache.getResponseStatus(modifiedGwcCapUrl.toString());
+                        // Get HTTP HEAD to test the crafted URL
+                        logger.log(Level.INFO, String.format("Verifying crafted [WMTS GetCapabilities URL](%s)", modifiedGwcCapUrl));
+                        URLCache.ResponseStatus status = URLCache.getHttpHead(modifiedGwcCapUrl.toString());
                         if (status != null && status.isSuccess()) {
                             // Try to download the doc again
                             document = WMTSParser.parseURL(logger, configManager, dataSourceClone, modifiedGwcCapUrl, gwcMandatory);
@@ -417,9 +451,11 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                             // If it works, save the crafted URL
                             gwcCapUrl = modifiedGwcCapUrl;
                         }
+                        RevivableThread.checkForInterruption();
+
                     } catch (Exception ex) {
                         // Error occurred while crafting the GWC URL. This is unlikely to happen.
-                        logger.log(errorLevel, String.format("Fail to craft a valid GWC URL using the given [GWC URL](%s): %s",
+                        logger.log(errorLevel, String.format("Fail to craft a valid WMTS GetCapabilities URL using the given broken [WMTS GetCapabilities URL](%s): %s",
                                 gwcCapUrl, Utils.getExceptionMessage(ex)), ex);
                     }
                 }
@@ -449,7 +485,10 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
             ThreadLogger logger,
             WMSCapabilities wmsCapabilities,
             D dataSourceClone // Data source of layers (to link the layer to its data source)
-    ) {
+    ) throws RevivableThreadInterruptedException {
+
+        RevivableThread.checkForInterruption();
+
         if (wmsCapabilities == null) {
             return null;
         }
@@ -460,6 +499,8 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
         Map<String, L> layerConfigs = new HashMap<String, L>();
         // The boolean at the end is use to ignore the root from the capabilities document. It can be added (change to false) if some users think it's useful to see the root...
         this._propagateLayersInfoMapFromGeoToolRootLayer(logger, layerConfigs, rootLayer, new LinkedList<String>(), dataSourceClone, true);
+
+        RevivableThread.checkForInterruption();
 
         return layerConfigs;
     }
@@ -499,7 +540,9 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
             Layer layer,
             List<String> treePath,
             D dataSourceClone,
-            boolean isRoot) {
+            boolean isRoot) throws RevivableThreadInterruptedException {
+
+        RevivableThread.checkForInterruption();
 
         if (layer == null) {
             return;
@@ -559,7 +602,9 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
             ThreadLogger logger,
             Layer layer,
             String treePath,
-            D dataSourceClone) {
+            D dataSourceClone) throws RevivableThreadInterruptedException {
+
+        RevivableThread.checkForInterruption();
 
         L layerConfig = this.createLayerConfig(dataSourceClone.getConfigManager());
 
@@ -594,6 +639,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                     }
                 }
             }
+            RevivableThread.checkForInterruption();
 
             // There is metadata URL, but none of the one set with TC211 text/xml format are suitable.
             // Sometime, there is valid metadata URL but they have been entered incorrectly.
@@ -629,6 +675,8 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                         }
                     }
                 }
+                RevivableThread.checkForInterruption();
+
                 if (tc211Document != null) {
                     if (validMetadataUrl != null) {
                         logger.log(Level.INFO, String.format("Valid [TC211 metadata document](%s) found for layer %s identified as \"%s - %s\".",
@@ -736,6 +784,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                 layerConfig.setStyles(styles);
             }
         }
+        RevivableThread.checkForInterruption();
 
         CRSEnvelope boundingBox = layer.getLatLonBoundingBox();
         if (boundingBox != null) {

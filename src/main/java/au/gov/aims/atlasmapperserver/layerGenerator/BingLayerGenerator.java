@@ -24,6 +24,8 @@ package au.gov.aims.atlasmapperserver.layerGenerator;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.BingDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.BingLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
+import au.gov.aims.atlasmapperserver.thread.RevivableThread;
+import au.gov.aims.atlasmapperserver.thread.RevivableThreadInterruptedException;
 import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
 
 import java.util.logging.Level;
@@ -36,7 +38,11 @@ public class BingLayerGenerator extends AbstractLayerGenerator<BingLayerConfig, 
      * @return
      */
     @Override
-    protected String getUniqueLayerId(BingLayerConfig layer, BingDataSourceConfig dataSourceConfig) {
+    protected String getUniqueLayerId(BingLayerConfig layer, BingDataSourceConfig dataSourceConfig)
+            throws RevivableThreadInterruptedException {
+
+        RevivableThread.checkForInterruption();
+
         return layer.getLayerId();
     }
 
@@ -49,7 +55,15 @@ public class BingLayerGenerator extends AbstractLayerGenerator<BingLayerConfig, 
      * NOTE: Harvest is ignored since there is nothing to harvest.
      */
     @Override
-    public LayerCatalog generateRawLayerCatalog(ThreadLogger logger, BingDataSourceConfig dataSourceConfig, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles) {
+    public LayerCatalog generateRawLayerCatalog(
+            ThreadLogger logger,
+            BingDataSourceConfig dataSourceConfig,
+            boolean redownloadPrimaryFiles,
+            boolean redownloadSecondaryFiles
+    ) throws RevivableThreadInterruptedException {
+
+        RevivableThread.checkForInterruption();
+
         LayerCatalog layerCatalog = new LayerCatalog();
 
         logger.log(Level.INFO, "Adding Road layer");
@@ -64,7 +78,15 @@ public class BingLayerGenerator extends AbstractLayerGenerator<BingLayerConfig, 
         return layerCatalog;
     }
 
-    private BingLayerConfig createBingLayer(BingDataSourceConfig dataSourceConfig, String bingLayerType, String name, String description) {
+    private BingLayerConfig createBingLayer(
+            BingDataSourceConfig dataSourceConfig,
+            String bingLayerType,
+            String name,
+            String description
+    ) throws RevivableThreadInterruptedException {
+
+        RevivableThread.checkForInterruption();
+
         BingLayerConfig layerConfig = new BingLayerConfig(dataSourceConfig.getConfigManager());
 
         layerConfig.setLayerId(bingLayerType);
@@ -74,6 +96,7 @@ public class BingLayerGenerator extends AbstractLayerGenerator<BingLayerConfig, 
         layerConfig.setLayerBoundingBox(new double[]{-180, -90, 180, 90});
 
         this.ensureUniqueLayerId(layerConfig, dataSourceConfig);
+        RevivableThread.checkForInterruption();
 
         return layerConfig;
     }

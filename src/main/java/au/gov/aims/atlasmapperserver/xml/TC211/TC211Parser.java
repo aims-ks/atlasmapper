@@ -25,6 +25,8 @@ import au.gov.aims.atlasmapperserver.URLCache;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.jsonWrappers.client.LayerWrapper;
+import au.gov.aims.atlasmapperserver.thread.RevivableThread;
+import au.gov.aims.atlasmapperserver.thread.RevivableThreadInterruptedException;
 import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
 import org.json.JSONException;
 import org.xml.sax.SAXException;
@@ -61,7 +63,9 @@ public class TC211Parser {
      * @throws JSONException
      */
     public static TC211Document parseURL(ThreadLogger logger, String downloadedEntityName, ConfigManager configManager, AbstractDataSourceConfig dataSource, URL url, boolean mandatory, boolean validMimeType)
-            throws SAXException, ParserConfigurationException, IOException, JSONException {
+            throws SAXException, ParserConfigurationException, IOException, JSONException, RevivableThreadInterruptedException {
+
+        RevivableThread.checkForInterruption();
 
         String urlStr = url.toString();
         File cachedDocumentFile = null;
@@ -87,6 +91,8 @@ public class TC211Parser {
             File rollbackFile = URLCache.rollbackURLFile(logger, downloadedEntityName, configManager, cachedDocumentFile, urlStr, ex);
             tc211Document = parseFile(rollbackFile, urlStr);
         }
+
+        RevivableThread.checkForInterruption();
 
         // Still no metadata document found
         if (tc211Document == null) {
@@ -117,7 +123,11 @@ public class TC211Parser {
                                     craftedUrlStr,
                                     validMimeType ? URLCache.Category.MEST_RECORD : URLCache.Category.BRUTEFORCE_MEST_RECORD,
                                     mandatory);
+                            RevivableThread.checkForInterruption();
+
                             tc211Document = parseFile(cachedDocumentFile, craftedUrlStr);
+                            RevivableThread.checkForInterruption();
+
                             if (tc211Document == null) {
                                 File rollbackFile = URLCache.rollbackURLFile(logger, downloadedEntityName, configManager, cachedDocumentFile, craftedUrlStr, "Invalid TC211 document");
                                 tc211Document = parseFile(rollbackFile, craftedUrlStr);
@@ -130,6 +140,8 @@ public class TC211Parser {
                                 URLCache.setRedirection(configManager, urlStr, craftedUrlStr);
                                 URLCache.commitURLFile(configManager, cachedDocumentFile, craftedUrlStr);
                             }
+                            RevivableThread.checkForInterruption();
+
                         } catch (Exception ex) {
                             // Parsing a file that has already been accepted - Very unlikely to throw an exception here
                             File rollbackFile = URLCache.rollbackURLFile(logger, downloadedEntityName, configManager, cachedDocumentFile, craftedUrlStr, "Invalid TC211 document");
@@ -139,6 +151,7 @@ public class TC211Parser {
                 }
             }
         }
+        RevivableThread.checkForInterruption();
 
         return tc211Document;
     }
@@ -229,7 +242,9 @@ public class TC211Parser {
      * @throws JSONException
      */
     public static TC211Document parseFile(File file, String location)
-            throws SAXException, ParserConfigurationException, IOException, JSONException {
+            throws SAXException, ParserConfigurationException, IOException, RevivableThreadInterruptedException {
+
+        RevivableThread.checkForInterruption();
 
         if (file == null || !file.exists()) {
             return null;
@@ -241,6 +256,7 @@ public class TC211Parser {
         TC211Handler handler = new TC211Handler(doc);
 
         saxParser.parse(file, handler);
+        RevivableThread.checkForInterruption();
 
         return doc.isEmpty() ? null : doc;
     }
@@ -256,7 +272,7 @@ public class TC211Parser {
      * @throws JSONException
      */
     public static TC211Document parseInputStream(InputStream inputStream, String location)
-            throws SAXException, ParserConfigurationException, IOException, JSONException {
+            throws SAXException, ParserConfigurationException, IOException {
 
         if (inputStream == null) {
             throw new IllegalArgumentException("Can not parse null XML stream. " + location);

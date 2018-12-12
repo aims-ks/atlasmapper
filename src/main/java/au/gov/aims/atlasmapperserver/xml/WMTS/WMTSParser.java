@@ -23,6 +23,8 @@ package au.gov.aims.atlasmapperserver.xml.WMTS;
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.URLCache;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
+import au.gov.aims.atlasmapperserver.thread.RevivableThread;
+import au.gov.aims.atlasmapperserver.thread.RevivableThreadInterruptedException;
 import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
 import org.json.JSONException;
 import org.xml.sax.SAXException;
@@ -52,9 +54,12 @@ public class WMTSParser {
      * @throws ParserConfigurationException
      * @throws IOException
      * @throws JSONException
+     * @throws RevivableThreadInterruptedException
      */
     public static WMTSDocument parseURL(ThreadLogger logger, ConfigManager configManager, AbstractDataSourceConfig dataSource, URL url, boolean mandatory)
-            throws SAXException, ParserConfigurationException, IOException, JSONException {
+            throws SAXException, ParserConfigurationException, IOException, JSONException, RevivableThreadInterruptedException {
+
+        RevivableThread.checkForInterruption();
 
         String urlStr = url.toString();
         File cachedDocumentFile = null;
@@ -74,6 +79,7 @@ public class WMTSParser {
             File rollbackFile = URLCache.rollbackURLFile(logger, "WMTS GetCapabilities document", configManager, cachedDocumentFile, urlStr, ex);
             wmtsDocument = parseFile(rollbackFile, urlStr);
         }
+        RevivableThread.checkForInterruption();
 
         return wmtsDocument;
     }
@@ -96,10 +102,12 @@ public class WMTSParser {
      * @throws SAXException
      * @throws ParserConfigurationException
      * @throws IOException
-     * @throws JSONException
+     * @throws RevivableThreadInterruptedException
      */
     public static WMTSDocument parseFile(File file, String location)
-            throws SAXException, ParserConfigurationException, IOException, JSONException {
+            throws SAXException, ParserConfigurationException, IOException, RevivableThreadInterruptedException {
+
+        RevivableThread.checkForInterruption();
 
         if (file == null || !file.exists()) {
             return null;
@@ -111,6 +119,7 @@ public class WMTSParser {
         WMTSHandler handler = new WMTSHandler(doc);
 
         saxParser.parse(file, handler);
+        RevivableThread.checkForInterruption();
 
         if (doc.getLayer() == null) {
             return null;
@@ -127,10 +136,9 @@ public class WMTSParser {
      * @throws SAXException
      * @throws ParserConfigurationException
      * @throws IOException
-     * @throws JSONException
      */
     public static WMTSDocument parseInputStream(InputStream inputStream, String location)
-            throws SAXException, ParserConfigurationException, IOException, JSONException {
+            throws SAXException, ParserConfigurationException, IOException {
 
         if (inputStream == null) {
             throw new IllegalArgumentException("Can not parse null XML stream. " + location);

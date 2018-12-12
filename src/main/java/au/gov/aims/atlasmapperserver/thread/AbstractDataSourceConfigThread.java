@@ -61,97 +61,124 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
 
     @Override
     public void run() {
-        // startDate: Used to log the elapse time
-        Date startDate = new Date();
         ThreadLogger logger = this.getLogger();
-        logger.log(Level.INFO, "Generating data source: " + this.dataSourceConfig.getDataSourceName());
 
-        logger.log(Level.INFO, "Refresh disk cache");
         try {
-            URLCache.reloadDiskCacheMapIfNeeded(this.dataSourceConfig.getConfigManager().getApplicationFolder());
-        } catch(Exception ex) {
-            logger.log(Level.SEVERE, "An error occurred while reloading the disk cache: " + Utils.getExceptionMessage(ex), ex);
-        }
+            // startDate: Used to log the elapse time
+            Date startDate = new Date();
+            logger.log(Level.INFO, "Generating data source: " + this.dataSourceConfig.getDataSourceName());
 
-        // 1. Clear the cache
-        // NOTE: I could set a complex logic here to call clearCache only once, but that would not save much processing time.
-        try {
-            if (this.redownloadBrokenFiles) {
-                URLCache.markCacheForReDownload(this.dataSourceConfig.getConfigManager(), this.dataSourceConfig, true, null);
+            logger.log(Level.INFO, "Refresh disk cache");
+            try {
+                URLCache.reloadDiskCacheMapIfNeeded(this.dataSourceConfig.getConfigManager().getApplicationFolder());
+            } catch(Exception ex) {
+                logger.log(Level.SEVERE, "An error occurred while reloading the disk cache: " + Utils.getExceptionMessage(ex), ex);
             }
-            if (this.clearCapabilitiesCache) {
-                URLCache.markCacheForReDownload(this.dataSourceConfig.getConfigManager(), this.dataSourceConfig, false, URLCache.Category.CAPABILITIES_DOCUMENT);
+
+            RevivableThread.checkForInterruption();
+
+            // 1. Clear the cache
+            // NOTE: I could set a complex logic here to call clearCache only once, but that would not save much processing time.
+            try {
+                if (this.redownloadBrokenFiles) {
+                    URLCache.markCacheForReDownload(this.dataSourceConfig.getConfigManager(), this.dataSourceConfig, true, null);
+                }
+                if (this.clearCapabilitiesCache) {
+                    URLCache.markCacheForReDownload(this.dataSourceConfig.getConfigManager(), this.dataSourceConfig, false, URLCache.Category.CAPABILITIES_DOCUMENT);
+                }
+                if (this.clearMetadataCache) {
+                    URLCache.markCacheForReDownload(this.dataSourceConfig.getConfigManager(), this.dataSourceConfig, false, URLCache.Category.MEST_RECORD);
+                    URLCache.markCacheForReDownload(this.dataSourceConfig.getConfigManager(), this.dataSourceConfig, false, URLCache.Category.BRUTEFORCE_MEST_RECORD);
+                }
+            } catch(Exception ex) {
+                logger.log(Level.SEVERE, "An error occurred while invalidating the disk cache: " + Utils.getExceptionMessage(ex), ex);
             }
-            if (this.clearMetadataCache) {
-                URLCache.markCacheForReDownload(this.dataSourceConfig.getConfigManager(), this.dataSourceConfig, false, URLCache.Category.MEST_RECORD);
-                URLCache.markCacheForReDownload(this.dataSourceConfig.getConfigManager(), this.dataSourceConfig, false, URLCache.Category.BRUTEFORCE_MEST_RECORD);
+
+            RevivableThread.checkForInterruption();
+
+            DataSourceWrapper layerCatalog = null;
+            try {
+                // Clone the data source
+                // - The rebuild process can take several minutes. Other user may modify the config
+                //     during the rebuild. The clone ensure integrity of the config during the whole build.
+                // - The rebuild process modify attributes of the data source config, such as service URL.
+                //     This is a not the best design choice, but that was the simplest way to do it.
+                //     Those modifications should not be applied to the live data source, which is
+                //     another reason to justify the clone.
+                // - The state of the data source is stored in the data source config clone,
+                //     then saved to disk.
+                AbstractDataSourceConfig dataSourceConfigClone = (AbstractDataSourceConfig)this.dataSourceConfig.clone();
+
+                // Download / parse the capabilities doc
+                // Set the layers and capabilities overrides into the clone
+                layerCatalog = this.getLayerCatalog(logger, dataSourceConfigClone, this.clearCapabilitiesCache, this.clearMetadataCache);
+
+                // Save the data source state into a file
+                dataSourceConfigClone.save(logger, layerCatalog);
+            } catch(Exception ex) {
+                logger.log(Level.SEVERE, "An error occurred while generating the layer catalogue: " + Utils.getExceptionMessage(ex), ex);
             }
-        } catch(Exception ex) {
-            logger.log(Level.SEVERE, "An error occurred while invalidating the disk cache: " + Utils.getExceptionMessage(ex), ex);
-        }
 
-        DataSourceWrapper layerCatalog = null;
-        try {
-            // Clone the data source
-            // - The rebuild process can take several minutes. Other user may modify the config
-            //     during the rebuild. The clone ensure integrity of the config during the whole build.
-            // - The rebuild process modify attributes of the data source config, such as service URL.
-            //     This is a not the best design choice, but that was the simplest way to do it.
-            //     Those modifications should not be applied to the live data source, which is
-            //     another reason to justify the clone.
-            // - The state of the data source is stored in the data source config clone,
-            //     then saved to disk.
-            AbstractDataSourceConfig dataSourceConfigClone = (AbstractDataSourceConfig)this.dataSourceConfig.clone();
+            // Create the elapse time message
+            Date endDate = new Date();
+            long elapseTimeMs = endDate.getTime() - startDate.getTime();
+            double elapseTimeSec = elapseTimeMs / 1000.0;
+            double elapseTimeMin = elapseTimeSec / 60.0;
 
-            // Download / parse the capabilities doc
-            // Set the layers and capabilities overrides into the clone
-            layerCatalog = this.getLayerCatalog(logger, dataSourceConfigClone, this.clearCapabilitiesCache, this.clearMetadataCache);
+            logger.log(Level.INFO, "Generation time: " + (elapseTimeMin >= 1 ?
+                    AbstractConfigThread.ELAPSE_TIME_FORMAT.format(elapseTimeMin) + " min" :
+                    AbstractConfigThread.ELAPSE_TIME_FORMAT.format(elapseTimeSec) + " sec"));
 
-            // Save the data source state into a file
-            dataSourceConfigClone.save(logger, layerCatalog);
-        } catch(Exception ex) {
-            logger.log(Level.SEVERE, "An error occurred while generating the layer catalogue: " + Utils.getExceptionMessage(ex), ex);
-        }
-
-        // Create the elapse time message
-        Date endDate = new Date();
-        long elapseTimeMs = endDate.getTime() - startDate.getTime();
-        double elapseTimeSec = elapseTimeMs / 1000.0;
-        double elapseTimeMin = elapseTimeSec / 60.0;
-
-        logger.log(Level.INFO, "Generation time: " + (elapseTimeMin >= 1 ?
-                AbstractConfigThread.ELAPSE_TIME_FORMAT.format(elapseTimeMin) + " min" :
-                AbstractConfigThread.ELAPSE_TIME_FORMAT.format(elapseTimeSec) + " sec"));
-
-        try {
-            URLCache.saveDiskCacheMap(this.dataSourceConfig.getConfigManager().getApplicationFolder());
-        } catch(Exception ex) {
-            logger.log(Level.SEVERE, "An error occurred while saving the disk cache: " + Utils.getExceptionMessage(ex), ex);
+            try {
+                URLCache.saveDiskCacheMap(this.dataSourceConfig.getConfigManager().getApplicationFolder());
+            } catch(Exception ex) {
+                logger.log(Level.SEVERE, "An error occurred while saving the disk cache: " + Utils.getExceptionMessage(ex), ex);
+            }
+        } catch (RevivableThreadInterruptedException ex) {
+            logger.log(Level.SEVERE, "Data source generation cancelled by user.", ex);
         }
     }
 
     // LayerCatalog - Before data source overrides
-    private DataSourceWrapper getRawLayerCatalog(ThreadLogger logger, AbstractDataSourceConfig dataSourceConfigClone, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles) throws Exception {
+    private DataSourceWrapper getRawLayerCatalog(
+            ThreadLogger logger,
+            AbstractDataSourceConfig dataSourceConfigClone,
+            boolean redownloadPrimaryFiles,
+            boolean redownloadSecondaryFiles
+    ) throws Exception, RevivableThreadInterruptedException {
+
         DataSourceWrapper rawLayerCatalog = null;
 
         AbstractLayerGenerator layerGenerator = dataSourceConfigClone.createLayerGenerator();
         if (layerGenerator != null) {
             rawLayerCatalog = layerGenerator.generateLayerCatalog(logger, dataSourceConfigClone, redownloadPrimaryFiles, redownloadSecondaryFiles);
         }
+        RevivableThread.checkForInterruption();
 
         return rawLayerCatalog;
     }
 
     // LayerCatalog - After data source overrides
 
-    private DataSourceWrapper getLayerCatalog(ThreadLogger logger, AbstractDataSourceConfig dataSourceConfigClone, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles) throws Exception {
+    private DataSourceWrapper getLayerCatalog(
+            ThreadLogger logger,
+            AbstractDataSourceConfig dataSourceConfigClone,
+            boolean redownloadPrimaryFiles,
+            boolean redownloadSecondaryFiles
+    ) throws Exception, RevivableThreadInterruptedException {
+
+        RevivableThread.checkForInterruption();
+
         // LayerCatalog before overrides
         DataSourceWrapper rawLayerCatalog = this.getRawLayerCatalog(logger, dataSourceConfigClone, redownloadPrimaryFiles, redownloadSecondaryFiles);
+        RevivableThread.checkForInterruption();
 
         // Map of layers, after overrides, used to create the final layer catalog
         HashMap<String, LayerWrapper> layersMap = new HashMap<String, LayerWrapper>();
 
         JSONSortedObject globalOverrides = dataSourceConfigClone.getGlobalManualOverride();
+
+        RevivableThread.checkForInterruption();
 
         // Apply manual overrides, if needed
         if (!rawLayerCatalog.isLayerCatalogEmpty()) {
@@ -159,6 +186,8 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
             if (layers != null && layers.length() > 0) {
                 Iterator<String> layersKeys = layers.keys();
                 while (layersKeys.hasNext()) {
+                    RevivableThread.checkForInterruption();
+
                     String rawLayerId = layersKeys.next();
                     LayerWrapper layerWrapper = new LayerWrapper(layers.optJSONObject(rawLayerId));
                     if (layerWrapper != null) {
@@ -170,11 +199,14 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
             }
         }
 
+        RevivableThread.checkForInterruption();
 
         // Create manual layers defined for this data source
         if (globalOverrides != null && globalOverrides.length() > 0) {
             Iterator<String> layerIds = globalOverrides.keys();
             while (layerIds.hasNext()) {
+                RevivableThread.checkForInterruption();
+
                 String layerId = layerIds.next();
                 if (!layersMap.containsKey(layerId)) {
                     LayerWrapper jsonLayerOverride = new LayerWrapper(globalOverrides.optJSONObject(layerId));
@@ -202,8 +234,12 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
             }
         }
 
+        RevivableThread.checkForInterruption();
+
         // Set base layer attribute
         for (Map.Entry<String, LayerWrapper> layerWrapperEntry : layersMap.entrySet()) {
+            RevivableThread.checkForInterruption();
+
             String layerId = layerWrapperEntry.getKey();
             LayerWrapper layerWrapper = layerWrapperEntry.getValue();
 
@@ -232,10 +268,14 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
             }
         }
 
+        RevivableThread.checkForInterruption();
+
         // Show warning if a base layer / overlay layer is not in the layer catalog
         String[] overlayLayers = dataSourceConfigClone.getOverlayLayers();
         if (overlayLayers != null) {
             for (String layerId : overlayLayers) {
+                RevivableThread.checkForInterruption();
+
                 if (!layersMap.containsKey(layerId)) {
                     logger.log(Level.WARNING, String.format("The layer ID %s, specified in the overlay layers, could not be found in the layer catalog.",
                             layerId));
@@ -243,9 +283,13 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
             }
         }
 
+        RevivableThread.checkForInterruption();
+
         String[] baseLayers = dataSourceConfigClone.getBaseLayers();
         if (baseLayers != null) {
             for (String layerId : baseLayers) {
+                RevivableThread.checkForInterruption();
+
                 if (!layersMap.containsKey(layerId)) {
                     logger.log(Level.WARNING, String.format("The layer ID %s, specified in the base layers, could not be found in the layer catalog.",
                             layerId));
@@ -253,10 +297,13 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
             }
         }
 
+        RevivableThread.checkForInterruption();
+
         // Remove blacklisted layers
         BlackAndWhiteListFilter<LayerWrapper> blackAndWhiteFilter =
                 new BlackAndWhiteListFilter<LayerWrapper>(dataSourceConfigClone.getBlackAndWhiteListedLayers());
         layersMap = blackAndWhiteFilter.filter(layersMap);
+        RevivableThread.checkForInterruption();
 
         if (layersMap.isEmpty()) {
             logger.log(Level.SEVERE, "The data source contains no layer.");
@@ -265,9 +312,6 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
         // LayerCatalog after overrides
         DataSourceWrapper layerCatalog = new DataSourceWrapper();
         layerCatalog.addLayers(layersMap);
-        //layerCatalog.addErrors(rawLayerCatalog.getErrors());
-        //layerCatalog.addWarnings(rawLayerCatalog.getWarnings());
-        //layerCatalog.addMessages(rawLayerCatalog.getMessages());
 
         JSONObject layers = layerCatalog.getLayers();
         int nbLayers = layers == null ? 0 : layers.length();

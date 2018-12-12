@@ -8,13 +8,13 @@ import java.util.logging.Level;
 public class ThreadLog {
     private Level level;
     private String message;
-    private Exception exception;
+    private Throwable exception;
 
     public ThreadLog(Level level, String message) {
         this(level, message, null);
     }
 
-    public ThreadLog(Level level, String message, Exception exception) {
+    public ThreadLog(Level level, String message, Throwable exception) {
         this.level = level;
         this.message = message;
         this.exception = exception;
@@ -28,7 +28,7 @@ public class ThreadLog {
         return this.message;
     }
 
-    public Exception getException() {
+    public Throwable getException() {
         return this.exception;
     }
 
@@ -46,7 +46,7 @@ public class ThreadLog {
         json.put("level", this.level.getName());
         json.put("message", this.getMessage());
 
-        Exception ex = this.getException();
+        Throwable ex = this.getException();
         if (ex != null) {
             json.put("stacktrace", ex.getStackTrace());
         }

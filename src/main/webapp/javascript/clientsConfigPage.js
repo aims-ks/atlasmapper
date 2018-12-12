@@ -1248,6 +1248,11 @@ Ext.define('Writer.ClientConfigGrid', {
                 'action': 'GETLOGS',
                 'clientId': clientId
             },
+            'clientsConfig.jsp',
+            {
+                'action': 'STOP_GENERATE',
+                'clientId': clientId
+            },
             function(that) {
                 return function(responseObj) {
                     that.onReload();

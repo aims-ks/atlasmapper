@@ -50,17 +50,27 @@ public abstract class RevivableThread implements Runnable {
         }
     }
 
-    public final void join() throws InterruptedException {
+    public final void join() throws RevivableThreadInterruptedException {
         if (this.thread != null) {
-            this.thread.join();
+            try {
+                this.thread.join();
+            } catch (InterruptedException ex) {
+                throw new RevivableThreadInterruptedException(ex);
+            }
         }
-    }
-
-    public boolean isInterrupted() {
-        return this.thread == null || this.thread.isInterrupted();
     }
 
     public boolean isAlive() {
         return this.thread != null && this.thread.isAlive();
+    }
+
+    public static boolean isInterrupted() {
+        return Thread.currentThread().isInterrupted();
+    }
+
+    public static void checkForInterruption() throws RevivableThreadInterruptedException {
+        if (RevivableThread.isInterrupted()) {
+            throw new RevivableThreadInterruptedException();
+        }
     }
 }

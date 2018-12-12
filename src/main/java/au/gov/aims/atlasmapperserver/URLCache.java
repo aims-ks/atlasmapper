@@ -24,12 +24,16 @@ package au.gov.aims.atlasmapperserver;
 import au.gov.aims.atlasmapperserver.collection.MultiKeyHashMap;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.servlet.FileFinder;
+import au.gov.aims.atlasmapperserver.thread.RevivableThread;
+import au.gov.aims.atlasmapperserver.thread.RevivableThreadInterruptedException;
 import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.methods.RequestBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.geotools.data.ows.WMSCapabilities;
 import org.geotools.data.wms.xml.WMSSchema;
@@ -127,7 +131,9 @@ public class URLCache {
         return configManager.getApplicationFolder();
     }
 
-    public static ResponseStatus getResponseStatus(String urlStr) {
+    public static ResponseStatus getHttpHead(String urlStr) throws RevivableThreadInterruptedException {
+        RevivableThread.checkForInterruption();
+
         ResponseStatus responseStatus = new ResponseStatus();
 
         URI uri = null;
@@ -142,11 +148,13 @@ public class URLCache {
         }
 
         CloseableHttpClient httpClient = null;
-        HttpGet httpGet = null;
+        CloseableHttpResponse response = null;
+        HttpUriRequest headRequest = null;
         try {
             httpClient = Utils.createHttpClient();
-            httpGet = new HttpGet(uri);
-            HttpResponse response = httpClient.execute(httpGet);
+            headRequest = RequestBuilder.head(uri).build();
+            response = httpClient.execute(headRequest);
+            RevivableThread.checkForInterruption();
 
             StatusLine httpStatus = response.getStatusLine();
             if (httpStatus != null) {
@@ -158,11 +166,14 @@ public class URLCache {
             LOGGER.log(Level.FINE, message, ex);
 
         } finally {
-            if (httpGet != null) {
+            if (headRequest != null) {
                 // Cancel the connection, if it's still alive
-                httpGet.abort();
-                // Close connections
-                httpGet.reset();
+                headRequest.abort();
+            }
+            if (response != null) {
+                try { response.close(); } catch (Exception e) {
+                    LOGGER.log(Level.WARNING, "Error occur while closing the HttpResponse: " + Utils.getExceptionMessage(e), e);
+                }
             }
             if (httpClient != null) {
                 try { httpClient.close(); } catch (Exception e) {
@@ -200,10 +211,30 @@ public class URLCache {
      * @throws IOException
      * @throws JSONException
      */
-    public static File getURLFile(ThreadLogger logger, String downloadedEntityName, ConfigManager configManager, AbstractDataSourceConfig dataSource, String urlStr, Category category, boolean mandatory) throws IOException, JSONException {
+    public static File getURLFile(
+            ThreadLogger logger,
+            String downloadedEntityName,
+            ConfigManager configManager,
+            AbstractDataSourceConfig dataSource,
+            String urlStr,
+            Category category,
+            boolean mandatory
+    ) throws IOException, JSONException, RevivableThreadInterruptedException {
+
         return getURLFile(logger, downloadedEntityName, configManager, dataSource, urlStr, category, mandatory, 0);
     }
-    private static File getURLFile(ThreadLogger logger, String downloadedEntityName, ConfigManager configManager, AbstractDataSourceConfig dataSource, String urlStr, Category category, boolean mandatory, int followRedirectionCount) throws IOException, JSONException {
+
+    private static File getURLFile(
+            ThreadLogger logger,
+            String downloadedEntityName,
+            ConfigManager configManager,
+            AbstractDataSourceConfig dataSource,
+            String urlStr,
+            Category category,
+            boolean mandatory,
+            int followRedirectionCount
+    ) throws IOException, JSONException, RevivableThreadInterruptedException {
+
         File applicationFolder = getApplicationFolder(configManager);
         String dataSourceId = null;
         Boolean activeDownload = null;
@@ -217,6 +248,7 @@ public class URLCache {
         }
 
         JSONObject jsonCache = getDiskCacheMap(applicationFolder);
+        RevivableThread.checkForInterruption();
 
         File cacheFolder = FileFinder.getDiskCacheFolder(applicationFolder);
         CachedFile cachedFile = getCachedFile(applicationFolder, urlStr);
@@ -233,6 +265,7 @@ public class URLCache {
                 if (followRedirectionCount < MAX_FOLLOW_REDIRECTION) {
                     // Touch the cache entry; set the last access date to "now"
                     cachedFile.setLastAccessDate();
+
                     return getURLFile(logger, downloadedEntityName, configManager, dataSource, redirectionUrl, category, mandatory, followRedirectionCount+1);
                 } else {
                     // Hopefully this error will never occurred
@@ -268,9 +301,12 @@ public class URLCache {
 
                 File tmpFile = new File(cachedFile.getCachedFileFolder(), tmpFilename);
 
+                RevivableThread.checkForInterruption();
                 logger.log(Level.INFO, String.format("Re-downloading [%s](%s)", downloadedEntityName, urlStr));
 
                 ResponseStatus responseStatus = loadURLToFile(logger, urlStr, tmpFile);
+                RevivableThread.checkForInterruption();
+
                 String errorMessage = responseStatus.getErrorMessage();
                 cachedFile.setMarkedForReDownload(false);
                 cachedFile.setTemporaryHttpStatusCode(responseStatus.getStatusCode());
@@ -288,9 +324,12 @@ public class URLCache {
 
             File file = new File(cachedFile.getCachedFileFolder(), filename);
 
+            RevivableThread.checkForInterruption();
             logger.log(Level.INFO, String.format("Downloading [%s](%s)", downloadedEntityName, urlStr));
 
             ResponseStatus responseStatus = loadURLToFile(logger, urlStr, file);
+            RevivableThread.checkForInterruption();
+
             String errorMessage = responseStatus.getErrorMessage();
             cachedFile.setHttpStatusCode(responseStatus.getStatusCode());
             cachedFile.setLatestErrorMessage(errorMessage);
@@ -300,6 +339,8 @@ public class URLCache {
             }
         }
 
+        RevivableThread.checkForInterruption();
+
         File file = null;
         if (!cachedFile.isEmpty()) {
             // Touch the cache entry; set the last access date to "now"
@@ -307,6 +348,7 @@ public class URLCache {
 
             file = cachedFile.hasTemporaryData() ? cachedFile.getTemporaryFile() : cachedFile.getFile();
 
+            RevivableThread.checkForInterruption();
             String errorMessage = cachedFile.getLatestErrorMessage();
             if (Utils.isNotBlank(errorMessage)) {
                 logger.log(Level.WARNING, String.format("Error received from [%s](%s), %s", downloadedEntityName, urlStr, errorMessage));
@@ -314,6 +356,7 @@ public class URLCache {
 
             // If we already know that something went wrong, rollback.
             if (Utils.isNotBlank(errorMessage) || file == null || !file.exists()) {
+                RevivableThread.checkForInterruption();
                 File rollbackFile = rollbackURLFile(logger, downloadedEntityName, configManager, file, urlStr, (String) null);
                 if (rollbackFile != null && rollbackFile.exists()) {
                     file = rollbackFile;
@@ -332,10 +375,16 @@ public class URLCache {
      * @throws IOException
      * @throws JSONException
      */
-    public static boolean isRecursiveApproved(File applicationFolder, CachedFile cachedFile) throws IOException, JSONException {
+    public static boolean isRecursiveApproved(File applicationFolder, CachedFile cachedFile)
+            throws IOException, JSONException, RevivableThreadInterruptedException {
+
         return isRecursiveApproved(applicationFolder, cachedFile, 0);
     }
-    private static boolean isRecursiveApproved(File applicationFolder, CachedFile cachedFile, int followRedirectionCount) throws IOException, JSONException {
+    private static boolean isRecursiveApproved(File applicationFolder, CachedFile cachedFile, int followRedirectionCount)
+            throws IOException, JSONException, RevivableThreadInterruptedException {
+
+        RevivableThread.checkForInterruption();
+
         String redirectionUrl = cachedFile.getRedirection();
         if (Utils.isBlank(redirectionUrl)) {
             return cachedFile.isApproved();
@@ -355,7 +404,9 @@ public class URLCache {
         }
     }
 
-    public static void setRedirection(ConfigManager configManager, String invalidUrl, String craftedUrl) throws IOException, JSONException {
+    public static void setRedirection(ConfigManager configManager, String invalidUrl, String craftedUrl)
+            throws IOException, JSONException {
+
         File applicationFolder = getApplicationFolder(configManager);
         CachedFile cachedFile = getCachedFile(applicationFolder, invalidUrl);
         if (!cachedFile.isEmpty()) {
@@ -368,7 +419,9 @@ public class URLCache {
      * of replacing the current cached file with the last sent file.
      * @param urlStr
      */
-    public static void commitURLFile(ConfigManager configManager, File approvedFile, String urlStr) throws IOException, JSONException {
+    public static void commitURLFile(ConfigManager configManager, File approvedFile, String urlStr)
+            throws IOException, JSONException {
+
         File applicationFolder = getApplicationFolder(configManager);
         CachedFile cachedFile = getCachedFile(applicationFolder, urlStr);
 
@@ -384,13 +437,31 @@ public class URLCache {
      * @param urlStr
      * @return
      */
-    public static File rollbackURLFile(ThreadLogger logger, String downloadedEntityName, ConfigManager configManager, File unapprovedFile, String urlStr, Exception reason) throws IOException, JSONException {
+    public static File rollbackURLFile(
+            ThreadLogger logger,
+            String downloadedEntityName,
+            ConfigManager configManager,
+            File unapprovedFile,
+            String urlStr,
+            Exception reason
+    ) throws IOException, JSONException, RevivableThreadInterruptedException {
         return rollbackURLFile(logger, downloadedEntityName, configManager, unapprovedFile, urlStr, Utils.getExceptionMessage(reason));
     }
-    public static File rollbackURLFile(ThreadLogger logger, String downloadedEntityName, ConfigManager configManager, File unapprovedFile, String urlStr, String reasonStr) throws IOException, JSONException {
+
+    public static File rollbackURLFile(
+            ThreadLogger logger,
+            String downloadedEntityName,
+            ConfigManager configManager,
+            File unapprovedFile,
+            String urlStr,
+            String reasonStr
+    ) throws IOException, JSONException, RevivableThreadInterruptedException {
+
         File backupFile = unapprovedFile;
         File applicationFolder = getApplicationFolder(configManager);
         CachedFile cachedFile = getCachedFile(applicationFolder, urlStr);
+
+        RevivableThread.checkForInterruption();
 
         if (!cachedFile.isEmpty()) {
             backupFile = cachedFile.rollback(unapprovedFile, reasonStr);
@@ -403,6 +474,8 @@ public class URLCache {
             }
         }
 
+        RevivableThread.checkForInterruption();
+
         if (backupFile != null && backupFile.exists()) {
             logger.log(Level.INFO, String.format("Invalid response received for [%s](%s), used last good cached file: %s",
                     downloadedEntityName, urlStr, backupFile.getName()));
@@ -411,14 +484,18 @@ public class URLCache {
                     downloadedEntityName, urlStr));
         }
 
+        RevivableThread.checkForInterruption();
+
         return backupFile;
     }
 
-    private static ResponseStatus loadURLToFile(ThreadLogger logger, String urlStr, File file) {
+    private static ResponseStatus loadURLToFile(ThreadLogger logger, String urlStr, File file) throws RevivableThreadInterruptedException {
         return loadURLToFile(logger, urlStr, file, MAX_CACHED_FILE_SIZE);
     }
 
-    private static ResponseStatus loadURLToFile(ThreadLogger logger, String urlStr, File file, int maxFileSizeMb) {
+    private static ResponseStatus loadURLToFile(ThreadLogger logger, String urlStr, File file, int maxFileSizeMb) throws RevivableThreadInterruptedException {
+        RevivableThread.checkForInterruption();
+
         ResponseStatus responseStatus = new ResponseStatus();
 
         URI uri = null;
@@ -436,11 +513,13 @@ public class URLCache {
         InputStream in = null;
         FileOutputStream out = null;
         CloseableHttpClient httpClient = null;
+        CloseableHttpResponse response = null;
         try {
             httpClient = Utils.createHttpClient();
             httpGet = new HttpGet(uri);
 
-            HttpResponse response = httpClient.execute(httpGet);
+            response = httpClient.execute(httpGet);
+            RevivableThread.checkForInterruption();
 
             StatusLine httpStatus = response.getStatusLine();
             if (httpStatus != null) {
@@ -489,6 +568,11 @@ public class URLCache {
                     logger.log(Level.WARNING, "Error occur while closing the file: " + Utils.getExceptionMessage(e), e);
                 }
             }
+            if (response != null) {
+                try { response.close(); } catch (Exception e) {
+                    logger.log(Level.WARNING, "Error occur while closing the HttpResponse: " + Utils.getExceptionMessage(e), e);
+                }
+            }
             if (httpClient != null) {
                 try { httpClient.close(); } catch (Exception e) {
                     logger.log(Level.WARNING, "Error occur while closing the HttpClient: " + Utils.getExceptionMessage(e), e);
@@ -511,6 +595,7 @@ public class URLCache {
             writer = new FileWriter(configFile);
             bw = new BufferedWriter(writer);
             String jsonStr = Utils.jsonToStr(diskCacheMap);
+
             if (Utils.isNotBlank(jsonStr)) {
                 bw.write(jsonStr);
             }
@@ -519,16 +604,14 @@ public class URLCache {
                 try {
                     bw.close();
                 } catch (Exception e) {
-                    LOGGER.log(Level.SEVERE, "Can not close the cache map buffered writer: {0}", Utils.getExceptionMessage(e));
-                    LOGGER.log(Level.FINE, "Stack trace:", e);
+                    LOGGER.log(Level.SEVERE, String.format("Can not close the cache map buffered writer: %s", Utils.getExceptionMessage(e)), e);
                 }
             }
             if (writer != null) {
                 try {
                     writer.close();
                 } catch (Exception e) {
-                    LOGGER.log(Level.SEVERE, "Can not close the cache map writer: {0}", Utils.getExceptionMessage(e));
-                    LOGGER.log(Level.FINE, "Stack trace:", e);
+                    LOGGER.log(Level.SEVERE, String.format("Can not close the cache map writer: %s", Utils.getExceptionMessage(e)), e);
                 }
             }
         }
@@ -544,14 +627,13 @@ public class URLCache {
             diskCacheMap = new JSONObject(new JSONTokener(reader));
         } catch(Exception ex) {
             diskCacheMap = new JSONObject();
-            LOGGER.log(Level.SEVERE, "Can not load the cache map. The cache has been reset.");
+            LOGGER.log(Level.SEVERE, "Can not load the cache map. The cache has been reset.", ex);
         } finally {
             if (reader != null) {
                 try {
                     reader.close();
                 } catch (Exception ex) {
-                    LOGGER.log(Level.SEVERE, "Can not close the cache map reader: {0}", Utils.getExceptionMessage(ex));
-                    LOGGER.log(Level.FINE, "Stack trace:", ex);
+                    LOGGER.log(Level.SEVERE, String.format("Can not close the cache map reader: %s", Utils.getExceptionMessage(ex)), ex);
                 }
             }
         }
@@ -583,8 +665,19 @@ public class URLCache {
         return loadedTime < configFile.lastModified();
     }
 
-    public static JSONObject getJSONResponse(ThreadLogger logger, String downloadedEntityName, ConfigManager configManager, AbstractDataSourceConfig dataSource, String urlStr, Category category, boolean mandatory) throws IOException, JSONException {
+    public static JSONObject getJSONResponse(
+            ThreadLogger logger,
+            String downloadedEntityName,
+            ConfigManager configManager,
+            AbstractDataSourceConfig dataSource,
+            String urlStr,
+            Category category,
+            boolean mandatory
+    ) throws IOException, JSONException, RevivableThreadInterruptedException {
+
         File jsonFile = null;
+
+        RevivableThread.checkForInterruption();
 
         JSONObject jsonResponse = null;
         try {
@@ -596,6 +689,8 @@ public class URLCache {
             jsonResponse = parseFile(rollbackFile, urlStr);
         }
 
+        RevivableThread.checkForInterruption();
+
         return jsonResponse;
     }
 
@@ -606,17 +701,15 @@ public class URLCache {
             reader = new FileReader(jsonFile);
             jsonResponse = new JSONObject(new JSONTokener(reader));
         } catch(Exception ex) {
-            LOGGER.log(Level.SEVERE, "Can not load the JSON Object returning from the URL {0}: {1}",
-                    new String[]{ urlStr, Utils.getExceptionMessage(ex) });
-            LOGGER.log(Level.FINE, "Stack trace:", ex);
+            LOGGER.log(Level.SEVERE, String.format("Can not load the JSON Object returning from the URL %s: %s",
+                    urlStr, Utils.getExceptionMessage(ex)), ex);
         } finally {
             if (reader != null) {
                 try {
                     reader.close();
                 } catch (Exception ex) {
-                    LOGGER.log(Level.SEVERE, "Can not close the JSON file {0}: {1}",
-                            new String[]{ jsonFile.getAbsoluteFile().getAbsolutePath(), Utils.getExceptionMessage(ex) });
-                    LOGGER.log(Level.FINE, "Stack trace:", ex);
+                    LOGGER.log(Level.SEVERE, String.format("Can not close the JSON file %s: %s",
+                            jsonFile.getAbsoluteFile().getAbsolutePath(), Utils.getExceptionMessage(ex)), ex);
                 }
             }
         }
@@ -634,9 +727,6 @@ public class URLCache {
         }
 
         if (response.jsonResponse == null) {
-            LOGGER.log(Level.INFO, "\n### DOWNLOADING ### JSON Document {0}\n",
-                    new String[]{ urlStr });
-
             response.jsonResponse = new JSONObject(getUncachedResponse(urlStr, referer));
         }
 
@@ -653,9 +743,6 @@ public class URLCache {
         }
 
         if (response.jsonArrayResponse == null) {
-            LOGGER.log(Level.INFO, "\n### DOWNLOADING ### JSON Document {0}\n",
-                    new String[]{ urlStr });
-
             response.jsonArrayResponse = new JSONArray(getUncachedResponse(urlStr, referer));
         }
 
@@ -685,14 +772,12 @@ public class URLCache {
         } finally {
             if (in != null) {
                 try { in.close(); } catch(Exception e) {
-                    LOGGER.log(Level.WARNING, "Can not close the URL input stream: {0}", Utils.getExceptionMessage(e));
-                    LOGGER.log(Level.FINE, "Stack trace:", e);
+                    LOGGER.log(Level.WARNING, String.format("Can not close the URL input stream: %s", Utils.getExceptionMessage(e)), e);
                 }
             }
             if (reader != null) {
                 try { reader.close(); } catch(Exception e) {
-                    LOGGER.log(Level.WARNING, "Can not close the URL reader: {0}", Utils.getExceptionMessage(e));
-                    LOGGER.log(Level.FINE, "Stack trace:", e);
+                    LOGGER.log(Level.WARNING, String.format("Can not close the URL reader: %s", Utils.getExceptionMessage(e)), e);
                 }
             }
         }
@@ -707,10 +792,12 @@ public class URLCache {
             AbstractDataSourceConfig dataSource,
             String urlStr,
             Category category,
-            boolean mandatory) throws IOException, SAXException, JSONException, URISyntaxException {
+            boolean mandatory) throws IOException, SAXException, JSONException, URISyntaxException, RevivableThreadInterruptedException {
 
         File capabilitiesFile = null;
         WMSCapabilities wmsCapabilities;
+
+        RevivableThread.checkForInterruption();
 
         if (urlStr.startsWith("file://")) {
             // Local file URL
@@ -730,6 +817,8 @@ public class URLCache {
                 urlStr = Utils.addUrlParameter(urlStr, "VERSION", wmsVersion);
             }
 
+            RevivableThread.checkForInterruption();
+
             try {
                 capabilitiesFile = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, dataSource, urlStr, category, mandatory);
                 logger.log(Level.INFO, String.format("Parsing [WMS GetCapabilities document](%s)", urlStr));
@@ -740,6 +829,8 @@ public class URLCache {
                 wmsCapabilities = URLCache.getCapabilities(rollbackFile);
             }
         }
+
+        RevivableThread.checkForInterruption();
 
         return wmsCapabilities;
     }
@@ -754,7 +845,9 @@ public class URLCache {
      * @throws IOException
      * @throws ServiceException
      */
-    private static WMSCapabilities getCapabilities(File file) throws IOException, SAXException {
+    private static WMSCapabilities getCapabilities(File file) throws IOException, SAXException, RevivableThreadInterruptedException {
+        RevivableThread.checkForInterruption();
+
         if (file == null || !file.exists()) {
             return null;
         }
@@ -770,12 +863,15 @@ public class URLCache {
         }
     }
 
-    private static WMSCapabilities getCapabilities(InputStream inputStream) throws SAXException {
+    private static WMSCapabilities getCapabilities(InputStream inputStream) throws SAXException, RevivableThreadInterruptedException {
+        RevivableThread.checkForInterruption();
+
         Map<String, Object> hints = new HashMap<String, Object>();
         hints.put(DocumentHandler.DEFAULT_NAMESPACE_HINT_KEY, WMSSchema.getInstance());
         hints.put(DocumentFactory.VALIDATION_HINT, Boolean.FALSE);
 
         Object object = DocumentFactory.getInstance(inputStream, hints, Level.WARNING);
+        RevivableThread.checkForInterruption();
 
         if (object instanceof ServiceException) {
             throw (ServiceException)object;
@@ -831,7 +927,9 @@ public class URLCache {
         }
     }
 
-    public static void deleteCache(ConfigManager configManager, AbstractDataSourceConfig dataSource) throws JSONException, IOException {
+    public static void deleteCache(ConfigManager configManager, AbstractDataSourceConfig dataSource)
+            throws JSONException, IOException {
+
         File applicationFolder = configManager.getApplicationFolder();
 
         if (dataSource == null || applicationFolder == null) {
@@ -890,7 +988,9 @@ public class URLCache {
     }
 
     public static void markCacheForReDownload(ConfigManager configManager, AbstractDataSourceConfig dataSource, boolean removeBrokenEntry, Category category)
-            throws JSONException, IOException {
+            throws JSONException, IOException, RevivableThreadInterruptedException {
+
+        RevivableThread.checkForInterruption();
 
         File applicationFolder = configManager.getApplicationFolder();
 
@@ -900,6 +1000,7 @@ public class URLCache {
         String dataSourceId = dataSource.getDataSourceId();
 
         JSONObject jsonCache = getDiskCacheMap(applicationFolder);
+        RevivableThread.checkForInterruption();
 
         if (jsonCache != null && jsonCache.length() > 0) {
             List<String> urlsToDelete = new ArrayList<String>();
@@ -919,6 +1020,7 @@ public class URLCache {
                     }
                 }
             }
+            RevivableThread.checkForInterruption();
 
             if (!urlsToDelete.isEmpty()) {
                 for (String urlToDelete : urlsToDelete) {
@@ -926,6 +1028,8 @@ public class URLCache {
                 }
             }
         }
+
+        RevivableThread.checkForInterruption();
     }
 
     public static void clearSearchCache(String urlStr) {
@@ -1080,7 +1184,9 @@ public class URLCache {
         return files == null ? 0 : files.length;
     }
 
-    protected static CachedFile getCachedFile(File applicationFolder, String urlStr) throws JSONException, IOException {
+    protected static CachedFile getCachedFile(File applicationFolder, String urlStr)
+            throws JSONException, IOException {
+
         JSONObject jsonCache = getDiskCacheMap(applicationFolder);
 
         final File diskCacheFolder = FileFinder.getDiskCacheFolder(applicationFolder);
@@ -1576,7 +1682,7 @@ public class URLCache {
          * Approve the last file sent for this URL. This has the effect
          * of replacing the current cached file with the last sent file.
          */
-        public void commit(File approvedFile) throws IOException, JSONException {
+        public void commit(File approvedFile) throws JSONException {
             File oldFile = this.getFile();
 
             String tmpFilename = this.getTemporaryFilename();
@@ -1605,7 +1711,7 @@ public class URLCache {
          * state of the file.
          * @return
          */
-        public File rollback(File unapprovedFile, String errorMessage) throws IOException, JSONException {
+        public File rollback(File unapprovedFile, String errorMessage) throws JSONException {
             File rollbackFile = null;
 
             // If there is not already a logged error, log the new error.

@@ -30,7 +30,7 @@ public class ThreadLogger {
         this.log(new ThreadLog(level, message));
     }
 
-    public synchronized void log(Level level, String message, Exception ex) {
+    public synchronized void log(Level level, String message, Throwable ex) {
         this.log(new ThreadLog(level, message, ex));
     }
 

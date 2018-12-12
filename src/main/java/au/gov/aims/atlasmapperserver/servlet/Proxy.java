@@ -52,8 +52,8 @@ import au.gov.aims.atlasmapperserver.thread.ThreadLog;
 import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.json.JSONException;
@@ -326,12 +326,13 @@ public class Proxy extends HttpServlet {
                     } else if (protocol.equals("http") || protocol.equals("https")) {
 
                         CloseableHttpClient httpClient = null;
+                        CloseableHttpResponse httpClientResponse = null;
                         HttpGet httpGet = null;
 
                         try {
                             httpClient = Utils.createHttpClient();
                             httpGet = new HttpGet(url.toURI());
-                            HttpResponse httpClientResponse = httpClient.execute(httpGet);
+                            httpClientResponse = httpClient.execute(httpGet);
                             StatusLine httpStatus = httpClientResponse.getStatusLine();
                             int responseCode = -1;
                             if (httpStatus != null) {
@@ -409,6 +410,11 @@ public class Proxy extends HttpServlet {
                                 httpGet.abort();
                                 // Close connections
                                 httpGet.reset();
+                            }
+                            if (httpClientResponse != null) {
+                                try { httpClientResponse.close(); } catch (Exception e) {
+                                    logger.log(Level.WARNING, "Error occur while closing the HttpResponse: " + Utils.getExceptionMessage(e), e);
+                                }
                             }
                             if (httpClient != null) {
                                 try { httpClient.close(); } catch (Exception e) {

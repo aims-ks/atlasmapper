@@ -30,6 +30,8 @@ import au.gov.aims.atlasmapperserver.jsonWrappers.client.LayerWrapper;
 import au.gov.aims.atlasmapperserver.jsonWrappers.server.ServerConfigWrapper;
 import au.gov.aims.atlasmapperserver.jsonWrappers.server.UsersConfigWrapper;
 import au.gov.aims.atlasmapperserver.servlet.FileFinder;
+import au.gov.aims.atlasmapperserver.thread.RevivableThread;
+import au.gov.aims.atlasmapperserver.thread.RevivableThreadInterruptedException;
 import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
 import au.gov.aims.atlasmapperserver.xml.TC211.TC211Document;
 import au.gov.aims.atlasmapperserver.xml.TC211.TC211Parser;
@@ -643,7 +645,9 @@ public class ConfigManager {
             }
         }
     }
-    public synchronized void destroyDataSourceConfig(ServletRequest request) throws JSONException, IOException {
+    public synchronized void destroyDataSourceConfig(ServletRequest request) throws JSONException, IOException, RevivableThreadInterruptedException {
+        RevivableThread.checkForInterruption();
+
         if (request == null) {
             return;
         }
@@ -660,7 +664,10 @@ public class ConfigManager {
 
                     // Clear dataSource cache since it doesn't exist anymore
                     URLCache.reloadDiskCacheMapIfNeeded(this.getApplicationFolder());
+                    RevivableThread.checkForInterruption();
+
                     URLCache.deleteCache(this, dataSourceConfig);
+                    RevivableThread.checkForInterruption();
                 }
             }
         }
@@ -885,10 +892,15 @@ public class ConfigManager {
     }
 
 
-    public URLSaveState getMapStateForDataset(ThreadLogger logger, ClientConfig clientConfig, String iso19115_19139url) throws Exception {
+    public URLSaveState getMapStateForDataset(ThreadLogger logger, ClientConfig clientConfig, String iso19115_19139url)
+            throws Exception, RevivableThreadInterruptedException {
+
+        RevivableThread.checkForInterruption();
+
         JSONArray jsonLayers = new JSONArray();
 
         TC211Document tc211Document = TC211Parser.parseURL(logger, "client " + clientConfig.getClientName(), this, null, Utils.toURL(iso19115_19139url), false, true);
+        RevivableThread.checkForInterruption();
         if (tc211Document == null) {
             return null;
         }
@@ -897,6 +909,8 @@ public class ConfigManager {
 
         List<TC211Document.Link> links = tc211Document.getLinks();
         for (TC211Document.Link link : links) {
+            RevivableThread.checkForInterruption();
+
             TC211Document.Protocol linkProtocol = link.getProtocol();
             if (linkProtocol != null) {
                 LayerWrapper foundLayer = null;
@@ -970,6 +984,8 @@ public class ConfigManager {
             }
         }
 
+        RevivableThread.checkForInterruption();
+
         // *** Bounds ***
 
 
@@ -994,6 +1010,8 @@ public class ConfigManager {
             }
         }
 
+        RevivableThread.checkForInterruption();
+
         List<TC211Document.Polygon> polygons = tc211Document.getPolygons();
         if (polygons != null) {
             for (TC211Document.Polygon polygon : polygons) {
@@ -1011,6 +1029,8 @@ public class ConfigManager {
                 // TODO Send the polygons to the client
             }
         }
+
+        RevivableThread.checkForInterruption();
 
         JSONArray jsonBounds = null;
         if (bounds != null) {

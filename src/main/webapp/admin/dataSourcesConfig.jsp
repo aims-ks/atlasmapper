@@ -73,7 +73,7 @@
                         LOGGER.log(Level.WARNING, "Stack trace: ", e);
                         response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                         jsonObj.put("success", false);
-                        jsonObj.put("errors", new JSONArray().put("An error occurred while retrieving the data source configuration: " + Utils.getExceptionMessage(e) + "\nCheck your server log."));
+                        jsonObj.put("errors", new JSONArray().put("An error occurred while retrieving the data source configuration: " + Utils.getExceptionMessage(e) + "\nCheck your server logs."));
                     }
                     break;
 
@@ -100,7 +100,7 @@
                         LOGGER.log(Level.WARNING, "Stack trace: ", e);
                         response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                         jsonObj.put("success", false);
-                        jsonObj.put("errors", new JSONArray().put("An error occurred while creating a new data source: " + Utils.getExceptionMessage(e) + "\nCheck your server log."));
+                        jsonObj.put("errors", new JSONArray().put("An error occurred while creating a new data source: " + Utils.getExceptionMessage(e) + "\nCheck your server logs."));
                     }
                     break;
 
@@ -118,7 +118,7 @@
                         LOGGER.log(Level.WARNING, "Stack trace: ", e);
                         response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                         jsonObj.put("success", false);
-                        jsonObj.put("errors", new JSONArray().put("An error occurred while updating the data source: " + Utils.getExceptionMessage(e) + "\nCheck your server log."));
+                        jsonObj.put("errors", new JSONArray().put("An error occurred while updating the data source: " + Utils.getExceptionMessage(e) + "\nCheck your server logs."));
                     }
                     break;
 
@@ -136,7 +136,7 @@
                         LOGGER.log(Level.WARNING, "Stack trace: ", e);
                         response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                         jsonObj.put("success", false);
-                        jsonObj.put("errors", new JSONArray().put("An error occurred while deleting the data source: " + Utils.getExceptionMessage(e) + "\nCheck your server log."));
+                        jsonObj.put("errors", new JSONArray().put("An error occurred while deleting the data source: " + Utils.getExceptionMessage(e) + "\nCheck your server logs."));
                     }
                     break;
 
@@ -162,7 +162,7 @@
                         LOGGER.log(Level.WARNING, "Stack trace: ", e);
                         response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                         jsonObj.put("success", false);
-                        jsonObj.put("errors", new JSONArray().put("An error occurred while validating the data source ID: " + Utils.getExceptionMessage(e) + "\nCheck your server log."));
+                        jsonObj.put("errors", new JSONArray().put("An error occurred while validating the data source ID: " + Utils.getExceptionMessage(e) + "\nCheck your server logs."));
                     }
                     break;
 
@@ -192,7 +192,7 @@
                             LOGGER.log(Level.SEVERE, "An error occurred while generating the Data source catalogue: " + Utils.getExceptionMessage(e), e);
                             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                             jsonObj.put("success", false);
-                            jsonObj.put("errors", new JSONArray().put("An error occurred while generating the Data source catalogue. Check your server log."));
+                            jsonObj.put("errors", new JSONArray().put("An error occurred while getting the Data source generation logs. Check your server logs."));
                         }
                     }
                     break;
@@ -261,7 +261,37 @@
                         LOGGER.log(Level.WARNING, "Stack trace: ", e);
                         response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                         jsonObj.put("success", false);
-                        jsonObj.put("errors", new JSONArray().put("An error occurred while rebuilding the data source: " + Utils.getExceptionMessage(e) + "\nCheck your server log."));
+                        jsonObj.put("errors", new JSONArray().put("An error occurred while rebuilding the data source: " + Utils.getExceptionMessage(e) + "\nCheck your server logs."));
+                    }
+                    break;
+
+                case STOP_PROCESS:
+                    if (Utils.isBlank(dataSourceId)) {
+                        response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                        jsonObj.put("success", false);
+                        jsonObj.put("errors", new JSONArray().put("Missing parameter [dataSourceId]."));
+                    } else {
+                        try {
+                            AbstractDataSourceConfig foundDataSourceConfig = configManager.getDataSourceConfig(dataSourceId);
+                            if (foundDataSourceConfig == null) {
+                                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                                jsonObj.put("success", false);
+                                jsonObj.put("errors", new JSONArray().put("Data source ID ["+dataSourceId+"] not found."));
+                            } else {
+                                foundDataSourceConfig.stop();
+
+                                response.setStatus(HttpServletResponse.SC_OK);
+                                jsonObj.put("message", "Data source rebuilt cancelled");
+                                jsonObj.put("dataSourceName", foundDataSourceConfig.getDataSourceName());
+                                jsonObj.put("dataSourceId", foundDataSourceConfig.getDataSourceId());
+                                jsonObj.put("success", true);
+                            }
+                        } catch(Exception e) {
+                            LOGGER.log(Level.SEVERE, "An error occurred while generating the Data source catalogue: " + Utils.getExceptionMessage(e), e);
+                            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                            jsonObj.put("success", false);
+                            jsonObj.put("errors", new JSONArray().put("An error occurred while generating the Data source catalogue. Check your server logs."));
+                        }
                     }
                     break;
 
@@ -316,7 +346,7 @@
                         LOGGER.log(Level.WARNING, "Stack trace: ", e);
                         response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                         jsonObj.put("success", false);
-                        jsonObj.put("errors", new JSONArray().put("An error occurred while rebuilding a data source: " + Utils.getExceptionMessage(e) + "\nCheck your server log."));
+                        jsonObj.put("errors", new JSONArray().put("An error occurred while rebuilding a data source: " + Utils.getExceptionMessage(e) + "\nCheck your server logs."));
                     }
                     break;
 
