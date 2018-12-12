@@ -108,9 +108,10 @@ import au.gov.aims.atlasmapperserver.thread.RevivableThreadInterruptedException;
 import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
 import au.gov.aims.atlasmapperserver.xml.TC211.TC211Document;
 import au.gov.aims.atlasmapperserver.xml.TC211.TC211Parser;
-import junit.framework.TestCase;
 import org.geotools.data.ows.WMSCapabilities;
 import org.json.JSONObject;
+import org.junit.Assert;
+import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -126,7 +127,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 // TODO UPDATE TESTS - THE CACHE LOGIC HAS CHANGED - NOW ENTIRELY MANAGED BY THE USER, NO MORE TIMEOUT
-public class URLCacheTest extends TestCase {
+public class URLCacheTest {
     private static final Logger LOGGER = Logger.getLogger(URLCacheTest.class.getName());
     private static final String HTTPMOCKUP_SERVICE_URL = "http://localhost:8080/httpmockup/";
     private static final String NONE_EXISTING_URL = "http://localhost:1/thisUrlDontExists/";
@@ -139,6 +140,7 @@ public class URLCacheTest extends TestCase {
     // 1st request of a URL
     //     Succeed
     //         Commit                            [test_New_Commit]
+    @Test
     public void test_New_Commit() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -152,27 +154,27 @@ public class URLCacheTest extends TestCase {
 
             // Validate the downloaded info
             String content = readFile(file);
-            assertEquals("abcd", content);
+            Assert.assertEquals("abcd", content);
 
             // Validate the cached info
             URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), urlStr);
-            assertEquals(SC_OK, cachedFile.getHttpStatusCode());
-            assertEquals(file.getName(), cachedFile.getFilename());
-            assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertNull(cachedFile.getLatestErrorMessage());
-            assertFalse(cachedFile.isApproved());
+            Assert.assertEquals(SC_OK, cachedFile.getHttpStatusCode());
+            Assert.assertEquals(file.getName(), cachedFile.getFilename());
+            Assert.assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertNull(cachedFile.getLatestErrorMessage());
+            Assert.assertFalse(cachedFile.isApproved());
 
             URLCache.commitURLFile(configManager, file, urlStr);
 
-            assertEquals(SC_OK, cachedFile.getHttpStatusCode());
-            assertEquals(file.getName(), cachedFile.getFilename());
-            assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertFalse(cachedFile.hasTemporaryData());
-            assertNull(cachedFile.getLatestErrorMessage());
-            assertTrue(cachedFile.isApproved());
+            Assert.assertEquals(SC_OK, cachedFile.getHttpStatusCode());
+            Assert.assertEquals(file.getName(), cachedFile.getFilename());
+            Assert.assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertFalse(cachedFile.hasTemporaryData());
+            Assert.assertNull(cachedFile.getLatestErrorMessage());
+            Assert.assertTrue(cachedFile.isApproved());
 
-            assertTrue(file.exists());
-            assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
+            Assert.assertTrue(file.exists());
+            Assert.assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
         }
@@ -181,6 +183,7 @@ public class URLCacheTest extends TestCase {
     // 1st request of a URL
     //     Succeed
     //         Rollback                          [test_New_Rollback]
+    @Test
     public void test_New_Rollback() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -194,27 +197,27 @@ public class URLCacheTest extends TestCase {
 
             // Validate the downloaded info
             String content = readFile(file);
-            assertEquals("abcd", content);
+            Assert.assertEquals("abcd", content);
 
             // Validate the cached info
             URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), urlStr);
-            assertEquals(SC_OK, cachedFile.getHttpStatusCode());
-            assertEquals(file.getName(), cachedFile.getFilename());
-            assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertNull(cachedFile.getLatestErrorMessage());
-            assertFalse(cachedFile.isApproved());
+            Assert.assertEquals(SC_OK, cachedFile.getHttpStatusCode());
+            Assert.assertEquals(file.getName(), cachedFile.getFilename());
+            Assert.assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertNull(cachedFile.getLatestErrorMessage());
+            Assert.assertFalse(cachedFile.isApproved());
 
             URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file, urlStr, "Invalid");
 
-            assertEquals(SC_OK, cachedFile.getHttpStatusCode());
-            assertNull(cachedFile.getFilename()); // Deleted file
-            assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertFalse(cachedFile.hasTemporaryData());
-            assertEquals("Invalid", cachedFile.getLatestErrorMessage());
-            assertFalse(cachedFile.isApproved());
+            Assert.assertEquals(SC_OK, cachedFile.getHttpStatusCode());
+            Assert.assertNull(cachedFile.getFilename()); // Deleted file
+            Assert.assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertFalse(cachedFile.hasTemporaryData());
+            Assert.assertEquals("Invalid", cachedFile.getLatestErrorMessage());
+            Assert.assertFalse(cachedFile.isApproved());
 
-            assertFalse(file.exists());
-            assertEquals(0, URLCache.countFile(getTestApplicationFolder()));
+            Assert.assertFalse(file.exists());
+            Assert.assertEquals(0, URLCache.countFile(getTestApplicationFolder()));
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
         }
@@ -223,6 +226,7 @@ public class URLCacheTest extends TestCase {
     // 1st request of a URL
     //     Failed (an error occurred and null is returned)
     //         Commit                            [test_New_FailedCommit]
+    @Test
     public void test_New_FailedCommit() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -235,27 +239,27 @@ public class URLCacheTest extends TestCase {
             File file = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Validate the downloaded info
-            assertNull(file);
+            Assert.assertNull(file);
 
             // Validate the cached info
             URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), urlStr);
-            assertNull(cachedFile.getHttpStatusCode()); // The server do not exists, therefor it didn't returned a status code.
-            //assertEquals(file.getName(), cachedFile.getFilename());
-            assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertNotNull(cachedFile.getLatestErrorMessage());
-            assertFalse(cachedFile.isApproved());
+            Assert.assertNull(cachedFile.getHttpStatusCode()); // The server do not exists, therefor it didn't returned a status code.
+            //Assert.assertEquals(file.getName(), cachedFile.getFilename());
+            Assert.assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertFalse(cachedFile.isApproved());
 
             URLCache.commitURLFile(configManager, file, urlStr);
 
-            assertNull(cachedFile.getHttpStatusCode());
-            //assertEquals(file.getName(), cachedFile.getFilename());
-            assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertFalse(cachedFile.hasTemporaryData());
-            assertNotNull(cachedFile.getLatestErrorMessage());
-            assertTrue(cachedFile.isApproved());
+            Assert.assertNull(cachedFile.getHttpStatusCode());
+            //Assert.assertEquals(file.getName(), cachedFile.getFilename());
+            Assert.assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertFalse(cachedFile.hasTemporaryData());
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertTrue(cachedFile.isApproved());
 
-            assertNull(file);
-            assertEquals(0, URLCache.countFile(getTestApplicationFolder()));
+            Assert.assertNull(file);
+            Assert.assertEquals(0, URLCache.countFile(getTestApplicationFolder()));
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
         }
@@ -264,6 +268,7 @@ public class URLCacheTest extends TestCase {
     // 1st request of a URL
     //     Failed (an error occurred and null is returned)
     //         Rollback                          [test_New_FailedRollback]
+    @Test
     public void test_New_FailedRollback() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -276,27 +281,27 @@ public class URLCacheTest extends TestCase {
             File file = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Validate the downloaded info
-            assertNull(file);
+            Assert.assertNull(file);
 
             // Validate the cached info
             URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), urlStr);
-            assertNull(cachedFile.getHttpStatusCode()); // The server do not exists, therefor it didn't returned a status code.
-            //assertEquals(file.getName(), cachedFile.getFilename());
-            assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertNotNull(cachedFile.getLatestErrorMessage());
-            assertFalse(cachedFile.isApproved());
+            Assert.assertNull(cachedFile.getHttpStatusCode()); // The server do not exists, therefor it didn't returned a status code.
+            //Assert.assertEquals(file.getName(), cachedFile.getFilename());
+            Assert.assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertFalse(cachedFile.isApproved());
 
             URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file, urlStr, "New error message");
 
-            assertNull(cachedFile.getHttpStatusCode());
-            //assertEquals(file.getName(), cachedFile.getFilename());
-            assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertFalse(cachedFile.hasTemporaryData());
-            assertNotNull(cachedFile.getLatestErrorMessage());
-            assertFalse(cachedFile.isApproved());
+            Assert.assertNull(cachedFile.getHttpStatusCode());
+            //Assert.assertEquals(file.getName(), cachedFile.getFilename());
+            Assert.assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertFalse(cachedFile.hasTemporaryData());
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertFalse(cachedFile.isApproved());
 
-            assertNull(file);
-            assertEquals(0, URLCache.countFile(getTestApplicationFolder()));
+            Assert.assertNull(file);
+            Assert.assertEquals(0, URLCache.countFile(getTestApplicationFolder()));
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
         }
@@ -308,6 +313,7 @@ public class URLCacheTest extends TestCase {
     // 1st request was approved
     //     Before timeout (should return what is in the cache, no re-download)
     //         2nd request (cached) - Commit     [test_Approved_Commit]
+    @Test
     public void test_Approved_Commit() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -328,32 +334,32 @@ public class URLCacheTest extends TestCase {
             File file2 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is the cached file
-            assertEquals(file1, file2);
+            Assert.assertEquals(file1, file2);
 
             // Validate the downloaded info
             String content = readFile(file2);
-            assertEquals("abcd", content);
+            Assert.assertEquals("abcd", content);
 
             // Validate the cached info
             URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), urlStr);
-            assertEquals(SC_OK, cachedFile.getHttpStatusCode());
-            assertEquals(file1.getName(), cachedFile.getFilename());
-            assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertNull(cachedFile.getLatestErrorMessage());
-            assertTrue(cachedFile.isApproved());
+            Assert.assertEquals(SC_OK, cachedFile.getHttpStatusCode());
+            Assert.assertEquals(file1.getName(), cachedFile.getFilename());
+            Assert.assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertNull(cachedFile.getLatestErrorMessage());
+            Assert.assertTrue(cachedFile.isApproved());
 
             URLCache.commitURLFile(configManager, file2, urlStr);
 
-            assertEquals(SC_OK, cachedFile.getHttpStatusCode());
-            assertEquals(file2.getName(), cachedFile.getFilename());
-            assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertFalse(cachedFile.hasTemporaryData());
-            assertNull(cachedFile.getLatestErrorMessage());
-            assertTrue(cachedFile.isApproved());
+            Assert.assertEquals(SC_OK, cachedFile.getHttpStatusCode());
+            Assert.assertEquals(file2.getName(), cachedFile.getFilename());
+            Assert.assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertFalse(cachedFile.hasTemporaryData());
+            Assert.assertNull(cachedFile.getLatestErrorMessage());
+            Assert.assertTrue(cachedFile.isApproved());
 
-            assertTrue(file1.exists());
-            assertTrue(file2.exists());
-            assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
+            Assert.assertTrue(file1.exists());
+            Assert.assertTrue(file2.exists());
+            Assert.assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
         }
@@ -362,6 +368,7 @@ public class URLCacheTest extends TestCase {
     // 1st request was approved
     //     Before timeout (should return what is in the cache, no re-download)
     //         2nd request (cached) - Rollback   [test_Approved_Rollback]
+    @Test
     public void test_Approved_Rollback() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -382,37 +389,37 @@ public class URLCacheTest extends TestCase {
             File file2 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is the cached file
-            assertEquals(file1, file2);
+            Assert.assertEquals(file1, file2);
 
             // Validate the downloaded info
             String content = readFile(file2);
-            assertEquals("abcd", content);
+            Assert.assertEquals("abcd", content);
 
             // Validate the cached info
             URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), urlStr);
-            assertEquals(SC_OK, cachedFile.getHttpStatusCode());
-            assertEquals(file1.getName(), cachedFile.getFilename());
-            assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertNull(cachedFile.getLatestErrorMessage());
-            assertTrue(cachedFile.isApproved());
+            Assert.assertEquals(SC_OK, cachedFile.getHttpStatusCode());
+            Assert.assertEquals(file1.getName(), cachedFile.getFilename());
+            Assert.assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertNull(cachedFile.getLatestErrorMessage());
+            Assert.assertTrue(cachedFile.isApproved());
 
             File file3 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file2, urlStr, "New error message");
 
             // Ensure the returned file is the first one (proper rollback)
-            assertEquals(file1, file3);
+            Assert.assertEquals(file1, file3);
 
-            assertEquals(SC_OK, cachedFile.getHttpStatusCode());
-            assertEquals(file1.getName(), cachedFile.getFilename());
-            assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertFalse(cachedFile.hasTemporaryData());
-            assertNotNull(cachedFile.getLatestErrorMessage());
-            assertTrue(cachedFile.isApproved());
+            Assert.assertEquals(SC_OK, cachedFile.getHttpStatusCode());
+            Assert.assertEquals(file1.getName(), cachedFile.getFilename());
+            Assert.assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertFalse(cachedFile.hasTemporaryData());
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertTrue(cachedFile.isApproved());
 
-            assertTrue(file1.exists());
+            Assert.assertTrue(file1.exists());
             // File2 exists even after rollback, since it's the same file as file1
-            assertTrue(file2.exists());
-            assertTrue(file3.exists());
-            assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
+            Assert.assertTrue(file2.exists());
+            Assert.assertTrue(file3.exists());
+            Assert.assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
         }
@@ -422,6 +429,7 @@ public class URLCacheTest extends TestCase {
     //     After timeout (re-download)
     //         2nd request - Succeed
     //             Commit                        [test_ApprovedTimeout_Commit]
+    @Test
     public void test_ApprovedTimeout_Commit() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -440,42 +448,42 @@ public class URLCacheTest extends TestCase {
             // Set expiry to trigger the re-download
             URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), urlStr);
             cachedFile.setExpiry(0);
-            assertEquals(0, cachedFile.getExpiry());
+            Assert.assertEquals(0, cachedFile.getExpiry());
 
 
             // Re-request the file - the timeout has expired, it must re-download the file
             File file2 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is NOT the cached file
-            assertFalse(file1.equals(file2));
+            Assert.assertFalse(file1.equals(file2));
 
             // Validate the downloaded info
             String content = readFile(file2);
-            assertEquals("abcd", content);
+            Assert.assertEquals("abcd", content);
 
             // Validate the cached info
             cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), urlStr);
-            assertEquals(SC_OK, cachedFile.getHttpStatusCode());
-            assertEquals(file1.getName(), cachedFile.getFilename());
-            //assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertTrue(cachedFile.hasTemporaryData());
-            assertEquals(SC_OK, cachedFile.getTemporaryHttpStatusCode());
-            assertEquals(file2.getName(), cachedFile.getTemporaryFilename());
-            assertNull(cachedFile.getLatestErrorMessage());
-            assertTrue(cachedFile.isApproved());
+            Assert.assertEquals(SC_OK, cachedFile.getHttpStatusCode());
+            Assert.assertEquals(file1.getName(), cachedFile.getFilename());
+            //Assert.assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertTrue(cachedFile.hasTemporaryData());
+            Assert.assertEquals(SC_OK, cachedFile.getTemporaryHttpStatusCode());
+            Assert.assertEquals(file2.getName(), cachedFile.getTemporaryFilename());
+            Assert.assertNull(cachedFile.getLatestErrorMessage());
+            Assert.assertTrue(cachedFile.isApproved());
 
             URLCache.commitURLFile(configManager, file2, urlStr);
 
-            assertEquals(SC_OK, cachedFile.getHttpStatusCode());
-            assertEquals(file2.getName(), cachedFile.getFilename());
-            assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertFalse(cachedFile.hasTemporaryData());
-            assertNull(cachedFile.getLatestErrorMessage());
-            assertTrue(cachedFile.isApproved());
+            Assert.assertEquals(SC_OK, cachedFile.getHttpStatusCode());
+            Assert.assertEquals(file2.getName(), cachedFile.getFilename());
+            Assert.assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertFalse(cachedFile.hasTemporaryData());
+            Assert.assertNull(cachedFile.getLatestErrorMessage());
+            Assert.assertTrue(cachedFile.isApproved());
 
-            assertFalse(file1.exists());
-            assertTrue(file2.exists());
-            assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
+            Assert.assertFalse(file1.exists());
+            Assert.assertTrue(file2.exists());
+            Assert.assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
         }
@@ -485,6 +493,7 @@ public class URLCacheTest extends TestCase {
     //     After timeout (re-download)
     //         2nd request - Succeed
     //             Rollback                      [test_ApprovedTimeout_Rollback]
+    @Test
     public void test_ApprovedTimeout_Rollback() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -503,46 +512,46 @@ public class URLCacheTest extends TestCase {
             // Set expiry to trigger the re-download
             URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), urlStr);
             cachedFile.setExpiry(0);
-            assertEquals(0, cachedFile.getExpiry());
+            Assert.assertEquals(0, cachedFile.getExpiry());
 
 
             // Re-request the file - the timeout has expired, it must re-download the file
             File file2 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is NOT the cached file
-            assertFalse(file1.equals(file2));
+            Assert.assertFalse(file1.equals(file2));
 
             // Validate the downloaded info
             String content = readFile(file2);
-            assertEquals("abcd", content);
+            Assert.assertEquals("abcd", content);
 
             // Validate the cached info
             cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), urlStr);
-            assertEquals(SC_OK, cachedFile.getHttpStatusCode());
-            assertEquals(file1.getName(), cachedFile.getFilename());
-            //assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertTrue(cachedFile.hasTemporaryData());
-            assertEquals(SC_OK, cachedFile.getTemporaryHttpStatusCode());
-            assertEquals(file2.getName(), cachedFile.getTemporaryFilename());
-            assertNull(cachedFile.getLatestErrorMessage());
-            assertTrue(cachedFile.isApproved());
+            Assert.assertEquals(SC_OK, cachedFile.getHttpStatusCode());
+            Assert.assertEquals(file1.getName(), cachedFile.getFilename());
+            //Assert.assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertTrue(cachedFile.hasTemporaryData());
+            Assert.assertEquals(SC_OK, cachedFile.getTemporaryHttpStatusCode());
+            Assert.assertEquals(file2.getName(), cachedFile.getTemporaryFilename());
+            Assert.assertNull(cachedFile.getLatestErrorMessage());
+            Assert.assertTrue(cachedFile.isApproved());
 
             File file3 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file2, urlStr, "New error message");
 
             // Ensure the returned file is the first one (proper rollback)
-            assertEquals(file1, file3);
+            Assert.assertEquals(file1, file3);
 
-            assertEquals(SC_OK, cachedFile.getHttpStatusCode());
-            assertEquals(file1.getName(), cachedFile.getFilename());
-            assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertFalse(cachedFile.hasTemporaryData());
-            assertNotNull(cachedFile.getLatestErrorMessage());
-            assertTrue(cachedFile.isApproved());
+            Assert.assertEquals(SC_OK, cachedFile.getHttpStatusCode());
+            Assert.assertEquals(file1.getName(), cachedFile.getFilename());
+            Assert.assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertFalse(cachedFile.hasTemporaryData());
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertTrue(cachedFile.isApproved());
 
-            assertTrue(file1.exists());
-            assertFalse(file2.exists());
-            assertTrue(file3.exists());
-            assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
+            Assert.assertTrue(file1.exists());
+            Assert.assertFalse(file2.exists());
+            Assert.assertTrue(file3.exists());
+            Assert.assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
         }
@@ -552,6 +561,7 @@ public class URLCacheTest extends TestCase {
     //     After timeout (re-download)
     //         2nd request - Failed (an error occurred and null is returned)
     //             Commit                        [test_ApprovedTimeout_FailedCommit]
+    @Test
     public void test_ApprovedTimeout_FailedCommit() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -571,7 +581,7 @@ public class URLCacheTest extends TestCase {
             // Set expiry to trigger the re-download
             URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), validUrlStr);
             cachedFile.setExpiry(0);
-            assertEquals(0, cachedFile.getExpiry());
+            Assert.assertEquals(0, cachedFile.getExpiry());
 
             // The URL will always succeed. We need to change the URL in order to make the 2nd request fail.
             URLCache.getDiskCacheMap(getTestApplicationFolder()).put(invalidUrlStr, cachedFile.toJSON());
@@ -581,29 +591,29 @@ public class URLCacheTest extends TestCase {
             File file2 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, invalidUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // The URLCache can not download the new file, so it automatically rollback and return the first file
-            assertEquals(file1, file2);
+            Assert.assertEquals(file1, file2);
 
             // Validate the cached info
             cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), invalidUrlStr);
-            assertEquals(SC_OK, cachedFile.getHttpStatusCode());
-            assertEquals(file1.getName(), cachedFile.getFilename());
+            Assert.assertEquals(SC_OK, cachedFile.getHttpStatusCode());
+            Assert.assertEquals(file1.getName(), cachedFile.getFilename());
             //assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertFalse(cachedFile.hasTemporaryData());
-            assertNotNull(cachedFile.getLatestErrorMessage());
-            assertTrue(cachedFile.isApproved());
+            Assert.assertFalse(cachedFile.hasTemporaryData());
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertTrue(cachedFile.isApproved());
 
             URLCache.commitURLFile(configManager, file2, invalidUrlStr);
 
-            assertEquals(SC_OK, cachedFile.getHttpStatusCode());
-            assertEquals(file2.getName(), cachedFile.getFilename());
-            assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertFalse(cachedFile.hasTemporaryData());
-            assertNotNull(cachedFile.getLatestErrorMessage());
-            assertTrue(cachedFile.isApproved());
+            Assert.assertEquals(SC_OK, cachedFile.getHttpStatusCode());
+            Assert.assertEquals(file2.getName(), cachedFile.getFilename());
+            Assert.assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertFalse(cachedFile.hasTemporaryData());
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertTrue(cachedFile.isApproved());
 
-            assertTrue(file1.exists());
-            assertTrue(file2.exists());
-            assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
+            Assert.assertTrue(file1.exists());
+            Assert.assertTrue(file2.exists());
+            Assert.assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
         }
@@ -613,6 +623,7 @@ public class URLCacheTest extends TestCase {
     //     After timeout (re-download)
     //         2nd request - Failed (an error occurred and null is returned)
     //             Rollback                      [test_ApprovedTimeout_FailedRollback]
+    @Test
     public void test_ApprovedTimeout_FailedRollback() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -632,7 +643,7 @@ public class URLCacheTest extends TestCase {
             // Set expiry to trigger the re-download
             URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), validUrlStr);
             cachedFile.setExpiry(0);
-            assertEquals(0, cachedFile.getExpiry());
+            Assert.assertEquals(0, cachedFile.getExpiry());
 
             // The URL will always succeed. We need to change the URL in order to make the 2nd request fail.
             URLCache.getDiskCacheMap(getTestApplicationFolder()).put(invalidUrlStr, cachedFile.toJSON());
@@ -642,34 +653,34 @@ public class URLCacheTest extends TestCase {
             File file2 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, invalidUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // The URLCache can not download the new file, so it automatically rollback and return the first file
-            assertEquals(file1, file2);
+            Assert.assertEquals(file1, file2);
 
             // Validate the cached info
             cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), invalidUrlStr);
-            assertEquals(SC_OK, cachedFile.getHttpStatusCode());
-            assertEquals(file1.getName(), cachedFile.getFilename());
-            //assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertFalse(cachedFile.hasTemporaryData());
-            assertNotNull(cachedFile.getLatestErrorMessage());
-            assertTrue(cachedFile.isApproved());
+            Assert.assertEquals(SC_OK, cachedFile.getHttpStatusCode());
+            Assert.assertEquals(file1.getName(), cachedFile.getFilename());
+            //Assert.assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertFalse(cachedFile.hasTemporaryData());
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertTrue(cachedFile.isApproved());
 
             File file3 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file2, invalidUrlStr, "New error message");
 
             // Ensure the returned file is the first one (proper rollback)
-            assertEquals(file1, file3);
+            Assert.assertEquals(file1, file3);
 
-            assertEquals(SC_OK, cachedFile.getHttpStatusCode());
-            assertEquals(file1.getName(), cachedFile.getFilename());
-            assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertFalse(cachedFile.hasTemporaryData());
-            assertNotNull(cachedFile.getLatestErrorMessage());
-            assertTrue(cachedFile.isApproved());
+            Assert.assertEquals(SC_OK, cachedFile.getHttpStatusCode());
+            Assert.assertEquals(file1.getName(), cachedFile.getFilename());
+            Assert.assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertFalse(cachedFile.hasTemporaryData());
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertTrue(cachedFile.isApproved());
 
-            assertTrue(file1.exists());
+            Assert.assertTrue(file1.exists());
             // File2 exists even after rollback, since it's the same file as file1
-            assertTrue(file2.exists());
-            assertTrue(file3.exists());
-            assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
+            Assert.assertTrue(file2.exists());
+            Assert.assertTrue(file3.exists());
+            Assert.assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
         }
@@ -681,6 +692,7 @@ public class URLCacheTest extends TestCase {
     // 1st request was NOT approved
     //     Before timeout (should return what is in the cache, no re-download)
     //         2nd request (cached) - Commit     [test_NotApproved_Commit]
+    @Test
     public void test_NotApproved_Commit() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -697,36 +709,36 @@ public class URLCacheTest extends TestCase {
             File file2 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file1, urlStr, "New error message");
 
             // Ensure the returned file is the cached file
-            assertNull(file2);
+            Assert.assertNull(file2);
 
 
             // Re-request the file - the timeout hasn't expired, it must give the same cached file
             File file3 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is the cached file (refused => null)
-            assertNull(file3);
+            Assert.assertNull(file3);
 
             // Validate the cached info
             URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), urlStr);
-            assertEquals(SC_OK, cachedFile.getHttpStatusCode());
-            //assertEquals(file1.getName(), cachedFile.getFilename());
-            assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertNotNull(cachedFile.getLatestErrorMessage());
-            assertFalse(cachedFile.isApproved());
+            Assert.assertEquals(SC_OK, cachedFile.getHttpStatusCode());
+            //Assert.assertEquals(file1.getName(), cachedFile.getFilename());
+            Assert.assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertFalse(cachedFile.isApproved());
 
             URLCache.commitURLFile(configManager, file3, urlStr);
 
-            assertEquals(SC_OK, cachedFile.getHttpStatusCode());
-            //assertEquals(file3.getName(), cachedFile.getFilename());
-            assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertFalse(cachedFile.hasTemporaryData());
-            assertNotNull(cachedFile.getLatestErrorMessage());
-            assertTrue(cachedFile.isApproved());
+            Assert.assertEquals(SC_OK, cachedFile.getHttpStatusCode());
+            //Assert.assertEquals(file3.getName(), cachedFile.getFilename());
+            Assert.assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertFalse(cachedFile.hasTemporaryData());
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertTrue(cachedFile.isApproved());
 
-            assertFalse(file1.exists());
-            assertNull(file2);
-            assertNull(file3);
-            assertEquals(0, URLCache.countFile(getTestApplicationFolder()));
+            Assert.assertFalse(file1.exists());
+            Assert.assertNull(file2);
+            Assert.assertNull(file3);
+            Assert.assertEquals(0, URLCache.countFile(getTestApplicationFolder()));
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
         }
@@ -735,6 +747,7 @@ public class URLCacheTest extends TestCase {
     // 1st request was NOT approved
     //     Before timeout (should return what is in the cache, no re-download)
     //         2nd request (cached) - Rollback   [test_NotApproved_Rollback]
+    @Test
     public void test_NotApproved_Rollback() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -751,40 +764,40 @@ public class URLCacheTest extends TestCase {
             File file2 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file1, urlStr, "New error message");
 
             // Ensure the returned file is the cached file
-            assertNull(file2);
+            Assert.assertNull(file2);
 
 
             // Re-request the file - the timeout hasn't expired, it must give the same cached file
             File file3 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is the cached file (refused => null)
-            assertNull(file3);
+            Assert.assertNull(file3);
 
             // Validate the cached info
             URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), urlStr);
-            assertEquals(SC_OK, cachedFile.getHttpStatusCode());
-            //assertEquals(file1.getName(), cachedFile.getFilename());
-            assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertNotNull(cachedFile.getLatestErrorMessage());
-            assertFalse(cachedFile.isApproved());
+            Assert.assertEquals(SC_OK, cachedFile.getHttpStatusCode());
+            //Assert.assertEquals(file1.getName(), cachedFile.getFilename());
+            Assert.assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertFalse(cachedFile.isApproved());
 
             File file4 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file3, urlStr, "New error message");
 
             // Ensure the returned file is the cached file (refused => null)
-            assertNull(file4);
+            Assert.assertNull(file4);
 
-            assertEquals(SC_OK, cachedFile.getHttpStatusCode());
-            //assertEquals(file3.getName(), cachedFile.getFilename());
-            assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertFalse(cachedFile.hasTemporaryData());
-            assertNotNull(cachedFile.getLatestErrorMessage());
-            assertFalse(cachedFile.isApproved());
+            Assert.assertEquals(SC_OK, cachedFile.getHttpStatusCode());
+            //Assert.assertEquals(file3.getName(), cachedFile.getFilename());
+            Assert.assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertFalse(cachedFile.hasTemporaryData());
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertFalse(cachedFile.isApproved());
 
-            assertFalse(file1.exists());
-            assertNull(file2);
-            assertNull(file3);
-            assertNull(file4);
-            assertEquals(0, URLCache.countFile(getTestApplicationFolder()));
+            Assert.assertFalse(file1.exists());
+            Assert.assertNull(file2);
+            Assert.assertNull(file3);
+            Assert.assertNull(file4);
+            Assert.assertEquals(0, URLCache.countFile(getTestApplicationFolder()));
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
         }
@@ -794,6 +807,7 @@ public class URLCacheTest extends TestCase {
     //     After timeout (re-download)
     //         2nd request - Succeed
     //             Commit                        [test_NotApprovedTimeout_Commit]
+    @Test
     public void test_NotApprovedTimeout_Commit() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -810,12 +824,12 @@ public class URLCacheTest extends TestCase {
             File file2 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file1, urlStr, "New error message");
 
             // Ensure the returned file is the cached file
-            assertNull(file2);
+            Assert.assertNull(file2);
 
             // Set expiry to trigger the re-download
             URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), urlStr);
             cachedFile.setExpiry(0);
-            assertEquals(0, cachedFile.getExpiry());
+            Assert.assertEquals(0, cachedFile.getExpiry());
 
 
             // Re-request the file - the timeout has expired, it must re-download the file
@@ -823,35 +837,35 @@ public class URLCacheTest extends TestCase {
 
             // Validate the downloaded info
             String content = readFile(file3);
-            assertEquals("abcd", content);
+            Assert.assertEquals("abcd", content);
 
             // Validate the cached info
             cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), urlStr);
-            assertEquals(SC_OK, cachedFile.getHttpStatusCode());
-            //assertEquals(file1.getName(), cachedFile.getFilename());
-            //assertEquals(0, cachedFile.getExpiry());
-            assertTrue(cachedFile.hasTemporaryData());
-            assertEquals(SC_OK, cachedFile.getTemporaryHttpStatusCode());
-            assertEquals(file3.getName(), cachedFile.getTemporaryFilename());
-            assertNull(cachedFile.getLatestErrorMessage());
-            assertFalse(cachedFile.isApproved());
+            Assert.assertEquals(SC_OK, cachedFile.getHttpStatusCode());
+            //Assert.assertEquals(file1.getName(), cachedFile.getFilename());
+            //Assert.assertEquals(0, cachedFile.getExpiry());
+            Assert.assertTrue(cachedFile.hasTemporaryData());
+            Assert.assertEquals(SC_OK, cachedFile.getTemporaryHttpStatusCode());
+            Assert.assertEquals(file3.getName(), cachedFile.getTemporaryFilename());
+            Assert.assertNull(cachedFile.getLatestErrorMessage());
+            Assert.assertFalse(cachedFile.isApproved());
 
             URLCache.commitURLFile(configManager, file3, urlStr);
 
-            assertEquals(SC_OK, cachedFile.getHttpStatusCode());
-            assertEquals(file3.getName(), cachedFile.getFilename());
-            assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertFalse(cachedFile.hasTemporaryData());
-            assertNull(cachedFile.getLatestErrorMessage());
-            assertTrue(cachedFile.isApproved());
+            Assert.assertEquals(SC_OK, cachedFile.getHttpStatusCode());
+            Assert.assertEquals(file3.getName(), cachedFile.getFilename());
+            Assert.assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertFalse(cachedFile.hasTemporaryData());
+            Assert.assertNull(cachedFile.getLatestErrorMessage());
+            Assert.assertTrue(cachedFile.isApproved());
 
             // File1 has been deleted, its name removed from the cache. Then an other file (file3)
             // has been downloaded with the same name as file1 (the application re-used file names).
             // Therefor, file1.exists() is true even if it has been deleted.
-            //assertFalse(file1.exists());
-            assertNull(file2);
-            assertTrue(file3.exists());
-            assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
+            //Assert.assertFalse(file1.exists());
+            Assert.assertNull(file2);
+            Assert.assertTrue(file3.exists());
+            Assert.assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
         }
@@ -861,6 +875,7 @@ public class URLCacheTest extends TestCase {
     //     After timeout (re-download)
     //         2nd request - Succeed
     //             Rollback                      [test_NotApprovedTimeout_Rollback]
+    @Test
     public void test_NotApprovedTimeout_Rollback() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -877,12 +892,12 @@ public class URLCacheTest extends TestCase {
             File file2 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file1, urlStr, "New error message");
 
             // Ensure the returned file is the cached file
-            assertNull(file2);
+            Assert.assertNull(file2);
 
             // Set expiry to trigger the re-download
             URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), urlStr);
             cachedFile.setExpiry(0);
-            assertEquals(0, cachedFile.getExpiry());
+            Assert.assertEquals(0, cachedFile.getExpiry());
 
 
             // Re-request the file - the timeout has expired, it must re-download the file
@@ -890,33 +905,33 @@ public class URLCacheTest extends TestCase {
 
             // Validate the downloaded info
             String content = readFile(file3);
-            assertEquals("abcd", content);
+            Assert.assertEquals("abcd", content);
 
             // Validate the cached info
             cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), urlStr);
-            assertEquals(SC_OK, cachedFile.getHttpStatusCode());
-            //assertEquals(file1.getName(), cachedFile.getFilename());
-            //assertEquals(0, cachedFile.getExpiry());
-            assertTrue(cachedFile.hasTemporaryData());
-            assertEquals(SC_OK, cachedFile.getTemporaryHttpStatusCode());
-            assertEquals(file3.getName(), cachedFile.getTemporaryFilename());
-            assertNull(cachedFile.getLatestErrorMessage());
-            assertFalse(cachedFile.isApproved());
+            Assert.assertEquals(SC_OK, cachedFile.getHttpStatusCode());
+            //Assert.assertEquals(file1.getName(), cachedFile.getFilename());
+            //Assert.assertEquals(0, cachedFile.getExpiry());
+            Assert.assertTrue(cachedFile.hasTemporaryData());
+            Assert.assertEquals(SC_OK, cachedFile.getTemporaryHttpStatusCode());
+            Assert.assertEquals(file3.getName(), cachedFile.getTemporaryFilename());
+            Assert.assertNull(cachedFile.getLatestErrorMessage());
+            Assert.assertFalse(cachedFile.isApproved());
 
             File file4 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file3, urlStr, "New error message");
 
-            assertEquals(SC_OK, cachedFile.getHttpStatusCode());
-            assertNull(file4);
-            assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertFalse(cachedFile.hasTemporaryData());
-            assertNotNull(cachedFile.getLatestErrorMessage());
-            assertFalse(cachedFile.isApproved());
+            Assert.assertEquals(SC_OK, cachedFile.getHttpStatusCode());
+            Assert.assertNull(file4);
+            Assert.assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertFalse(cachedFile.hasTemporaryData());
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertFalse(cachedFile.isApproved());
 
-            assertFalse(file1.exists());
-            assertNull(file2);
-            assertFalse(file3.exists());
-            assertNull(file4);
-            assertEquals(0, URLCache.countFile(getTestApplicationFolder()));
+            Assert.assertFalse(file1.exists());
+            Assert.assertNull(file2);
+            Assert.assertFalse(file3.exists());
+            Assert.assertNull(file4);
+            Assert.assertEquals(0, URLCache.countFile(getTestApplicationFolder()));
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
         }
@@ -926,6 +941,7 @@ public class URLCacheTest extends TestCase {
     //     After timeout (re-download)
     //         2nd request - Failed (an error occurred and null is returned)
     //             Commit                        [test_NotApprovedTimeout_FailedCommit]
+    @Test
     public void test_NotApprovedTimeout_FailedCommit() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -943,12 +959,12 @@ public class URLCacheTest extends TestCase {
             File file2 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file1, validUrlStr, "New error message");
 
             // Ensure the returned file is the cached file
-            assertNull(file2);
+            Assert.assertNull(file2);
 
             // Set expiry to trigger the re-download
             URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), validUrlStr);
             cachedFile.setExpiry(0);
-            assertEquals(0, cachedFile.getExpiry());
+            Assert.assertEquals(0, cachedFile.getExpiry());
 
             // The URL will always succeed. We need to change the URL in order to make the 2nd request fail.
             URLCache.getDiskCacheMap(getTestApplicationFolder()).put(invalidUrlStr, cachedFile.toJSON());
@@ -958,32 +974,32 @@ public class URLCacheTest extends TestCase {
             File file3 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, invalidUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // The URLCache can not download the new file, so it automatically rollback and return the first file
-            assertNull(file3);
+            Assert.assertNull(file3);
 
             // Validate the cached info
             cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), invalidUrlStr);
-            assertEquals(SC_OK, cachedFile.getHttpStatusCode());
-            //assertEquals(file1.getName(), cachedFile.getFilename());
-            //assertEquals(0, cachedFile.getExpiry());
-            //assertTrue(cachedFile.hasTemporaryData());
-            //assertEquals(SC_OK, cachedFile.getTemporaryHttpStatusCode());
-            //assertEquals(file3.getName(), cachedFile.getTemporaryFilename());
-            assertNotNull(cachedFile.getLatestErrorMessage());
-            assertFalse(cachedFile.isApproved());
+            Assert.assertEquals(SC_OK, cachedFile.getHttpStatusCode());
+            //Assert.assertEquals(file1.getName(), cachedFile.getFilename());
+            //Assert.assertEquals(0, cachedFile.getExpiry());
+            //Assert.assertTrue(cachedFile.hasTemporaryData());
+            //Assert.assertEquals(SC_OK, cachedFile.getTemporaryHttpStatusCode());
+            //Assert.assertEquals(file3.getName(), cachedFile.getTemporaryFilename());
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertFalse(cachedFile.isApproved());
 
             URLCache.commitURLFile(configManager, file3, invalidUrlStr);
 
-            assertEquals(SC_OK, cachedFile.getHttpStatusCode());
-            assertNull(cachedFile.getFilename());
-            assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertFalse(cachedFile.hasTemporaryData());
-            assertNotNull(cachedFile.getLatestErrorMessage());
-            assertTrue(cachedFile.isApproved());
+            Assert.assertEquals(SC_OK, cachedFile.getHttpStatusCode());
+            Assert.assertNull(cachedFile.getFilename());
+            Assert.assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertFalse(cachedFile.hasTemporaryData());
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertTrue(cachedFile.isApproved());
 
-            assertFalse(file1.exists());
-            assertNull(file2);
-            assertNull(file3);
-            assertEquals(0, URLCache.countFile(getTestApplicationFolder()));
+            Assert.assertFalse(file1.exists());
+            Assert.assertNull(file2);
+            Assert.assertNull(file3);
+            Assert.assertEquals(0, URLCache.countFile(getTestApplicationFolder()));
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
         }
@@ -993,6 +1009,7 @@ public class URLCacheTest extends TestCase {
     //     After timeout (re-download)
     //         2nd request - Failed (an error occurred and null is returned)
     //             Rollback                      [test_NotApprovedTimeout_FailedRollback]
+    @Test
     public void test_NotApprovedTimeout_FailedRollback() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -1010,12 +1027,12 @@ public class URLCacheTest extends TestCase {
             File file2 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file1, validUrlStr, "New error message");
 
             // Ensure the returned file is the cached file
-            assertNull(file2);
+            Assert.assertNull(file2);
 
             // Set expiry to trigger the re-download
             URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), validUrlStr);
             cachedFile.setExpiry(0);
-            assertEquals(0, cachedFile.getExpiry());
+            Assert.assertEquals(0, cachedFile.getExpiry());
 
             // The URL will always succeed. We need to change the URL in order to make the 2nd request fail.
             URLCache.getDiskCacheMap(getTestApplicationFolder()).put(invalidUrlStr, cachedFile.toJSON());
@@ -1025,36 +1042,36 @@ public class URLCacheTest extends TestCase {
             File file3 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, invalidUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // The URLCache can not download the new file, so it automatically rollback and return the first file
-            assertNull(file3);
+            Assert.assertNull(file3);
 
             // Validate the cached info
             cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), invalidUrlStr);
-            assertEquals(SC_OK, cachedFile.getHttpStatusCode());
-            //assertEquals(file1.getName(), cachedFile.getFilename());
-            //assertEquals(0, cachedFile.getExpiry());
-            //assertTrue(cachedFile.hasTemporaryData());
-            //assertEquals(SC_OK, cachedFile.getTemporaryHttpStatusCode());
-            //assertEquals(file3.getName(), cachedFile.getTemporaryFilename());
-            assertNotNull(cachedFile.getLatestErrorMessage());
-            assertFalse(cachedFile.isApproved());
+            Assert.assertEquals(SC_OK, cachedFile.getHttpStatusCode());
+            //Assert.assertEquals(file1.getName(), cachedFile.getFilename());
+            //Assert.assertEquals(0, cachedFile.getExpiry());
+            //Assert.assertTrue(cachedFile.hasTemporaryData());
+            //Assert.assertEquals(SC_OK, cachedFile.getTemporaryHttpStatusCode());
+            //Assert.assertEquals(file3.getName(), cachedFile.getTemporaryFilename());
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertFalse(cachedFile.isApproved());
 
             File file4 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file3, invalidUrlStr, "New error message");
 
             // The URLCache can not download the new file, so it automatically rollback and return the first file
-            assertNull(file3);
+            Assert.assertNull(file3);
 
-            assertEquals(SC_OK, cachedFile.getHttpStatusCode());
-            assertNull(cachedFile.getFilename());
-            assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertFalse(cachedFile.hasTemporaryData());
-            assertNotNull(cachedFile.getLatestErrorMessage());
-            assertFalse(cachedFile.isApproved());
+            Assert.assertEquals(SC_OK, cachedFile.getHttpStatusCode());
+            Assert.assertNull(cachedFile.getFilename());
+            Assert.assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertFalse(cachedFile.hasTemporaryData());
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertFalse(cachedFile.isApproved());
 
-            assertFalse(file1.exists());
-            assertNull(file2);
-            assertNull(file3);
-            assertNull(file4);
-            assertEquals(0, URLCache.countFile(getTestApplicationFolder()));
+            Assert.assertFalse(file1.exists());
+            Assert.assertNull(file2);
+            Assert.assertNull(file3);
+            Assert.assertNull(file4);
+            Assert.assertEquals(0, URLCache.countFile(getTestApplicationFolder()));
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
         }
@@ -1066,6 +1083,7 @@ public class URLCacheTest extends TestCase {
     // 1st request returned null
     //     Before timeout (should return what is in the cache, no re-download)
     //         2nd request (cached) - Commit     [test_Null_Commit]
+    @Test
     public void test_Null_Commit() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -1079,42 +1097,42 @@ public class URLCacheTest extends TestCase {
             File file1 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is null
-            assertNull(file1);
+            Assert.assertNull(file1);
 
             // Rollback (refuse) the file
             File file2 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file1, urlStr, "New error message");
 
             // Ensure the returned file is the cached file
-            assertNull(file2);
+            Assert.assertNull(file2);
 
 
             // Re-request the file - the timeout hasn't expired, it must give the same cached file
             File file3 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is the cached file (refused => null)
-            assertNull(file3);
+            Assert.assertNull(file3);
 
             // Validate the cached info
             URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), urlStr);
-            assertNull(cachedFile.getHttpStatusCode());
-            //assertEquals(file1.getName(), cachedFile.getFilename());
-            assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertNotNull(cachedFile.getLatestErrorMessage());
-            assertFalse(cachedFile.isApproved());
+            Assert.assertNull(cachedFile.getHttpStatusCode());
+            //Assert.assertEquals(file1.getName(), cachedFile.getFilename());
+            Assert.assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertFalse(cachedFile.isApproved());
 
             URLCache.commitURLFile(configManager, file3, urlStr);
 
-            assertNull(cachedFile.getHttpStatusCode());
-            //assertEquals(file3.getName(), cachedFile.getFilename());
-            assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertFalse(cachedFile.hasTemporaryData());
-            assertNotNull(cachedFile.getLatestErrorMessage());
-            assertTrue(cachedFile.isApproved());
+            Assert.assertNull(cachedFile.getHttpStatusCode());
+            //Assert.assertEquals(file3.getName(), cachedFile.getFilename());
+            Assert.assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertFalse(cachedFile.hasTemporaryData());
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertTrue(cachedFile.isApproved());
 
-            assertNull(file1);
-            assertNull(file2);
-            assertNull(file3);
-            assertEquals(0, URLCache.countFile(getTestApplicationFolder()));
+            Assert.assertNull(file1);
+            Assert.assertNull(file2);
+            Assert.assertNull(file3);
+            Assert.assertEquals(0, URLCache.countFile(getTestApplicationFolder()));
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
         }
@@ -1123,6 +1141,7 @@ public class URLCacheTest extends TestCase {
     // 1st request returned null
     //     Before timeout (should return what is in the cache, no re-download)
     //         2nd request (cached) - Rollback   [test_Null_Rollback]
+    @Test
     public void test_Null_Rollback() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -1136,46 +1155,46 @@ public class URLCacheTest extends TestCase {
             File file1 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is null
-            assertNull(file1);
+            Assert.assertNull(file1);
 
             // Rollback (refuse) the file
             File file2 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file1, urlStr, "New error message");
 
             // Ensure the returned file is the cached file
-            assertNull(file2);
+            Assert.assertNull(file2);
 
 
             // Re-request the file - the timeout hasn't expired, it must give the same cached file
             File file3 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is the cached file (refused => null)
-            assertNull(file3);
+            Assert.assertNull(file3);
 
             // Validate the cached info
             URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), urlStr);
-            assertNull(cachedFile.getHttpStatusCode());
-            //assertEquals(file1.getName(), cachedFile.getFilename());
-            assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertNotNull(cachedFile.getLatestErrorMessage());
-            assertFalse(cachedFile.isApproved());
+            Assert.assertNull(cachedFile.getHttpStatusCode());
+            //Assert.assertEquals(file1.getName(), cachedFile.getFilename());
+            Assert.assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertFalse(cachedFile.isApproved());
 
             File file4 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file3, urlStr, "New error message");
 
             // Ensure the returned file is the cached file (refused => null)
-            assertNull(file4);
+            Assert.assertNull(file4);
 
-            assertNull(cachedFile.getHttpStatusCode());
-            //assertEquals(file3.getName(), cachedFile.getFilename());
-            assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertFalse(cachedFile.hasTemporaryData());
-            assertNotNull(cachedFile.getLatestErrorMessage());
-            assertFalse(cachedFile.isApproved());
+            Assert.assertNull(cachedFile.getHttpStatusCode());
+            //Assert.assertEquals(file3.getName(), cachedFile.getFilename());
+            Assert.assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertFalse(cachedFile.hasTemporaryData());
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertFalse(cachedFile.isApproved());
 
-            assertNull(file1);
-            assertNull(file2);
-            assertNull(file3);
-            assertNull(file4);
-            assertEquals(0, URLCache.countFile(getTestApplicationFolder()));
+            Assert.assertNull(file1);
+            Assert.assertNull(file2);
+            Assert.assertNull(file3);
+            Assert.assertNull(file4);
+            Assert.assertEquals(0, URLCache.countFile(getTestApplicationFolder()));
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
         }
@@ -1185,6 +1204,7 @@ public class URLCacheTest extends TestCase {
     //     After timeout (re-download)
     //         2nd request - Succeed
     //             Commit                        [test_NullTimeout_Commit]
+    @Test
     public void test_NullTimeout_Commit() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -1199,18 +1219,18 @@ public class URLCacheTest extends TestCase {
             File file1 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, invalidUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is null
-            assertNull(file1);
+            Assert.assertNull(file1);
 
             // Rollback (refuse) the file
             File file2 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file1, invalidUrlStr, "New error message");
 
             // Ensure the returned file is the cached file
-            assertNull(file2);
+            Assert.assertNull(file2);
 
             // Set expiry to trigger the re-download
             URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), invalidUrlStr);
             cachedFile.setExpiry(0);
-            assertEquals(0, cachedFile.getExpiry());
+            Assert.assertEquals(0, cachedFile.getExpiry());
 
             // The URL will always fail. We need to change the URL in order to make the 2nd request succeed.
             URLCache.getDiskCacheMap(getTestApplicationFolder()).put(validUrlStr, cachedFile.toJSON());
@@ -1221,32 +1241,32 @@ public class URLCacheTest extends TestCase {
 
             // Validate the downloaded info
             String content = readFile(file3);
-            assertEquals("abcd", content);
+            Assert.assertEquals("abcd", content);
 
             // Validate the cached info
             cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), validUrlStr);
-            assertNull(cachedFile.getHttpStatusCode());
-            //assertEquals(file1.getName(), cachedFile.getFilename());
-            //assertEquals(0, cachedFile.getExpiry());
-            assertTrue(cachedFile.hasTemporaryData());
-            assertEquals(SC_OK, cachedFile.getTemporaryHttpStatusCode());
-            assertEquals(file3.getName(), cachedFile.getTemporaryFilename());
-            assertNull(cachedFile.getLatestErrorMessage());
-            assertFalse(cachedFile.isApproved());
+            Assert.assertNull(cachedFile.getHttpStatusCode());
+            //Assert.assertEquals(file1.getName(), cachedFile.getFilename());
+            //Assert.assertEquals(0, cachedFile.getExpiry());
+            Assert.assertTrue(cachedFile.hasTemporaryData());
+            Assert.assertEquals(SC_OK, cachedFile.getTemporaryHttpStatusCode());
+            Assert.assertEquals(file3.getName(), cachedFile.getTemporaryFilename());
+            Assert.assertNull(cachedFile.getLatestErrorMessage());
+            Assert.assertFalse(cachedFile.isApproved());
 
             URLCache.commitURLFile(configManager, file3, validUrlStr);
 
-            assertEquals(SC_OK, cachedFile.getHttpStatusCode());
-            assertEquals(file3.getName(), cachedFile.getFilename());
-            assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertFalse(cachedFile.hasTemporaryData());
-            assertNull(cachedFile.getLatestErrorMessage());
-            assertTrue(cachedFile.isApproved());
+            Assert.assertEquals(SC_OK, cachedFile.getHttpStatusCode());
+            Assert.assertEquals(file3.getName(), cachedFile.getFilename());
+            Assert.assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertFalse(cachedFile.hasTemporaryData());
+            Assert.assertNull(cachedFile.getLatestErrorMessage());
+            Assert.assertTrue(cachedFile.isApproved());
 
-            assertNull(file1);
-            assertNull(file2);
-            assertTrue(file3.exists());
-            assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
+            Assert.assertNull(file1);
+            Assert.assertNull(file2);
+            Assert.assertTrue(file3.exists());
+            Assert.assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
         }
@@ -1256,6 +1276,7 @@ public class URLCacheTest extends TestCase {
     //     After timeout (re-download)
     //         2nd request - Succeed
     //             Rollback                      [test_NullTimeout_Rollback]
+    @Test
     public void test_NullTimeout_Rollback() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -1270,18 +1291,18 @@ public class URLCacheTest extends TestCase {
             File file1 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, invalidUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is null
-            assertNull(file1);
+            Assert.assertNull(file1);
 
             // Rollback (refuse) the file
             File file2 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file1, invalidUrlStr, "New error message");
 
             // Ensure the returned file is the cached file
-            assertNull(file2);
+            Assert.assertNull(file2);
 
             // Set expiry to trigger the re-download
             URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), invalidUrlStr);
             cachedFile.setExpiry(0);
-            assertEquals(0, cachedFile.getExpiry());
+            Assert.assertEquals(0, cachedFile.getExpiry());
 
             // The URL will always fail. We need to change the URL in order to make the 2nd request succeed.
             URLCache.getDiskCacheMap(getTestApplicationFolder()).put(validUrlStr, cachedFile.toJSON());
@@ -1292,33 +1313,33 @@ public class URLCacheTest extends TestCase {
 
             // Validate the downloaded info
             String content = readFile(file3);
-            assertEquals("abcd", content);
+            Assert.assertEquals("abcd", content);
 
             // Validate the cached info
             cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), validUrlStr);
-            assertNull(cachedFile.getHttpStatusCode());
-            //assertEquals(file1.getName(), cachedFile.getFilename());
-            //assertEquals(0, cachedFile.getExpiry());
-            assertTrue(cachedFile.hasTemporaryData());
-            assertEquals(SC_OK, cachedFile.getTemporaryHttpStatusCode());
-            assertEquals(file3.getName(), cachedFile.getTemporaryFilename());
-            assertNull(cachedFile.getLatestErrorMessage());
-            assertFalse(cachedFile.isApproved());
+            Assert.assertNull(cachedFile.getHttpStatusCode());
+            //Assert.assertEquals(file1.getName(), cachedFile.getFilename());
+            //Assert.assertEquals(0, cachedFile.getExpiry());
+            Assert.assertTrue(cachedFile.hasTemporaryData());
+            Assert.assertEquals(SC_OK, cachedFile.getTemporaryHttpStatusCode());
+            Assert.assertEquals(file3.getName(), cachedFile.getTemporaryFilename());
+            Assert.assertNull(cachedFile.getLatestErrorMessage());
+            Assert.assertFalse(cachedFile.isApproved());
 
             File file4 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file3, validUrlStr, "New error message");
 
-            assertNull(cachedFile.getHttpStatusCode());
-            assertNull(file4);
-            assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertFalse(cachedFile.hasTemporaryData());
-            assertNotNull(cachedFile.getLatestErrorMessage());
-            assertFalse(cachedFile.isApproved());
+            Assert.assertNull(cachedFile.getHttpStatusCode());
+            Assert.assertNull(file4);
+            Assert.assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertFalse(cachedFile.hasTemporaryData());
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertFalse(cachedFile.isApproved());
 
-            assertNull(file1);
-            assertNull(file2);
-            assertFalse(file3.exists());
-            assertNull(file4);
-            assertEquals(0, URLCache.countFile(getTestApplicationFolder()));
+            Assert.assertNull(file1);
+            Assert.assertNull(file2);
+            Assert.assertFalse(file3.exists());
+            Assert.assertNull(file4);
+            Assert.assertEquals(0, URLCache.countFile(getTestApplicationFolder()));
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
         }
@@ -1328,6 +1349,7 @@ public class URLCacheTest extends TestCase {
     //     After timeout (re-download)
     //         2nd request - Failed (an error occurred and null is returned)
     //             Commit                        [test_NullTimeout_FailedCommit]
+    @Test
     public void test_NullTimeout_FailedCommit() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -1341,50 +1363,50 @@ public class URLCacheTest extends TestCase {
             File file1 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is null
-            assertNull(file1);
+            Assert.assertNull(file1);
 
             // Rollback (refuse) the file
             File file2 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file1, urlStr, "New error message");
 
             // Ensure the returned file is the cached file
-            assertNull(file2);
+            Assert.assertNull(file2);
 
             // Set expiry to trigger the re-download
             URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), urlStr);
             cachedFile.setExpiry(0);
-            assertEquals(0, cachedFile.getExpiry());
+            Assert.assertEquals(0, cachedFile.getExpiry());
 
 
             // Re-request the file - the timeout has expired, it must re-download the file
             File file3 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // The URLCache can not download the new file, so it automatically rollback and return the first file
-            assertNull(file3);
+            Assert.assertNull(file3);
 
             // Validate the cached info
             cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), urlStr);
-            assertNull(cachedFile.getHttpStatusCode());
-            //assertEquals(file1.getName(), cachedFile.getFilename());
-            //assertEquals(0, cachedFile.getExpiry());
-            //assertTrue(cachedFile.hasTemporaryData());
-            //assertEquals(SC_OK, cachedFile.getTemporaryHttpStatusCode());
-            //assertEquals(file3.getName(), cachedFile.getTemporaryFilename());
-            assertNotNull(cachedFile.getLatestErrorMessage());
-            assertFalse(cachedFile.isApproved());
+            Assert.assertNull(cachedFile.getHttpStatusCode());
+            //Assert.assertEquals(file1.getName(), cachedFile.getFilename());
+            //Assert.assertEquals(0, cachedFile.getExpiry());
+            //Assert.assertTrue(cachedFile.hasTemporaryData());
+            //Assert.assertEquals(SC_OK, cachedFile.getTemporaryHttpStatusCode());
+            //Assert.assertEquals(file3.getName(), cachedFile.getTemporaryFilename());
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertFalse(cachedFile.isApproved());
 
             URLCache.commitURLFile(configManager, file3, urlStr);
 
-            assertNull(cachedFile.getHttpStatusCode());
-            assertNull(cachedFile.getFilename());
-            assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertFalse(cachedFile.hasTemporaryData());
-            assertNotNull(cachedFile.getLatestErrorMessage());
-            assertTrue(cachedFile.isApproved());
+            Assert.assertNull(cachedFile.getHttpStatusCode());
+            Assert.assertNull(cachedFile.getFilename());
+            Assert.assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertFalse(cachedFile.hasTemporaryData());
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertTrue(cachedFile.isApproved());
 
-            assertNull(file1);
-            assertNull(file2);
-            assertNull(file3);
-            assertEquals(0, URLCache.countFile(getTestApplicationFolder()));
+            Assert.assertNull(file1);
+            Assert.assertNull(file2);
+            Assert.assertNull(file3);
+            Assert.assertEquals(0, URLCache.countFile(getTestApplicationFolder()));
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
         }
@@ -1394,6 +1416,7 @@ public class URLCacheTest extends TestCase {
     //     After timeout (re-download)
     //         2nd request - Failed (an error occurred and null is returned)
     //             Rollback                      [test_NullTimeout_FailedRollback]
+    @Test
     public void test_NullTimeout_FailedRollback() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -1407,51 +1430,51 @@ public class URLCacheTest extends TestCase {
             File file1 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is null
-            assertNull(file1);
+            Assert.assertNull(file1);
 
             // Rollback (refuse) the file
             File file2 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file1, urlStr, "New error message");
 
             // Ensure the returned file is the cached file
-            assertNull(file2);
+            Assert.assertNull(file2);
 
             // Set expiry to trigger the re-download
             URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), urlStr);
             cachedFile.setExpiry(0);
-            assertEquals(0, cachedFile.getExpiry());
+            Assert.assertEquals(0, cachedFile.getExpiry());
 
 
             // Re-request the file - the timeout has expired, it must re-download the file
             File file3 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // The URLCache can not download the new file, so it automatically rollback and return the first file
-            assertNull(file3);
+            Assert.assertNull(file3);
 
             // Validate the cached info
             cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), urlStr);
-            assertNull(cachedFile.getHttpStatusCode());
-            //assertEquals(file1.getName(), cachedFile.getFilename());
-            //assertEquals(0, cachedFile.getExpiry());
-            //assertTrue(cachedFile.hasTemporaryData());
-            //assertEquals(SC_OK, cachedFile.getTemporaryHttpStatusCode());
-            //assertEquals(file3.getName(), cachedFile.getTemporaryFilename());
-            assertNotNull(cachedFile.getLatestErrorMessage());
-            assertFalse(cachedFile.isApproved());
+            Assert.assertNull(cachedFile.getHttpStatusCode());
+            //Assert.assertEquals(file1.getName(), cachedFile.getFilename());
+            //Assert.assertEquals(0, cachedFile.getExpiry());
+            //Assert.assertTrue(cachedFile.hasTemporaryData());
+            //Assert.assertEquals(SC_OK, cachedFile.getTemporaryHttpStatusCode());
+            //Assert.assertEquals(file3.getName(), cachedFile.getTemporaryFilename());
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertFalse(cachedFile.isApproved());
 
             File file4 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file3, urlStr, "New error message");
 
-            assertNull(cachedFile.getHttpStatusCode());
-            assertNull(cachedFile.getFilename());
-            assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertFalse(cachedFile.hasTemporaryData());
-            assertNotNull(cachedFile.getLatestErrorMessage());
-            assertFalse(cachedFile.isApproved());
+            Assert.assertNull(cachedFile.getHttpStatusCode());
+            Assert.assertNull(cachedFile.getFilename());
+            Assert.assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertFalse(cachedFile.hasTemporaryData());
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertFalse(cachedFile.isApproved());
 
-            assertNull(file1);
-            assertNull(file2);
-            assertNull(file3);
-            assertNull(file4);
-            assertEquals(0, URLCache.countFile(getTestApplicationFolder()));
+            Assert.assertNull(file1);
+            Assert.assertNull(file2);
+            Assert.assertNull(file3);
+            Assert.assertNull(file4);
+            Assert.assertEquals(0, URLCache.countFile(getTestApplicationFolder()));
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
         }
@@ -1460,6 +1483,7 @@ public class URLCacheTest extends TestCase {
 
     //     [testFailTooLongNoFileSize]
     //         Request file, it's now too large, return null, rollback. Ensure it do not download the whole thing.
+    @Test
     public void testFailTooLongNoFileSize() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -1471,10 +1495,10 @@ public class URLCacheTest extends TestCase {
 
             // Download the file for the 1st time
             File tooLarge = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, hundredMbUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
-            assertNull(tooLarge);
+            Assert.assertNull(tooLarge);
 
             File stillTooLarge = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, tooLarge, hundredMbUrlStr, "The file is too large.");
-            assertNull(stillTooLarge);
+            Assert.assertNull(stillTooLarge);
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
         }
@@ -1483,6 +1507,7 @@ public class URLCacheTest extends TestCase {
 
     //     [testDownloadFailThenSucceed]
     //         Receive null at first request, rollback - timeout - receive something at 2nd request, commit
+    @Test
     public void testDownloadFailThenSucceed() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -1496,17 +1521,17 @@ public class URLCacheTest extends TestCase {
 
             // Download the file for the 1st time
             File nullCap = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, invalidUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
-            assertNull(nullCap);
+            Assert.assertNull(nullCap);
 
             // Rollback (refuse) the file
             File stillNullCap = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, nullCap, invalidUrlStr, "The capabilities document is empty.");
-            assertNull(stillNullCap);
+            Assert.assertNull(stillNullCap);
 
             // Timeout
             URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), invalidUrlStr);
-            assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
             cachedFile.setExpiry(0);
-            assertEquals(0, cachedFile.getExpiry());
+            Assert.assertEquals(0, cachedFile.getExpiry());
 
             // Change URL - duplicate the cache info to the valid URL
             URLCache.getDiskCacheMap(getTestApplicationFolder()).put(capUrlStr, cachedFile.toJSON());
@@ -1517,24 +1542,24 @@ public class URLCacheTest extends TestCase {
 
             // Validate the cached info
             cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), capUrlStr);
-            assertNull(cachedFile.getHttpStatusCode());
-            assertNull(cachedFile.getFilename());
-            assertNull(cachedFile.getLatestErrorMessage());
-            assertFalse(cachedFile.isApproved());
+            Assert.assertNull(cachedFile.getHttpStatusCode());
+            Assert.assertNull(cachedFile.getFilename());
+            Assert.assertNull(cachedFile.getLatestErrorMessage());
+            Assert.assertFalse(cachedFile.isApproved());
 
             URLCache.commitURLFile(configManager, validCap, capUrlStr);
 
-            assertEquals(SC_OK, cachedFile.getHttpStatusCode());
-            assertEquals(validCap.getName(), cachedFile.getFilename());
-            assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertFalse(cachedFile.hasTemporaryData());
-            assertNull(cachedFile.getLatestErrorMessage());
-            assertTrue(cachedFile.isApproved());
+            Assert.assertEquals(SC_OK, cachedFile.getHttpStatusCode());
+            Assert.assertEquals(validCap.getName(), cachedFile.getFilename());
+            Assert.assertEquals(URLCache.CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertFalse(cachedFile.hasTemporaryData());
+            Assert.assertNull(cachedFile.getLatestErrorMessage());
+            Assert.assertTrue(cachedFile.isApproved());
 
-            assertNull(nullCap);
-            assertNull(stillNullCap);
-            assertTrue(validCap.exists());
-            assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
+            Assert.assertNull(nullCap);
+            Assert.assertNull(stillNullCap);
+            Assert.assertTrue(validCap.exists());
+            Assert.assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
         }
@@ -1543,6 +1568,7 @@ public class URLCacheTest extends TestCase {
     //     [testSucceedThenTooLong]
     //         Request file, commit - timeout - request same file, it's now too large, return null, rollback
     // TODO REDO THIS TEST - LOGIC HAS CHANGED
+    @Test
     public void testSucceedThenTooLong() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -1555,15 +1581,15 @@ public class URLCacheTest extends TestCase {
 
             // Download the file for the 1st time
             File validFile = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, capUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
-            assertNotNull(validFile);
+            Assert.assertNotNull(validFile);
 
             URLCache.commitURLFile(configManager, validFile, capUrlStr);
 
             // Timeout
             URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), capUrlStr);
-            assertNull(cachedFile.getLatestErrorMessage());
+            Assert.assertNull(cachedFile.getLatestErrorMessage());
             cachedFile.setExpiry(0);
-            assertEquals(0, cachedFile.getExpiry());
+            Assert.assertEquals(0, cachedFile.getExpiry());
 
             // Change URL - duplicate the cache info to the valid URL
             URLCache.getDiskCacheMap(getTestApplicationFolder()).put(hundredMbUrlStr, cachedFile.toJSON());
@@ -1571,18 +1597,18 @@ public class URLCacheTest extends TestCase {
 
             // The file is too big, auto-rollback, return previous file.
             File previousFile = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, hundredMbUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
-            assertEquals(validFile, previousFile);
+            Assert.assertEquals(validFile, previousFile);
 
-            assertEquals(SC_OK, cachedFile.getHttpStatusCode());
-            assertEquals(previousFile.getName(), cachedFile.getFilename());
-            //assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
-            assertFalse(cachedFile.hasTemporaryData());
-            //assertNotNull(cachedFile.getLatestErrorMessage());
-            assertTrue(cachedFile.isApproved());
+            Assert.assertEquals(SC_OK, cachedFile.getHttpStatusCode());
+            Assert.assertEquals(previousFile.getName(), cachedFile.getFilename());
+            //Assert.assertEquals(URLCache.INVALID_FILE_CACHE_TIMEOUT, cachedFile.getExpiry());
+            Assert.assertFalse(cachedFile.hasTemporaryData());
+            //Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertTrue(cachedFile.isApproved());
 
-            assertTrue(validFile.exists());
-            assertTrue(previousFile.exists());
-            assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
+            Assert.assertTrue(validFile.exists());
+            Assert.assertTrue(previousFile.exists());
+            Assert.assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
         }
@@ -1590,6 +1616,7 @@ public class URLCacheTest extends TestCase {
 
     //     [testSucceedTwiceWithSameResult]
     //         Get XML GetCapabilities document, parse, commit - timeout - receive same doc after timeout, parse, commit
+    @Test
     public void testSucceedTwiceWithSameResult() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -1604,29 +1631,28 @@ public class URLCacheTest extends TestCase {
             URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), capUrlStr);
             File capFile = cachedFile.getFile();
 
-            assertNull(cachedFile.getLatestErrorMessage());
-            assertNotNull(capFile);
-            assertNotNull(cap);
+            Assert.assertNull(cachedFile.getLatestErrorMessage());
+            Assert.assertNotNull(capFile);
+            Assert.assertNotNull(cap);
 
             // Timeout
             cachedFile.setExpiry(0);
-            assertEquals(0, cachedFile.getExpiry());
-
+            Assert.assertEquals(0, cachedFile.getExpiry());
 
             // Download the file for the 2nd time
             WMSCapabilities newCap = URLCache.getWMSCapabilitiesResponse(logger, configManager, "1.3.0", null, capUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
             cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), capUrlStr);
             File newCapFile = cachedFile.getFile();
 
-            assertNull(cachedFile.getLatestErrorMessage());
-            assertNotNull(newCapFile);
-            assertNotNull(newCap);
+            Assert.assertNull(cachedFile.getLatestErrorMessage());
+            Assert.assertNotNull(newCapFile);
+            Assert.assertNotNull(newCap);
 
-            assertFalse(capFile.equals(newCapFile));
+            Assert.assertFalse(capFile.equals(newCapFile));
 
-            assertFalse(capFile.exists());
-            assertTrue(newCapFile.exists());
-            assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
+            Assert.assertFalse(capFile.exists());
+            Assert.assertTrue(newCapFile.exists());
+            Assert.assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
         }
@@ -1634,6 +1660,7 @@ public class URLCacheTest extends TestCase {
 
     //     [testParseFailThenSucceed]
     //         Get XML GetCapabilities document with stacktrace, unable to parse, rollback - timeout - receive valid document, parse, commit
+    @Test
     public void testParseFailThenSucceed() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -1649,30 +1676,29 @@ public class URLCacheTest extends TestCase {
             URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), brokenCapUrlStr);
             File brokenCapFile = cachedFile.getFile();
 
-            assertNotNull(cachedFile.getLatestErrorMessage());
-            assertNull(brokenCapFile);
-            assertNull(brokenCap);
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertNull(brokenCapFile);
+            Assert.assertNull(brokenCap);
 
             // Timeout
             cachedFile.setExpiry(0);
-            assertEquals(0, cachedFile.getExpiry());
+            Assert.assertEquals(0, cachedFile.getExpiry());
 
             // Change URL - duplicate the cache info to the valid URL
             URLCache.getDiskCacheMap(getTestApplicationFolder()).put(capUrlStr, cachedFile.toJSON());
-
 
             // Download the file for the 2nd time (not broken this time)
             WMSCapabilities newCap = URLCache.getWMSCapabilitiesResponse(logger, configManager, "1.3.0", null, capUrlStr, URLCache.Category.CAPABILITIES_DOCUMENT, false);
             cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), capUrlStr);
             File newCapFile = cachedFile.getFile();
 
-            assertNull(cachedFile.getLatestErrorMessage());
-            assertNotNull(newCapFile);
-            assertNotNull(newCap);
+            Assert.assertNull(cachedFile.getLatestErrorMessage());
+            Assert.assertNotNull(newCapFile);
+            Assert.assertNotNull(newCap);
 
-            assertNull(brokenCapFile);
-            assertTrue(newCapFile.exists());
-            assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
+            Assert.assertNull(brokenCapFile);
+            Assert.assertTrue(newCapFile.exists());
+            Assert.assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
         }
@@ -1680,6 +1706,7 @@ public class URLCacheTest extends TestCase {
 
     //     [testSucceedThenParseFail]
     //         Get XML GetCapabilities document, parse, commit - timeout - receive document with stacktrace, unable to parse, rollback
+    @Test
     public void testSucceedThenParseFail() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -1695,13 +1722,13 @@ public class URLCacheTest extends TestCase {
             URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), capUrlStr);
             File capFile = cachedFile.getFile();
 
-            assertNull(cachedFile.getLatestErrorMessage());
-            assertNotNull(capFile);
-            assertNotNull(cap);
+            Assert.assertNull(cachedFile.getLatestErrorMessage());
+            Assert.assertNotNull(capFile);
+            Assert.assertNotNull(cap);
 
             // Timeout
             cachedFile.setExpiry(0);
-            assertEquals(0, cachedFile.getExpiry());
+            Assert.assertEquals(0, cachedFile.getExpiry());
 
             // Change URL - duplicate the cache info to the valid URL
             URLCache.getDiskCacheMap(getTestApplicationFolder()).put(brokenCapUrlStr, cachedFile.toJSON());
@@ -1712,15 +1739,15 @@ public class URLCacheTest extends TestCase {
             cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), brokenCapUrlStr);
             File previousCapFile = cachedFile.getFile();
 
-            assertNotNull(cachedFile.getLatestErrorMessage());
-            assertNotNull(previousCapFile);
-            assertNotNull(previousCap);
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertNotNull(previousCapFile);
+            Assert.assertNotNull(previousCap);
 
-            assertEquals(capFile, previousCapFile);
+            Assert.assertEquals(capFile, previousCapFile);
 
-            assertTrue(capFile.exists());
-            assertTrue(previousCapFile.exists());
-            assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
+            Assert.assertTrue(capFile.exists());
+            Assert.assertTrue(previousCapFile.exists());
+            Assert.assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
         }
@@ -1728,6 +1755,7 @@ public class URLCacheTest extends TestCase {
 
     //     [testTC211ParseFailThenTC211Succeed]
     //         Request TC211 document, receive HTML, unable to parse, rollback - timeout - receive valid TC211 document, parse, commit
+    @Test
     public void testTC211ParseFailThenTC211Succeed() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -1742,13 +1770,13 @@ public class URLCacheTest extends TestCase {
             URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), htmlTC211UrlStr);
             File brokenTC211File = cachedFile.getFile();
 
-            assertNotNull(cachedFile.getLatestErrorMessage());
-            assertNull(brokenTC211File);
-            assertNull(brokenTC211Document);
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertNull(brokenTC211File);
+            Assert.assertNull(brokenTC211Document);
 
             // Timeout
             cachedFile.setExpiry(0);
-            assertEquals(0, cachedFile.getExpiry());
+            Assert.assertEquals(0, cachedFile.getExpiry());
 
             // Change URL - duplicate the cache info to the valid URL
             URLCache.getDiskCacheMap(getTestApplicationFolder()).put(xmlTC211UrlStr, cachedFile.toJSON());
@@ -1759,13 +1787,13 @@ public class URLCacheTest extends TestCase {
             cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), xmlTC211UrlStr);
             File tc211File = cachedFile.getFile();
 
-            assertNull(cachedFile.getLatestErrorMessage());
-            assertNotNull(tc211File);
-            assertNotNull(tc211Document);
+            Assert.assertNull(cachedFile.getLatestErrorMessage());
+            Assert.assertNotNull(tc211File);
+            Assert.assertNotNull(tc211Document);
 
-            assertNull(brokenTC211File);
-            assertTrue(tc211File.exists());
-            assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
+            Assert.assertNull(brokenTC211File);
+            Assert.assertTrue(tc211File.exists());
+            Assert.assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
         }
@@ -1773,6 +1801,7 @@ public class URLCacheTest extends TestCase {
 
     //     [testTC211SucceedThenTC211ParseFail]
     //         Request TC211 document, parse, commit - timeout - receive HTML doc instead of TC211 document, unable to parse, rollback
+    @Test
     public void testTC211SucceedThenTC211ParseFail() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -1787,13 +1816,13 @@ public class URLCacheTest extends TestCase {
             URLCache.CachedFile cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), xmlTC211UrlStr);
             File tc211File = cachedFile.getFile();
 
-            assertNull(cachedFile.getLatestErrorMessage());
-            assertNotNull(tc211File);
-            assertNotNull(tc211Document);
+            Assert.assertNull(cachedFile.getLatestErrorMessage());
+            Assert.assertNotNull(tc211File);
+            Assert.assertNotNull(tc211Document);
 
             // Timeout
             cachedFile.setExpiry(0);
-            assertEquals(0, cachedFile.getExpiry());
+            Assert.assertEquals(0, cachedFile.getExpiry());
 
             // Change URL - duplicate the cache info to the valid URL
             URLCache.getDiskCacheMap(getTestApplicationFolder()).put(htmlTC211UrlStr, cachedFile.toJSON());
@@ -1803,15 +1832,15 @@ public class URLCacheTest extends TestCase {
             cachedFile = URLCache.getCachedFile(getTestApplicationFolder(), htmlTC211UrlStr);
             File previousTC211File = cachedFile.getFile();
 
-            assertNotNull(cachedFile.getLatestErrorMessage());
-            assertNotNull(previousTC211File);
-            assertNotNull(previousTC211Document);
+            Assert.assertNotNull(cachedFile.getLatestErrorMessage());
+            Assert.assertNotNull(previousTC211File);
+            Assert.assertNotNull(previousTC211Document);
 
-            assertEquals(tc211File, previousTC211File);
+            Assert.assertEquals(tc211File, previousTC211File);
 
-            assertTrue(tc211File.exists());
-            assertTrue(previousTC211File.exists());
-            assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
+            Assert.assertTrue(tc211File.exists());
+            Assert.assertTrue(previousTC211File.exists());
+            Assert.assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
         }
@@ -1820,6 +1849,7 @@ public class URLCacheTest extends TestCase {
     //     [testMultiUrl_Fail1_Success2_Fail1_WithRollback]
     //         URL1 return null, rollback - URL2 (same domain) return file, commit - request URL1 again (before timeout), expect null
     // NOTE: This test may fail if the URL Cache class do not remove the filename when the file is deleted or not created.
+    @Test
     public void testMultiUrl_Fail1_Success2_Fail1_WithRollback() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -1837,13 +1867,13 @@ public class URLCacheTest extends TestCase {
             File file1_1 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, url1Str, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is null
-            assertNull(file1_1);
+            Assert.assertNull(file1_1);
 
             // Rollback (refuse) the file
             File file1_2 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file1_1, url1Str, "Server not found");
 
             // Ensure the returned file is the cached file
-            assertNull(file1_2);
+            Assert.assertNull(file1_2);
 
 
             // *** DOWNLOAD URL 2 ***
@@ -1852,11 +1882,11 @@ public class URLCacheTest extends TestCase {
             File file2_1 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, url2Str, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is not null
-            assertNotNull(file2_1);
+            Assert.assertNotNull(file2_1);
 
             // Validate the downloaded info
             String content = readFile(file2_1);
-            assertEquals("abcd", content);
+            Assert.assertEquals("abcd", content);
 
             URLCache.commitURLFile(configManager, file2_1, url2Str);
 
@@ -1867,21 +1897,21 @@ public class URLCacheTest extends TestCase {
             File file1_3 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, url1Str, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is null
-            assertNull(file1_3);
+            Assert.assertNull(file1_3);
 
             // Rollback (refuse) the file
             File file1_4 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file1_3, url1Str, "Server not found");
 
             // Ensure the returned file is the cached file
-            assertNull(file1_4);
+            Assert.assertNull(file1_4);
 
 
-            assertNull(file1_1);
-            assertNull(file1_2);
-            assertNull(file1_3);
-            assertNull(file1_4);
-            assertTrue(file2_1.exists());
-            assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
+            Assert.assertNull(file1_1);
+            Assert.assertNull(file1_2);
+            Assert.assertNull(file1_3);
+            Assert.assertNull(file1_4);
+            Assert.assertTrue(file2_1.exists());
+            Assert.assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
         }
@@ -1890,6 +1920,7 @@ public class URLCacheTest extends TestCase {
     //     [testMultiUrl_Fail1_Success2_Fail1_WithCommit]
     //         URL1 return null, commit - URL2 (same domain) return file, commit - request URL1 again (before timeout), expect null
     // NOTE: This test may fail if the URL Cache class do not remove the filename when the file is deleted or not created.
+    @Test
     public void testMultiUrl_Fail1_Success2_Fail1_WithCommit() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -1907,7 +1938,7 @@ public class URLCacheTest extends TestCase {
             File file1_1 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, url1Str, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is null
-            assertNull(file1_1);
+            Assert.assertNull(file1_1);
 
             // Commit (accept) the file
             URLCache.commitURLFile(configManager, file1_1, url1Str);
@@ -1919,11 +1950,11 @@ public class URLCacheTest extends TestCase {
             File file2_1 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, url2Str, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is not null
-            assertNotNull(file2_1);
+            Assert.assertNotNull(file2_1);
 
             // Validate the downloaded info
             String content = readFile(file2_1);
-            assertEquals("abcd", content);
+            Assert.assertEquals("abcd", content);
 
             URLCache.commitURLFile(configManager, file2_1, url2Str);
 
@@ -1934,25 +1965,26 @@ public class URLCacheTest extends TestCase {
             File file1_3 = URLCache.getURLFile(logger, "WMS GetCapabilities document", configManager, null, url1Str, URLCache.Category.CAPABILITIES_DOCUMENT, false);
 
             // Ensure the returned file is null
-            assertNull(file1_3);
+            Assert.assertNull(file1_3);
 
             // Rollback (refuse) the file
             File file1_4 = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, file1_3, url1Str, "Server not found");
 
             // Ensure the returned file is the cached file
-            assertNull(file1_4);
+            Assert.assertNull(file1_4);
 
 
-            assertNull(file1_1);
-            assertNull(file1_3);
-            assertNull(file1_4);
-            assertTrue(file2_1.exists());
-            assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
+            Assert.assertNull(file1_1);
+            Assert.assertNull(file1_3);
+            Assert.assertNull(file1_4);
+            Assert.assertTrue(file2_1.exists());
+            Assert.assertEquals(1, URLCache.countFile(getTestApplicationFolder()));
 
             URLCache.saveDiskCacheMap(configManager.getApplicationFolder());
         }
     }
 
+    @Test
     public void testDeleteOldEntries() throws Exception, RevivableThreadInterruptedException {
         if (this.serviceExists()) {
             ThreadLogger logger = new ThreadLogger();
@@ -1990,7 +2022,7 @@ public class URLCacheTest extends TestCase {
 
             // Ensure the cache is empty at this point
             cache = URLCache.getDiskCacheMap(configManager.getApplicationFolder());
-            assertEquals(cache.length(), 0);
+            Assert.assertEquals(cache.length(), 0);
 
             // Create some entries in the cache
             Date startDate1 = new Date();
@@ -2001,19 +2033,19 @@ public class URLCacheTest extends TestCase {
 
             // Ensure that the cache now contains the 3 elements
             cache = URLCache.getDiskCacheMap(configManager.getApplicationFolder());
-            assertEquals(cache.length(), 3);
+            Assert.assertEquals(cache.length(), 3);
 
             entry = new URLCache.CachedFile(otherCapabilitiesDoc, cache.optJSONObject(otherCapDocUrlStr));
-            assertNotNull(entry.toJSON());
-            assertTrue(entry.getLastAccessDate().getTime() >= startDate1.getTime());
+            Assert.assertNotNull(entry.toJSON());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() >= startDate1.getTime());
 
             entry = new URLCache.CachedFile(otherMestRecord1, cache.optJSONObject(otherMestRecord1UrlStr));
-            assertNotNull(entry.toJSON());
-            assertTrue(entry.getLastAccessDate().getTime() >= startDate1.getTime());
+            Assert.assertNotNull(entry.toJSON());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() >= startDate1.getTime());
 
             entry = new URLCache.CachedFile(otherMestRecord2, cache.optJSONObject(otherMestRecord2UrlStr));
-            assertNotNull(entry.toJSON());
-            assertTrue(entry.getLastAccessDate().getTime() >= startDate1.getTime());
+            Assert.assertNotNull(entry.toJSON());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() >= startDate1.getTime());
 
 
             // Wait for at lease 1 ms, just to be sure the cache entries will be considered as been old.
@@ -2029,38 +2061,38 @@ public class URLCacheTest extends TestCase {
 
             // Verify that all entries are in the cache
             cache = URLCache.getDiskCacheMap(configManager.getApplicationFolder());
-            assertEquals(cache.length(), 7);
+            Assert.assertEquals(cache.length(), 7);
 
             entry = new URLCache.CachedFile(otherCapabilitiesDoc, cache.optJSONObject(otherCapDocUrlStr));
-            assertNotNull(entry.toJSON());
-            assertTrue(entry.getLastAccessDate().getTime() >= startDate1.getTime());
-            assertTrue(entry.getLastAccessDate().getTime() < startDate2.getTime());
+            Assert.assertNotNull(entry.toJSON());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() >= startDate1.getTime());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() < startDate2.getTime());
 
             entry = new URLCache.CachedFile(otherMestRecord1, cache.optJSONObject(otherMestRecord1UrlStr));
-            assertNotNull(entry.toJSON());
-            assertTrue(entry.getLastAccessDate().getTime() >= startDate1.getTime());
-            assertTrue(entry.getLastAccessDate().getTime() < startDate2.getTime());
+            Assert.assertNotNull(entry.toJSON());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() >= startDate1.getTime());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() < startDate2.getTime());
 
             entry = new URLCache.CachedFile(otherMestRecord2, cache.optJSONObject(otherMestRecord2UrlStr));
-            assertNotNull(entry.toJSON());
-            assertTrue(entry.getLastAccessDate().getTime() >= startDate1.getTime());
-            assertTrue(entry.getLastAccessDate().getTime() < startDate2.getTime());
+            Assert.assertNotNull(entry.toJSON());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() >= startDate1.getTime());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() < startDate2.getTime());
 
             entry = new URLCache.CachedFile(oldCapabilitiesDoc, cache.optJSONObject(oldCapDocUrlStr));
-            assertNotNull(entry.toJSON());
-            assertTrue(entry.getLastAccessDate().getTime() >= startDate2.getTime());
+            Assert.assertNotNull(entry.toJSON());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() >= startDate2.getTime());
 
             entry = new URLCache.CachedFile(capabilitiesDoc, cache.optJSONObject(capDocUrlStr));
-            assertNotNull(entry.toJSON());
-            assertTrue(entry.getLastAccessDate().getTime() >= startDate2.getTime());
+            Assert.assertNotNull(entry.toJSON());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() >= startDate2.getTime());
 
             entry = new URLCache.CachedFile(mestRecord1, cache.optJSONObject(mestRecord1UrlStr));
-            assertNotNull(entry.toJSON());
-            assertTrue(entry.getLastAccessDate().getTime() >= startDate2.getTime());
+            Assert.assertNotNull(entry.toJSON());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() >= startDate2.getTime());
 
             entry = new URLCache.CachedFile(mestRecord2, cache.optJSONObject(mestRecord2UrlStr));
-            assertNotNull(entry.toJSON());
-            assertTrue(entry.getLastAccessDate().getTime() >= startDate2.getTime());
+            Assert.assertNotNull(entry.toJSON());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() >= startDate2.getTime());
 
 
             URLCache.deleteOldEntries(dataSource, startDate2, categories);
@@ -2069,38 +2101,38 @@ public class URLCacheTest extends TestCase {
 
             // Verify that all entries are still in the cache
             cache = URLCache.getDiskCacheMap(configManager.getApplicationFolder());
-            assertEquals(cache.length(), 7);
+            Assert.assertEquals(cache.length(), 7);
 
             entry = new URLCache.CachedFile(otherCapabilitiesDoc, cache.optJSONObject(otherCapDocUrlStr));
-            assertNotNull(entry.toJSON());
-            assertTrue(entry.getLastAccessDate().getTime() >= startDate1.getTime());
-            assertTrue(entry.getLastAccessDate().getTime() < startDate2.getTime());
+            Assert.assertNotNull(entry.toJSON());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() >= startDate1.getTime());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() < startDate2.getTime());
 
             entry = new URLCache.CachedFile(otherMestRecord1, cache.optJSONObject(otherMestRecord1UrlStr));
-            assertNotNull(entry.toJSON());
-            assertTrue(entry.getLastAccessDate().getTime() >= startDate1.getTime());
-            assertTrue(entry.getLastAccessDate().getTime() < startDate2.getTime());
+            Assert.assertNotNull(entry.toJSON());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() >= startDate1.getTime());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() < startDate2.getTime());
 
             entry = new URLCache.CachedFile(otherMestRecord2, cache.optJSONObject(otherMestRecord2UrlStr));
-            assertNotNull(entry.toJSON());
-            assertTrue(entry.getLastAccessDate().getTime() >= startDate1.getTime());
-            assertTrue(entry.getLastAccessDate().getTime() < startDate2.getTime());
+            Assert.assertNotNull(entry.toJSON());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() >= startDate1.getTime());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() < startDate2.getTime());
 
             entry = new URLCache.CachedFile(oldCapabilitiesDoc, cache.optJSONObject(oldCapDocUrlStr));
-            assertNotNull(entry.toJSON());
-            assertTrue(entry.getLastAccessDate().getTime() >= startDate2.getTime());
+            Assert.assertNotNull(entry.toJSON());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() >= startDate2.getTime());
 
             entry = new URLCache.CachedFile(capabilitiesDoc, cache.optJSONObject(capDocUrlStr));
-            assertNotNull(entry.toJSON());
-            assertTrue(entry.getLastAccessDate().getTime() >= startDate2.getTime());
+            Assert.assertNotNull(entry.toJSON());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() >= startDate2.getTime());
 
             entry = new URLCache.CachedFile(mestRecord1, cache.optJSONObject(mestRecord1UrlStr));
-            assertNotNull(entry.toJSON());
-            assertTrue(entry.getLastAccessDate().getTime() >= startDate2.getTime());
+            Assert.assertNotNull(entry.toJSON());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() >= startDate2.getTime());
 
             entry = new URLCache.CachedFile(mestRecord2, cache.optJSONObject(mestRecord2UrlStr));
-            assertNotNull(entry.toJSON());
-            assertTrue(entry.getLastAccessDate().getTime() >= startDate2.getTime());
+            Assert.assertNotNull(entry.toJSON());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() >= startDate2.getTime());
 
 
             // Wait for at lease 1 ms, just to be sure the next starting date will be newer than the previous one.
@@ -2122,40 +2154,40 @@ public class URLCacheTest extends TestCase {
 
             // Verify that old entries still in used are still there, new entry as been added and old entry has been deleted.
             cache = URLCache.getDiskCacheMap(configManager.getApplicationFolder());
-            assertEquals(cache.length(), 7);
+            Assert.assertEquals(cache.length(), 7);
 
             entry = new URLCache.CachedFile(otherCapabilitiesDoc, cache.optJSONObject(otherCapDocUrlStr));
-            assertNotNull(entry.toJSON());
-            assertTrue(entry.getLastAccessDate().getTime() >= startDate1.getTime());
-            assertTrue(entry.getLastAccessDate().getTime() < startDate2.getTime());
+            Assert.assertNotNull(entry.toJSON());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() >= startDate1.getTime());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() < startDate2.getTime());
 
             entry = new URLCache.CachedFile(otherMestRecord1, cache.optJSONObject(otherMestRecord1UrlStr));
-            assertNotNull(entry.toJSON());
-            assertTrue(entry.getLastAccessDate().getTime() >= startDate1.getTime());
-            assertTrue(entry.getLastAccessDate().getTime() < startDate2.getTime());
+            Assert.assertNotNull(entry.toJSON());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() >= startDate1.getTime());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() < startDate2.getTime());
 
             entry = new URLCache.CachedFile(otherMestRecord2, cache.optJSONObject(otherMestRecord2UrlStr));
-            assertNotNull(entry.toJSON());
-            assertTrue(entry.getLastAccessDate().getTime() >= startDate1.getTime());
-            assertTrue(entry.getLastAccessDate().getTime() < startDate2.getTime());
+            Assert.assertNotNull(entry.toJSON());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() >= startDate1.getTime());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() < startDate2.getTime());
 
-            assertNull(cache.optJSONObject(oldCapDocUrlStr));
+            Assert.assertNull(cache.optJSONObject(oldCapDocUrlStr));
 
             entry = new URLCache.CachedFile(newCapabilitiesDoc, cache.optJSONObject(newCapDocUrlStr));
-            assertNotNull(entry.toJSON());
-            assertTrue(entry.getLastAccessDate().getTime() >= startDate3.getTime());
+            Assert.assertNotNull(entry.toJSON());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() >= startDate3.getTime());
 
             entry = new URLCache.CachedFile(capabilitiesDoc, cache.optJSONObject(capDocUrlStr));
-            assertNotNull(entry.toJSON());
-            assertTrue(entry.getLastAccessDate().getTime() >= startDate3.getTime());
+            Assert.assertNotNull(entry.toJSON());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() >= startDate3.getTime());
 
             entry = new URLCache.CachedFile(mestRecord1, cache.optJSONObject(mestRecord1UrlStr));
-            assertNotNull(entry.toJSON());
-            assertTrue(entry.getLastAccessDate().getTime() >= startDate3.getTime());
+            Assert.assertNotNull(entry.toJSON());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() >= startDate3.getTime());
 
             entry = new URLCache.CachedFile(mestRecord2, cache.optJSONObject(mestRecord2UrlStr));
-            assertNotNull(entry.toJSON());
-            assertTrue(entry.getLastAccessDate().getTime() >= startDate3.getTime());
+            Assert.assertNotNull(entry.toJSON());
+            Assert.assertTrue(entry.getLastAccessDate().getTime() >= startDate3.getTime());
         }
     }
 
@@ -2276,7 +2308,7 @@ public class URLCacheTest extends TestCase {
         File tmpFolder = new File(tmpFolderPath);
 
         if (!tmpFolder.exists() || !tmpFolder.canWrite()) {
-            fail("The temporary folder \"" + tmpFolderPath + "\" is needed for this test but it is not accessible");
+            Assert.fail("The temporary folder \"" + tmpFolderPath + "\" is needed for this test but it is not accessible");
         }
 
         return tmpFolder;

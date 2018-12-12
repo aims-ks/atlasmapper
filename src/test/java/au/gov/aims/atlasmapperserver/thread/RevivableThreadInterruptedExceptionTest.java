@@ -1,15 +1,16 @@
 package au.gov.aims.atlasmapperserver.thread;
 
 import au.gov.aims.atlasmapperserver.Utils;
-import junit.framework.Assert;
-import junit.framework.TestCase;
+import org.junit.Assert;
+import org.junit.Test;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class RevivableThreadInterruptedExceptionTest extends TestCase {
+public class RevivableThreadInterruptedExceptionTest {
     private static final Logger LOGGER = Logger.getLogger(RevivableThreadInterruptedExceptionTest.class.getName());
 
+    @Test
     public void testCatch() {
         try {
             try {

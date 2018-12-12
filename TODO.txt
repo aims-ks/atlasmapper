@@ -7,7 +7,7 @@
     [X] Make my own InterruptException implements Throwable (instead of Exception) to make it harder to catch
     [ ] Disable generate button when running
     [ ] When done, enable generate, disable Stop button
-[ ] Update JUnit
+[X] Update JUnit
 [ ] Bring logs window back (generate button changes into loading icon)
 [ ] Generate all
 

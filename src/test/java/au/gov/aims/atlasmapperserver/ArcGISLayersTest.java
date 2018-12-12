@@ -21,28 +21,35 @@
 
 package au.gov.aims.atlasmapperserver;
 
-import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.ArcGISMapServerDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
+import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
 import au.gov.aims.atlasmapperserver.layerGenerator.ArcGISMapServerLayerGenerator;
-import junit.framework.TestCase;
+import au.gov.aims.atlasmapperserver.thread.RevivableThreadInterruptedException;
+import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
+import org.junit.Ignore;
+import org.junit.Test;
 
-import java.util.Map;
+import java.util.List;
 
-public class ArcGISLayersTest extends TestCase {
+public class ArcGISLayersTest {
 
-	public void testGetLayerConfigs() throws Exception {
-		/*
-		ArcGISMapServerDataSourceConfig dataSourceConfig = new ArcGISMapServerDataSourceConfig(null);
-		dataSourceConfig.setDataSourceId("gbrmpa");
-		dataSourceConfig.setServiceUrl("http://www.gbrmpa.gov.au/spatial_services/gbrmpaBounds/MapServer");
+    // GBRMPA MapServer doesn't exists anymore...
+    @Test
+    @Ignore
+    public void testGetLayerConfigs() throws RevivableThreadInterruptedException {
+        ThreadLogger logger = new ThreadLogger();
 
-		ArcGISMapServerLayerGenerator arcGISLayers = new ArcGISMapServerLayerGenerator();
-		Map<String, AbstractLayerConfig> layers = arcGISLayers.generateLayerConfigs(null, dataSourceConfig);
+        ArcGISMapServerDataSourceConfig dataSourceConfig = new ArcGISMapServerDataSourceConfig(null);
+        dataSourceConfig.setDataSourceId("gbrmpa");
+        dataSourceConfig.setServiceUrl("http://www.gbrmpa.gov.au/spatial_services/gbrmpaBounds/MapServer");
 
-		for (AbstractLayerConfig layer : layers.values()) {
-			System.out.println(layer.toString() + "\n");
-		}
-		*/
-	}
+        ArcGISMapServerLayerGenerator arcGISLayers = new ArcGISMapServerLayerGenerator();
+        LayerCatalog layerCatalogue = arcGISLayers.generateRawLayerCatalog(logger, dataSourceConfig, false, false);
+        List<AbstractLayerConfig> layers = layerCatalogue.getLayers();
+
+        for (AbstractLayerConfig layer : layers) {
+            System.out.println(layer.toString() + "\n");
+        }
+    }
 }
