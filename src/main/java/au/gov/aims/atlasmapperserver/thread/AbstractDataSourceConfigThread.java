@@ -222,12 +222,6 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
                         } catch(Exception ex) {
                             logger.log(Level.WARNING, String.format("Invalid layer override for layer id %s: %s",
                                     layerId, Utils.getExceptionMessage(ex)), ex);
-                            LOGGER.log(
-                                Level.SEVERE,
-                                String.format("Unexpected error occurred while parsing the override for layer %s: %s%n%s",
-                                        layerId, Utils.getExceptionMessage(ex), jsonLayerOverride.getJSON().toString(4)),
-                                ex
-                            );
                         }
                     }
                 }
@@ -253,15 +247,11 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
                 if (!dataSourceConfigClone.isBaseLayer(layerWrapper.getLayerName())) {
                     logger.log(Level.WARNING, String.format("Deprecated layer ID used for overlay layer. Layer id %s should be %s",
                             layerWrapper.getLayerName(), layerId));
-                    LOGGER.log(Level.WARNING, String.format("DEPRECATED LAYER ID USED FOR OVERLAY LAYERS: Layer id %s should be %s",
-                            layerWrapper.getLayerName(), layerId));
                     layerWrapper.setIsBaseLayer(false);
                 }
             } else {
                 if (dataSourceConfigClone.isBaseLayer(layerWrapper.getLayerName())) {
                     logger.log(Level.WARNING, String.format("Deprecated layer ID used for base layer. Layer id %s should be %s",
-                            layerWrapper.getLayerName(), layerId));
-                    LOGGER.log(Level.WARNING, String.format("DEPRECATED LAYER ID USED FOR BASE LAYERS: Layer id %s should be %s",
                             layerWrapper.getLayerName(), layerId));
                     layerWrapper.setIsBaseLayer(true);
                 }

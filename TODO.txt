@@ -11,7 +11,7 @@
     [X] When done, enable generate, disable Stop button
 [X] Update JUnit
 [X] Bring logs window back (generate button changes into loading icon)
-[ ] Remove Generate all
+[X] Remove Generate all
 
 [ ] H2 cache
 [ ] Do not show multiple warning / error for the same URL

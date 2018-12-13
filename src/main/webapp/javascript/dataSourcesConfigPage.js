@@ -967,23 +967,6 @@ Ext.define('Writer.LayerServerConfigGrid', {
                             handler: this.onDeleteClick
                         }
                     ]
-                }, {
-                    weight: 1,
-                    xtype: 'toolbar',
-                    dock: 'bottom',
-                    ui: 'footer',
-                    items: [
-                        '->',
-                        {
-                            //iconCls: 'icon-save',
-                            text: 'Rebuild all',
-                            tooltip: 'Rebuild all data sources.',
-                            scope: this,
-                            handler: function() {
-                                this.getRebuildWindow().show();
-                            }
-                        }
-                    ]
                 }
             ],
             columns: [
@@ -1153,33 +1136,6 @@ Ext.define('Writer.LayerServerConfigGrid', {
 
         var windowContent = [];
         switch (layerType) {
-            case 'ALL':
-                windowContent = [
-                    {
-                        xtype: 'displayfield',
-                        value: 'Rebuild all data sources information with the latest settings and re-harvest documents.'
-                    }, {
-                        xtype: 'checkboxfield',
-                        qtipHtml: 'Redownload files that failed to download or parse previously.',
-                        boxLabel: 'Redownload broken or corrupted files',
-                        checked: true,
-                        name: 'redownloadBrokenFiles'
-                    }, {
-                        xtype: 'checkboxfield',
-                        qtipHtml: 'Redownload all capabilities &amp; JSON documents.',
-                        boxLabel: 'Redownload all capabilities &amp; JSON documents',
-                        checked: true,
-                        name: 'clearCapCache'
-                    }, {
-                        xtype: 'checkboxfield',
-                        qtipTitle: 'Redownload all MEST records',
-                        qtipHtml: 'Redownload MEST records for all WMS services. This operation may takes a fair amount of time.',
-                        boxLabel: 'Redownload all MEST records (may take over 30 minutes per WMS services)',
-                        name: 'clearMestCache'
-                    }
-                ];
-                break;
-
             case 'WMS':
                 windowContent = [
                     {
@@ -1312,25 +1268,11 @@ Ext.define('Writer.LayerServerConfigGrid', {
                                 ajaxParams['action'] = 'PROCESS';
                                 ajaxParams['id'] = rec.get('id');
                                 frameset.setSavingMessage('Rebuilding <i>' + dataSourceName + '</i>.');
-                            } else {
-                                ajaxParams['action'] = 'PROCESSALL';
-                                frameset.setSavingMessage('Rebuilding all data sources.');
-                            }
-
-                            var timeout = rebuildTimeout;
-                            if (!rec) {
-                                var gridItemCount = that.getStore() ? that.getStore().getTotalCount() : 0;
-                                if (gridItemCount > 1) {
-                                    timeout *= gridItemCount;
-                                }
-                                if (timeout > rebuildMaxTimeout) {
-                                    timeout = rebuildMaxTimeout;
-                                }
                             }
 
                             Ext.Ajax.request({
                                 url: 'dataSourcesConfig.jsp',
-                                timeout: timeout,
+                                timeout: rebuildTimeout,
                                 params: ajaxParams,
                                 success: function(that, dataSourceId, dataSourceName) {
                                     return function(response) {
@@ -1343,32 +1285,17 @@ Ext.define('Writer.LayerServerConfigGrid', {
                                                 responseObj = {errors: [err.toString()]};
                                             }
                                         }
-                                        if (dataSourceName === null) {
-                                            if (responseObj && responseObj.success){
-                                                if (responseObj.errors || responseObj.warnings) {
-                                                    frameset.setErrorsAndWarnings('Rebuild of all data sources passed', 'Warning(s) occurred while rebuilding some data sources.', responseObj, statusCode);
-                                                } else if (responseObj.messages) {
-                                                    frameset.setErrorsAndWarnings('Rebuild of all data sources succeed', null, responseObj, statusCode);
-                                                } else {
-                                                    frameset.setSavedMessage('Rebuild of all data sources succeed');
-                                                }
+                                        if(responseObj && responseObj.success){
+                                            if (responseObj.errors || responseObj.warnings) {
+                                                frameset.setErrorsAndWarnings('Data source rebuild passed for <i>'+dataSourceName+'</i>', 'Warning(s) occurred while rebuilding the data source.', responseObj, statusCode);
+                                            } else if (responseObj.messages) {
+                                                frameset.setErrorsAndWarnings('Data source rebuild succeed for <i>'+dataSourceName+'</i>', null, responseObj, statusCode);
                                             } else {
-                                                frameset.setErrorsAndWarnings('Rebuild failed for some data sources', 'Error(s) / warning(s) occurred while rebuilding some data sources.', responseObj, statusCode);
+                                                frameset.setSavedMessage('Data source rebuild successfully for <i>'+dataSourceName+'</i>.');
+                                                that.showDataSourceRebuildLogWindow(frameset, dataSourceId, dataSourceName);
                                             }
-                                            that.showAllDataSourceRebuildLogWindow(frameset);
                                         } else {
-                                            if(responseObj && responseObj.success){
-                                                if (responseObj.errors || responseObj.warnings) {
-                                                    frameset.setErrorsAndWarnings('Data source rebuild passed for <i>'+dataSourceName+'</i>', 'Warning(s) occurred while rebuilding the data source.', responseObj, statusCode);
-                                                } else if (responseObj.messages) {
-                                                    frameset.setErrorsAndWarnings('Data source rebuild succeed for <i>'+dataSourceName+'</i>', null, responseObj, statusCode);
-                                                } else {
-                                                    frameset.setSavedMessage('Data source rebuild successfully for <i>'+dataSourceName+'</i>.');
-                                                    that.showDataSourceRebuildLogWindow(frameset, dataSourceId, dataSourceName);
-                                                }
-                                            } else {
-                                                frameset.setErrorsAndWarnings('Rebuild failed for <i>'+dataSourceName+'</i>', 'Error(s) / warning(s) occurred while rebuilding the data source.', responseObj, statusCode);
-                                            }
+                                            frameset.setErrorsAndWarnings('Rebuild failed for <i>'+dataSourceName+'</i>', 'Error(s) / warning(s) occurred while rebuilding the data source.', responseObj, statusCode);
                                         }
                                         that.onReload();
                                     };
@@ -1388,11 +1315,7 @@ Ext.define('Writer.LayerServerConfigGrid', {
                                                     responseObj = {errors: [err.toString()]};
                                                 }
                                             }
-                                            if (dataSourceName === null) {
-                                                frameset.setErrors('An error occurred while rebuilding the data sources.', responseObj, statusCode);
-                                            } else {
-                                                frameset.setErrors('An error occurred while rebuilding the data source <i>'+dataSourceName+'</i>.', responseObj, statusCode);
-                                            }
+                                            frameset.setErrors('An error occurred while rebuilding the data source <i>'+dataSourceName+'</i>.', responseObj, statusCode);
                                         }
                                         that.onReload();
                                     };

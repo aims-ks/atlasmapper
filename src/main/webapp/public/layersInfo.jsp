@@ -1,4 +1,4 @@
-<%-- 
+<%--
  *  This file is part of AtlasMapper server and clients.
  *
  *  Copyright (C) 2011 Australian Institute of Marine Science
@@ -18,10 +18,10 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-	Document   : layersInfo
-	Created on : 11/07/2011, 10:20:45 AM
-	Author     : glafond
-	Description: Return complete information in JSON format, about one of more layers.
+    Document   : layersInfo
+    Created on : 11/07/2011, 10:20:45 AM
+    Author     : glafond
+    Description: Return complete information in JSON format, about one of more layers.
 --%>
 <%@page import="au.gov.aims.atlasmapperserver.ClientConfig"%>
 <%@page import="au.gov.aims.atlasmapperserver.ConfigHelper"%>
@@ -29,68 +29,71 @@
 <%@page import="au.gov.aims.atlasmapperserver.Utils"%>
 <%@page import="org.json.JSONArray"%>
 <%@page import="org.json.JSONObject"%>
-<%@page import="au.gov.aims.atlasmapperserver.ServletUtils"%><%@ page import="au.gov.aims.atlasmapperserver.jsonWrappers.client.URLSaveState"%>
+<%@page import="au.gov.aims.atlasmapperserver.ServletUtils"%>
+<%@page import="au.gov.aims.atlasmapperserver.jsonWrappers.client.URLSaveState"%>
+<%@page import="au.gov.aims.atlasmapperserver.thread.ThreadLogger"%>
 <%@page contentType="application/json" pageEncoding="UTF-8"%>
 <%
-	String[] layerIds = ServletUtils.getComaSeparatedParameters(request, "layerIds");
-	String iso19115_19139url = request.getParameter("iso19115_19139url");
-	String clientId = request.getParameter("client");
+    String[] layerIds = ServletUtils.getComaSeparatedParameters(request, "layerIds");
+    String iso19115_19139url = request.getParameter("iso19115_19139url");
+    String clientId = request.getParameter("client");
 
-	ConfigManager configManager = ConfigHelper.getConfigManager(this.getServletConfig().getServletContext());
+    ConfigManager configManager = ConfigHelper.getConfigManager(this.getServletConfig().getServletContext());
 
-	int indent = (request.getParameter("indent") != null ? Integer.parseInt(request.getParameter("indent")) : 0);
-	JSONObject jsonObj = new JSONObject();
+    int indent = (request.getParameter("indent") != null ? Integer.parseInt(request.getParameter("indent")) : 0);
+    JSONObject jsonObj = new JSONObject();
 
-	if (Utils.isBlank(clientId)) {
-		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-		jsonObj.put("success", false);
-		jsonObj.put("errors", new JSONArray().put("Missing parameter [client]."));
-	} else {
-		ClientConfig clientConfig = configManager.getClientConfig(clientId);
-		if (clientConfig == null) {
-			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-			jsonObj.put("success", false);
-			jsonObj.put("errors", new JSONArray().put("The client "+clientId+" do not exists."));
-		} else {
-			if (Utils.isNotBlank(iso19115_19139url)) {
-				URLSaveState mapState = configManager.getMapStateForDataset(clientConfig, iso19115_19139url);
+    if (Utils.isBlank(clientId)) {
+        response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        jsonObj.put("success", false);
+        jsonObj.put("errors", new JSONArray().put("Missing parameter [client]."));
+    } else {
+        ClientConfig clientConfig = configManager.getClientConfig(clientId);
+        if (clientConfig == null) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            jsonObj.put("success", false);
+            jsonObj.put("errors", new JSONArray().put("The client "+clientId+" do not exists."));
+        } else {
+            if (Utils.isNotBlank(iso19115_19139url)) {
+                ThreadLogger logger = new ThreadLogger();
+                URLSaveState mapState = configManager.getMapStateForDataset(logger, clientConfig, iso19115_19139url);
 
-				if (mapState == null) {
-					response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-					jsonObj.put("success", false);
-					jsonObj.put("errors", new JSONArray().put("Layers not found."));
-				} else {
-					response.setStatus(HttpServletResponse.SC_OK);
-					jsonObj.put("success", true);
-					jsonObj.put("message", "Layers found");
-					jsonObj.put("data", mapState.getJSON());
-				}
-			} else if (layerIds != null) {
-				JSONObject foundLayers = configManager.getClientLayers(clientConfig, layerIds);
+                if (mapState == null) {
+                    response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    jsonObj.put("success", false);
+                    jsonObj.put("errors", new JSONArray().put("Layers not found."));
+                } else {
+                    response.setStatus(HttpServletResponse.SC_OK);
+                    jsonObj.put("success", true);
+                    jsonObj.put("message", "Layers found");
+                    jsonObj.put("data", mapState.getJSON());
+                }
+            } else if (layerIds != null) {
+                JSONObject foundLayers = configManager.getClientLayers(clientConfig, layerIds);
 
-				if (foundLayers == null || foundLayers.length() <= 0) {
-					response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-					jsonObj.put("success", false);
-					jsonObj.put("errors", new JSONArray().put("Layers not found."));
-				} else {
-					response.setStatus(HttpServletResponse.SC_OK);
-					jsonObj.put("success", true);
-					jsonObj.put("message", "Layers found");
-					jsonObj.put("data", foundLayers);
-				}
-			} else {
-				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-				jsonObj.put("success", false);
-				jsonObj.put("errors", new JSONArray().put("Missing parameter [action] OR [layerIds]."));
-			}
-		}
-	}
+                if (foundLayers == null || foundLayers.length() <= 0) {
+                    response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    jsonObj.put("success", false);
+                    jsonObj.put("errors", new JSONArray().put("Layers not found."));
+                } else {
+                    response.setStatus(HttpServletResponse.SC_OK);
+                    jsonObj.put("success", true);
+                    jsonObj.put("message", "Layers found");
+                    jsonObj.put("data", foundLayers);
+                }
+            } else {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                jsonObj.put("success", false);
+                jsonObj.put("errors", new JSONArray().put("Missing parameter [action] OR [layerIds]."));
+            }
+        }
+    }
 
-	String output = "";
-	if (indent > 0) {
-		output = jsonObj.toString(indent);
-	} else {
-		output = jsonObj.toString();
-	}
+    String output = "";
+    if (indent > 0) {
+        output = jsonObj.toString(indent);
+    } else {
+        output = jsonObj.toString();
+    }
 %>
 <%=output %>

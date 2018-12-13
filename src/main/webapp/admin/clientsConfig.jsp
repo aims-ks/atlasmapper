@@ -308,34 +308,6 @@
                     }
                     break;
 
-                case GENERATEALL:
-                    // TODO This has to be done by the client
-                    jsonObj.put("success", false);
-                    jsonObj.put("errors", new JSONArray().put("NOT IMPLEMENTED."));
-/*
-                    try {
-                        boolean complete = Boolean.parseBoolean(completeStr);
-
-                        Map<String, Errors> errors = configManager.generateAllClients(complete);
-                        JSONObject jsonErrors = Errors.toJSON(errors);
-                        response.setStatus(HttpServletResponse.SC_OK);
-                        jsonObj.put("message", "Config saved for all clients");
-                        if (jsonErrors != null) {
-                            jsonObj.put("errors", jsonErrors.opt("errors"));
-                            jsonObj.put("warnings", jsonErrors.opt("warnings"));
-                            jsonObj.put("messages", jsonErrors.opt("messages"));
-                        }
-                        jsonObj.put("success", !jsonObj.has("errors"));
-                    } catch (Exception e) {
-                        LOGGER.log(Level.SEVERE, "An error occurred while generating the Client configurations: {0}", Utils.getExceptionMessage(e));
-                        LOGGER.log(Level.WARNING, "Stack trace: ", e);
-                        response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                        jsonObj.put("success", false);
-                        jsonObj.put("errors", new JSONArray().put("An error occurred while generating the Client configurations. Check your server logs."));
-                    }
-*/
-                    break;
-
                 default:
                     response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                     jsonObj.put("success", false);
