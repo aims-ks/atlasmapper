@@ -74,7 +74,7 @@ It contains:\n\
 		<dependency>
 			<groupId>org.geotools</groupId>
 			<artifactId>gt-wms</artifactId>
-			<version>8.1</version>
+			<version>20.1</version>
 		</dependency>
 
 		<!-- Database containing the information about the EPSG CRS projections - dependencies (1.3M) -->

@@ -21,7 +21,6 @@
 
 package au.gov.aims.atlasmapperserver;
 
-import com.vividsolutions.jts.geom.Coordinate;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
@@ -71,6 +70,7 @@ import org.geotools.referencing.CRS;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.locationtech.jts.geom.Coordinate;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.operation.MathTransform;
