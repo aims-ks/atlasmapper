@@ -137,7 +137,6 @@ function resetDataSourceIdValidator(is_error) {
 
 var frameset = null;
 var rebuildTimeout = 900000; // 15 minutes
-var rebuildMaxTimeout = 7200000; // 2 hours
 
 Ext.define('Writer.LayerServerConfigForm', {
     extend: 'Ext.form.Panel',

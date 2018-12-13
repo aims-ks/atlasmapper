@@ -112,7 +112,6 @@ public abstract class AbstractDataSourceConfig extends AbstractRunnableConfig<Ab
 
     protected AbstractDataSourceConfig(ConfigManager configManager) {
         super(configManager, new AbstractDataSourceConfigThread());
-        this.configThread.setDataSourceConfig(this);
     }
 
     public void save(ThreadLogger logger, DataSourceWrapper layerCatalog) throws JSONException, IOException {
@@ -221,68 +220,9 @@ public abstract class AbstractDataSourceConfig extends AbstractRunnableConfig<Ab
         }
     }
 
-    /*
-    public static JSONObject processAll(ConfigManager configManager, boolean redownloadBrokenFiles, boolean clearCapabilitiesCache, boolean clearMetadataCache) throws Exception {
-        JSONObject errors = new JSONObject();
-
-        MultiKeyHashMap<Integer, String, AbstractDataSourceConfig> dataSources = configManager.getDataSourceConfigs();
-        AbstractDataSourceConfig dataSource = null;
-        JSONObject dataSourceErrors = null;
-        for (Map.Entry<Integer, AbstractDataSourceConfig> dataSourceEntry : dataSources.entrySet()) {
-            dataSource = dataSourceEntry.getValue();
-            dataSourceErrors = dataSource.process(redownloadBrokenFiles, clearCapabilitiesCache, clearMetadataCache);
-
-            // Merge errors
-            // Before:
-            // {
-            //     "errors": [errors...],
-            //     "warnings": [warnings...],
-            //     "messages": [messages...]
-            // }
-            //
-            // After:
-            // {
-            //     "errors": { "dataSourceId": [errors...] },
-            //     "warnings": { "dataSourceId": [warnings...] },
-            //     "messages": { "dataSourceId": [messages...] }
-            // }
-            if (dataSourceErrors != null) {
-                Object errorsObj = dataSourceErrors.opt("errors");
-                Object warningsObj = dataSourceErrors.opt("warnings");
-                Object messagesObj = dataSourceErrors.opt("messages");
-                if (errorsObj != null) {
-                    JSONObject jsonErrors = errors.optJSONObject("errors");
-                    if (jsonErrors == null) {
-                        jsonErrors = new JSONObject();
-                        errors.put("errors", jsonErrors);
-                    }
-                    jsonErrors.put(dataSource.getDataSourceId(), errorsObj);
-                }
-                if (warningsObj != null) {
-                    JSONObject jsonWarnings = errors.optJSONObject("warnings");
-                    if (jsonWarnings == null) {
-                        jsonWarnings = new JSONObject();
-                        errors.put("warnings", jsonWarnings);
-                    }
-                    jsonWarnings.put(dataSource.getDataSourceId(), warningsObj);
-                }
-                if (messagesObj != null) {
-                    JSONObject jsonMessages = errors.optJSONObject("messages");
-                    if (jsonMessages == null) {
-                        jsonMessages = new JSONObject();
-                        errors.put("messages", jsonMessages);
-                    }
-                    jsonMessages.put(dataSource.getDataSourceId(), messagesObj);
-                }
-            }
-        }
-
-        return errors;
-    }
-    */
-
     public void process(boolean redownloadBrokenFiles, boolean clearCapabilitiesCache, boolean clearMetadataCache) {
         if (this.isIdle()) {
+            this.configThread.setDataSourceConfig(this);
             this.configThread.setRedownloadBrokenFiles(redownloadBrokenFiles);
             this.configThread.setClearCapabilitiesCache(clearCapabilitiesCache);
             this.configThread.setClearMetadataCache(clearMetadataCache);

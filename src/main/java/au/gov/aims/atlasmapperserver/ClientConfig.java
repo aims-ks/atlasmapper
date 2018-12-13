@@ -259,7 +259,6 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
 
     public ClientConfig(ConfigManager configManager) {
         super(configManager, new ClientConfigThread());
-        this.configThread.setClientConfig(this);
     }
 
     public Map<String, DataSourceWrapper> loadDataSources() throws FileNotFoundException, JSONException {
@@ -293,6 +292,7 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
 
     public void process(boolean complete) {
         if (this.isIdle()) {
+            this.configThread.setClientConfig(this);
             this.configThread.setCompleteGeneration(complete);
 
             this.start();

@@ -682,11 +682,11 @@ public class URLCache {
         JSONObject jsonResponse = null;
         try {
             jsonFile = getURLFile(logger, downloadedEntityName, configManager, dataSource, urlStr, category, mandatory);
-            jsonResponse = parseFile(jsonFile, urlStr);
+            jsonResponse = parseFile(logger, jsonFile, urlStr);
             commitURLFile(configManager, jsonFile, urlStr);
         } catch(Exception ex) {
             File rollbackFile = rollbackURLFile(logger, downloadedEntityName, configManager, jsonFile, urlStr, ex);
-            jsonResponse = parseFile(rollbackFile, urlStr);
+            jsonResponse = parseFile(logger, rollbackFile, urlStr);
         }
 
         RevivableThread.checkForInterruption();
@@ -694,14 +694,14 @@ public class URLCache {
         return jsonResponse;
     }
 
-    private static JSONObject parseFile(File jsonFile, String urlStr) {
+    private static JSONObject parseFile(ThreadLogger logger, File jsonFile, String urlStr) {
         JSONObject jsonResponse = null;
         Reader reader = null;
         try {
             reader = new FileReader(jsonFile);
             jsonResponse = new JSONObject(new JSONTokener(reader));
         } catch(Exception ex) {
-            LOGGER.log(Level.SEVERE, String.format("Can not load the JSON Object returning from the URL %s: %s",
+            logger.log(Level.WARNING, String.format("Can not load the [JSON Object](%s): %s",
                     urlStr, Utils.getExceptionMessage(ex)), ex);
         } finally {
             if (reader != null) {
@@ -825,6 +825,8 @@ public class URLCache {
                 wmsCapabilities = URLCache.getCapabilities(capabilitiesFile);
                 URLCache.commitURLFile(configManager, capabilitiesFile, urlStr);
             } catch (Exception ex) {
+                logger.log(Level.WARNING, String.format("Error occurred while parsing the [WMS GetCapabilities document](%s): %s",
+                        urlStr, Utils.getExceptionMessage(ex)), ex);
                 File rollbackFile = URLCache.rollbackURLFile(logger, "WMS GetCapabilities document", configManager, capabilitiesFile, urlStr, ex);
                 wmsCapabilities = URLCache.getCapabilities(rollbackFile);
             }
@@ -863,7 +865,9 @@ public class URLCache {
         }
     }
 
-    private static WMSCapabilities getCapabilities(InputStream inputStream) throws SAXException, RevivableThreadInterruptedException {
+    private static WMSCapabilities getCapabilities(InputStream inputStream)
+            throws SAXException, RevivableThreadInterruptedException {
+
         RevivableThread.checkForInterruption();
 
         Map<String, Object> hints = new HashMap<String, Object>();
