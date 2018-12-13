@@ -3,13 +3,15 @@
 [X] Handle internet failure better (continue when Internet comes back)
         Upgraded HttpClient
         Repeat request on failure after 5 sec delay
-[ ] Stop button
+[X] Stop button
     [X] Make my own InterruptException implements Throwable (instead of Exception) to make it harder to catch
-    [ ] Disable generate button when running
-    [ ] When done, enable generate, disable Stop button
+    [X] Disable generate button when running
+            I can't disable the icon. Seems to be a bug in ExtJS.
+            Instead, I bring the log window when someone click the generate button and it's already running.
+    [X] When done, enable generate, disable Stop button
 [X] Update JUnit
-[ ] Bring logs window back (generate button changes into loading icon)
-[ ] Generate all
+[X] Bring logs window back (generate button changes into loading icon)
+[ ] Remove Generate all
 
 [ ] H2 cache
 [ ] Do not show multiple warning / error for the same URL

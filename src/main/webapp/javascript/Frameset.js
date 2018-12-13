@@ -182,6 +182,40 @@ Ext.define('Frameset', {
         this.statusBar.showBusy();
     },
 
+    isThreadRunning: function(requestUrl, requestParameters, callback) {
+        Ext.Ajax.request({
+            url: requestUrl,
+            params: requestParameters,
+            success: function(that) {
+                return function(response) {
+                    var responseObj = null;
+                    var statusCode = response ? response.status : null;
+                    var isRunning = false;
+                    if (response && response.responseText) {
+                        try {
+                            responseObj = Ext.decode(response.responseText);
+                        } catch (err) {
+                            responseObj = {errors: [err.toString()]};
+                        }
+                    }
+
+                    if (responseObj && responseObj.success) {
+                        if (!responseObj.done) {
+                            isRunning = true;
+                        }
+                    }
+
+                    callback(isRunning);
+                };
+            }(this),
+            failure: function(that) {
+                return function(response) {
+                    callback(false);
+                };
+            }(this)
+        });
+    },
+
     /**
      *
      * @param title
@@ -255,6 +289,10 @@ Ext.define('Frameset', {
                     {
                         xtype: 'button',
                         text: 'Stop',
+                        cls: 'red-button',
+                        iconCls: 'icon-cancel',
+                        id: 'stop_button',
+                        disabled: true,
                         padding: '2 10',
                         handler: function(that, stopRequestUrl, stopRequestParameters) {
                             return function() {
@@ -296,9 +334,11 @@ Ext.define('Frameset', {
                         that._setHtmlLogs(htmlLogs);
 
                         if (responseObj.done) {
+                            Ext.getCmp('stop_button').disable();
                             that.clearStatus();
                             callback(responseObj);
                         } else {
+                            Ext.getCmp('stop_button').enable();
                             // Repeat in 2 sec
                             that.logsWindowTimer = window.setTimeout(function(that) {
                                 return function() {

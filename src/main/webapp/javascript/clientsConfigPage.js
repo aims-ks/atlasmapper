@@ -878,8 +878,6 @@ Ext.define('Writer.ClientConfigGrid', {
     ],
 
     initComponent: function(){
-        var that = this;
-
         Ext.apply(this, {
             iconCls: 'icon-grid',
             dockedItems: [
@@ -968,7 +966,7 @@ Ext.define('Writer.ClientConfigGrid', {
                     // http://docs.sencha.com/ext-js/4-0/#/api/Ext.grid.column.Action
                     header: 'Actions',
                     xtype: 'actioncolumn',
-                    width: 55,
+                    width: 80, // padding of 8px between icons
                     defaults: {
                         iconCls: 'grid-icon'
                     },
@@ -988,6 +986,8 @@ Ext.define('Writer.ClientConfigGrid', {
                                     var clientConfigFormWindow = this.getClientConfigFormWindow('save', rec);
                                     clientConfigFormWindow.show();
                                     clientConfigFormWindow.child('.form').setActiveRecord(rec);
+                                } else {
+                                    frameset.setError('No record has been selected.');
                                 }
                             }
                         }, {
@@ -996,11 +996,32 @@ Ext.define('Writer.ClientConfigGrid', {
                             // Bug: defaults is ignored (http://www.sencha.com/forum/showthread.php?138446-actioncolumn-ignore-defaults)
                             iconCls: 'grid-icon',
 
+                            scope: this,
                             tooltip: 'Generate<br/>Push the modifications to the live client',
                             handler: function(grid, rowIndex, colIndex) {
                                 var rec = grid.getStore().getAt(rowIndex);
-                                that.confirmRegenerate(rec);
+                                if (rec) {
+                                    this.handleRegenerate(rec);
+                                } else {
+                                    frameset.setError('No record has been selected.');
+                                }
                             }
+                        }, {
+                            icon: '../resources/icons/application_xp_terminal.png',
+                            // Bug: defaults is ignored (http://www.sencha.com/forum/showthread.php?138446-actioncolumn-ignore-defaults)
+                            iconCls: 'grid-icon',
+                            tooltip: 'View logs',
+                            scope: this,
+                            handler: function(that) {
+                                return function(grid, rowIndex, colIndex) {
+                                    var rec = grid.getStore().getAt(rowIndex);
+                                    if (rec) {
+                                        that.handleShowLogs(rec);
+                                    } else {
+                                        frameset.setError('No record has been selected.');
+                                    }
+                                };
+                            } (this)
                         }
                     ]
                 }
@@ -1010,10 +1031,45 @@ Ext.define('Writer.ClientConfigGrid', {
         this.getSelectionModel().on('selectionchange', this.onSelectChange, this);
     },
 
+    handleRegenerate: function(rec) {
+        if (rec) {
+            var clientId = rec.get('clientId');
+            var clientName = rec.get('clientName') + ' (' + clientId + ')';
+
+            // If running, show the logs instead
+            frameset.isThreadRunning(
+                'clientsConfig.jsp',
+                {
+                    'action': 'GETLOGS',
+                    'clientId': clientId
+                },
+
+                function(that, rec) {
+                    return function(isRunning) {
+                        if (isRunning) {
+                            that.showClientRegenerateLogWindow(frameset, clientId, clientName);
+                        } else {
+                            that.confirmRegenerate(rec);
+                        }
+                    };
+                }(this, rec)
+            );
+        }
+    },
+
+    handleShowLogs: function(rec) {
+        if (rec) {
+            var clientId = rec.get('clientId');
+            var clientName = rec.get('clientName') + ' (' + clientId + ')';
+
+            this.showClientRegenerateLogWindow(frameset, clientId, clientName);
+        }
+    },
+
     getClientConfigFormWindow: function(action, rec) {
         var actionButton = null;
         var that = this;
-        if (action == 'add') {
+        if (action === 'add') {
             actionButton = Ext.create('Ext.button.Button', {
                 iconCls: 'icon-add',
                 text: 'Create',

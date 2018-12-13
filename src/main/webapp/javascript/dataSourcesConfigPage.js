@@ -70,7 +70,7 @@ var dataSourceLayerTypes = {
 // Validation type usually used with EditArea
 Ext.apply(Ext.form.field.VTypes, {
     uniquedatasourceid: function(val) {
-        if (val == null || val == '') {
+        if (val == null || val === '') {
             // The form will return an error for this field if it doesn't allow null value.
             return false;
         }
@@ -360,7 +360,7 @@ Ext.define('Writer.LayerServerConfigForm', {
             boxLabel: 'Active download',
             name: 'activeDownload',
             xtype: 'checkboxfield'
-        }
+        };
         var showInLegend = {
             qtipHtml: 'Uncheck this box to disable the legend for all layers provided by this data source. This mean that the layers will not have its legend displayed in the AtlasMapper clients, and they will not have a check box in the layer <em>Options</em> to show its legend.',
             boxLabel: 'Show layers in legend',
@@ -677,7 +677,7 @@ Ext.define('Writer.LayerServerConfigForm', {
         var that = this;
         var buttons = [];
         var title = '';
-        if (action == 'save') {
+        if (action === 'save') {
             title = 'Edit KML layer';
             buttons = [
                 {
@@ -718,7 +718,7 @@ Ext.define('Writer.LayerServerConfigForm', {
                         var newValues = form.getValues();
 
                         // Add the new entry to the KML store and save it to the data source form
-                        that.kmlStore.add(form.getValues());
+                        that.kmlStore.add(newValues);
                         that._saveKMLRecords();
 
                         window.close();
@@ -787,7 +787,7 @@ Ext.define('Writer.LayerServerConfigForm', {
     // Save the content of the grid into the kmlData hidden field.
     _saveKMLRecords: function() {
         // Update the current data source record using the data from the KML grid store
-        kmlData = [];
+        var kmlData = [];
         this.kmlStore.each(function(record) {
             kmlData.push(record.data);
         }, this);
@@ -1028,7 +1028,7 @@ Ext.define('Writer.LayerServerConfigGrid', {
                     // http://docs.sencha.com/ext-js/4-0/#/api/Ext.grid.column.Action
                     header: 'Actions',
                     xtype: 'actioncolumn',
-                    width: 55,
+                    width: 80, // padding of 8px between icons
                     defaults: {
                         iconCls: 'grid-icon'
                     },
@@ -1066,16 +1066,34 @@ Ext.define('Writer.LayerServerConfigGrid', {
                             iconCls: 'grid-icon',
                             tooltip: 'Rebuild',
                             scope: this,
-                            handler: function(grid, rowIndex, colIndex) {
-                                var rec = grid.getStore().getAt(rowIndex);
-                                if (rec) {
-                                    this.getRebuildWindow(rec).show();
-                                } else {
-                                    frameset.setError('No record has been selected.');
-                                }
-                            }
-                        }
+                            handler: function(that) {
+                                return function(grid, rowIndex, colIndex) {
+                                    var rec = grid.getStore().getAt(rowIndex);
+                                    if (rec) {
+                                        that.handleRebuild(rec);
+                                    } else {
+                                        frameset.setError('No record has been selected.');
+                                    }
+                                };
+                            } (this)
 
+                        }, {
+                            icon: '../resources/icons/application_xp_terminal.png',
+                            // Bug: defaults is ignored (http://www.sencha.com/forum/showthread.php?138446-actioncolumn-ignore-defaults)
+                            iconCls: 'grid-icon',
+                            tooltip: 'View logs',
+                            scope: this,
+                            handler: function(that) {
+                                return function(grid, rowIndex, colIndex) {
+                                    var rec = grid.getStore().getAt(rowIndex);
+                                    if (rec) {
+                                        that.handleShowLogs(rec);
+                                    } else {
+                                        frameset.setError('No record has been selected.');
+                                    }
+                                };
+                            } (this)
+                        }
 
                     ]
                 }
@@ -1083,6 +1101,41 @@ Ext.define('Writer.LayerServerConfigGrid', {
         });
         this.callParent();
         this.getSelectionModel().on('selectionchange', this.onSelectChange, this);
+    },
+
+    handleRebuild: function(rec) {
+        if (rec) {
+            var dataSourceId = rec.get('dataSourceId');
+            var dataSourceName = rec.get('dataSourceName') + ' (' + dataSourceId + ')';
+
+            // If running, show the logs instead
+            frameset.isThreadRunning(
+                'dataSourcesConfig.jsp',
+                {
+                    'action': 'GETLOGS',
+                    'dataSourceId': dataSourceId
+                },
+
+                function(that, rec) {
+                    return function(isRunning) {
+                        if (isRunning) {
+                            that.showDataSourceRebuildLogWindow(frameset, dataSourceId, dataSourceName);
+                        } else {
+                            that.getRebuildWindow(rec).show();
+                        }
+                    };
+                }(this, rec)
+            );
+        }
+    },
+
+    handleShowLogs: function(rec) {
+        if (rec) {
+            var dataSourceId = rec.get('dataSourceId');
+            var dataSourceName = rec.get('dataSourceName') + ' (' + dataSourceId + ')';
+
+            this.showDataSourceRebuildLogWindow(frameset, dataSourceId, dataSourceName);
+        }
     },
 
     getRebuildWindow: function(rec) {
@@ -1592,7 +1645,7 @@ Ext.define('Writer.LayerServerConfigGrid', {
                 '<br/>'+
                 'Are you sure you want to delete the data source <b>'+dataSourceName+'</b>?',
                 function(btn) {
-                    if (btn == 'yes') {
+                    if (btn === 'yes') {
                         this.onDeleteConfirmed();
                     }
                 },
