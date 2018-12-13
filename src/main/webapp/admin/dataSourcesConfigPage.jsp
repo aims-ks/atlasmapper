@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 2011 Australian Institute of Marine Science
  *
- *  Contact: Gael Lafond <g.lafond@aims.org.au>
+ *  Contact: Gael Lafond <g.lafond@aims.gov.au>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -44,6 +44,7 @@
 		<script type="text/javascript" src="../javascript/extjs_ux/FieldWithQTip.js"></script>
 		<script type="text/javascript" src="../javascript/extjs_ux/Checkbox.js"></script>
 		<script type="text/javascript" src="../javascript/Frameset.js"></script>
+		<script type="text/javascript" src="../javascript/marked/marked.min.js"></script>
 
 		<script type="text/javascript">
 			<% ConfigManager manager = ConfigHelper.getConfigManager(this.getServletConfig().getServletContext()); %>

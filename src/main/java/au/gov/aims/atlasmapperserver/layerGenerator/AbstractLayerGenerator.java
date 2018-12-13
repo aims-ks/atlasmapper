@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 2011 Australian Institute of Marine Science
  *
- *  Contact: Gael Lafond <g.lafond@aims.org.au>
+ *  Contact: Gael Lafond <g.lafond@aims.gov.au>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,64 +21,79 @@
 
 package au.gov.aims.atlasmapperserver.layerGenerator;
 
-import au.gov.aims.atlasmapperserver.Errors;
 import au.gov.aims.atlasmapperserver.URLCache;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.jsonWrappers.client.DataSourceWrapper;
 import au.gov.aims.atlasmapperserver.jsonWrappers.client.LayerWrapper;
 import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
+import au.gov.aims.atlasmapperserver.thread.RevivableThread;
+import au.gov.aims.atlasmapperserver.thread.RevivableThreadInterruptedException;
+import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
 import org.json.JSONException;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.logging.Level;
 
 public abstract class AbstractLayerGenerator<L extends AbstractLayerConfig, D extends AbstractDataSourceConfig> {
-	protected long instanceTimestamp = -1;
+    protected long instanceTimestamp = -1;
 
-	protected abstract String getUniqueLayerId(L layer, D dataSourceConfig);
+    protected abstract String getUniqueLayerId(L layer, D dataSourceConfig) throws RevivableThreadInterruptedException;
 
-	public DataSourceWrapper generateLayerCatalog(D dataSourceConfig, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles) throws IOException, JSONException {
-		// startDate: Used to delete old entries in the cache (entries that do not get
-		//     access after that date are considered unused and are removed)
-		Date startDate = new Date();
+    public DataSourceWrapper generateLayerCatalog(
+            ThreadLogger logger,
+            D dataSourceConfigClone,
+            boolean redownloadPrimaryFiles,
+            boolean redownloadSecondaryFiles
+    ) throws IOException, JSONException, RevivableThreadInterruptedException {
 
-		LayerCatalog rawLayerCatalog = this.generateRawLayerCatalog(dataSourceConfig, redownloadPrimaryFiles, redownloadSecondaryFiles);
+        // startDate: Used to delete old entries in the cache (entries that do not get
+        //     access after that date are considered unused and are removed)
+        Date startDate = new Date();
 
-		List<URLCache.Category> categories = new ArrayList<URLCache.Category>(3);
-		categories.add(URLCache.Category.CAPABILITIES_DOCUMENT);
-		categories.add(URLCache.Category.MEST_RECORD);
-		categories.add(URLCache.Category.BRUTEFORCE_MEST_RECORD);
-		URLCache.deleteOldEntries(dataSourceConfig, startDate, categories);
+        LayerCatalog rawLayerCatalog = this.generateRawLayerCatalog(logger, dataSourceConfigClone, redownloadPrimaryFiles, redownloadSecondaryFiles);
+        RevivableThread.checkForInterruption();
 
-		Errors dataSourceErrors = URLCache.getDataSourceErrors(dataSourceConfig, dataSourceConfig.getConfigManager().getApplicationFolder());
+        List<URLCache.Category> categories = new ArrayList<URLCache.Category>(3);
+        categories.add(URLCache.Category.CAPABILITIES_DOCUMENT);
+        categories.add(URLCache.Category.MEST_RECORD);
+        categories.add(URLCache.Category.BRUTEFORCE_MEST_RECORD);
+        URLCache.deleteOldEntries(dataSourceConfigClone, startDate, categories);
+        RevivableThread.checkForInterruption();
 
-		DataSourceWrapper catalogWrapper = new DataSourceWrapper();
-		catalogWrapper.addAllErrors(dataSourceErrors);
-		catalogWrapper.addAllErrors(rawLayerCatalog.getErrors());
-		for (AbstractLayerConfig layer : rawLayerCatalog.getLayers()) {
-			LayerWrapper layerWrapper = new LayerWrapper(layer.toJSonObject());
-			catalogWrapper.addLayer(layer.getLayerId(), layerWrapper);
-		}
+        logger.log(Level.INFO, "Building data source layer catalogue");
+        DataSourceWrapper catalogWrapper = new DataSourceWrapper();
+        for (AbstractLayerConfig layer : rawLayerCatalog.getLayers()) {
+            LayerWrapper layerWrapper = new LayerWrapper(layer.toJSonObject());
+            catalogWrapper.addLayer(layer.getLayerId(), layerWrapper);
+        }
+        RevivableThread.checkForInterruption();
 
-		return catalogWrapper;
-	}
+        return catalogWrapper;
+    }
 
-	// TODO Maybe return a DataSourceWrapper?
-	// Redownload parameters are ignored by most data sources, but some use it (like KML)
-	protected abstract LayerCatalog generateRawLayerCatalog(D dataSourceConfig, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles);
+    // TODO Maybe return a DataSourceWrapper?
+    // Redownload parameters are ignored by most data sources, but some use it (like KML)
+    protected abstract LayerCatalog generateRawLayerCatalog(
+            ThreadLogger logger,
+            D dataSourceConfig,
+            boolean redownloadPrimaryFiles,
+            boolean redownloadSecondaryFiles) throws RevivableThreadInterruptedException;
 
-	// The layer name used to request the layer. Usually, the layerName is
-	// the same as the layerId, so this field is let blank. This attribute
-	// is only used when there is a duplication of layerId.
-	protected void ensureUniqueLayerId(L layer, D dataSourceConfig) {
-		String uniqueLayerId =
-				dataSourceConfig.getDataSourceId() + "_" +
-				this.getUniqueLayerId(layer, dataSourceConfig);
+    // The layer name used to request the layer. Usually, the layerName is
+    // the same as the layerId, so this field is let blank. This attribute
+    // is only used when there is a duplication of layerId.
+    protected void ensureUniqueLayerId(L layer, D dataSourceConfig) throws RevivableThreadInterruptedException {
+        RevivableThread.checkForInterruption();
 
-		layer.setLayerName(layer.getLayerId());
-		layer.setLayerId(uniqueLayerId);
-	}
+        String uniqueLayerId =
+                dataSourceConfig.getDataSourceId() + "_" +
+                this.getUniqueLayerId(layer, dataSourceConfig);
+
+        layer.setLayerName(layer.getLayerId());
+        layer.setLayerId(uniqueLayerId);
+    }
 }

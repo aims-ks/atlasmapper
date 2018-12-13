@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 2011 Australian Institute of Marine Science
  *
- *  Contact: Gael Lafond <g.lafond@aims.org.au>
+ *  Contact: Gael Lafond <g.lafond@aims.gov.au>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -24,67 +24,98 @@ package au.gov.aims.atlasmapperserver.layerGenerator;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.GoogleDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.GoogleLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
+import au.gov.aims.atlasmapperserver.thread.RevivableThread;
+import au.gov.aims.atlasmapperserver.thread.RevivableThreadInterruptedException;
+import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
+
+import java.util.logging.Level;
 
 /**
  *
  * @author glafond
  */
 public class GoogleLayerGenerator extends AbstractLayerGenerator<GoogleLayerConfig, GoogleDataSourceConfig> {
-	/**
-	 * The number of Google Layers is fix and they already have unique IDs. Nothing to do here.
-	 * @param layer
-	 * @param dataSourceConfig
-	 * @return
-	 */
-	@Override
-	protected String getUniqueLayerId(GoogleLayerConfig layer, GoogleDataSourceConfig dataSourceConfig) {
-		return layer.getLayerId();
-	}
+    /**
+     * The number of Google Layers is fix and they already have unique IDs. Nothing to do here.
+     * @param layer
+     * @param dataSourceConfig
+     * @return
+     */
+    @Override
+    protected String getUniqueLayerId(GoogleLayerConfig layer, GoogleDataSourceConfig dataSourceConfig)
+            throws RevivableThreadInterruptedException {
 
-	/**
-	 * Create and return the 4 google layers.
-	 *     * Google Physical
-	 *     * Google Streets
-	 *     * Google Hybrid
-	 *     * Google Satellite
-	 * @return
-	 * NOTE: Harvest is ignored since there is nothing to harvest.
-	 */
-	@Override
-	public LayerCatalog generateRawLayerCatalog(GoogleDataSourceConfig dataSourceConfig, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles) {
-		LayerCatalog layerCatalog = new LayerCatalog();
+        RevivableThread.checkForInterruption();
 
-		layerCatalog.addLayer(this.createGoogleLayer(dataSourceConfig, "TERRAIN", "Google Physical", null, 16));
+        return layer.getLayerId();
+    }
 
-		// This layer goes up to 22, but it's pointless to go that close... 20 is good enough
-		layerCatalog.addLayer(this.createGoogleLayer(dataSourceConfig, "ROADMAP", "Google Streets", null, 20));
+    /**
+     * Create and return the 4 google layers.
+     *     * Google Physical
+     *     * Google Streets
+     *     * Google Hybrid
+     *     * Google Satellite
+     * @return
+     * NOTE: Harvest is ignored since there is nothing to harvest.
+     */
+    @Override
+    public LayerCatalog generateRawLayerCatalog(
+            ThreadLogger logger,
+            GoogleDataSourceConfig dataSourceConfig,
+            boolean redownloadPrimaryFiles,
+            boolean redownloadSecondaryFiles
+    ) throws RevivableThreadInterruptedException {
 
-		// The number of zoom level is a mix of 20 - 22, depending on the location, OpenLayers do not support that very well...
-		layerCatalog.addLayer(this.createGoogleLayer(dataSourceConfig, "HYBRID", "Google Hybrid", null, 20));
+        RevivableThread.checkForInterruption();
 
-		// The number of zoom level is a mix of 20 - 22, depending on the location, OpenLayers do not support that very well...
-		layerCatalog.addLayer(this.createGoogleLayer(dataSourceConfig, "SATELLITE", "Google Satellite", null, 20));
+        LayerCatalog layerCatalog = new LayerCatalog();
 
-		return layerCatalog;
-	}
+        logger.log(Level.INFO, "Adding Terrain layer");
+        layerCatalog.addLayer(this.createGoogleLayer(dataSourceConfig, "TERRAIN", "Google Physical", null, 16));
 
-	private GoogleLayerConfig createGoogleLayer(GoogleDataSourceConfig dataSourceConfig, String googleLayerType, String name, String description, Integer numZoomLevels) {
-		GoogleLayerConfig layerConfig = new GoogleLayerConfig(dataSourceConfig.getConfigManager());
+        // This layer goes up to 22, but it's pointless to go that close... 20 is good enough
+        logger.log(Level.INFO, "Adding Roadmap layer");
+        layerCatalog.addLayer(this.createGoogleLayer(dataSourceConfig, "ROADMAP", "Google Streets", null, 20));
 
-		layerConfig.setLayerId(googleLayerType);
-		layerConfig.setTitle(name);
-		layerConfig.setDescription(description);
-		layerConfig.setIsBaseLayer(true);
-		layerConfig.setLayerBoundingBox(new double[]{-180, -90, 180, 90});
+        // The number of zoom level is a mix of 20 - 22, depending on the location, OpenLayers do not support that very well...
+        logger.log(Level.INFO, "Adding Hybrid layer");
+        layerCatalog.addLayer(this.createGoogleLayer(dataSourceConfig, "HYBRID", "Google Hybrid", null, 20));
 
-		if (numZoomLevels != null) {
-			layerConfig.setNumZoomLevels(numZoomLevels);
-		}
+        // The number of zoom level is a mix of 20 - 22, depending on the location, OpenLayers do not support that very well...
+        logger.log(Level.INFO, "Adding Satellite layer");
+        layerCatalog.addLayer(this.createGoogleLayer(dataSourceConfig, "SATELLITE", "Google Satellite", null, 20));
 
-		this.ensureUniqueLayerId(layerConfig, dataSourceConfig);
+        return layerCatalog;
+    }
 
-		return layerConfig;
-	}
+    private GoogleLayerConfig createGoogleLayer(
+            GoogleDataSourceConfig dataSourceConfig,
+            String googleLayerType,
+            String name,
+            String description,
+            Integer numZoomLevels
+    ) throws RevivableThreadInterruptedException {
+
+        RevivableThread.checkForInterruption();
+
+        GoogleLayerConfig layerConfig = new GoogleLayerConfig(dataSourceConfig.getConfigManager());
+
+        layerConfig.setLayerId(googleLayerType);
+        layerConfig.setTitle(name);
+        layerConfig.setDescription(description);
+        layerConfig.setIsBaseLayer(true);
+        layerConfig.setLayerBoundingBox(new double[]{-180, -90, 180, 90});
+
+        if (numZoomLevels != null) {
+            layerConfig.setNumZoomLevels(numZoomLevels);
+        }
+
+        this.ensureUniqueLayerId(layerConfig, dataSourceConfig);
+        RevivableThread.checkForInterruption();
+
+        return layerConfig;
+    }
 
 
 

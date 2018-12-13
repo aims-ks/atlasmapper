@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 2011 Australian Institute of Marine Science
  *
- *  Contact: Gael Lafond <g.lafond@aims.org.au>
+ *  Contact: Gael Lafond <g.lafond@aims.gov.au>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,30 +21,33 @@
 
 package au.gov.aims.atlasmapperserver;
 
-import junit.framework.TestCase;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  *
  * @author glafond
  */
-public class ProjectInfoTest extends TestCase {
-	public void testGetVersion() {
-		assertTrue("Can not parse the project version", validProjectAttribute(ProjectInfo.getVersion()));
-	}
+public class ProjectInfoTest {
 
-	public void testGetLicenses() {
-		assertTrue("Can not parse the project license", validProjectAttribute(ProjectInfo.getLicenseName()));
-	}
+    @Test
+    public void testGetVersion() {
+        Assert.assertTrue("Can not parse the project version", validProjectAttribute(ProjectInfo.getVersion()));
+    }
 
-	private static boolean validProjectAttribute(String value) {
-		if (value == null) return false;
+    public void testGetLicenses() {
+        Assert.assertTrue("Can not parse the project license", validProjectAttribute(ProjectInfo.getLicenseName()));
+    }
 
-		String trimValue = value.trim();
+    private static boolean validProjectAttribute(String value) {
+        if (value == null) return false;
 
-		if (trimValue.startsWith("${") && trimValue.endsWith("}")) {
-			return false;
-		}
+        String trimValue = value.trim();
 
-		return true;
-	}
+        if (trimValue.startsWith("${") && trimValue.endsWith("}")) {
+            return false;
+        }
+
+        return true;
+    }
 }

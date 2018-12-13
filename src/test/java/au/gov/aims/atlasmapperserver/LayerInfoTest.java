@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 2011 Australian Institute of Marine Science
  *
- *  Contact: Gael Lafond <g.lafond@aims.org.au>
+ *  Contact: Gael Lafond <g.lafond@aims.gov.au>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -24,57 +24,61 @@ package au.gov.aims.atlasmapperserver;
 import java.net.URL;
 
 import au.gov.aims.atlasmapperserver.layerConfig.WMSLayerConfig;
-import junit.framework.TestCase;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  *
  * @author glafond
  */
-public class LayerInfoTest extends TestCase {
-	public void test() {
-		URL url = null;
+public class LayerInfoTest {
 
-		url = this.getClass().getResource(".");
-		System.out.println(". ["+url+"]");
+    @Test
+    public void test() {
+        URL url = null;
 
-		url = this.getClass().getResource("/");
-		System.out.println("/ ["+url+"]");
+        url = this.getClass().getResource(".");
+        System.out.println(". ["+url+"]");
 
-		url = this.getClass().getResource("/amc");
-		System.out.println("/amc ["+url+"]");
-	}
+        url = this.getClass().getResource("/");
+        System.out.println("/ ["+url+"]");
 
-	public void testToJsonObject() {
-		try {
-			WMSLayerConfig layerInfo = new WMSLayerConfig(null);
+        url = this.getClass().getResource("/amc");
+        System.out.println("/amc ["+url+"]");
+    }
 
-			double[] layerBoundingBox = {141.116, -29.384, 160.884, -9.616};
+    @Test
+    public void testToJsonObject() {
+        try {
+            WMSLayerConfig layerInfo = new WMSLayerConfig(null);
 
-			StringBuilder legendParameters = new StringBuilder();
-			legendParameters.append("FORMAT=image/png\n");
-			legendParameters.append("HEIGHT=10\n");
-			legendParameters.append("WIDTH=20");
+            double[] layerBoundingBox = {141.116, -29.384, 160.884, -9.616};
 
-			layerInfo.setLayerId("ea:test");
+            StringBuilder legendParameters = new StringBuilder();
+            legendParameters.append("FORMAT=image/png\n");
+            legendParameters.append("HEIGHT=10\n");
+            legendParameters.append("WIDTH=20");
 
-			layerInfo.setTitle("Test layer title");
-			layerInfo.setDescription("Test layer description");
-			//layerInfo.setDataSourceId("test-srv-id");
-			layerInfo.setLayerBoundingBox(layerBoundingBox);
-			layerInfo.setIsBaseLayer(true);
-			layerInfo.setHasLegend(false);
-			//layerInfo.setLegendParameters(legendParameters.toString());
-			layerInfo.setWmsQueryable(true);
+            layerInfo.setLayerId("ea:test");
 
-			JSONObject jsonObject = layerInfo.toJSonObject();
+            layerInfo.setTitle("Test layer title");
+            layerInfo.setDescription("Test layer description");
+            //layerInfo.setDataSourceId("test-srv-id");
+            layerInfo.setLayerBoundingBox(layerBoundingBox);
+            layerInfo.setIsBaseLayer(true);
+            layerInfo.setHasLegend(false);
+            //layerInfo.setLegendParameters(legendParameters.toString());
+            layerInfo.setWmsQueryable(true);
 
-			// TODO Test the value of each of the jsonObject fields
-			System.out.println(jsonObject.toString(4));
-		} catch (JSONException ex) {
-			fail("The layer can not be convert to a JSON Object:\n" + ex.getMessage());
-			ex.printStackTrace();
-		}
-	}
+            JSONObject jsonObject = layerInfo.toJSonObject();
+
+            // TODO Test the value of each of the jsonObject fields
+            System.out.println(jsonObject.toString(4));
+        } catch (JSONException ex) {
+            Assert.fail("The layer can not be convert to a JSON Object:\n" + Utils.getExceptionMessage(ex));
+            ex.printStackTrace();
+        }
+    }
 }

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 2012 Australian Institute of Marine Science
  *
- *  Contact: Gael Lafond <g.lafond@aims.org.au>
+ *  Contact: Gael Lafond <g.lafond@aims.gov.au>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -23,6 +23,9 @@ package au.gov.aims.atlasmapperserver.xml.WMTS;
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.URLCache;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
+import au.gov.aims.atlasmapperserver.thread.RevivableThread;
+import au.gov.aims.atlasmapperserver.thread.RevivableThreadInterruptedException;
+import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
 import org.json.JSONException;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXNotRecognizedException;
@@ -34,116 +37,124 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class WMTSParser {
-	private static final Logger LOGGER = Logger.getLogger(WMTSParser.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(WMTSParser.class.getName());
 
-	/**
-	 * Cached
-	 * @param configManager Config manager associated to that URL, for caching purpose
-	 * @param dataSource Data source associated to that URL, for caching purpose
-	 * @param url Url of the document to parse
-	 * @param mandatory True to cancel the client generation if the file cause problem
-	 * @return
-	 * @throws SAXException
-	 * @throws ParserConfigurationException
-	 * @throws IOException
-	 * @throws JSONException
-	 */
-	public static WMTSDocument parseURL(ConfigManager configManager, AbstractDataSourceConfig dataSource, URL url, boolean mandatory)
-			throws SAXException, ParserConfigurationException, IOException, JSONException {
+    /**
+     * Cached
+     * @param configManager Config manager associated to that URL, for caching purpose
+     * @param dataSource Data source associated to that URL, for caching purpose
+     * @param url Url of the document to parse
+     * @param mandatory True to cancel the client generation if the file cause problem
+     * @return
+     * @throws SAXException
+     * @throws ParserConfigurationException
+     * @throws IOException
+     * @throws JSONException
+     * @throws RevivableThreadInterruptedException
+     */
+    public static WMTSDocument parseURL(ThreadLogger logger, ConfigManager configManager, AbstractDataSourceConfig dataSource, URL url, boolean mandatory)
+            throws SAXException, ParserConfigurationException, IOException, JSONException, RevivableThreadInterruptedException {
 
-		String urlStr = url.toString();
-		File cachedDocumentFile = null;
+        RevivableThread.checkForInterruption();
 
-		WMTSDocument wmtsDocument = null;
-		try {
-			cachedDocumentFile = URLCache.getURLFile(configManager, dataSource, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, mandatory);
-			wmtsDocument = parseFile(cachedDocumentFile, urlStr);
-			if (wmtsDocument == null) {
-				File rollbackFile = URLCache.rollbackURLFile(configManager, cachedDocumentFile, urlStr, "Invalid WMTS document");
-				wmtsDocument = parseFile(rollbackFile, urlStr);
-			} else {
-				URLCache.commitURLFile(configManager, cachedDocumentFile, urlStr);
-			}
-		} catch (Exception ex) {
-			File rollbackFile = URLCache.rollbackURLFile(configManager, cachedDocumentFile, urlStr, ex);
-			wmtsDocument = parseFile(rollbackFile, urlStr);
-		}
+        String urlStr = url.toString();
+        File cachedDocumentFile = null;
 
-		return wmtsDocument;
-	}
+        WMTSDocument wmtsDocument = null;
+        try {
+            cachedDocumentFile = URLCache.getURLFile(logger, "WMTS GetCapabilities document", configManager, dataSource, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, mandatory);
+            logger.log(Level.INFO, "Parsing WMTS GetCapabilities document");
+            wmtsDocument = parseFile(cachedDocumentFile, urlStr);
+            if (wmtsDocument == null) {
+                File rollbackFile = URLCache.rollbackURLFile(logger, "WMTS GetCapabilities document", configManager, cachedDocumentFile, urlStr, "Invalid WMTS document");
+                wmtsDocument = parseFile(rollbackFile, urlStr);
+            } else {
+                URLCache.commitURLFile(configManager, cachedDocumentFile, urlStr);
+            }
+        } catch (Exception ex) {
+            File rollbackFile = URLCache.rollbackURLFile(logger, "WMTS GetCapabilities document", configManager, cachedDocumentFile, urlStr, ex);
+            wmtsDocument = parseFile(rollbackFile, urlStr);
+        }
+        RevivableThread.checkForInterruption();
 
-	private static SAXParser getSAXParser() throws SAXException, SAXNotRecognizedException, ParserConfigurationException {
-		SAXParserFactory factory = SAXParserFactory.newInstance();
+        return wmtsDocument;
+    }
 
-		// Disabling DTD loading & validation
-		// Without those 2 lines, initialising XML files takes ages (about 10 minutes for 500kb, down to a few ms with those lines)
-		factory.setFeature("http://apache.org/xml/features/validation/schema", false);
-		factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
-		return factory.newSAXParser();
-	}
+    private static SAXParser getSAXParser() throws SAXException, SAXNotRecognizedException, ParserConfigurationException {
+        SAXParserFactory factory = SAXParserFactory.newInstance();
 
-	/**
-	 * NOT Cached
-	 * @param file
-	 * @param location For debugging purpose
-	 * @return
-	 * @throws SAXException
-	 * @throws ParserConfigurationException
-	 * @throws IOException
-	 * @throws JSONException
-	 */
-	public static WMTSDocument parseFile(File file, String location)
-			throws SAXException, ParserConfigurationException, IOException, JSONException {
+        // Disabling DTD loading & validation
+        // Without those 2 lines, initialising XML files takes ages (about 10 minutes for 500kb, down to a few ms with those lines)
+        factory.setFeature("http://apache.org/xml/features/validation/schema", false);
+        factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+        return factory.newSAXParser();
+    }
 
-		if (file == null || !file.exists()) {
-			return null;
-		}
+    /**
+     * NOT Cached
+     * @param file
+     * @param location For debugging purpose
+     * @return
+     * @throws SAXException
+     * @throws ParserConfigurationException
+     * @throws IOException
+     * @throws RevivableThreadInterruptedException
+     */
+    public static WMTSDocument parseFile(File file, String location)
+            throws SAXException, ParserConfigurationException, IOException, RevivableThreadInterruptedException {
 
-		SAXParser saxParser = getSAXParser();
+        RevivableThread.checkForInterruption();
 
-		WMTSDocument doc = new WMTSDocument(location);
-		WMTSHandler handler = new WMTSHandler(doc);
+        if (file == null || !file.exists()) {
+            return null;
+        }
 
-		saxParser.parse(file, handler);
+        SAXParser saxParser = getSAXParser();
 
-		if (doc.getLayer() == null) {
-			return null;
-		}
+        WMTSDocument doc = new WMTSDocument(location);
+        WMTSHandler handler = new WMTSHandler(doc);
 
-		return doc;
-	}
+        saxParser.parse(file, handler);
+        RevivableThread.checkForInterruption();
 
-	/**
-	 * NOT Cached (Used for tests)
-	 * @param inputStream
-	 * @param location For debugging purpose
-	 * @return
-	 * @throws SAXException
-	 * @throws ParserConfigurationException
-	 * @throws IOException
-	 * @throws JSONException
-	 */
-	public static WMTSDocument parseInputStream(InputStream inputStream, String location)
-			throws SAXException, ParserConfigurationException, IOException, JSONException {
+        if (doc.getLayer() == null) {
+            return null;
+        }
 
-		if (inputStream == null) {
-			throw new IllegalArgumentException("Can not parse null XML stream. " + location);
-		}
+        return doc;
+    }
 
-		SAXParser saxParser = getSAXParser();
+    /**
+     * NOT Cached (Used for tests)
+     * @param inputStream
+     * @param location For debugging purpose
+     * @return
+     * @throws SAXException
+     * @throws ParserConfigurationException
+     * @throws IOException
+     */
+    public static WMTSDocument parseInputStream(InputStream inputStream, String location)
+            throws SAXException, ParserConfigurationException, IOException {
 
-		WMTSDocument doc = new WMTSDocument(location);
-		WMTSHandler handler = new WMTSHandler(doc);
+        if (inputStream == null) {
+            throw new IllegalArgumentException("Can not parse null XML stream. " + location);
+        }
 
-		saxParser.parse(inputStream, handler);
+        SAXParser saxParser = getSAXParser();
 
-		if (doc.getLayer() == null) {
-			return null;
-		}
+        WMTSDocument doc = new WMTSDocument(location);
+        WMTSHandler handler = new WMTSHandler(doc);
 
-		return doc;
-	}
+        saxParser.parse(inputStream, handler);
+
+        if (doc.getLayer() == null) {
+            return null;
+        }
+
+        return doc;
+    }
 }

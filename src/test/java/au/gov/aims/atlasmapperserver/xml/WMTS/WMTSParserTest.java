@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 2012 Australian Institute of Marine Science
  *
- *  Contact: Gael Lafond <g.lafond@aims.org.au>
+ *  Contact: Gael Lafond <g.lafond@aims.gov.au>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,154 +20,157 @@
  */
 package au.gov.aims.atlasmapperserver.xml.WMTS;
 
-import junit.framework.TestCase;
 import org.geotools.data.ows.Layer;
 import org.geotools.data.ows.StyleImpl;
+import org.junit.Assert;
+import org.junit.Test;
 
 import java.io.InputStream;
 import java.net.URL;
 import java.util.List;
 
-public class WMTSParserTest extends TestCase {
-	public void testParsing() throws Exception {
-		URL url = WMTSParserTest.class.getClassLoader().getResource("geoWebCache1-4_wmts.xml");
+public class WMTSParserTest {
 
-		InputStream inputStream = null;
-		WMTSDocument doc = null;
-		try {
-			inputStream = url.openStream();
-			doc = WMTSParser.parseInputStream(inputStream, "tc211_full.xml");
-		} finally {
-			if (inputStream != null) {
-				inputStream.close();
-			}
-		}
+    @Test
+    public void testParsing() throws Exception {
+        URL url = WMTSParserTest.class.getClassLoader().getResource("geoWebCache1-4_wmts.xml");
 
-		Layer rootLayer = doc.getLayer();
+        InputStream inputStream = null;
+        WMTSDocument doc = null;
+        try {
+            inputStream = url.openStream();
+            doc = WMTSParser.parseInputStream(inputStream, "tc211_full.xml");
+        } finally {
+            if (inputStream != null) {
+                inputStream.close();
+            }
+        }
 
-		List<Layer> layers = rootLayer.getLayerChildren();
+        Layer rootLayer = doc.getLayer();
 
-		// Check layer count
-		assertEquals("Layer count do not match.",
-			21, layers.size());
+        List<Layer> layers = rootLayer.getLayerChildren();
 
-		for (Layer layer : layers) {
-			if ("nurc:Arc_Sample".equals(layer.getName())) {
-				List<StyleImpl> styles = layer.getStyles();
-				assertEquals("Style count do not match for layer: " + layer.getName(), 1, styles.size());
-				for (StyleImpl style : styles) {
-					if (!"raster".equals(style.getName())) {
-						fail("Unexpected style found for layer: " + layer.getName());
-					}
-				}
-			} else if ("nurc:Img_Sample".equals(layer.getName())) {
-				List<StyleImpl> styles = layer.getStyles();
-				assertTrue("Style count do not match for layer: " + layer.getName(), styles == null || styles.isEmpty());
-			} else if ("nurc:mosaic".equals(layer.getName())) {
-				List<StyleImpl> styles = layer.getStyles();
-				assertTrue("Style count do not match for layer: " + layer.getName(), styles == null || styles.isEmpty());
-			} else if ("sf:archsites".equals(layer.getName())) {
-				List<StyleImpl> styles = layer.getStyles();
-				assertEquals("Style count do not match for layer: " + layer.getName(), 2, styles.size());
-				for (StyleImpl style : styles) {
-					if (!"burg".equals(style.getName()) && !"capitals".equals(style.getName())) {
-						fail("Unexpected style found for layer: " + layer.getName());
-					}
-				}
-			} else if ("sf:bugsites".equals(layer.getName())) {
-				List<StyleImpl> styles = layer.getStyles();
-				assertEquals("Style count do not match for layer: " + layer.getName(), 2, styles.size());
-				for (StyleImpl style : styles) {
-					if (!"burg".equals(style.getName()) && !"point".equals(style.getName())) {
-						fail("Unexpected style found for layer: " + layer.getName());
-					}
-				}
-			} else if ("sf:restricted".equals(layer.getName())) {
-				List<StyleImpl> styles = layer.getStyles();
-				assertEquals("Style count do not match for layer: " + layer.getName(), 1, styles.size());
-				for (StyleImpl style : styles) {
-					if (!"polygon".equals(style.getName())) {
-						fail("Unexpected style found for layer: " + layer.getName());
-					}
-				}
-			} else if ("sf:roads".equals(layer.getName())) {
-				List<StyleImpl> styles = layer.getStyles();
-				assertEquals("Style count do not match for layer: " + layer.getName(), 1, styles.size());
-				for (StyleImpl style : styles) {
-					if (!"line".equals(style.getName())) {
-						fail("Unexpected style found for layer: " + layer.getName());
-					}
-				}
-			} else if ("sf:sfdem".equals(layer.getName())) {
-				List<StyleImpl> styles = layer.getStyles();
-				assertTrue("Style count do not match for layer: " + layer.getName(), styles == null || styles.isEmpty());
-			} else if ("sf:streams".equals(layer.getName())) {
-				List<StyleImpl> styles = layer.getStyles();
-				assertEquals("Style count do not match for layer: " + layer.getName(), 1, styles.size());
-				for (StyleImpl style : styles) {
-					if (!"line".equals(style.getName())) {
-						fail("Unexpected style found for layer: " + layer.getName());
-					}
-				}
-			} else if ("spearfish".equals(layer.getName())) {
-				List<StyleImpl> styles = layer.getStyles();
-				assertTrue("Style count do not match for layer: " + layer.getName(), styles == null || styles.isEmpty());
-			} else if ("tasmania".equals(layer.getName())) {
-				List<StyleImpl> styles = layer.getStyles();
-				assertTrue("Style count do not match for layer: " + layer.getName(), styles == null || styles.isEmpty());
-			} else if ("tiger-ny".equals(layer.getName())) {
-				List<StyleImpl> styles = layer.getStyles();
-				assertTrue("Style count do not match for layer: " + layer.getName(), styles == null || styles.isEmpty());
-			} else if ("tiger:giant_polygon".equals(layer.getName())) {
-				List<StyleImpl> styles = layer.getStyles();
-				assertTrue("Style count do not match for layer: " + layer.getName(), styles == null || styles.isEmpty());
-			} else if ("tiger:poi".equals(layer.getName())) {
-				List<StyleImpl> styles = layer.getStyles();
-				assertEquals("Style count do not match for layer: " + layer.getName(), 2, styles.size());
-				for (StyleImpl style : styles) {
-					if (!"burg".equals(style.getName()) && !"point".equals(style.getName())) {
-						fail("Unexpected style found for layer: " + layer.getName());
-					}
-				}
-			} else if ("tiger:poly_landmarks".equals(layer.getName())) {
-				List<StyleImpl> styles = layer.getStyles();
-				assertEquals("Style count do not match for layer: " + layer.getName(), 3, styles.size());
-				for (StyleImpl style : styles) {
-					if (!"grass".equals(style.getName()) && !"polygon".equals(style.getName()) && !"restricted".equals(style.getName())) {
-						fail("Unexpected style found for layer: " + layer.getName());
-					}
-				}
-			} else if ("tiger:tiger_roads".equals(layer.getName())) {
-				List<StyleImpl> styles = layer.getStyles();
-				assertEquals("Style count do not match for layer: " + layer.getName(), 2, styles.size());
-				for (StyleImpl style : styles) {
-					if (!"line".equals(style.getName()) && !"simple_roads".equals(style.getName())) {
-						fail("Unexpected style found for layer: " + layer.getName());
-					}
-				}
-			} else if ("topp:states".equals(layer.getName())) {
-				List<StyleImpl> styles = layer.getStyles();
-				assertEquals("Style count do not match for layer: " + layer.getName(), 2, styles.size());
-				for (StyleImpl style : styles) {
-					if (!"polygon".equals(style.getName()) && !"pophatch".equals(style.getName())) {
-						fail("Unexpected style found for layer: " + layer.getName());
-					}
-				}
-			} else if ("topp:tasmania_cities".equals(layer.getName())) {
-				List<StyleImpl> styles = layer.getStyles();
-				assertTrue("Style count do not match for layer: " + layer.getName(), styles == null || styles.isEmpty());
-			} else if ("topp:tasmania_roads".equals(layer.getName())) {
-				List<StyleImpl> styles = layer.getStyles();
-				assertTrue("Style count do not match for layer: " + layer.getName(), styles == null || styles.isEmpty());
-			} else if ("topp:tasmania_state_boundaries".equals(layer.getName())) {
-				List<StyleImpl> styles = layer.getStyles();
-				assertTrue("Style count do not match for layer: " + layer.getName(), styles == null || styles.isEmpty());
-			} else if ("topp:tasmania_water_bodies".equals(layer.getName())) {
-				List<StyleImpl> styles = layer.getStyles();
-				assertTrue("Style count do not match for layer: " + layer.getName(), styles == null || styles.isEmpty());
-			} else {
-				fail("Unexpected layer found: " + layer.getName());
-			}
-		}
-	}
+        // Check layer count
+        Assert.assertEquals("Layer count do not match.",
+            21, layers.size());
+
+        for (Layer layer : layers) {
+            if ("nurc:Arc_Sample".equals(layer.getName())) {
+                List<StyleImpl> styles = layer.getStyles();
+                Assert.assertEquals("Style count do not match for layer: " + layer.getName(), 1, styles.size());
+                for (StyleImpl style : styles) {
+                    if (!"raster".equals(style.getName())) {
+                        Assert.fail("Unexpected style found for layer: " + layer.getName());
+                    }
+                }
+            } else if ("nurc:Img_Sample".equals(layer.getName())) {
+                List<StyleImpl> styles = layer.getStyles();
+                Assert.assertTrue("Style count do not match for layer: " + layer.getName(), styles == null || styles.isEmpty());
+            } else if ("nurc:mosaic".equals(layer.getName())) {
+                List<StyleImpl> styles = layer.getStyles();
+                Assert.assertTrue("Style count do not match for layer: " + layer.getName(), styles == null || styles.isEmpty());
+            } else if ("sf:archsites".equals(layer.getName())) {
+                List<StyleImpl> styles = layer.getStyles();
+                Assert.assertEquals("Style count do not match for layer: " + layer.getName(), 2, styles.size());
+                for (StyleImpl style : styles) {
+                    if (!"burg".equals(style.getName()) && !"capitals".equals(style.getName())) {
+                        Assert.fail("Unexpected style found for layer: " + layer.getName());
+                    }
+                }
+            } else if ("sf:bugsites".equals(layer.getName())) {
+                List<StyleImpl> styles = layer.getStyles();
+                Assert.assertEquals("Style count do not match for layer: " + layer.getName(), 2, styles.size());
+                for (StyleImpl style : styles) {
+                    if (!"burg".equals(style.getName()) && !"point".equals(style.getName())) {
+                        Assert.fail("Unexpected style found for layer: " + layer.getName());
+                    }
+                }
+            } else if ("sf:restricted".equals(layer.getName())) {
+                List<StyleImpl> styles = layer.getStyles();
+                Assert.assertEquals("Style count do not match for layer: " + layer.getName(), 1, styles.size());
+                for (StyleImpl style : styles) {
+                    if (!"polygon".equals(style.getName())) {
+                        Assert.fail("Unexpected style found for layer: " + layer.getName());
+                    }
+                }
+            } else if ("sf:roads".equals(layer.getName())) {
+                List<StyleImpl> styles = layer.getStyles();
+                Assert.assertEquals("Style count do not match for layer: " + layer.getName(), 1, styles.size());
+                for (StyleImpl style : styles) {
+                    if (!"line".equals(style.getName())) {
+                        Assert.fail("Unexpected style found for layer: " + layer.getName());
+                    }
+                }
+            } else if ("sf:sfdem".equals(layer.getName())) {
+                List<StyleImpl> styles = layer.getStyles();
+                Assert.assertTrue("Style count do not match for layer: " + layer.getName(), styles == null || styles.isEmpty());
+            } else if ("sf:streams".equals(layer.getName())) {
+                List<StyleImpl> styles = layer.getStyles();
+                Assert.assertEquals("Style count do not match for layer: " + layer.getName(), 1, styles.size());
+                for (StyleImpl style : styles) {
+                    if (!"line".equals(style.getName())) {
+                        Assert.fail("Unexpected style found for layer: " + layer.getName());
+                    }
+                }
+            } else if ("spearfish".equals(layer.getName())) {
+                List<StyleImpl> styles = layer.getStyles();
+                Assert.assertTrue("Style count do not match for layer: " + layer.getName(), styles == null || styles.isEmpty());
+            } else if ("tasmania".equals(layer.getName())) {
+                List<StyleImpl> styles = layer.getStyles();
+                Assert.assertTrue("Style count do not match for layer: " + layer.getName(), styles == null || styles.isEmpty());
+            } else if ("tiger-ny".equals(layer.getName())) {
+                List<StyleImpl> styles = layer.getStyles();
+                Assert.assertTrue("Style count do not match for layer: " + layer.getName(), styles == null || styles.isEmpty());
+            } else if ("tiger:giant_polygon".equals(layer.getName())) {
+                List<StyleImpl> styles = layer.getStyles();
+                Assert.assertTrue("Style count do not match for layer: " + layer.getName(), styles == null || styles.isEmpty());
+            } else if ("tiger:poi".equals(layer.getName())) {
+                List<StyleImpl> styles = layer.getStyles();
+                Assert.assertEquals("Style count do not match for layer: " + layer.getName(), 2, styles.size());
+                for (StyleImpl style : styles) {
+                    if (!"burg".equals(style.getName()) && !"point".equals(style.getName())) {
+                        Assert.fail("Unexpected style found for layer: " + layer.getName());
+                    }
+                }
+            } else if ("tiger:poly_landmarks".equals(layer.getName())) {
+                List<StyleImpl> styles = layer.getStyles();
+                Assert.assertEquals("Style count do not match for layer: " + layer.getName(), 3, styles.size());
+                for (StyleImpl style : styles) {
+                    if (!"grass".equals(style.getName()) && !"polygon".equals(style.getName()) && !"restricted".equals(style.getName())) {
+                        Assert.fail("Unexpected style found for layer: " + layer.getName());
+                    }
+                }
+            } else if ("tiger:tiger_roads".equals(layer.getName())) {
+                List<StyleImpl> styles = layer.getStyles();
+                Assert.assertEquals("Style count do not match for layer: " + layer.getName(), 2, styles.size());
+                for (StyleImpl style : styles) {
+                    if (!"line".equals(style.getName()) && !"simple_roads".equals(style.getName())) {
+                        Assert.fail("Unexpected style found for layer: " + layer.getName());
+                    }
+                }
+            } else if ("topp:states".equals(layer.getName())) {
+                List<StyleImpl> styles = layer.getStyles();
+                Assert.assertEquals("Style count do not match for layer: " + layer.getName(), 2, styles.size());
+                for (StyleImpl style : styles) {
+                    if (!"polygon".equals(style.getName()) && !"pophatch".equals(style.getName())) {
+                        Assert.fail("Unexpected style found for layer: " + layer.getName());
+                    }
+                }
+            } else if ("topp:tasmania_cities".equals(layer.getName())) {
+                List<StyleImpl> styles = layer.getStyles();
+                Assert.assertTrue("Style count do not match for layer: " + layer.getName(), styles == null || styles.isEmpty());
+            } else if ("topp:tasmania_roads".equals(layer.getName())) {
+                List<StyleImpl> styles = layer.getStyles();
+                Assert.assertTrue("Style count do not match for layer: " + layer.getName(), styles == null || styles.isEmpty());
+            } else if ("topp:tasmania_state_boundaries".equals(layer.getName())) {
+                List<StyleImpl> styles = layer.getStyles();
+                Assert.assertTrue("Style count do not match for layer: " + layer.getName(), styles == null || styles.isEmpty());
+            } else if ("topp:tasmania_water_bodies".equals(layer.getName())) {
+                List<StyleImpl> styles = layer.getStyles();
+                Assert.assertTrue("Style count do not match for layer: " + layer.getName(), styles == null || styles.isEmpty());
+            } else {
+                Assert.fail("Unexpected layer found: " + layer.getName());
+            }
+        }
+    }
 }

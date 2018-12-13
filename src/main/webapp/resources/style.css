@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 2011 Australian Institute of Marine Science
  *
- *  Contact: Gael Lafond <g.lafond@aims.org.au>
+ *  Contact: Gael Lafond <g.lafond@aims.gov.au>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,168 +20,199 @@
  */
 
 .icon-user {
-	background-image: url(icons/user.png) !important;
+    background-image: url(icons/user.png) !important;
 }
 
 .icon-user-add {
-	background-image: url(icons/user_add.gif) !important;
+    background-image: url(icons/user_add.gif) !important;
 }
 
 .icon-save {
-	background-image: url(icons/save.gif) !important;
+    background-image: url(icons/save.gif) !important;
 }
 
 .icon-okay {
-	background-image: url(icons/accept.png) !important;
+    background-image: url(icons/accept.png) !important;
 }
 
 .icon-cancel {
-	background-image: url(icons/stop.png) !important;
+    background-image: url(icons/stop.png) !important;
 }
 
 .icon-reset {
-	background-image: url(icons/stop.png) !important;
+    background-image: url(icons/stop.png) !important;
 }
 
 .icon-grid {
-	background-image: url(icons/grid.png) !important;
+    background-image: url(icons/grid.png) !important;
 }
 
 .icon-add {
-	background-image: url(icons/add.png) !important;
+    background-image: url(icons/add.png) !important;
 }
 
 .icon-delete {
-	background-image: url(icons/delete.png) !important;
+    background-image: url(icons/delete.png) !important;
 }
 
 /* ExtJS remove the bullets to start from a known point
-	(some browser (IE) are really bad at following standards)
-	This class Reset bullet for chosen lists */
+    (some browser (IE) are really bad at following standards)
+    This class Reset bullet for chosen lists */
 #about ul,
 div.messageWindow ul,
 div.tooltip ul,
 ul.bullet-list {
-	padding-left: 2em;
-	list-style-type: disc;
+    padding-left: 2em;
+    list-style-type: disc;
 }
 #about ol,
 div.messageWindow ol,
 div.tooltip ol,
 ol.bullet-list {
-	padding-left: 2em;
-	list-style-type: decimal;
+    padding-left: 2em;
+    list-style-type: decimal;
 }
 /* ExtJS remove the bullets on li instead of ul. It has to be reset in both. */
 #about ul > li,
 div.messageWindow ul > li,
 div.tooltip ul > li,
 ul.bullet-list > li {
-	list-style-type: disc;
-	margin: 0.5em 0;
+    list-style-type: disc;
+    margin: 0.5em 0;
 }
 #about ol > li,
 div.messageWindow ol > li,
 div.tooltip ol > li,
 ol.bullet-list > li {
-	list-style-type: decimal;
-	margin: 0.5em 0;
+    list-style-type: decimal;
+    margin: 0.5em 0;
 }
 
+.logs-panel .x-panel-body {
+    background-color: #000000;
+    color: #FFFFFF;
+}
+.logs-panel .x-panel-body a {
+    color: #FFFFFF;
+}
+.logs-list .level_warning,
+.logs-list .level_warning a {
+    color: #FFFF00;
+}
+.logs-list .level_severe,
+.logs-list .level_severe a {
+    font-weight: bold;
+    color: #FF0000;
+}
+.logs-list .level_fine,
+.logs-list .level_fine a {
+    color: #999999;
+}
 
+.logs-list .stacktrace {
+    color: #999999;
+    font-size: 0.8em;
+}
+.logs-list .stacktrace .uncollapse {
+    text-decoration: underline;
+    cursor: pointer;
+}
+.logs-list .stacktrace .collapsed {
+    display: none;
+}
 
 div.messageWindow em,
 div.tooltip em {
-	font-style: italic;
+    font-style: italic;
 }
 div.messageWindow strong,
 div.tooltip strong {
-	font-weight: bold;
+    font-weight: bold;
 }
 
 .grid-icon {
-	margin: 0 5px;
-	cursor: pointer;
+    margin: 0 5px;
+    cursor: pointer;
 }
 
 div.messageWindow p {
-	margin: 0.5em 0;
-	text-align: justify;
+    margin: 0.5em 0;
+    text-align: justify;
 }
 
 div.messageWindow pre.code {
-	margin: 0.2em 2em;
-	padding: 0.2em;
-	background-color: #DDDDDD;
+    margin: 0.2em 2em;
+    padding: 0.2em;
+    background-color: #DDDDDD;
 }
 div.messageWindow .success {
-	color: #00FF00;
+    color: #00FF00;
 }
 div.messageWindow .error {
-	color: #FF0000;
+    color: #FF0000;
 }
 
 #about table {
-	border-collapse:collapse;
-	margin-bottom: 1em;
+    border-collapse:collapse;
+    margin-bottom: 1em;
 }
 
 #about th {
-	font-weight: bold;
+    font-weight: bold;
 }
 
 #about th, #about td {
-	vertical-align: top;
-	padding: 0.5em;
+    vertical-align: top;
+    padding: 0.5em;
 }
 
 #about table, #about th, #about td {
-	border: 1px solid black;
+    border: 1px solid black;
 }
 
 /* Class for the AjaxTextField */
 div.ajaxLoading {
-	position: absolute;
-	top: 0;
-	right: 2px;
-	width: 22px;
-	height: 100%;
-	background: url('icons/statusbar/loading.gif') no-repeat right center;
-	cursor: wait;
+    position: absolute;
+    top: 0;
+    right: 2px;
+    width: 22px;
+    height: 100%;
+    background: url('icons/statusbar/loading.gif') no-repeat right center;
+    cursor: wait;
 }
 
 label .grid-true,
 label .grid-false,
 label .modified-true,
 label .grid-warning {
-	margin-bottom: -3px;
+    margin-bottom: -3px;
 }
 
 .grid-true,
 .grid-false,
 .modified-true,
 .grid-warning {
-	background-repeat: no-repeat;
-	background-position: center;
-	display: inline-block;
-	width: 16px;
-	height: 16px;
+    background-repeat: no-repeat;
+    background-position: center;
+    display: inline-block;
+    width: 16px;
+    height: 16px;
 }
 
 .grid-true {
-	background-image: url("icons/accept.png");
+    background-image: url("icons/accept.png");
 }
 
 .grid-false {
-	background-image: url("icons/cancel.png");
+    background-image: url("icons/cancel.png");
 }
 
 .modified-true {
-	background-image: url("icons/modified.png");
+    background-image: url("icons/modified.png");
 }
 
 .grid-warning {
-	background-image: url("icons/error.png");
+    background-image: url("icons/error.png");
 }
 
 .grid-true .text,
@@ -189,10 +220,108 @@ label .grid-warning {
 .modified-true .text,
 .modified-false .text,
 .grid-warning .text {
-	display: none;
+    display: none;
 }
 
 .grid-ds-id {
-	font-size: 0.9em;
-	color: #999999;
+    font-size: 0.9em;
+    color: #999999;
+}
+
+/*
+ * ExtJS red button
+ * Inspired from
+ *     https://stackoverflow.com/questions/27649281/extjs-how-to-customize-buttons
+ * Defaults found in ext-all.css
+ * Red colours generated from blue colours using "gcolor2", by setting the hue to 0.
+ */
+.red-button .x-btn-inner {
+    color: #990000;
+}
+
+.red-button {
+    border-color: #ffd1d1;
+    background-image: none;
+    background-color: #ffe7e7;
+    background-image: -webkit-gradient(linear, 50% 0%, 50% 100%, color-stop(0%, #ffffff), color-stop(48%, #fff9f9), color-stop(52%, #ffe2e2), color-stop(100%, #ffe7e7));
+    background-image: -moz-linear-gradient(top, #ffffff,#fff9f9 48%,#ffe2e2 52%,#ffe7e7);
+    background-image: linear-gradient(top, #ffffff,#fff9f9 48%,#ffe2e2 52%,#ffe7e7)
+
+    /* DEFAULTS *
+    border-color: #d1d1d1;
+    background-image: none;
+    background-color: white;
+    background-image: -webkit-gradient(linear, 50% 0%, 50% 100%, color-stop(0%, #ffffff), color-stop(48%, #f9f9f9), color-stop(52%, #e2e2e2), color-stop(100%, #e7e7e7));
+    background-image: -moz-linear-gradient(top, #ffffff,#f9f9f9 48%,#e2e2e2 52%,#e7e7e7);
+    background-image: linear-gradient(top, #ffffff,#f9f9f9 48%,#e2e2e2 52%,#e7e7e7)
+    */
+}
+.x-btn-over.red-button,
+.x-btn-focus.red-button {
+    /*
+    #b0ccf2 = #F2B0B0
+    #e4f3ff = #FFE4E4
+    #d9edff = #FFD9D9
+    #c2d8f2 = #F2C2C2
+    #c6dcf6 = #F6C6C6
+    */
+
+    border-color: #F2B0B0;
+    background-image: none;
+    background-color: #FFE4E4;
+    background-image: -webkit-gradient(linear, 50% 0%, 50% 100%, color-stop(0%, #FFE4E4), color-stop(48%, #FFD9D9), color-stop(52%, #F2C2C2), color-stop(100%, #F6C6C6));
+    background-image: -moz-linear-gradient(top, #FFE4E4,#FFD9D9 48%,#F2C2C2 52%,#F6C6C6);
+    background-image: linear-gradient(top, #FFE4E4,#FFD9D9 48%,#F2C2C2 52%,#F6C6C6)
+
+    /* DEFAULTS *
+    border-color: #b0ccf2;
+    background-image: none;
+    background-color: #e4f3ff;
+    background-image: -webkit-gradient(linear, 50% 0%, 50% 100%, color-stop(0%, #e4f3ff), color-stop(48%, #d9edff), color-stop(52%, #c2d8f2), color-stop(100%, #c6dcf6));
+    background-image: -moz-linear-gradient(top, #e4f3ff,#d9edff 48%,#c2d8f2 52%,#c6dcf6);
+    background-image: linear-gradient(top, #e4f3ff,#d9edff 48%,#c2d8f2 52%,#c6dcf6)
+    */
+}
+.x-btn-menu-active.red-button,
+.x-btn-pressed.red-button {
+    /*
+    #9ebae1 = #E19E9E
+    #b6cbe4 = #E4B6B6
+    #bfd2e6 = #E6BFBF
+    #8dc0f5 = #F58D8D
+    #98c5f5 = #F59898
+    */
+
+    border-color: #E19E9E;
+    background-image: none;
+    background-color: #E4B6B6;
+    background-image: -webkit-gradient(linear, 50% 0%, 50% 100%, color-stop(0%, #E4B6B6), color-stop(48%, #E6BFBF), color-stop(52%, #F58D8D), color-stop(100%, #F59898));
+    background-image: -moz-linear-gradient(top, #E4B6B6,#E6BFBF 48%,#F58D8D 52%,#F59898);
+    background-image: linear-gradient(top, #E4B6B6,#E6BFBF 48%,#F58D8D 52%,#F59898)
+
+    /* DEFAULTS *
+    border-color: #9ebae1;
+    background-image: none;
+    background-color: #b6cbe4;
+    background-image: -webkit-gradient(linear, 50% 0%, 50% 100%, color-stop(0%, #b6cbe4), color-stop(48%, #bfd2e6), color-stop(52%, #8dc0f5), color-stop(100%, #98c5f5));
+    background-image: -moz-linear-gradient(top, #b6cbe4,#bfd2e6 48%,#8dc0f5 52%,#98c5f5);
+    background-image: linear-gradient(top, #b6cbe4,#bfd2e6 48%,#8dc0f5 52%,#98c5f5)
+    */
+}
+.x-btn-disabled.red-button {
+    border-color: #ffe1e1;
+    background-image: none;
+    background-color: #fff7f7;
+    background-image: -webkit-gradient(linear, 50% 0%, 50% 100%, color-stop(0%, #fff7f7), color-stop(48%, #fff1f1), color-stop(52%, #ffdada), color-stop(100%, #ffdfdf));
+    background-image: -moz-linear-gradient(top, #fff7f7,#fff1f1 48%,#ffdada 52%,#ffdfdf);
+    background-image: linear-gradient(top, #fff7f7,#f1f1f1 48%,#ffdada 52%,#ffdfdf)
+
+    /* DEFAULTS *
+    border-color: #e1e1e1;
+    background-image: none;
+    background-color: #f7f7f7;
+    background-image: -webkit-gradient(linear, 50% 0%, 50% 100%, color-stop(0%, #f7f7f7), color-stop(48%, #f1f1f1), color-stop(52%, #dadada), color-stop(100%, #dfdfdf));
+    background-image: -moz-linear-gradient(top, #f7f7f7,#f1f1f1 48%,#dadada 52%,#dfdfdf);
+    background-image: linear-gradient(top, #f7f7f7,#f1f1f1 48%,#dadada 52%,#dfdfdf)
+    */
 }

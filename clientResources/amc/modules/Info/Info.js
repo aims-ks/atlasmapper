@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 2011 Australian Institute of Marine Science
  *
- *  Contact: Gael Lafond <g.lafond@aims.org.au>
+ *  Contact: Gael Lafond <g.lafond@aims.gov.au>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -37,7 +37,7 @@ Atlas.Info = Ext.extend(Ext.Component, {
 		Atlas.Info.superclass.initComponent.call(this);
 		this.tabs = [];
 		if (this.config && this.config['config']) {
-			if (typeof(this.config['version']) != 'undefined' && this.config['version'] > this.CURRENT_CONFIG_VERSION) {
+			if (typeof(this.config['version']) !== 'undefined' && this.config['version'] > this.CURRENT_CONFIG_VERSION) {
 				var err = "The version of the configuration of the Info module ("+this.config['version']+") is not supported by this client (support up to version: "+this.CURRENT_CONFIG_VERSION+").";
 				alert(err);
 				throw err;
@@ -45,7 +45,7 @@ Atlas.Info = Ext.extend(Ext.Component, {
 
 			Ext.iterate(this.config['config'], function(tabName, tab) {
 				var tabObj = tab;
-				if (typeof(tab) == 'string') {
+				if (typeof(tab) === 'string') {
 					tabObj = {"defaultContent": tab};
 				}
 

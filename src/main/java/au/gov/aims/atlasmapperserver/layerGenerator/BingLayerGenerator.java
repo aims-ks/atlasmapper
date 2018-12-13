@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 2012 Australian Institute of Marine Science
  *
- *  Contact: Gael Lafond <g.lafond@aims.org.au>
+ *  Contact: Gael Lafond <g.lafond@aims.gov.au>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -24,49 +24,80 @@ package au.gov.aims.atlasmapperserver.layerGenerator;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.BingDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.BingLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
+import au.gov.aims.atlasmapperserver.thread.RevivableThread;
+import au.gov.aims.atlasmapperserver.thread.RevivableThreadInterruptedException;
+import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
+
+import java.util.logging.Level;
 
 public class BingLayerGenerator extends AbstractLayerGenerator<BingLayerConfig, BingDataSourceConfig> {
-	/**
-	 * The number of Bing Layers is fix and they already have unique IDs. Nothing to do here.
-	 * @param layer
-	 * @param dataSourceConfig
-	 * @return
-	 */
-	@Override
-	protected String getUniqueLayerId(BingLayerConfig layer, BingDataSourceConfig dataSourceConfig) {
-		return layer.getLayerId();
-	}
+    /**
+     * The number of Bing Layers is fix and they already have unique IDs. Nothing to do here.
+     * @param layer
+     * @param dataSourceConfig
+     * @return
+     */
+    @Override
+    protected String getUniqueLayerId(BingLayerConfig layer, BingDataSourceConfig dataSourceConfig)
+            throws RevivableThreadInterruptedException {
 
-	/**
-	 * Create and return the 3 Bing layers.
-	 *     * Bing Road
-	 *     * Bing Hybrid
-	 *     * Bing Aerial
-	 * @return
-	 * NOTE: Harvest is ignored since there is nothing to harvest.
-	 */
-	@Override
-	public LayerCatalog generateRawLayerCatalog(BingDataSourceConfig dataSourceConfig, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles) {
-		LayerCatalog layerCatalog = new LayerCatalog();
+        RevivableThread.checkForInterruption();
 
-		layerCatalog.addLayer(this.createBingLayer(dataSourceConfig, "Road", "Bing Road", null));
-		layerCatalog.addLayer(this.createBingLayer(dataSourceConfig, "AerialWithLabels", "Bing Hybrid", null));
-		layerCatalog.addLayer(this.createBingLayer(dataSourceConfig, "Aerial", "Bing Aerial", null));
+        return layer.getLayerId();
+    }
 
-		return layerCatalog;
-	}
+    /**
+     * Create and return the 3 Bing layers.
+     *     * Bing Road
+     *     * Bing Hybrid
+     *     * Bing Aerial
+     * @return
+     * NOTE: Harvest is ignored since there is nothing to harvest.
+     */
+    @Override
+    public LayerCatalog generateRawLayerCatalog(
+            ThreadLogger logger,
+            BingDataSourceConfig dataSourceConfig,
+            boolean redownloadPrimaryFiles,
+            boolean redownloadSecondaryFiles
+    ) throws RevivableThreadInterruptedException {
 
-	private BingLayerConfig createBingLayer(BingDataSourceConfig dataSourceConfig, String bingLayerType, String name, String description) {
-		BingLayerConfig layerConfig = new BingLayerConfig(dataSourceConfig.getConfigManager());
+        RevivableThread.checkForInterruption();
 
-		layerConfig.setLayerId(bingLayerType);
-		layerConfig.setTitle(name);
-		layerConfig.setDescription(description);
-		layerConfig.setIsBaseLayer(true);
-		layerConfig.setLayerBoundingBox(new double[]{-180, -90, 180, 90});
+        LayerCatalog layerCatalog = new LayerCatalog();
 
-		this.ensureUniqueLayerId(layerConfig, dataSourceConfig);
+        logger.log(Level.INFO, "Adding Road layer");
+        layerCatalog.addLayer(this.createBingLayer(dataSourceConfig, "Road", "Bing Road", null));
 
-		return layerConfig;
-	}
+        logger.log(Level.INFO, "Adding Aerial with labels layer");
+        layerCatalog.addLayer(this.createBingLayer(dataSourceConfig, "AerialWithLabels", "Bing Hybrid", null));
+
+        logger.log(Level.INFO, "Adding Aerial layer");
+        layerCatalog.addLayer(this.createBingLayer(dataSourceConfig, "Aerial", "Bing Aerial", null));
+
+        return layerCatalog;
+    }
+
+    private BingLayerConfig createBingLayer(
+            BingDataSourceConfig dataSourceConfig,
+            String bingLayerType,
+            String name,
+            String description
+    ) throws RevivableThreadInterruptedException {
+
+        RevivableThread.checkForInterruption();
+
+        BingLayerConfig layerConfig = new BingLayerConfig(dataSourceConfig.getConfigManager());
+
+        layerConfig.setLayerId(bingLayerType);
+        layerConfig.setTitle(name);
+        layerConfig.setDescription(description);
+        layerConfig.setIsBaseLayer(true);
+        layerConfig.setLayerBoundingBox(new double[]{-180, -90, 180, 90});
+
+        this.ensureUniqueLayerId(layerConfig, dataSourceConfig);
+        RevivableThread.checkForInterruption();
+
+        return layerConfig;
+    }
 }

@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 2011 Australian Institute of Marine Science
  *
- *  Contact: Gael Lafond <g.lafond@aims.org.au>
+ *  Contact: Gael Lafond <g.lafond@aims.gov.au>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -26,5 +26,5 @@ package au.gov.aims.atlasmapperserver;
  * @author glafond
  */
 public enum ActionType {
-	READ, CREATE, UPDATE, DESTROY, GENERATE, GENERATEALL, GETPROJECTIONS, VALIDATEID, PROCESS, PROCESSALL
+	READ, CREATE, UPDATE, DESTROY, GETLOGS, GENERATE, STOP_GENERATE, GENERATEALL, GETPROJECTIONS, VALIDATEID, PROCESS, STOP_PROCESS, PROCESSALL
 }

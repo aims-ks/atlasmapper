@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 2011 Australian Institute of Marine Science
  *
- *  Contact: Gael Lafond <g.lafond@aims.org.au>
+ *  Contact: Gael Lafond <g.lafond@aims.gov.au>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -24,26 +24,41 @@ package au.gov.aims.atlasmapperserver.layerGenerator;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.XYZDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
 import au.gov.aims.atlasmapperserver.layerConfig.XYZLayerConfig;
+import au.gov.aims.atlasmapperserver.thread.RevivableThread;
+import au.gov.aims.atlasmapperserver.thread.RevivableThreadInterruptedException;
+import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
 
 public class XYZLayerGenerator extends AbstractLayerGenerator<XYZLayerConfig, XYZDataSourceConfig> {
-	/**
-	 * We thrust the Admin to choose Unique IDs for all it's XYZ layers. Nothing to do here.
-	 * @param layer
-	 * @param dataSourceConfig
-	 * @return
-	 */
-	@Override
-	protected String getUniqueLayerId(XYZLayerConfig layer, XYZDataSourceConfig dataSourceConfig) {
-		return layer.getLayerId();
-	}
+    /**
+     * We thrust the Admin to choose Unique IDs for all it's XYZ layers. Nothing to do here.
+     * @param layer
+     * @param dataSourceConfig
+     * @return
+     */
+    @Override
+    protected String getUniqueLayerId(XYZLayerConfig layer, XYZDataSourceConfig dataSourceConfig)
+            throws RevivableThreadInterruptedException {
 
-	/**
-	 * @param dataSourceConfig
-	 * @return
-	 * NOTE: Harvest is ignored since there is nothing to harvest.
-	 */
-	@Override
-	public LayerCatalog generateRawLayerCatalog(XYZDataSourceConfig dataSourceConfig, boolean redownloadPrimaryFiles, boolean redownloadSecondaryFiles) {
-		return new LayerCatalog(); // All layers are created using the layer overrides
-	}
+        RevivableThread.checkForInterruption();
+
+        return layer.getLayerId();
+    }
+
+    /**
+     * @param dataSourceConfig
+     * @return
+     * NOTE: Harvest is ignored since there is nothing to harvest.
+     */
+    @Override
+    public LayerCatalog generateRawLayerCatalog(
+            ThreadLogger logger,
+            XYZDataSourceConfig dataSourceConfig,
+            boolean redownloadPrimaryFiles,
+            boolean redownloadSecondaryFiles
+    ) throws RevivableThreadInterruptedException {
+
+        RevivableThread.checkForInterruption();
+
+        return new LayerCatalog(); // All layers are created using the layer overrides
+    }
 }

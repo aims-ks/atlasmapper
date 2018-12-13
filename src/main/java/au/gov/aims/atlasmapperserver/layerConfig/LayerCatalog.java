@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 2012 Australian Institute of Marine Science
  *
- *  Contact: Gael Lafond <g.lafond@aims.org.au>
+ *  Contact: Gael Lafond <g.lafond@aims.gov.au>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@
 package au.gov.aims.atlasmapperserver.layerConfig;
 
 import au.gov.aims.atlasmapperserver.ConfigManager;
-import au.gov.aims.atlasmapperserver.Errors;
 import au.gov.aims.atlasmapperserver.jsonWrappers.client.LayerWrapper;
 import org.json.JSONException;
 
@@ -37,97 +36,75 @@ import java.util.logging.Logger;
  * Class used to hold a list of all layers for a data source, before and after manual overrides.
  */
 public class LayerCatalog {
-	private static final Logger LOGGER = Logger.getLogger(LayerCatalog.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(LayerCatalog.class.getName());
 
-	private SortedSet<AbstractLayerConfig> layers;
-	private Errors errors;
+    private SortedSet<AbstractLayerConfig> layers;
 
-	public LayerCatalog() {
-		this.errors = new Errors();
+    public LayerCatalog() {
+        // Instantiate a TreeSet, using a comparator that sort layers in alphabetical order.
+        this.layers = new TreeSet<AbstractLayerConfig>(new LayerComparator());
+    }
 
-		// Instantiate a TreeSet, using a comparator that sort layers in alphabetical order.
-		this.layers = new TreeSet<AbstractLayerConfig>(new LayerComparator());
-	}
+    public boolean isEmpty() {
+        return this.layers.isEmpty();
+    }
 
-	public boolean isEmpty() {
-		return this.layers.isEmpty() && this.errors.isEmpty();
-	}
+    public void addCatalog(LayerCatalog catalog) {
+        this.addLayers(catalog.getLayers());
+    }
 
-	public void addCatalog(LayerCatalog catalog) {
-		this.addLayers(catalog.getLayers());
-		this.addAllErrors(catalog.getErrors());
-	}
+    public void addLayer(AbstractLayerConfig newLayer) {
+        if (newLayer != null) {
+            this.layers.add(newLayer);
+        }
+    }
 
-	public void addLayer(AbstractLayerConfig newLayer) {
-		if (newLayer != null) {
-			this.layers.add(newLayer);
-		}
-	}
+    public void addLayers(Collection<? extends AbstractLayerConfig> newLayers) {
+        if (newLayers != null && !newLayers.isEmpty()) {
+            this.layers.addAll(newLayers);
+        }
+    }
 
-	public void addLayers(Collection<? extends AbstractLayerConfig> newLayers) {
-		if (newLayers != null && !newLayers.isEmpty()) {
-			this.layers.addAll(newLayers);
-		}
-	}
+    public List<AbstractLayerConfig> getLayers() {
+        return new ArrayList<AbstractLayerConfig>(this.layers);
+    }
 
-	public List<AbstractLayerConfig> getLayers() {
-		return new ArrayList<AbstractLayerConfig>(this.layers);
-	}
+    // Helper
+    public static AbstractLayerConfig createLayer(String layerType, LayerWrapper layerConfigJSON, ConfigManager configManager) throws JSONException {
+        if (layerType == null) {
+            // Unsupported
+            throw new IllegalArgumentException("No data source type provided:\n" + layerConfigJSON.getJSON().toString(4));
+        }
 
-	// Helper
-	public static AbstractLayerConfig createLayer(String layerType, LayerWrapper layerConfigJSON, ConfigManager configManager) throws JSONException {
-		if (layerType == null) {
-			// Unsupported
-			throw new IllegalArgumentException("No data source type provided:\n" + layerConfigJSON.getJSON().toString(4));
-		}
+        AbstractLayerConfig layerConfig = null;
+        if ("ARCGIS_MAPSERVER".equals(layerType)) {
+            layerConfig = new ArcGISMapServerLayerConfig(configManager);
+        } else if ("GOOGLE".equals(layerType)) {
+            layerConfig = new GoogleLayerConfig(configManager);
+        } else if ("BING".equals(layerType)) {
+            layerConfig = new BingLayerConfig(configManager);
+        } else if ("KML".equals(layerType)) {
+            layerConfig = new KMLLayerConfig(configManager);
+        } else if ("NCWMS".equals(layerType)) {
+            layerConfig = new NcWMSLayerConfig(configManager);
+        } else if ("TILES".equals(layerType)) {
+            layerConfig = new TilesLayerConfig(configManager);
+        } else if ("XYZ".equals(layerType)) {
+            layerConfig = new XYZLayerConfig(configManager);
+        } else if ("WMS".equals(layerType)) {
+            layerConfig = new WMSLayerConfig(configManager);
+        } else if ("GROUP".equals(layerType) || "SERVICE".equals(layerType)) {
+            layerConfig = new GroupLayerConfig(configManager);
+        } else {
+            // Unsupported
+            throw new IllegalArgumentException("Unsupported data source layer type [" + layerType + "]");
+        }
 
-		AbstractLayerConfig layerConfig = null;
-		if ("ARCGIS_MAPSERVER".equals(layerType)) {
-			layerConfig = new ArcGISMapServerLayerConfig(configManager);
-		} else if ("GOOGLE".equals(layerType)) {
-			layerConfig = new GoogleLayerConfig(configManager);
-		} else if ("BING".equals(layerType)) {
-			layerConfig = new BingLayerConfig(configManager);
-		} else if ("KML".equals(layerType)) {
-			layerConfig = new KMLLayerConfig(configManager);
-		} else if ("NCWMS".equals(layerType)) {
-			layerConfig = new NcWMSLayerConfig(configManager);
-		} else if ("TILES".equals(layerType)) {
-			layerConfig = new TilesLayerConfig(configManager);
-		} else if ("XYZ".equals(layerType)) {
-			layerConfig = new XYZLayerConfig(configManager);
-		} else if ("WMS".equals(layerType)) {
-			layerConfig = new WMSLayerConfig(configManager);
-		} else if ("GROUP".equals(layerType) || "SERVICE".equals(layerType)) {
-			layerConfig = new GroupLayerConfig(configManager);
-		} else {
-			// Unsupported
-			throw new IllegalArgumentException("Unsupported data source layer type [" + layerType + "]");
-		}
+        // Set all data source values into the data source bean
+        if (layerConfig != null) {
+            layerConfig.update(layerConfigJSON.getJSON());
+        }
 
-		// Set all data source values into the data source bean
-		if (layerConfig != null) {
-			layerConfig.update(layerConfigJSON.getJSON());
-		}
-
-		return layerConfig;
-	}
-
-	public Errors getErrors() {
-		return this.errors;
-	}
-
-	public void addAllErrors(Errors errors) {
-		this.errors.addAll(errors);
-	}
-
-	public void addError(String err) {
-		this.getErrors().addError(err);
-	}
-	public void addWarning(String warn) {
-		this.getErrors().addWarning(warn);
-	}
-	public void addMessage(String msg) {
-		this.getErrors().addMessage(msg);
-	}
+        return layerConfig;
+    }
 }

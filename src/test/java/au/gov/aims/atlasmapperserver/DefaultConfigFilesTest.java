@@ -1,20 +1,20 @@
 /*
  *  This file is part of AtlasMapper server and clients.
- * 
+ *
  *  Copyright (C) 2011 Australian Institute of Marine Science
- * 
- *  Contact: Gael Lafond <g.lafond@aims.org.au>
- * 
+ *
+ *  Contact: Gael Lafond <g.lafond@aims.gov.au>
+ *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
- * 
+ *
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
- * 
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -27,50 +27,52 @@ import java.io.IOException;
 import java.util.Map;
 
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
-import junit.framework.TestCase;
 import org.json.JSONException;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  *
- * @author Gael Lafond <g.lafond@aims.org.au>
+ * @author Gael Lafond <g.lafond@aims.gov.au>
  */
-public class DefaultConfigFilesTest extends TestCase  {
+public class DefaultConfigFilesTest  {
 
-	public void testDefaultServerConfig() throws JSONException, IOException {
-		ConfigManager cm = new ConfigManager(null, null);
-		cm.reloadDefaultServerConfig();
+    @Test
+    public void testDefaultServerConfig() throws JSONException, IOException {
+        ConfigManager cm = new ConfigManager(null, null);
+        cm.reloadDefaultServerConfig();
 
-		assertFalse(cm.isDemoMode());
-		assertEquals(1.0, cm.getConfigVersion());
+        Assert.assertFalse(cm.isDemoMode());
+        Assert.assertEquals(1.0, cm.getConfigVersion(), 0);
 
-		MultiKeyHashMap<Integer, String, AbstractDataSourceConfig> dataSourceConfigs = cm.getDataSourceConfigs();
-		assertNotNull(dataSourceConfigs);
-		assertEquals(5, dataSourceConfigs.size());
+        MultiKeyHashMap<Integer, String, AbstractDataSourceConfig> dataSourceConfigs = cm.getDataSourceConfigs();
+        Assert.assertNotNull(dataSourceConfigs);
+        Assert.assertEquals(5, dataSourceConfigs.size());
 
-		AbstractDataSourceConfig eatlas = dataSourceConfigs.get2("ea");
-		assertEquals("eAtlas", eatlas.getDataSourceName());
+        AbstractDataSourceConfig eatlas = dataSourceConfigs.get2("ea");
+        Assert.assertEquals("eAtlas", eatlas.getDataSourceName());
 
-		AbstractDataSourceConfig opengeo = dataSourceConfigs.get2("og");
-		assertEquals("OpenGeo", opengeo.getDataSourceName());
+        AbstractDataSourceConfig opengeo = dataSourceConfigs.get2("og");
+        Assert.assertEquals("OpenGeo", opengeo.getDataSourceName());
 
 
-		MultiKeyHashMap<Integer, String, ClientConfig> clientConfigs = cm.getClientConfigs();
-		assertNotNull(clientConfigs);
-		assertEquals(1, clientConfigs.size());
+        MultiKeyHashMap<Integer, String, ClientConfig> clientConfigs = cm.getClientConfigs();
+        Assert.assertNotNull(clientConfigs);
+        Assert.assertEquals(1, clientConfigs.size());
 
-		ClientConfig demo = clientConfigs.get2("demo");
-		assertEquals("Demo client", demo.getClientName());
-	}
+        ClientConfig demo = clientConfigs.get2("demo");
+        Assert.assertEquals("Demo client", demo.getClientName());
+    }
 
-	public void testDefaultUsersConfig() throws JSONException, FileNotFoundException {
-		ConfigManager cm = new ConfigManager(null, null);
-		cm.reloadDefaultUsersConfig();
+    public void testDefaultUsersConfig() throws JSONException, FileNotFoundException {
+        ConfigManager cm = new ConfigManager(null, null);
+        cm.reloadDefaultUsersConfig();
 
-		assertEquals(1.0, cm.getUsersConfigVersion());
-		Map<String, User> users = cm.getUsers();
-		assertEquals(1, users.size());
+        Assert.assertEquals(1.0, cm.getUsersConfigVersion(), 0);
+        Map<String, User> users = cm.getUsers();
+        Assert.assertEquals(1, users.size());
 
-		User admin = users.get("admin");
-		assertEquals("Administrator", admin.getFirstName());
-	}
+        User admin = users.get("admin");
+        Assert.assertEquals("Administrator", admin.getFirstName());
+    }
 }
