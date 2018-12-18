@@ -25,20 +25,34 @@ import au.gov.aims.atlasmapperserver.Utils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.Closeable;
 import java.io.File;
 import java.net.URL;
+import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class CacheEntry {
+/**
+ * Simple bean used to represent an entry in the DataBase
+ */
+public class CacheEntry implements Closeable {
     private static final Logger LOGGER = Logger.getLogger(CacheEntry.class.getName());
 
     private URL url;
-    private Long downloadTimestamp;
+    private RequestMethod requestMethod; // HEAD or GET
+    private Long requestTimestamp;
     private Long lastAccessTimestamp;
     private Long expiryTimestamp;
-    private Short httpStatusCode;
+    private Integer httpStatusCode;
     private Boolean valid;
+
+    /**
+     * The document File needs to be set before saving the CacheEntity.
+     * When loading the CacheEntity using CacheDatabase.get(), the document
+     * is not loaded (set to null). It's loaded using a second query when
+     * requested, using CacheDatabase.loadDocument(). This is equivalent to
+     * "lazy" loading in Hibernate.
+     */
     private File documentFile;
 
     public CacheEntry(URL url) {
@@ -52,12 +66,20 @@ public class CacheEntry {
         return this.url;
     }
 
-    public Long getDownloadTimestamp() {
-        return this.downloadTimestamp;
+    public RequestMethod getRequestMethod() {
+        return this.requestMethod;
     }
 
-    public void setDownloadTimestamp(Long downloadTimestamp) {
-        this.downloadTimestamp = downloadTimestamp;
+    public void setRequestMethod(RequestMethod requestMethod) {
+        this.requestMethod = requestMethod;
+    }
+
+    public Long getRequestTimestamp() {
+        return this.requestTimestamp;
+    }
+
+    public void setRequestTimestamp(Long requestTimestamp) {
+        this.requestTimestamp = requestTimestamp;
     }
 
     public Long getLastAccessTimestamp() {
@@ -76,16 +98,12 @@ public class CacheEntry {
         this.expiryTimestamp = expiryTimestamp;
     }
 
-    public Short getHttpStatusCode() {
+    public Integer getHttpStatusCode() {
         return this.httpStatusCode;
     }
 
-    public void setHttpStatusCode(Short httpStatusCode) {
-        this.httpStatusCode = httpStatusCode;
-    }
-    // Helper method because it's annoying to cast everything into "short"
     public void setHttpStatusCode(Integer httpStatusCode) {
-        this.httpStatusCode = httpStatusCode == null ? null : (short)httpStatusCode.intValue();
+        this.httpStatusCode = httpStatusCode;
     }
 
     public Boolean getValid() {
@@ -96,16 +114,33 @@ public class CacheEntry {
         this.valid = valid;
     }
 
-    // Document
-
     public File getDocumentFile() {
         return this.documentFile;
     }
 
     public void setDocumentFile(File documentFile) {
+        if (this.documentFile != null) {
+            this.documentFile.delete();
+        }
         this.documentFile = documentFile;
     }
 
+
+    // Helper methods
+
+    public boolean isExpired() {
+        if (this.expiryTimestamp == null) {
+            // Never expires
+            return false;
+        }
+
+        long currentTimestamp = CacheEntry.getCurrentTimestamp();
+        return this.expiryTimestamp < currentTimestamp;
+    }
+
+    public static long getCurrentTimestamp() {
+        return new Date().getTime();
+    }
 
 
     public JSONObject toJSON() {
@@ -113,11 +148,13 @@ public class CacheEntry {
 
         try {
             json.put("url", this.url);
-            json.put("downloadTimestamp", this.downloadTimestamp);
+            json.put("requestMethod", this.requestMethod);
+            json.put("requestTimestamp", this.requestTimestamp);
             json.put("lastAccessTimestamp", this.lastAccessTimestamp);
             json.put("expiryTimestamp", this.expiryTimestamp);
             json.put("httpStatusCode", this.httpStatusCode);
             json.put("valid", this.valid);
+            json.put("documentFile", this.documentFile);
         } catch(JSONException ex) {
             // Very unlikely to happen
             LOGGER.log(Level.WARNING, String.format("Error occurred while creating the JSONObject: %s", Utils.getExceptionMessage(ex)), ex);
@@ -150,7 +187,8 @@ public class CacheEntry {
 
         CacheEntry that = (CacheEntry) o;
         return Utils.equals(url, that.url) &&
-                Utils.equals(downloadTimestamp, that.downloadTimestamp) &&
+                Utils.equals(requestMethod, that.requestMethod) &&
+                Utils.equals(requestTimestamp, that.requestTimestamp) &&
                 Utils.equals(lastAccessTimestamp, that.lastAccessTimestamp) &&
                 Utils.equals(expiryTimestamp, that.expiryTimestamp) &&
                 Utils.equals(httpStatusCode, that.httpStatusCode) &&
@@ -160,11 +198,20 @@ public class CacheEntry {
     @Override
     public int hashCode() {
         int result = this.url == null ? 0 : this.url.hashCode();
-        result = 31 * result + (this.downloadTimestamp == null ? 0 : this.downloadTimestamp.hashCode());
+        result = 31 * result + (this.requestMethod == null ? 0 : this.requestMethod.hashCode());
+        result = 31 * result + (this.requestTimestamp == null ? 0 : this.requestTimestamp.hashCode());
         result = 31 * result + (this.lastAccessTimestamp == null ? 0 : this.lastAccessTimestamp.hashCode());
         result = 31 * result + (this.expiryTimestamp == null ? 0 : this.expiryTimestamp.hashCode());
         result = 31 * result + (this.httpStatusCode == null ? 0 : this.httpStatusCode.hashCode());
         result = 31 * result + (this.valid == null ? 0 : this.valid.hashCode());
         return result;
+    }
+
+    @Override
+    public void close() {
+        if (this.documentFile != null) {
+            this.documentFile.delete();
+            this.documentFile = null;
+        }
     }
 }

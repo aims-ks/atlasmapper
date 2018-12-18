@@ -21,21 +21,17 @@
 
 package au.gov.aims.atlasmapperserver.cache;
 
-import au.gov.aims.atlasmapperserver.thread.RevivableThreadInterruptedException;
-import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
-import org.json.JSONException;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.File;
-import java.net.MalformedURLException;
 import java.net.URL;
 
 public class CacheDatabaseTest {
 
     @Test
-    public void testInsertUpdateDelete() throws RevivableThreadInterruptedException, MalformedURLException, JSONException {
-        ThreadLogger logger = new ThreadLogger();
+    public void testInsertUpdateDelete() throws Exception {
+        CacheDatabase cacheDatabase = new CacheDatabase(null);
 
         // Minimum fields
         URL eatlasUrl = new URL("https://eatlas.org.au");
@@ -45,134 +41,140 @@ public class CacheDatabaseTest {
 
         // All fields
         URL googleUrl = new URL("https://google.com");
-        long googleDownloadTimestamp = 1500000000L;
+        long googleRequestTimestamp = 1500000000L;
         long googleLastAccessTimestamp = 1544760879L;
         long googleExpiryTimestamp = 1600000000L;
-        short googleHttpStatusCode = 200;
+        int googleHttpStatusCode = 200;
         boolean googleValid = true;
         File googleDocument = new File(CacheDatabaseTest.class.getClassLoader().getResource("google.html").getFile());
 
         CacheEntry googleCacheEntry = new CacheEntry(googleUrl);
-        googleCacheEntry.setDownloadTimestamp(googleDownloadTimestamp);
+        googleCacheEntry.setRequestTimestamp(googleRequestTimestamp);
         googleCacheEntry.setLastAccessTimestamp(googleLastAccessTimestamp);
         googleCacheEntry.setExpiryTimestamp(googleExpiryTimestamp);
         googleCacheEntry.setHttpStatusCode(googleHttpStatusCode);
         googleCacheEntry.setValid(googleValid);
         googleCacheEntry.setDocumentFile(googleDocument);
 
-        CacheDatabase cacheDatabase = new CacheDatabase(null);
-
         // Try deleting the entries just in case they were left behind by another test
         try {
-            cacheDatabase.openConnection(logger);
+            cacheDatabase.openConnection();
 
-            cacheDatabase.delete(logger, eatlasCacheEntry.getUrl());
-            cacheDatabase.delete(logger, googleCacheEntry.getUrl());
+            cacheDatabase.delete(eatlasCacheEntry.getUrl());
+            cacheDatabase.delete(googleCacheEntry.getUrl());
         } finally {
             cacheDatabase.close();
         }
-        Assert.assertTrue("Error occurred: " + logger.toJSON().toString(4), logger.getErrorCount() == 0);
 
         // Ensure the URL are not in the DB.
         try {
-            cacheDatabase.openConnection(logger);
+            cacheDatabase.openConnection();
 
-            Assert.assertFalse(cacheDatabase.exists(logger, eatlasCacheEntry.getUrl()));
-            Assert.assertFalse(cacheDatabase.exists(logger, googleCacheEntry.getUrl()));
+            Assert.assertFalse("The eAtlas cache entry was found in the database after been deleted.",
+                    cacheDatabase.exists(eatlasCacheEntry.getUrl()));
+
+            Assert.assertFalse("The Google cache entry was found in the database after been deleted.",
+                    cacheDatabase.exists(googleCacheEntry.getUrl()));
         } finally {
             cacheDatabase.close();
         }
-        Assert.assertTrue("Error occurred: " + logger.toJSON().toString(4), logger.getErrorCount() == 0);
+
+        // Ensure Get returns null
+        try {
+            cacheDatabase.openConnection();
+
+            Assert.assertNull("Retrieving the eAtlas cache entry from the DataBase didn't return null when it was not found in the DataNase.",
+                    cacheDatabase.get(eatlasCacheEntry.getUrl()));
+
+            Assert.assertNull("Retrieving the Google cache entry from the DataBase didn't return null when it was not found in the DataNase.",
+                    cacheDatabase.get(googleCacheEntry.getUrl()));
+        } finally {
+            cacheDatabase.close();
+        }
 
         // Insert the data - Select to be sure it has been inserted properly.
         try {
-            cacheDatabase.openConnection(logger);
+            cacheDatabase.openConnection();
 
-            cacheDatabase.save(logger, eatlasCacheEntry);
-            cacheDatabase.save(logger, googleCacheEntry);
+            cacheDatabase.save(eatlasCacheEntry);
+            cacheDatabase.save(googleCacheEntry);
 
-            CacheEntry retrievedEatlasCacheEntry = cacheDatabase.get(logger, eatlasUrl);
-            CacheEntry retrievedGoogleCacheEntry = cacheDatabase.get(logger, googleUrl);
+            CacheEntry retrievedEatlasCacheEntry = cacheDatabase.get(eatlasUrl);
+            CacheEntry retrievedGoogleCacheEntry = cacheDatabase.get(googleUrl);
 
             Assert.assertEquals("Retrieved eAtlas entry is different from the saved one.", eatlasCacheEntry, retrievedEatlasCacheEntry);
             Assert.assertEquals("Retrieved Google entry is different from the saved one.", googleCacheEntry, retrievedGoogleCacheEntry);
         } finally {
             cacheDatabase.close();
         }
-        Assert.assertTrue("Error occurred: " + logger.toJSON().toString(4), logger.getErrorCount() == 0);
 
         // Ensure the URL are in the DB.
         try {
-            cacheDatabase.openConnection(logger);
+            cacheDatabase.openConnection();
 
-            Assert.assertTrue(cacheDatabase.exists(logger, eatlasCacheEntry.getUrl()));
-            Assert.assertTrue(cacheDatabase.exists(logger, googleCacheEntry.getUrl()));
+            Assert.assertTrue(cacheDatabase.exists(eatlasCacheEntry.getUrl()));
+            Assert.assertTrue(cacheDatabase.exists(googleCacheEntry.getUrl()));
         } finally {
             cacheDatabase.close();
         }
-        Assert.assertTrue("Error occurred: " + logger.toJSON().toString(4), logger.getErrorCount() == 0);
 
         // Try to Select them back after closing the DB connection, to be sure they are really in the DB.
         try {
-            cacheDatabase.openConnection(logger);
+            cacheDatabase.openConnection();
 
-            CacheEntry retrievedEatlasCacheEntry = cacheDatabase.get(logger, eatlasUrl);
-            CacheEntry retrievedGoogleCacheEntry = cacheDatabase.get(logger, googleUrl);
+            CacheEntry retrievedEatlasCacheEntry = cacheDatabase.get(eatlasUrl);
+            CacheEntry retrievedGoogleCacheEntry = cacheDatabase.get(googleUrl);
 
             Assert.assertEquals("Retrieved eAtlas entry is different from the saved one.", eatlasCacheEntry, retrievedEatlasCacheEntry);
             Assert.assertEquals("Retrieved Google entry is different from the saved one.", googleCacheEntry, retrievedGoogleCacheEntry);
         } finally {
             cacheDatabase.close();
         }
-        Assert.assertTrue("Error occurred: " + logger.toJSON().toString(4), logger.getErrorCount() == 0);
 
         // Update
         try {
-            cacheDatabase.openConnection(logger);
+            cacheDatabase.openConnection();
 
             eatlasCacheEntry.setLastAccessTimestamp(5000L);
             eatlasCacheEntry.setHttpStatusCode(200);
 
-            googleCacheEntry.setDownloadTimestamp(1000L);
+            googleCacheEntry.setRequestTimestamp(1000L);
             googleCacheEntry.setLastAccessTimestamp(2000L);
             googleCacheEntry.setExpiryTimestamp(3000L);
             googleCacheEntry.setHttpStatusCode(500);
             googleCacheEntry.setValid(false);
             googleCacheEntry.setDocumentFile(null);
 
-            cacheDatabase.save(logger, eatlasCacheEntry);
-            cacheDatabase.save(logger, googleCacheEntry);
+            cacheDatabase.save(eatlasCacheEntry);
+            cacheDatabase.save(googleCacheEntry);
 
-            CacheEntry retrievedEatlasCacheEntry = cacheDatabase.get(logger, eatlasUrl);
-            CacheEntry retrievedGoogleCacheEntry = cacheDatabase.get(logger, googleUrl);
+            CacheEntry retrievedEatlasCacheEntry = cacheDatabase.get(eatlasUrl);
+            CacheEntry retrievedGoogleCacheEntry = cacheDatabase.get(googleUrl);
 
             Assert.assertEquals("Retrieved eAtlas entry is different from the saved one.", eatlasCacheEntry, retrievedEatlasCacheEntry);
             Assert.assertEquals("Retrieved Google entry is different from the saved one.", googleCacheEntry, retrievedGoogleCacheEntry);
         } finally {
             cacheDatabase.close();
         }
-        Assert.assertTrue("Error occurred: " + logger.toJSON().toString(4), logger.getErrorCount() == 0);
 
         // Cleanup
         try {
-            cacheDatabase.openConnection(logger);
+            cacheDatabase.openConnection();
 
-            cacheDatabase.delete(logger, eatlasCacheEntry.getUrl());
-            cacheDatabase.delete(logger, googleCacheEntry.getUrl());
+            cacheDatabase.delete(eatlasCacheEntry.getUrl());
+            cacheDatabase.delete(googleCacheEntry.getUrl());
         } finally {
             cacheDatabase.close();
         }
-        Assert.assertTrue("Error occurred: " + logger.toJSON().toString(4), logger.getErrorCount() == 0);
 
         // Ensure the DB is clean
         try {
-            cacheDatabase.openConnection(logger);
+            cacheDatabase.openConnection();
 
-            Assert.assertFalse(cacheDatabase.exists(logger, eatlasCacheEntry.getUrl()));
-            Assert.assertFalse(cacheDatabase.exists(logger, googleCacheEntry.getUrl()));
+            Assert.assertFalse(cacheDatabase.exists(eatlasCacheEntry.getUrl()));
+            Assert.assertFalse(cacheDatabase.exists(googleCacheEntry.getUrl()));
         } finally {
             cacheDatabase.close();
         }
-        Assert.assertTrue("Error occurred: " + logger.toJSON().toString(4), logger.getErrorCount() == 0);
     }
 }

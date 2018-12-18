@@ -621,7 +621,7 @@ public class Utils {
         binaryCopy(in, out, -1);
     }
 
-    public static void binaryCopy(InputStream in, OutputStream out, int maxBytesFileSize) throws IOException {
+    public static void binaryCopy(InputStream in, OutputStream out, long maxBytesFileSize) throws IOException {
         if (in == null || out == null) {
             return;
         }
@@ -635,19 +635,17 @@ public class Utils {
                 if (maxBytesFileSize >= 0) {
                     totalBytesRead += bytesRead;
                     if (totalBytesRead > maxBytesFileSize) {
-                        throw new IOException("File size exceeded. The maximum size allowed for this file is " + maxBytesFileSize + " bytes.");
+                        throw new IOException(String.format(
+                            "File size exceeded. The maximum size allowed is %d bytes.", maxBytesFileSize));
                     }
                 }
                 out.write(buf, 0, bytesRead);
             }
         } finally {
-            if (out != null) {
-                try {
-                    out.flush();
-                } catch(Exception e) {
-                    LOGGER.log(Level.SEVERE, "Cant flush the output: {0}", Utils.getExceptionMessage(e));
-                    LOGGER.log(Level.FINE, "Stack trace:", e);
-                }
+            try {
+                out.flush();
+            } catch (Exception ex) {
+                LOGGER.log(Level.SEVERE, String.format("Cant flush the output: %s", Utils.getExceptionMessage(ex)), ex);
             }
         }
     }
