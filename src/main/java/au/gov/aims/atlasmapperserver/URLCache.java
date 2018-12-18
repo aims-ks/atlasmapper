@@ -76,26 +76,36 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-// TODO IMPORTANT: The WHOLE class has to be synchronized (no one can access a method while one method is running)
+@Deprecated
 public class URLCache {
+    @Deprecated
     private static final Logger LOGGER = Logger.getLogger(URLCache.class.getName());
 
+    @Deprecated
     protected static final long NB_MS_PER_MINUTE = 60000;
 
     // Cache timeout in millisecond
     // The response will be re-requested if the application request
     // information from it and its cached timestamp is older than this setting.
+    @Deprecated
     protected static final int CACHE_TIMEOUT = -1; // In minutes; -1 = never times out (the application has to force harvest to re-download it)
+    @Deprecated
     protected static final int INVALID_FILE_CACHE_TIMEOUT = -1; // In minutes; Invalid files are re-downloaded by checking a checkbox on the re-building of the data source.
+    @Deprecated
     protected static final long SEARCH_CACHE_TIMEOUT = 60 * NB_MS_PER_MINUTE;
+    @Deprecated
     protected static final long SEARCH_CACHE_MAXSIZE = 10; // Maximum search responses
 
+    @Deprecated
     protected static final String CACHE_FILES_FOLDER = "files";
+    @Deprecated
     protected static final int MAX_CACHED_FILE_SIZE = 50; // in megabytes (Mb)
 
+    @Deprecated
     protected static final int MAX_FOLLOW_REDIRECTION = 50; // Maximum number of URL follow allowed. Over passing this amount will be considered as a cycle in the cache and will throw IOException.
 
     // HashMap<String urlString, ResponseWrapper response>
+    @Deprecated
     private static HashMap<String, ResponseWrapper> searchResponseCache = new HashMap<String, ResponseWrapper>();
 
     /**
@@ -114,6 +124,7 @@ public class URLCache {
      *     }
      * }
      */
+    @Deprecated
     private static JSONObject diskCacheMap = null;
     /**
      * Reload the disk cache when the disk cache file is manually modified;
@@ -121,8 +132,10 @@ public class URLCache {
      *     checked against this attribute. If the file is newer, that the file is reloaded.
      *     TODO: Do not reload while modifying the disk cache in memory. Use a DB for better handling & thread safe
      */
+    @Deprecated
     private static long loadedTime = -1;
 
+    @Deprecated
     private static File getApplicationFolder(ConfigManager configManager) {
         if (configManager == null) {
             // Can be used for running the tests
@@ -131,6 +144,7 @@ public class URLCache {
         return configManager.getApplicationFolder();
     }
 
+    @Deprecated
     public static ResponseStatus getHttpHead(String urlStr) throws RevivableThreadInterruptedException {
         RevivableThread.checkForInterruption();
 
@@ -211,6 +225,7 @@ public class URLCache {
      * @throws IOException
      * @throws JSONException
      */
+    @Deprecated
     public static File getURLFile(
             ThreadLogger logger,
             String downloadedEntityName,
@@ -224,6 +239,7 @@ public class URLCache {
         return getURLFile(logger, downloadedEntityName, configManager, dataSource, urlStr, category, mandatory, 0);
     }
 
+    @Deprecated
     private static File getURLFile(
             ThreadLogger logger,
             String downloadedEntityName,
@@ -270,8 +286,8 @@ public class URLCache {
                 } else {
                     // Hopefully this error will never occurred
                     logger.log(Level.SEVERE, String.format("Maximum URL redirection reach for [%s](%s). " +
-                        "There is probably a cycle in the cache, which create potential infinite loops.",
-                        downloadedEntityName, urlStr));
+                                    "There is probably a cycle in the cache, which create potential infinite loops.",
+                            downloadedEntityName, urlStr));
                     throw new IOException("Cycle in the cache follow URLs");
                 }
             }
@@ -375,11 +391,13 @@ public class URLCache {
      * @throws IOException
      * @throws JSONException
      */
+    @Deprecated
     public static boolean isRecursiveApproved(File applicationFolder, CachedFile cachedFile)
             throws IOException, JSONException, RevivableThreadInterruptedException {
 
         return isRecursiveApproved(applicationFolder, cachedFile, 0);
     }
+    @Deprecated
     private static boolean isRecursiveApproved(File applicationFolder, CachedFile cachedFile, int followRedirectionCount)
             throws IOException, JSONException, RevivableThreadInterruptedException {
 
@@ -404,6 +422,7 @@ public class URLCache {
         }
     }
 
+    @Deprecated
     public static void setRedirection(ConfigManager configManager, String invalidUrl, String craftedUrl)
             throws IOException, JSONException {
 
@@ -419,6 +438,7 @@ public class URLCache {
      * of replacing the current cached file with the last sent file.
      * @param urlStr
      */
+    @Deprecated
     public static void commitURLFile(ConfigManager configManager, File approvedFile, String urlStr)
             throws IOException, JSONException {
 
@@ -437,6 +457,7 @@ public class URLCache {
      * @param urlStr
      * @return
      */
+    @Deprecated
     public static File rollbackURLFile(
             ThreadLogger logger,
             String downloadedEntityName,
@@ -448,6 +469,7 @@ public class URLCache {
         return rollbackURLFile(logger, downloadedEntityName, configManager, unapprovedFile, urlStr, Utils.getExceptionMessage(reason));
     }
 
+    @Deprecated
     public static File rollbackURLFile(
             ThreadLogger logger,
             String downloadedEntityName,
@@ -489,10 +511,12 @@ public class URLCache {
         return backupFile;
     }
 
+    @Deprecated
     private static ResponseStatus loadURLToFile(ThreadLogger logger, String urlStr, File file) throws RevivableThreadInterruptedException {
         return loadURLToFile(logger, urlStr, file, MAX_CACHED_FILE_SIZE);
     }
 
+    @Deprecated
     private static ResponseStatus loadURLToFile(ThreadLogger logger, String urlStr, File file, int maxFileSizeMb) throws RevivableThreadInterruptedException {
         RevivableThread.checkForInterruption();
 
@@ -583,6 +607,7 @@ public class URLCache {
         return responseStatus;
     }
 
+    @Deprecated
     public static void saveDiskCacheMap(File applicationFolder) throws JSONException, IOException {
         File configFile = FileFinder.getDiskCacheFile(applicationFolder);
         if (diskCacheMap == null) {
@@ -618,6 +643,7 @@ public class URLCache {
         loadedTime = new Date().getTime();
     }
 
+    @Deprecated
     private static void loadDiskCacheMap(File applicationFolder) throws IOException, JSONException {
         File configFile = FileFinder.getDiskCacheFile(applicationFolder);
 
@@ -642,6 +668,7 @@ public class URLCache {
         purgeCache(applicationFolder);
     }
 
+    @Deprecated
     protected static JSONObject getDiskCacheMap(File applicationFolder) throws IOException, JSONException {
         if (diskCacheMap == null || (isDiskCacheIsExpired(applicationFolder))) {
             loadDiskCacheMap(applicationFolder);
@@ -649,12 +676,14 @@ public class URLCache {
         return diskCacheMap;
     }
 
+    @Deprecated
     public static void reloadDiskCacheMapIfNeeded(File applicationFolder) throws IOException, JSONException {
         if (diskCacheMap == null || (isDiskCacheIsExpired(applicationFolder))) {
             loadDiskCacheMap(applicationFolder);
         }
     }
 
+    @Deprecated
     private static boolean isDiskCacheIsExpired(File applicationFolder) throws IOException {
         File configFile = FileFinder.getDiskCacheFile(applicationFolder);
 
@@ -665,6 +694,7 @@ public class URLCache {
         return loadedTime < configFile.lastModified();
     }
 
+    @Deprecated
     public static JSONObject getJSONResponse(
             ThreadLogger logger,
             String downloadedEntityName,
@@ -694,6 +724,7 @@ public class URLCache {
         return jsonResponse;
     }
 
+    @Deprecated
     private static JSONObject parseFile(ThreadLogger logger, File jsonFile, String urlStr) {
         JSONObject jsonResponse = null;
         Reader reader = null;
@@ -717,6 +748,7 @@ public class URLCache {
         return jsonResponse;
     }
 
+    @Deprecated
     public static JSONObject getSearchJSONResponse(String urlStr, String referer) throws IOException, JSONException, URISyntaxException {
         ResponseWrapper response = getSearchCachedResponse(urlStr);
 
@@ -733,6 +765,7 @@ public class URLCache {
         return response.jsonResponse;
     }
 
+    @Deprecated
     public static JSONArray getSearchJSONArrayResponse(String urlStr, String referer) throws IOException, JSONException, URISyntaxException {
         ResponseWrapper response = getSearchCachedResponse(urlStr);
 
@@ -749,6 +782,7 @@ public class URLCache {
         return response.jsonArrayResponse;
     }
 
+    @Deprecated
     public static String getUncachedResponse(String urlStr, String referer) throws IOException, JSONException, URISyntaxException {
         URL url = Utils.toURL(urlStr);
 
@@ -785,6 +819,7 @@ public class URLCache {
         return sb.toString();
     }
 
+    @Deprecated
     public static WMSCapabilities getWMSCapabilitiesResponse(
             ThreadLogger logger,
             ConfigManager configManager,
@@ -847,6 +882,7 @@ public class URLCache {
      * @throws IOException
      * @throws ServiceException
      */
+    @Deprecated
     private static WMSCapabilities getCapabilities(File file) throws IOException, SAXException, RevivableThreadInterruptedException {
         RevivableThread.checkForInterruption();
 
@@ -865,6 +901,7 @@ public class URLCache {
         }
     }
 
+    @Deprecated
     private static WMSCapabilities getCapabilities(InputStream inputStream)
             throws SAXException, RevivableThreadInterruptedException {
 
@@ -891,6 +928,7 @@ public class URLCache {
      * @throws IOException
      * @throws JSONException
      */
+    @Deprecated
     protected static void deleteCache(ConfigManager configManager, boolean updateDataSources) throws IOException, JSONException {
         searchResponseCache.clear();
 
@@ -931,6 +969,7 @@ public class URLCache {
         }
     }
 
+    @Deprecated
     public static void deleteCache(ConfigManager configManager, AbstractDataSourceConfig dataSource)
             throws JSONException, IOException {
 
@@ -991,6 +1030,7 @@ public class URLCache {
         }
     }
 
+    @Deprecated
     public static void markCacheForReDownload(ConfigManager configManager, AbstractDataSourceConfig dataSource, boolean removeBrokenEntry, Category category)
             throws JSONException, IOException, RevivableThreadInterruptedException {
 
@@ -1036,6 +1076,7 @@ public class URLCache {
         RevivableThread.checkForInterruption();
     }
 
+    @Deprecated
     public static void clearSearchCache(String urlStr) {
         searchResponseCache.remove(urlStr);
     }
@@ -1044,6 +1085,7 @@ public class URLCache {
      * Delete cached files that are not in the map and
      * delete map entry that represent deleted files.
      */
+    @Deprecated
     public static void purgeCache(File applicationFolder) throws IOException, JSONException {
         if (applicationFolder == null) return;
         final File diskCacheFolder = FileFinder.getDiskCacheFolder(applicationFolder);
@@ -1123,6 +1165,7 @@ public class URLCache {
         }
     }
 
+    @Deprecated
     public static void deleteOldEntries(AbstractDataSourceConfig dataSourceConfig, Date thresholdDate, List<URLCache.Category> categories)
             throws IOException, JSONException {
 
@@ -1178,6 +1221,7 @@ public class URLCache {
      * This method is used by Unit Tests to ensure the URLCache do not leak.
      * @return
      */
+    @Deprecated
     public static int countFile(File applicationFolder) {
         final File diskCacheFolder = FileFinder.getDiskCacheFolder(applicationFolder);
         final File diskCacheFileFolder = CachedFile.getCachedFileFolder(diskCacheFolder);
@@ -1188,6 +1232,7 @@ public class URLCache {
         return files == null ? 0 : files.length;
     }
 
+    @Deprecated
     protected static CachedFile getCachedFile(File applicationFolder, String urlStr)
             throws JSONException, IOException {
 
@@ -1197,6 +1242,7 @@ public class URLCache {
         return new CachedFile(diskCacheFolder, jsonCache.optJSONObject(urlStr));
     }
 
+    @Deprecated
     private static ResponseWrapper getSearchCachedResponse(String urlStr) {
         if (!searchResponseCache.containsKey(urlStr)) {
             return null;
@@ -1216,6 +1262,7 @@ public class URLCache {
         return response;
     }
 
+    @Deprecated
     private static void setSearchCachedResponse(String urlStr, ResponseWrapper response, String referer) {
         if (urlStr != null && response != null) {
             // Max cache size reach...
@@ -1235,18 +1282,25 @@ public class URLCache {
         }
     }
 
+    @Deprecated
     private static class ResponseWrapper {
         // List of dataSource that use this URL
+        @Deprecated
         public Set<String> dataSourceIds;
 
         // Response; either json or wms (or both?)
+        @Deprecated
         public JSONObject jsonResponse;
+        @Deprecated
         public JSONArray jsonArrayResponse;
+        @Deprecated
         public WMSCapabilities wmsResponse;
 
         // Log the creation time, to knows when it times out
+        @Deprecated
         public long timestamp;
 
+        @Deprecated
         public ResponseWrapper() {
             this.dataSourceIds = new HashSet<String>();
             this.jsonResponse = null;
@@ -1256,35 +1310,45 @@ public class URLCache {
         }
     }
 
+    @Deprecated
     public static class ResponseStatus {
+        @Deprecated
         private Integer statusCode;
+        @Deprecated
         private String errorMessage;
 
+        @Deprecated
         public ResponseStatus() {
             this.statusCode = null;
             this.errorMessage = null;
         }
 
+        @Deprecated
         public void setStatusCode(Integer statusCode) {
             this.statusCode = statusCode;
         }
+        @Deprecated
         public void setErrorMessage(String errorMessage) {
             this.errorMessage = errorMessage;
         }
 
 
+        @Deprecated
         public Integer getStatusCode() {
             return this.statusCode;
         }
 
+        @Deprecated
         public boolean isPageNotFound() {
             return this.statusCode != null && this.statusCode == 404;
         }
 
+        @Deprecated
         public boolean isSuccess() {
             return this.statusCode != null && this.statusCode >= 200 && this.statusCode < 300;
         }
 
+        @Deprecated
         public String getErrorMessage() {
             return this.errorMessage;
         }
@@ -1307,13 +1371,18 @@ public class URLCache {
      * }
      * This class is protected to be used in URLCache class and in URLCacheTest class only.
      */
+    @Deprecated
     protected static class CachedFile {
         // Date format: "2012-09-24 14:06:49"
+        @Deprecated
         private static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         // Precise to the millisecond "2012-09-24 14:06:49:125"
+        @Deprecated
         private static SimpleDateFormat lastAccessDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:S");
 
+        @Deprecated
         JSONObject jsonCachedFile;
+        @Deprecated
         File cacheFolder;
 
         /**
@@ -1325,6 +1394,7 @@ public class URLCache {
          * @param mandatory True to cancel the client generation if the file cause problem
          * @throws JSONException
          */
+        @Deprecated
         public CachedFile(File cacheFolder, String dataSourceId, String filename, Category category, Date downloadedTime, int expiry, boolean mandatory) throws JSONException {
             this.cacheFolder = cacheFolder;
 
@@ -1339,6 +1409,7 @@ public class URLCache {
             this.setMandatory(mandatory);
         }
 
+        @Deprecated
         public CachedFile(File cacheFolder, JSONObject json) throws JSONException {
             this.cacheFolder = cacheFolder;
             if (json == null) {
@@ -1347,6 +1418,7 @@ public class URLCache {
             this.jsonCachedFile = json;
         }
 
+        @Deprecated
         public JSONObject toJSON() {
             if (this.isEmpty()) {
                 return null;
@@ -1354,6 +1426,7 @@ public class URLCache {
             return this.jsonCachedFile;
         }
 
+        @Deprecated
         public boolean isEmpty() {
             int nbIgnoredAttribute = 0;
             if (this.jsonCachedFile.has("lastAccessDate")) {
@@ -1363,6 +1436,7 @@ public class URLCache {
             return this.jsonCachedFile.length() <= nbIgnoredAttribute;
         }
 
+        @Deprecated
         public static String generateFilename(File cacheFolder, String urlStr) {
             File folder = CachedFile.getCachedFileFolder(cacheFolder);
 
@@ -1392,6 +1466,7 @@ public class URLCache {
             return filename;
         }
 
+        @Deprecated
         public String[] getDataSourceIds() throws JSONException {
             JSONArray dataSourceIds = this.jsonCachedFile.optJSONArray("dataSourceIds");
             if (dataSourceIds == null) {
@@ -1407,6 +1482,7 @@ public class URLCache {
 
             return dataSourceIdsArray;
         }
+        @Deprecated
         public void addDataSourceId(String dataSourceId) throws JSONException {
             JSONArray dataSourceIds = this.jsonCachedFile.optJSONArray("dataSourceIds");
             if (dataSourceIds == null) {
@@ -1422,6 +1498,7 @@ public class URLCache {
          * @param dataSourceId
          * @return True if the list of data source is empty after the remove.
          */
+        @Deprecated
         public boolean removeDataSourceId(String dataSourceId) {
             boolean isEmpty = true;
             JSONArray dataSourceIds = this.jsonCachedFile.optJSONArray("dataSourceIds");
@@ -1441,6 +1518,7 @@ public class URLCache {
 
             return isEmpty;
         }
+        @Deprecated
         public boolean hasDataSourceId(String dataSourceId) {
             if (dataSourceId == null) { return false; }
 
@@ -1457,9 +1535,11 @@ public class URLCache {
             return false;
         }
 
+        @Deprecated
         public File getCachedFileFolder() {
             return CachedFile.getCachedFileFolder(this.cacheFolder);
         }
+        @Deprecated
         private static File getCachedFileFolder(File cacheFolder) {
             File cacheFileFolder = (URLCache.CACHE_FILES_FOLDER == null || URLCache.CACHE_FILES_FOLDER.isEmpty() ?
                     cacheFolder :
@@ -1469,13 +1549,16 @@ public class URLCache {
             return cacheFileFolder;
         }
 
+        @Deprecated
         public String getFilename() {
             return this.jsonCachedFile.optString("file", null);
         }
+        @Deprecated
         public void setFilename(String file) throws JSONException {
             this.jsonCachedFile.put("file", file);
         }
 
+        @Deprecated
         public Category getCategory() {
             String categoryStr = this.jsonCachedFile.optString("category", null);
             return categoryStr == null ? null : Category.valueOf(categoryStr);
@@ -1484,6 +1567,7 @@ public class URLCache {
             this.jsonCachedFile.put("category", category.name());
         }
 
+        @Deprecated
         public File getFile() {
             String filename = this.getFilename();
             if (filename == null) {
@@ -1492,6 +1576,7 @@ public class URLCache {
             return new File(this.getCachedFileFolder(), filename);
         }
 
+        @Deprecated
         public Date getDownloadedTime() {
             String downloadedTimeStr = this.jsonCachedFile.optString("downloadedTime", null);
             if (downloadedTimeStr == null) {
@@ -1509,10 +1594,12 @@ public class URLCache {
 
             return downloadedTime;
         }
+        @Deprecated
         public void setDownloadedTime(Date downloadedTime) throws JSONException {
             this.jsonCachedFile.put("downloadedTime", dateFormat.format(downloadedTime));
         }
 
+        @Deprecated
         public Date getLastAccessDate() {
             String dateStr = this.jsonCachedFile.optString("lastAccessDate", null);
             if (dateStr == null) {
@@ -1531,26 +1618,33 @@ public class URLCache {
         }
 
         // Set last access date to "Now"
+        @Deprecated
         public void setLastAccessDate() throws JSONException {
             this.setLastAccessDate(new Date());
         }
+        @Deprecated
         public void setLastAccessDate(Date date) throws JSONException {
             this.setLastAccessDate(lastAccessDateFormat.format(date));
         }
+        @Deprecated
         public void setLastAccessDate(String date) throws JSONException {
             this.jsonCachedFile.put("lastAccessDate", date);
         }
 
+        @Deprecated
         public int getExpiry() {
             return this.jsonCachedFile.optInt("expiry", CACHE_TIMEOUT);
         }
+        @Deprecated
         public void setExpiry(int expiry) throws JSONException {
             this.jsonCachedFile.put("expiry", expiry);
         }
 
+        @Deprecated
         public boolean isMarkedForReDownload() {
             return this.jsonCachedFile.optBoolean("markedForReDownload", false);
         }
+        @Deprecated
         public void setMarkedForReDownload(boolean markedForReDownload) throws JSONException {
             if (markedForReDownload) {
                 this.jsonCachedFile.put("markedForReDownload", true);
@@ -1560,12 +1654,14 @@ public class URLCache {
             }
         }
 
+        @Deprecated
         public Integer getHttpStatusCode() {
             if (!this.jsonCachedFile.has("httpStatusCode")) {
                 return null;
             }
             return this.jsonCachedFile.optInt("httpStatusCode");
         }
+        @Deprecated
         public void setHttpStatusCode(Integer statusCode) throws JSONException {
             if (statusCode == null) {
                 this.jsonCachedFile.remove("httpStatusCode");
@@ -1574,9 +1670,11 @@ public class URLCache {
             }
         }
 
+        @Deprecated
         public boolean isApproved() {
             return this.jsonCachedFile.optBoolean("approved", false);
         }
+        @Deprecated
         public void setApproved(boolean approved) throws JSONException {
             this.jsonCachedFile.put("approved", approved);
         }
@@ -1597,13 +1695,16 @@ public class URLCache {
          * re-download unparsable the HTML file again.
          * @return
          */
+        @Deprecated
         public String getRedirection() {
             return this.jsonCachedFile.optString("redirection", null);
         }
+        @Deprecated
         public void setRedirection(String url) throws JSONException {
             this.jsonCachedFile.put("redirection", url);
         }
 
+        @Deprecated
         public boolean isMandatory() {
             return this.jsonCachedFile.optBoolean("mandatory", false);
         }
@@ -1612,13 +1713,16 @@ public class URLCache {
          * @param mandatory True to cancel the client generation if the file cause problem
          * @throws JSONException
          */
+        @Deprecated
         public void setMandatory(boolean mandatory) throws JSONException {
             this.jsonCachedFile.put("mandatory", mandatory);
         }
 
+        @Deprecated
         public String getLatestErrorMessage() {
             return this.jsonCachedFile.optString("errorMsg", null);
         }
+        @Deprecated
         public void setLatestErrorMessage(String errorMsg) throws JSONException {
             if (Utils.isBlank(errorMsg)) {
                 this.jsonCachedFile.remove("errorMsg");
@@ -1627,6 +1731,7 @@ public class URLCache {
             }
         }
 
+        @Deprecated
         public String getTemporaryFilename() {
             JSONObject jsonTmpFile = this.jsonCachedFile.optJSONObject("tmpData");
             if (jsonTmpFile == null) {
@@ -1634,6 +1739,7 @@ public class URLCache {
             }
             return jsonTmpFile.optString("file", null);
         }
+        @Deprecated
         public void setTemporaryFilename(String file) throws JSONException {
             JSONObject jsonTmpFile = this.jsonCachedFile.optJSONObject("tmpData");
             if (jsonTmpFile == null) {
@@ -1643,6 +1749,7 @@ public class URLCache {
             jsonTmpFile.put("file", file);
         }
 
+        @Deprecated
         public File getTemporaryFile() {
             String temporaryFilename = this.getTemporaryFilename();
             if (temporaryFilename == null) {
@@ -1651,6 +1758,7 @@ public class URLCache {
             return new File(this.getCachedFileFolder(), temporaryFilename);
         }
 
+        @Deprecated
         public Integer getTemporaryHttpStatusCode() {
             JSONObject jsonTmpFile = this.jsonCachedFile.optJSONObject("tmpData");
             if (jsonTmpFile == null) {
@@ -1661,6 +1769,7 @@ public class URLCache {
             }
             return jsonTmpFile.optInt("httpStatusCode");
         }
+        @Deprecated
         public void setTemporaryHttpStatusCode(Integer statusCode) throws JSONException {
             JSONObject jsonTmpFile = this.jsonCachedFile.optJSONObject("tmpData");
             if (jsonTmpFile == null) {
@@ -1674,10 +1783,12 @@ public class URLCache {
             }
         }
 
+        @Deprecated
         public boolean hasTemporaryData() {
             return this.jsonCachedFile.has("tmpData");
         }
 
+        @Deprecated
         public void discardTemporaryData() {
             this.jsonCachedFile.remove("tmpData");
         }
@@ -1686,6 +1797,7 @@ public class URLCache {
          * Approve the last file sent for this URL. This has the effect
          * of replacing the current cached file with the last sent file.
          */
+        @Deprecated
         public void commit(File approvedFile) throws JSONException {
             File oldFile = this.getFile();
 
@@ -1715,6 +1827,7 @@ public class URLCache {
          * state of the file.
          * @return
          */
+        @Deprecated
         public File rollback(File unapprovedFile, String errorMessage) throws JSONException {
             File rollbackFile = null;
 
@@ -1767,6 +1880,7 @@ public class URLCache {
             return rollbackFile;
         }
 
+        @Deprecated
         public void cleanUpFilenames() throws JSONException {
             File file = this.getFile();
             File tmpFile = this.getTemporaryFile();
@@ -1780,10 +1894,15 @@ public class URLCache {
         }
     }
 
+    @Deprecated
     public enum Category {
+        @Deprecated
         ALL, // Used to clear all cache of a data source
+        @Deprecated
         CAPABILITIES_DOCUMENT, // Capabilities document (WMS, ncWMS), JSON document (ARC Gis), ...
+        @Deprecated
         MEST_RECORD, // For WMS layer that have a valid TC211 file associated with it
+        @Deprecated
         BRUTEFORCE_MEST_RECORD // For WMS layers that have a TC211 file associated with a wrong mime type
     }
 }
