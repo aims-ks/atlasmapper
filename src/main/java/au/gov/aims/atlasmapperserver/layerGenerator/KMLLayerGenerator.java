@@ -108,8 +108,9 @@ public class KMLLayerGenerator extends AbstractLayerGenerator<KMLLayerConfig, KM
                             // TODO redownloadPrimaryFiles should be used as a parameter of getHttpHead
 
                             if (redownloadPrimaryFiles) {
+                                CacheEntry cacheEntry = null;
                                 try {
-                                    CacheEntry cacheEntry = urlCache.getHttpHead(url, dataSourceConfig.getDataSourceId());
+                                    cacheEntry = urlCache.getHttpHead(url, dataSourceConfig.getDataSourceId());
                                     if (cacheEntry != null) {
                                         if (cacheEntry.isSuccess()) {
                                             layer.setKmlUrl(url.toString());
@@ -136,6 +137,8 @@ public class KMLLayerGenerator extends AbstractLayerGenerator<KMLLayerConfig, KM
                                 } catch (Exception ex) {
                                     logger.log(Level.WARNING, String.format("Invalid entry for KML id %s: The [KML URL](%s) is not accessible. Please look for typos: %s",
                                             kmlId, urlStr, Utils.getExceptionMessage(ex)), ex);
+                                } finally {
+                                    if (cacheEntry != null) cacheEntry.close();
                                 }
                             } else {
                                 layer.setKmlUrl(url.toString());

@@ -116,55 +116,62 @@ public class TC211Parser {
 
         // Download MEST record (or get from cache)
         CacheEntry mestCacheEntry = null;
+        CacheEntry rollbackMestCacheEntry = null;
         try {
-            mestCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId());
-            if (mestCacheEntry != null) {
-                File mestFile = mestCacheEntry.getDocumentFile();
-                if (mestFile != null) {
-                    logger.log(Level.INFO, String.format("Parsing [TC211 MEST record](%s)", urlStr));
-                    tc211Document = this.parseFile(mestFile, urlStr);
-                    if (tc211Document != null) {
-                        urlCache.save(mestCacheEntry, true);
-                    }
-                }
-            }
-        } catch (Exception ex) {
-            // The MEST record was not good. Use the previous version if possible
-            logger.log(Level.WARNING, String.format("Error occurred while parsing the [TC211 MEST record](%s): %s",
-                    urlStr, Utils.getExceptionMessage(ex)), ex);
-        }
-
-        // Could not get a working JSON record
-        // Rollback to previous version
-        if (tc211Document == null) {
             try {
-                CacheEntry rollbackMestCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId(), false);
-                if (rollbackMestCacheEntry != null) {
-                    File mestFile = rollbackMestCacheEntry.getDocumentFile();
+                mestCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId());
+                if (mestCacheEntry != null) {
+                    File mestFile = mestCacheEntry.getDocumentFile();
                     if (mestFile != null) {
-                        logger.log(Level.INFO, String.format("Parsing backup [TC211 MEST record](%s)", urlStr));
+                        logger.log(Level.INFO, String.format("Parsing [TC211 MEST record](%s)", urlStr));
                         tc211Document = this.parseFile(mestFile, urlStr);
                         if (tc211Document != null) {
-                            urlCache.save(rollbackMestCacheEntry, true);
+                            urlCache.save(mestCacheEntry, true);
                         }
                     }
                 }
             } catch (Exception ex) {
                 // The MEST record was not good. Use the previous version if possible
-                logger.log(Level.WARNING, String.format("Error occurred while parsing the backup [TC211 MEST record](%s): %s",
+                logger.log(Level.WARNING, String.format("Error occurred while parsing the [TC211 MEST record](%s): %s",
                         urlStr, Utils.getExceptionMessage(ex)), ex);
             }
-        }
 
-        // Even the rollback didn't work
-        if (tc211Document == null) {
-            // Save what we have in DB
-            try {
-                urlCache.save(mestCacheEntry, false);
-            } catch (Exception exxx) {
-                logger.log(Level.WARNING, String.format("Error occurred while saving the entry into the cache database [TC211 MEST record](%s): %s",
-                        urlStr, Utils.getExceptionMessage(exxx)), exxx);
+            // Could not get a working JSON record
+            // Rollback to previous version
+            if (tc211Document == null) {
+                try {
+                    rollbackMestCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId(), false);
+                    if (rollbackMestCacheEntry != null) {
+                        File mestFile = rollbackMestCacheEntry.getDocumentFile();
+                        if (mestFile != null) {
+                            logger.log(Level.INFO, String.format("Parsing backup [TC211 MEST record](%s)", urlStr));
+                            tc211Document = this.parseFile(mestFile, urlStr);
+                            if (tc211Document != null) {
+                                urlCache.save(rollbackMestCacheEntry, true);
+                            }
+                        }
+                    }
+                } catch (Exception ex) {
+                    // The MEST record was not good. Use the previous version if possible
+                    logger.log(Level.WARNING, String.format("Error occurred while parsing the backup [TC211 MEST record](%s): %s",
+                            urlStr, Utils.getExceptionMessage(ex)), ex);
+                }
             }
+
+            // Even the rollback didn't work
+            if (tc211Document == null) {
+                // Save what we have in DB
+                try {
+                    urlCache.save(mestCacheEntry, false);
+                } catch (Exception exxx) {
+                    logger.log(Level.WARNING, String.format("Error occurred while saving the entry into the cache database [TC211 MEST record](%s): %s",
+                            urlStr, Utils.getExceptionMessage(exxx)), exxx);
+                }
+            }
+
+        } finally {
+            if (mestCacheEntry != null) mestCacheEntry.close();
+            if (rollbackMestCacheEntry != null) rollbackMestCacheEntry.close();
         }
 
         return tc211Document;

@@ -290,58 +290,64 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 
             // Download GetCapabilities document (or get from cache)
             CacheEntry capabilitiesCacheEntry = null;
+            CacheEntry rollbackCacheEntry = null;
             try {
-                capabilitiesCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId());
-                if (capabilitiesCacheEntry != null) {
-                    File wmsCapabilitiesFile = capabilitiesCacheEntry.getDocumentFile();
-                    if (wmsCapabilitiesFile != null) {
-                        logger.log(Level.INFO, String.format("Parsing [WMS GetCapabilities document](%s)", urlStr));
-                        wmsCapabilities = this.getCapabilities(wmsCapabilitiesFile);
-                        if (wmsCapabilities != null) {
-                            urlCache.save(capabilitiesCacheEntry, true);
-                        }
-                    }
-                }
-            } catch (Exception ex) {
-                // The GetCapibilities document was not good. Use the previous version if possible
-                logger.log(Level.WARNING, String.format("Error occurred while parsing the [WMS GetCapabilities document](%s): %s",
-                        urlStr, Utils.getExceptionMessage(ex)), ex);
-            }
-
-            // Could not get a working GetCapabilities document
-            // Rollback to previous version
-            if (wmsCapabilities == null) {
                 try {
-                    CacheEntry rollbackCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId(), false);
-                    if (rollbackCacheEntry != null) {
-                        Boolean valid = rollbackCacheEntry.getValid();
-                        if (valid != null && valid) {
-                            File rollbackFile = rollbackCacheEntry.getDocumentFile();
-                            if (rollbackFile != null) {
-                                wmsCapabilities = this.getCapabilities(rollbackFile);
-                                if (wmsCapabilities != null) {
-                                    // Save last access timestamp, usage, etc
-                                    urlCache.save(rollbackCacheEntry, true);
-                                }
+                    capabilitiesCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId());
+                    if (capabilitiesCacheEntry != null) {
+                        File wmsCapabilitiesFile = capabilitiesCacheEntry.getDocumentFile();
+                        if (wmsCapabilitiesFile != null) {
+                            logger.log(Level.INFO, String.format("Parsing [WMS GetCapabilities document](%s)", urlStr));
+                            wmsCapabilities = this.getCapabilities(wmsCapabilitiesFile);
+                            if (wmsCapabilities != null) {
+                                urlCache.save(capabilitiesCacheEntry, true);
                             }
                         }
                     }
-                } catch (Exception exx) {
-                    // This should not happen
-                    logger.log(Level.WARNING, String.format("Error occurred while getting the previous [WMS GetCapabilities document](%s): %s",
-                            urlStr, Utils.getExceptionMessage(exx)), exx);
+                } catch (Exception ex) {
+                    // The GetCapibilities document was not good. Use the previous version if possible
+                    logger.log(Level.WARNING, String.format("Error occurred while parsing the [WMS GetCapabilities document](%s): %s",
+                            urlStr, Utils.getExceptionMessage(ex)), ex);
                 }
-            }
 
-            // Even the rollback didn't work
-            if (wmsCapabilities == null) {
-                // Save what we have in DB
-                try {
-                    urlCache.save(capabilitiesCacheEntry, false);
-                } catch (Exception exxx) {
-                    logger.log(Level.WARNING, String.format("Error occurred while saving the entry into the cache database [WMS GetCapabilities document](%s): %s",
-                            urlStr, Utils.getExceptionMessage(exxx)), exxx);
+                // Could not get a working GetCapabilities document
+                // Rollback to previous version
+                if (wmsCapabilities == null) {
+                    try {
+                        rollbackCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId(), false);
+                        if (rollbackCacheEntry != null) {
+                            Boolean valid = rollbackCacheEntry.getValid();
+                            if (valid != null && valid) {
+                                File rollbackFile = rollbackCacheEntry.getDocumentFile();
+                                if (rollbackFile != null) {
+                                    wmsCapabilities = this.getCapabilities(rollbackFile);
+                                    if (wmsCapabilities != null) {
+                                        // Save last access timestamp, usage, etc
+                                        urlCache.save(rollbackCacheEntry, true);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (Exception exx) {
+                        // This should not happen
+                        logger.log(Level.WARNING, String.format("Error occurred while getting the previous [WMS GetCapabilities document](%s): %s",
+                                urlStr, Utils.getExceptionMessage(exx)), exx);
+                    }
                 }
+
+                // Even the rollback didn't work
+                if (wmsCapabilities == null) {
+                    // Save what we have in DB
+                    try {
+                        urlCache.save(capabilitiesCacheEntry, false);
+                    } catch (Exception exxx) {
+                        logger.log(Level.WARNING, String.format("Error occurred while saving the entry into the cache database [WMS GetCapabilities document](%s): %s",
+                                urlStr, Utils.getExceptionMessage(exxx)), exxx);
+                    }
+                }
+            } finally {
+                if (capabilitiesCacheEntry != null) capabilitiesCacheEntry.close();
+                if (rollbackCacheEntry != null) rollbackCacheEntry.close();
             }
         }
         RevivableThread.checkForInterruption();
@@ -545,18 +551,25 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                 } else {
                     // Get HTTP HEAD first. Only try to parse it if it returns a 200 (or equivalent)
                     logger.log(Level.INFO, String.format("Verifying [WMTS GetCapabilities URL](%s)", gwcCapUrl));
-                    CacheEntry gwcCapHead = urlCache.getHttpHead(gwcCapUrl, dataSourceClone.getDataSourceId());
-                    if (gwcCapHead == null) {
-                        logger.log(errorLevel, "Invalid URL: " + gwcCapUrl.toString());
-                    } else {
-                        if (gwcCapHead.isPageNotFound()) {
-                            // Don't bother giving a warning for a URL not found if the document is not mandatory
-                            logger.log(errorLevel, "Document not found (404): " + gwcCapUrl.toString());
-                        } else if (!gwcCapHead.isSuccess()) {
-                            logger.log(errorLevel, "Invalid URL (status code: " + gwcCapHead.getHttpStatusCode() + "): " + gwcCapUrl.toString());
+                    CacheEntry gwcCapHead = null;
+                    try {
+                        gwcCapHead = urlCache.getHttpHead(gwcCapUrl, dataSourceClone.getDataSourceId());
+                        if (gwcCapHead == null) {
+                            logger.log(errorLevel, "Invalid URL: " + gwcCapUrl.toString());
                         } else {
-                            document = WMTSParser.parseURL(logger, urlCache, dataSourceClone, gwcCapUrl, gwcMandatory);
+                            if (gwcCapHead.isPageNotFound()) {
+                                // Don't bother giving a warning for a URL not found if the document is not mandatory
+                                logger.log(errorLevel, "Document not found (404): " + gwcCapUrl.toString());
+                                urlCache.save(gwcCapHead, false);
+                            } else if (!gwcCapHead.isSuccess()) {
+                                logger.log(errorLevel, "Invalid URL (status code: " + gwcCapHead.getHttpStatusCode() + "): " + gwcCapUrl.toString());
+                                urlCache.save(gwcCapHead, false);
+                            } else {
+                                document = WMTSParser.parseURL(logger, urlCache, dataSourceClone, gwcCapUrl, gwcMandatory);
+                            }
                         }
+                    } finally {
+                        if (gwcCapHead != null) gwcCapHead.close();
                     }
                 }
             } catch (Exception ex) {
@@ -584,10 +597,19 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 
                         // Get HTTP HEAD to test the crafted URL
                         logger.log(Level.INFO, String.format("Verifying crafted [WMTS GetCapabilities URL](%s)", modifiedGwcCapUrl));
-                        CacheEntry getCapHead = urlCache.getHttpHead(modifiedGwcCapUrl, dataSourceClone.getDataSourceId());
-                        if (getCapHead != null && getCapHead.isSuccess()) {
-                            // Try to download the doc again
-                            document = WMTSParser.parseURL(logger, urlCache, dataSourceClone, modifiedGwcCapUrl, gwcMandatory);
+                        CacheEntry getCapHead = null;
+                        try {
+                            getCapHead = urlCache.getHttpHead(modifiedGwcCapUrl, dataSourceClone.getDataSourceId());
+                            if (getCapHead != null) {
+                                if (getCapHead.isSuccess()) {
+                                    // Try to download the doc again
+                                    document = WMTSParser.parseURL(logger, urlCache, dataSourceClone, modifiedGwcCapUrl, gwcMandatory);
+                                } else {
+                                    urlCache.save(getCapHead, false);
+                                }
+                            }
+                        } finally {
+                            if (getCapHead != null) getCapHead.close();
                         }
 
                         RevivableThread.checkForInterruption();

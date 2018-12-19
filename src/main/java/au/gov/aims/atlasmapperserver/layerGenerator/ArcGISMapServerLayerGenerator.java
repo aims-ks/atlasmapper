@@ -444,53 +444,59 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 
         // Download JSON document (or get from cache)
         CacheEntry jsonCacheEntry = null;
+        CacheEntry rollbackJsonCacheEntry = null;
         try {
-            jsonCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId());
-            if (jsonCacheEntry != null) {
-                File jsonFile = jsonCacheEntry.getDocumentFile();
-                if (jsonFile != null) {
-                    jsonResponse = URLCache.parseJSONObjectFile(jsonFile, logger, urlStr);
-                    if (jsonResponse != null) {
-                        urlCache.save(jsonCacheEntry, true);
-                    }
-                }
-            }
-        } catch (Exception ex) {
-            logger.log(Level.WARNING, String.format("Error occurred while parsing the [JSON URL](%s): %s",
-                    urlStr, Utils.getExceptionMessage(ex)), ex);
-        }
-
-        // Could not get a working JSON document
-        // Rollback to previous version
-        if (jsonResponse == null) {
             try {
-                CacheEntry rollbackJsonCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId(), false);
-                if (rollbackJsonCacheEntry != null) {
-                    File jsonFile = rollbackJsonCacheEntry.getDocumentFile();
+                jsonCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId());
+                if (jsonCacheEntry != null) {
+                    File jsonFile = jsonCacheEntry.getDocumentFile();
                     if (jsonFile != null) {
                         jsonResponse = URLCache.parseJSONObjectFile(jsonFile, logger, urlStr);
                         if (jsonResponse != null) {
-                            urlCache.save(rollbackJsonCacheEntry, true);
+                            urlCache.save(jsonCacheEntry, true);
                         }
                     }
                 }
             } catch (Exception ex) {
-                logger.log(Level.WARNING, String.format("Error occurred while parsing backup the [JSON URL](%s): %s",
+                logger.log(Level.WARNING, String.format("Error occurred while parsing the [JSON URL](%s): %s",
                         urlStr, Utils.getExceptionMessage(ex)), ex);
             }
-        }
 
-        // Even the rollback didn't work
-        if (jsonResponse == null) {
-            // Save what we have in DB
-            try {
-                urlCache.save(jsonCacheEntry, false);
-            } catch (Exception exxx) {
-                logger.log(Level.WARNING, String.format("Error occurred while saving the entry into the cache database [WMTS GetCapabilities document](%s): %s",
-                        urlStr, Utils.getExceptionMessage(exxx)), exxx);
+            // Could not get a working JSON document
+            // Rollback to previous version
+            if (jsonResponse == null) {
+                try {
+                    rollbackJsonCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId(), false);
+                    if (rollbackJsonCacheEntry != null) {
+                        File jsonFile = rollbackJsonCacheEntry.getDocumentFile();
+                        if (jsonFile != null) {
+                            jsonResponse = URLCache.parseJSONObjectFile(jsonFile, logger, urlStr);
+                            if (jsonResponse != null) {
+                                urlCache.save(rollbackJsonCacheEntry, true);
+                            }
+                        }
+                    }
+                } catch (Exception ex) {
+                    logger.log(Level.WARNING, String.format("Error occurred while parsing backup the [JSON URL](%s): %s",
+                            urlStr, Utils.getExceptionMessage(ex)), ex);
+                }
             }
-        }
 
+            // Even the rollback didn't work
+            if (jsonResponse == null) {
+                // Save what we have in DB
+                try {
+                    urlCache.save(jsonCacheEntry, false);
+                } catch (Exception exxx) {
+                    logger.log(Level.WARNING, String.format("Error occurred while saving the entry into the cache database [WMTS GetCapabilities document](%s): %s",
+                            urlStr, Utils.getExceptionMessage(exxx)), exxx);
+                }
+            }
+
+        } finally {
+            if (jsonCacheEntry != null) jsonCacheEntry.close();
+            if (rollbackJsonCacheEntry != null) rollbackJsonCacheEntry.close();
+        }
         RevivableThread.checkForInterruption();
 
         return jsonResponse;

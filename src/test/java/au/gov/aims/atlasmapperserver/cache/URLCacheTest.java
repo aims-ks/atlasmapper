@@ -36,7 +36,7 @@ public class URLCacheTest {
     private static final Logger LOGGER = Logger.getLogger(URLCacheTest.class.getName());
 
     @Test
-    public void getHttpHead() throws Exception, RevivableThreadInterruptedException {
+    public void testGetHttpHead() throws Exception, RevivableThreadInterruptedException {
         URLCache urlCache = new URLCache(null);
         CacheDatabase cacheDatabase = urlCache.getCacheDatabase();
 
@@ -50,50 +50,52 @@ public class URLCacheTest {
             cacheDatabase.close();
         }
 
-
-        // Get Head
-        long timeBeforeRequest = CacheEntry.getCurrentTimestamp();
-        CacheEntry cacheEntry = urlCache.getHttpHead(eatlasUrl, entityId);
-
-        Assert.assertNotNull(String.format("Could not get HTTP head for %s", eatlasUrl), cacheEntry);
-
-        // Ensure it's not in the data base yet (haven't been saved)
+        CacheEntry cacheEntry = null;
         try {
-            cacheDatabase.openConnection();
-            Assert.assertFalse(String.format("The HTTP head request for %s was saved in the cache database before the save method was called.", eatlasUrl),
-                    cacheDatabase.exists(eatlasUrl));
+            // Get Head
+            long timeBeforeRequest = CacheEntry.getCurrentTimestamp();
+            cacheEntry = urlCache.getHttpHead(eatlasUrl, entityId);
+
+            Assert.assertNotNull(String.format("Could not get HTTP head for %s", eatlasUrl), cacheEntry);
+
+            // Ensure it's not in the data base yet (haven't been saved)
+            try {
+                cacheDatabase.openConnection();
+                Assert.assertFalse(String.format("The HTTP head request for %s was saved in the cache database before the save method was called.", eatlasUrl),
+                        cacheDatabase.exists(eatlasUrl));
+            } finally {
+                cacheDatabase.close();
+            }
+
+            // Save it in the database and check that it's really there
+            urlCache.save(cacheEntry, true);
+            long timeAfterRequest = CacheEntry.getCurrentTimestamp();
+            try {
+                cacheDatabase.openConnection();
+                Assert.assertTrue(String.format("The HTTP head request for %s was not saved in the cache database.", eatlasUrl),
+                        cacheDatabase.exists(eatlasUrl));
+            } finally {
+                cacheDatabase.close();
+            }
+
+            LOGGER.log(Level.INFO, cacheEntry.toString());
+
+            Assert.assertEquals(eatlasUrl, cacheEntry.getUrl());
+            Assert.assertEquals(RequestMethod.HEAD, cacheEntry.getRequestMethod());
+            Assert.assertEquals(new Integer(200), cacheEntry.getHttpStatusCode());
+
+            Long requestTimestamp = cacheEntry.getRequestTimestamp();
+            Assert.assertNotNull("RequestTimestamp is null", requestTimestamp);
+            Assert.assertTrue("Invalid RequestTimestamp: " + requestTimestamp,
+                    requestTimestamp >= timeBeforeRequest && requestTimestamp <= timeAfterRequest);
+
+            Long lastAccessTimestamp = cacheEntry.getLastAccessTimestamp();
+            Assert.assertNotNull("LastAccessTimestamp is null", lastAccessTimestamp);
+            Assert.assertTrue("Invalid LastAccessTimestamp: " + lastAccessTimestamp,
+                    lastAccessTimestamp >= timeBeforeRequest && lastAccessTimestamp <= timeAfterRequest);
         } finally {
-            cacheDatabase.close();
+            if (cacheEntry != null) cacheEntry.close();
         }
-
-        // Save it in the database and check that it's really there
-        urlCache.save(cacheEntry, true);
-        long timeAfterRequest = CacheEntry.getCurrentTimestamp();
-        try {
-            cacheDatabase.openConnection();
-            Assert.assertTrue(String.format("The HTTP head request for %s was not saved in the cache database.", eatlasUrl),
-                    cacheDatabase.exists(eatlasUrl));
-        } finally {
-            cacheDatabase.close();
-        }
-
-        LOGGER.log(Level.INFO, cacheEntry.toString());
-
-        Assert.assertEquals(eatlasUrl, cacheEntry.getUrl());
-        Assert.assertEquals(RequestMethod.HEAD, cacheEntry.getRequestMethod());
-        Assert.assertEquals(new Integer(200), cacheEntry.getHttpStatusCode());
-
-        Long requestTimestamp = cacheEntry.getRequestTimestamp();
-        Assert.assertNotNull("RequestTimestamp is null", requestTimestamp);
-        Assert.assertTrue("Invalid RequestTimestamp: " + requestTimestamp,
-                requestTimestamp >= timeBeforeRequest && requestTimestamp <= timeAfterRequest);
-
-        Long lastAccessTimestamp = cacheEntry.getLastAccessTimestamp();
-        Assert.assertNotNull("LastAccessTimestamp is null", lastAccessTimestamp);
-        Assert.assertTrue("Invalid LastAccessTimestamp: " + lastAccessTimestamp,
-                lastAccessTimestamp >= timeBeforeRequest && lastAccessTimestamp <= timeAfterRequest);
-
-        cacheEntry.close();
     }
 
     @Test
@@ -112,10 +114,11 @@ public class URLCacheTest {
         }
 
         Long downloadTimestamp;
-        {
+        CacheEntry cacheEntry = null;
+        try {
             // Download
             long timeBeforeRequest = CacheEntry.getCurrentTimestamp();
-            CacheEntry cacheEntry = urlCache.getHttpDocument(eatlasUrl, entityId);
+            cacheEntry = urlCache.getHttpDocument(eatlasUrl, entityId);
             LOGGER.log(Level.INFO, "Download: " + cacheEntry.toString());
 
 
@@ -156,15 +159,19 @@ public class URLCacheTest {
             // Check document
             this.checkEatlasDownloadedDocument(cacheEntry.getDocumentFile(), eatlasUrl);
 
+        } finally {
             // Clean-up
-            cacheEntry.close();
+            if (cacheEntry != null ) {
+                cacheEntry.close();
+                cacheEntry = null;
+            }
         }
 
 
-        {
+        try {
             // Get the document, from cache
             long timeBeforeRequest = CacheEntry.getCurrentTimestamp();
-            CacheEntry cacheEntry = urlCache.getHttpDocument(eatlasUrl, entityId);
+            cacheEntry = urlCache.getHttpDocument(eatlasUrl, entityId);
             urlCache.save(cacheEntry, true);
             LOGGER.log(Level.INFO, "Get: " + cacheEntry.toString());
             long timeAfterRequest = CacheEntry.getCurrentTimestamp();
@@ -186,15 +193,19 @@ public class URLCacheTest {
             // Check document
             this.checkEatlasDownloadedDocument(cacheEntry.getDocumentFile(), eatlasUrl);
 
+        } finally {
             // Clean-up
-            cacheEntry.close();
+            if (cacheEntry != null ) {
+                cacheEntry.close();
+                cacheEntry = null;
+            }
         }
 
 
-        {
+        try {
             // Re-download the document
             long timeBeforeRequest = CacheEntry.getCurrentTimestamp();
-            CacheEntry cacheEntry = urlCache.getHttpDocument(eatlasUrl, entityId, true);
+            cacheEntry = urlCache.getHttpDocument(eatlasUrl, entityId, true);
             urlCache.save(cacheEntry, true);
             LOGGER.log(Level.INFO, "Re-download: " + cacheEntry.toString());
             long timeAfterRequest = CacheEntry.getCurrentTimestamp();
@@ -216,8 +227,11 @@ public class URLCacheTest {
             // Check document
             this.checkEatlasDownloadedDocument(cacheEntry.getDocumentFile(), eatlasUrl);
 
+        } finally {
             // Clean-up
-            cacheEntry.close();
+            if (cacheEntry != null ) {
+                cacheEntry.close();
+            }
         }
     }
 
@@ -241,11 +255,12 @@ public class URLCacheTest {
             cacheDatabase.close();
         }
 
+        CacheEntry cacheEntry = null;
         Long headTimestamp;
-        {
+        try {
             // Get Head
             long timeBeforeRequest = CacheEntry.getCurrentTimestamp();
-            CacheEntry cacheEntry = urlCache.getHttpHead(eatlasUrl, entityId);
+            cacheEntry = urlCache.getHttpHead(eatlasUrl, entityId);
             LOGGER.log(Level.INFO, "Head: " + cacheEntry.toString());
 
             Assert.assertNotNull(String.format("Could not get HTTP head for %s", eatlasUrl), cacheEntry);
@@ -279,16 +294,20 @@ public class URLCacheTest {
             Assert.assertNull("HEAD request produced a document file: " + cacheEntry.getDocumentFile(),
                     cacheEntry.getDocumentFile());
 
+        } finally {
             // Clean-up
-            cacheEntry.close();
+            if (cacheEntry != null) {
+                cacheEntry.close();
+                cacheEntry = null;
+            }
         }
 
 
         Long downloadTimestamp;
-        {
+        try {
             // Download the document
             long timeBeforeRequest = CacheEntry.getCurrentTimestamp();
-            CacheEntry cacheEntry = urlCache.getHttpDocument(eatlasUrl, entityId);
+            cacheEntry = urlCache.getHttpDocument(eatlasUrl, entityId);
             urlCache.save(cacheEntry, true);
             LOGGER.log(Level.INFO, "Download: " + cacheEntry.toString());
             long timeAfterRequest = CacheEntry.getCurrentTimestamp();
@@ -310,15 +329,19 @@ public class URLCacheTest {
             // Check document
             this.checkEatlasDownloadedDocument(cacheEntry.getDocumentFile(), eatlasUrl);
 
+        } finally {
             // Clean-up
-            cacheEntry.close();
+            if (cacheEntry != null) {
+                cacheEntry.close();
+                cacheEntry = null;
+            }
         }
 
 
-        {
+        try {
             // Get HEAD, all required info are already cached
             long timeBeforeRequest = CacheEntry.getCurrentTimestamp();
-            CacheEntry cacheEntry = urlCache.getHttpHead(eatlasUrl, entityId);
+            cacheEntry = urlCache.getHttpHead(eatlasUrl, entityId);
             urlCache.save(cacheEntry, true);
             LOGGER.log(Level.INFO, "Re-head: " + cacheEntry.toString());
             long timeAfterRequest = CacheEntry.getCurrentTimestamp();
@@ -341,8 +364,10 @@ public class URLCacheTest {
             Assert.assertNull("HEAD request produced a document file: " + cacheEntry.getDocumentFile(),
                     cacheEntry.getDocumentFile());
 
-            // Clean-up
-            cacheEntry.close();
+        } finally {
+            if (cacheEntry != null) {
+                cacheEntry.close();
+            }
         }
     }
 

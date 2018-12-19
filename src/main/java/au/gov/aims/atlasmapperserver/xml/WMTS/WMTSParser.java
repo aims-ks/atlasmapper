@@ -68,58 +68,65 @@ public class WMTSParser {
 
         // Download GetCapabilities document (or get from cache)
         CacheEntry capabilitiesCacheEntry = null;
+        CacheEntry rollbackCacheEntry = null;
         try {
-            capabilitiesCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId());
-            if (capabilitiesCacheEntry != null) {
-                File wmtsDocumentFile = capabilitiesCacheEntry.getDocumentFile();
-                if (wmtsDocumentFile != null) {
-                    logger.log(Level.INFO, "Parsing WMTS GetCapabilities document");
-                    wmtsDocument = parseFile(wmtsDocumentFile, urlStr);
-                    if (wmtsDocument != null) {
-                        urlCache.save(capabilitiesCacheEntry, true);
-                    }
-                }
-            }
-        } catch (Exception ex) {
-            // The GetCapibilities document was not good. Use the previous version if possible
-            logger.log(Level.WARNING, String.format("Error occurred while parsing the [WMTS GetCapabilities document](%s): %s",
-                    urlStr, Utils.getExceptionMessage(ex)), ex);
-        }
-
-        // Could not get a working GetCapabilities document
-        // Rollback to previous version
-        if (wmtsDocument == null) {
             try {
-                CacheEntry rollbackCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId(), false);
-                if (rollbackCacheEntry != null) {
-                    Boolean valid = rollbackCacheEntry.getValid();
-                    if (valid != null && valid) {
-                        File rollbackFile = rollbackCacheEntry.getDocumentFile();
-                        if (rollbackFile != null) {
-                            wmtsDocument = parseFile(rollbackFile, urlStr);
-                            if (wmtsDocument != null) {
-                                // Save last access timestamp, usage, etc
-                                urlCache.save(rollbackCacheEntry, true);
-                            }
+                capabilitiesCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId());
+                if (capabilitiesCacheEntry != null) {
+                    File wmtsDocumentFile = capabilitiesCacheEntry.getDocumentFile();
+                    if (wmtsDocumentFile != null) {
+                        logger.log(Level.INFO, "Parsing WMTS GetCapabilities document");
+                        wmtsDocument = parseFile(wmtsDocumentFile, urlStr);
+                        if (wmtsDocument != null) {
+                            urlCache.save(capabilitiesCacheEntry, true);
                         }
                     }
                 }
-            } catch (Exception exx) {
-                // This should not happen
-                logger.log(Level.WARNING, String.format("Error occurred while getting the previous [WMTS GetCapabilities document](%s): %s",
-                        urlStr, Utils.getExceptionMessage(exx)), exx);
+            } catch (Exception ex) {
+                // The GetCapibilities document was not good. Use the previous version if possible
+                logger.log(Level.WARNING, String.format("Error occurred while parsing the [WMTS GetCapabilities document](%s): %s",
+                        urlStr, Utils.getExceptionMessage(ex)), ex);
             }
-        }
 
-        // Even the rollback didn't work
-        if (wmtsDocument == null) {
-            // Save what we have in DB
-            try {
-                urlCache.save(capabilitiesCacheEntry, false);
-            } catch (Exception exxx) {
-                logger.log(Level.WARNING, String.format("Error occurred while saving the entry into the cache database [WMTS GetCapabilities document](%s): %s",
-                        urlStr, Utils.getExceptionMessage(exxx)), exxx);
+            // Could not get a working GetCapabilities document
+            // Rollback to previous version
+            if (wmtsDocument == null) {
+                try {
+                    rollbackCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId(), false);
+                    if (rollbackCacheEntry != null) {
+                        Boolean valid = rollbackCacheEntry.getValid();
+                        if (valid != null && valid) {
+                            File rollbackFile = rollbackCacheEntry.getDocumentFile();
+                            if (rollbackFile != null) {
+                                wmtsDocument = parseFile(rollbackFile, urlStr);
+                                if (wmtsDocument != null) {
+                                    // Save last access timestamp, usage, etc
+                                    urlCache.save(rollbackCacheEntry, true);
+                                }
+                            }
+                        }
+                    }
+                } catch (Exception exx) {
+                    // This should not happen
+                    logger.log(Level.WARNING, String.format("Error occurred while getting the previous [WMTS GetCapabilities document](%s): %s",
+                            urlStr, Utils.getExceptionMessage(exx)), exx);
+                }
             }
+
+            // Even the rollback didn't work
+            if (wmtsDocument == null) {
+                // Save what we have in DB
+                try {
+                    urlCache.save(capabilitiesCacheEntry, false);
+                } catch (Exception exxx) {
+                    logger.log(Level.WARNING, String.format("Error occurred while saving the entry into the cache database [WMTS GetCapabilities document](%s): %s",
+                            urlStr, Utils.getExceptionMessage(exxx)), exxx);
+                }
+            }
+
+        } finally {
+            if (capabilitiesCacheEntry != null) capabilitiesCacheEntry.close();
+            if (rollbackCacheEntry != null) rollbackCacheEntry.close();
         }
 
         RevivableThread.checkForInterruption();
