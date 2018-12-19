@@ -21,6 +21,7 @@
 
 package au.gov.aims.atlasmapperserver.layerGenerator;
 
+import au.gov.aims.atlasmapperserver.cache.URLCache;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.BingDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.BingLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
@@ -57,6 +58,7 @@ public class BingLayerGenerator extends AbstractLayerGenerator<BingLayerConfig, 
     @Override
     public LayerCatalog generateRawLayerCatalog(
             ThreadLogger logger,
+            URLCache urlCache,
             BingDataSourceConfig dataSourceConfig,
             boolean redownloadPrimaryFiles,
             boolean redownloadSecondaryFiles

@@ -21,6 +21,7 @@
 
 package au.gov.aims.atlasmapperserver.layerGenerator;
 
+import au.gov.aims.atlasmapperserver.cache.URLCache;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.GoogleDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.GoogleLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
@@ -62,6 +63,7 @@ public class GoogleLayerGenerator extends AbstractLayerGenerator<GoogleLayerConf
     @Override
     public LayerCatalog generateRawLayerCatalog(
             ThreadLogger logger,
+            URLCache urlCache,
             GoogleDataSourceConfig dataSourceConfig,
             boolean redownloadPrimaryFiles,
             boolean redownloadSecondaryFiles

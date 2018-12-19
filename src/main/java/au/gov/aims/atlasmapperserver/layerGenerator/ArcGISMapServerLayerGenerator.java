@@ -21,11 +21,12 @@
 
 package au.gov.aims.atlasmapperserver.layerGenerator;
 
-import au.gov.aims.atlasmapperserver.URLCache;
+import au.gov.aims.atlasmapperserver.cache.CacheEntry;
+import au.gov.aims.atlasmapperserver.cache.URLCache;
+import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.ArcGISMapServerDataSourceConfig;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
-import au.gov.aims.atlasmapperserver.layerConfig.ArcGISCacheLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.ArcGISMapServerLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.GroupLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
@@ -33,10 +34,14 @@ import au.gov.aims.atlasmapperserver.thread.RevivableThread;
 import au.gov.aims.atlasmapperserver.thread.RevivableThreadInterruptedException;
 import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.opengis.referencing.NoSuchAuthorityCodeException;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -94,10 +99,10 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
     @Override
     public LayerCatalog generateRawLayerCatalog(
             ThreadLogger logger,
+            URLCache urlCache,
             ArcGISMapServerDataSourceConfig dataSourceConfig,
             boolean redownloadPrimaryFiles,
-            boolean redownloadSecondaryFiles
-    ) throws RevivableThreadInterruptedException {
+            boolean redownloadSecondaryFiles) throws RevivableThreadInterruptedException {
 
         RevivableThread.checkForInterruption();
 
@@ -109,7 +114,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
         Map<String, AbstractLayerConfig> layers = new HashMap<String, AbstractLayerConfig>();
 
         // Fill the Map of layers
-        this.parseJSON(logger, layers, null, null, null, dataSourceConfig);
+        this.parseJSON(logger, urlCache, layers, null, null, null, dataSourceConfig);
         RevivableThread.checkForInterruption();
 
         layerCatalog.addLayers(layers.values());
@@ -166,6 +171,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 
     private List<AbstractLayerConfig> parseJSON(
             ThreadLogger logger,
+            URLCache urlCache,
             Map<String, AbstractLayerConfig> allLayers,
             String treePath,
             String arcGISPath,
@@ -199,12 +205,11 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 
         JSONObject json;
         try {
-            json = URLCache.getJSONResponse(
-                    logger, "ArcGIS JSON service",
-                    dataSourceConfig.getConfigManager(),
+            json = this.getJSONResponse(
+                    logger,
+                    urlCache,
                     dataSourceConfig,
                     jsonUrl,
-                    URLCache.Category.CAPABILITIES_DOCUMENT,
                     true
             );
         } catch (Exception ex) {
@@ -241,12 +246,11 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                             }
 
                             try {
-                                jsonGroupExtra = URLCache.getJSONResponse(
-                                        logger, "ArcGIS JSON group extra",
-                                        dataSourceConfig.getConfigManager(),
+                                jsonGroupExtra = this.getJSONResponse(
+                                        logger,
+                                        urlCache,
                                         dataSourceConfig,
                                         groupExtraJsonUrl,
-                                        URLCache.Category.CAPABILITIES_DOCUMENT,
                                         true
                                 );
                             } catch (Exception ex) {
@@ -279,12 +283,11 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                             }
 
                             try {
-                                jsonLayerExtra = URLCache.getJSONResponse(
-                                        logger, "ArcGIS JSON layer extra",
-                                        dataSourceConfig.getConfigManager(),
+                                jsonLayerExtra = this.getJSONResponse(
+                                        logger,
+                                        urlCache,
                                         dataSourceConfig,
                                         layerExtraJsonUrl,
-                                        URLCache.Category.CAPABILITIES_DOCUMENT,
                                         true
                                 );
                             } catch (Exception ex) {
@@ -359,7 +362,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                     // If one of the folder name is null or an empty string, the URL will be the same, returning the
                     // same folder name including the null / empty string.
                     if (Utils.isNotBlank(childArcGISPath)) {
-                        this.parseJSON(logger, allLayers, childArcGISPath, childArcGISPath, null, dataSourceConfig);
+                        this.parseJSON(logger, urlCache, allLayers, childArcGISPath, childArcGISPath, null, dataSourceConfig);
                     }
                 }
             }
@@ -383,12 +386,11 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                         }
 
                         try {
-                            jsonServiceExtra = URLCache.getJSONResponse(
-                                    logger, "ArcGIS JSON service extra",
-                                    dataSourceConfig.getConfigManager(),
+                            jsonServiceExtra = this.getJSONResponse(
+                                    logger,
+                                    urlCache,
                                     dataSourceConfig,
                                     serviceExtraJsonUrl,
-                                    URLCache.Category.CAPABILITIES_DOCUMENT,
                                     true
                             );
                         } catch (Exception ex) {
@@ -399,7 +401,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                         }
                     }
 
-                    List<AbstractLayerConfig> subChildren = this.parseJSON(logger, allLayers, treePath, childArcGISPath, childType, dataSourceConfig);
+                    List<AbstractLayerConfig> subChildren = this.parseJSON(logger, urlCache, allLayers, treePath, childArcGISPath, childType, dataSourceConfig);
                     if (subChildren != null) {
                         AbstractLayerConfig layerService = this.getLayerServiceConfig(logger, childArcGISPath, subChildren, jsonServiceExtra, dataSourceConfig);
                         this.ensureUniqueLayerId(layerService, dataSourceConfig);
@@ -425,6 +427,73 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 
         RevivableThread.checkForInterruption();
         return children.isEmpty() ? null : children;
+    }
+
+    private JSONObject getJSONResponse(
+            ThreadLogger logger,
+            URLCache urlCache,
+            AbstractDataSourceConfig dataSource,
+            String urlStr,
+            boolean mandatory
+    ) throws IOException, JSONException, RevivableThreadInterruptedException {
+
+        RevivableThread.checkForInterruption();
+
+        URL url = new URL(urlStr);
+        JSONObject jsonResponse = null;
+
+        // Download JSON document (or get from cache)
+        CacheEntry jsonCacheEntry = null;
+        try {
+            jsonCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId());
+            if (jsonCacheEntry != null) {
+                File jsonFile = jsonCacheEntry.getDocumentFile();
+                if (jsonFile != null) {
+                    jsonResponse = URLCache.parseJSONObjectFile(jsonFile, logger, urlStr);
+                    if (jsonResponse != null) {
+                        urlCache.save(jsonCacheEntry, true);
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            logger.log(Level.WARNING, String.format("Error occurred while parsing the [JSON URL](%s): %s",
+                    urlStr, Utils.getExceptionMessage(ex)), ex);
+        }
+
+        // Could not get a working JSON document
+        // Rollback to previous version
+        if (jsonResponse == null) {
+            try {
+                CacheEntry rollbackJsonCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId(), false);
+                if (rollbackJsonCacheEntry != null) {
+                    File jsonFile = rollbackJsonCacheEntry.getDocumentFile();
+                    if (jsonFile != null) {
+                        jsonResponse = URLCache.parseJSONObjectFile(jsonFile, logger, urlStr);
+                        if (jsonResponse != null) {
+                            urlCache.save(rollbackJsonCacheEntry, true);
+                        }
+                    }
+                }
+            } catch (Exception ex) {
+                logger.log(Level.WARNING, String.format("Error occurred while parsing backup the [JSON URL](%s): %s",
+                        urlStr, Utils.getExceptionMessage(ex)), ex);
+            }
+        }
+
+        // Even the rollback didn't work
+        if (jsonResponse == null) {
+            // Save what we have in DB
+            try {
+                urlCache.save(jsonCacheEntry, false);
+            } catch (Exception exxx) {
+                logger.log(Level.WARNING, String.format("Error occurred while saving the entry into the cache database [WMTS GetCapabilities document](%s): %s",
+                        urlStr, Utils.getExceptionMessage(exxx)), exxx);
+            }
+        }
+
+        RevivableThread.checkForInterruption();
+
+        return jsonResponse;
     }
 
     private boolean isServiceSupported(String serviceType) {
@@ -471,62 +540,6 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
         if (jsonLayerExtra != null) {
             layer.setDescription(jsonLayerExtra.optString("description", null));
             layer.setLayerBoundingBox(this.getExtent(logger, jsonLayerExtra.optJSONObject("extent"), layer.getTitle(), dataSourceConfig.getDataSourceName()));
-        }
-
-        return layer;
-    }
-
-    // TODO Change the logic - Only the service (group of layers called map) is cache, not the individual layers
-    private ArcGISCacheLayerConfig getLayerCacheConfig(ThreadLogger logger, JSONObject jsonLayer, JSONObject jsonLayerExtra, JSONObject jsonParentService, ArcGISMapServerDataSourceConfig dataSourceConfig) {
-        ArcGISCacheLayerConfig layer = new ArcGISCacheLayerConfig(dataSourceConfig.getConfigManager());
-
-        String layerId = jsonLayer.optString("id", null);
-
-        layer.setLayerId(layerId);
-        layer.setLayerType("ARCGIS_CACHE");
-
-        layer.setTitle(jsonLayer.optString("name", null));
-        layer.setSelected(jsonLayer.optBoolean("defaultVisibility", true));
-
-        if (jsonLayerExtra != null) {
-            layer.setDescription(jsonLayerExtra.optString("description", null));
-            layer.setLayerBoundingBox(this.getExtent(logger, jsonLayerExtra.optJSONObject("extent"), layer.getTitle(), dataSourceConfig.getDataSourceName()));
-        }
-
-        if (jsonParentService != null) {
-            JSONObject tileInfo = jsonParentService.optJSONObject("tileInfo");
-            if (tileInfo != null) {
-                if (tileInfo.has("rows")) {
-                    layer.setTileRows(tileInfo.optInt("rows"));
-                }
-                if (tileInfo.has("cols")) {
-                    layer.setTileCols(tileInfo.optInt("cols"));
-                }
-                JSONObject origin = tileInfo.optJSONObject("origin");
-                if (origin != null) {
-                    if (origin.has("x")) {
-                        layer.setTileOriginX(origin.optDouble("x"));
-                    }
-                    if (origin.has("y")) {
-                        layer.setTileOriginX(origin.optDouble("y"));
-                    }
-                }
-                JSONArray lods = tileInfo.optJSONArray("lods");
-                if (lods != null) {
-                    ArrayList<Double> resolutions = new ArrayList<Double>();
-                    for (int i=0; i<lods.length(); i++) {
-                        JSONObject lod = lods.optJSONObject(i);
-                        if (lod != null) {
-                            if (lod.has("resolution")) {
-                                resolutions.add(lod.optDouble("resolution"));
-                            }
-                        }
-                    }
-                    if (!resolutions.isEmpty()) {
-                        layer.setTileResolutions(resolutions.toArray(new Double[resolutions.size()]));
-                    }
-                }
-            }
         }
 
         return layer;

@@ -29,11 +29,13 @@ import java.io.Closeable;
 import java.io.File;
 import java.net.URL;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Simple bean used to represent an entry in the DataBase
+ * Simple bean used to represent an entry in the database
  */
 public class CacheEntry implements Closeable {
     private static final Logger LOGGER = Logger.getLogger(CacheEntry.class.getName());
@@ -45,6 +47,10 @@ public class CacheEntry implements Closeable {
     private Long expiryTimestamp;
     private Integer httpStatusCode;
     private Boolean valid;
+
+    // List of entities (datasources) which are using this entry.
+    // This is used to cleanup entries that are not in used anymore.
+    private Set<String> usage;
 
     /**
      * The document File needs to be set before saving the CacheEntity.
@@ -125,8 +131,39 @@ public class CacheEntry implements Closeable {
         this.documentFile = documentFile;
     }
 
+    public Set<String> getUsage() {
+        return this.usage;
+    }
+
+    public void setUsage(Set<String> usage) {
+        this.usage = usage;
+    }
 
     // Helper methods
+
+    public boolean addUsage(String entityId) {
+        if (entityId == null || entityId.isEmpty()) {
+            return false;
+        }
+
+        if (this.usage == null) {
+            this.usage = new HashSet<String>();
+        }
+
+        return this.usage.add(entityId);
+    }
+
+    public boolean removeUsage(String entityId) {
+        if (entityId == null || entityId.isEmpty()) {
+            return false;
+        }
+
+        if (this.usage == null || this.usage.isEmpty()) {
+            return false;
+        }
+
+        return this.usage.remove(entityId);
+    }
 
     public boolean isExpired() {
         if (this.expiryTimestamp == null) {
@@ -136,6 +173,14 @@ public class CacheEntry implements Closeable {
 
         long currentTimestamp = CacheEntry.getCurrentTimestamp();
         return this.expiryTimestamp < currentTimestamp;
+    }
+
+    public boolean isPageNotFound() {
+        return this.httpStatusCode != null && this.httpStatusCode == 404;
+    }
+
+    public boolean isSuccess() {
+        return this.httpStatusCode != null && this.httpStatusCode >= 200 && this.httpStatusCode < 300;
     }
 
     public static long getCurrentTimestamp() {
@@ -155,6 +200,7 @@ public class CacheEntry implements Closeable {
             json.put("httpStatusCode", this.httpStatusCode);
             json.put("valid", this.valid);
             json.put("documentFile", this.documentFile);
+            json.put("usage", this.usage);
         } catch(JSONException ex) {
             // Very unlikely to happen
             LOGGER.log(Level.WARNING, String.format("Error occurred while creating the JSONObject: %s", Utils.getExceptionMessage(ex)), ex);
@@ -186,24 +232,27 @@ public class CacheEntry implements Closeable {
         }
 
         CacheEntry that = (CacheEntry) o;
-        return Utils.equals(url, that.url) &&
-                Utils.equals(requestMethod, that.requestMethod) &&
-                Utils.equals(requestTimestamp, that.requestTimestamp) &&
-                Utils.equals(lastAccessTimestamp, that.lastAccessTimestamp) &&
-                Utils.equals(expiryTimestamp, that.expiryTimestamp) &&
-                Utils.equals(httpStatusCode, that.httpStatusCode) &&
-                Utils.equals(valid, that.valid);
+        return Utils.equals(this.url.toString(), that.url.toString()) &&
+                Utils.equals(this.requestMethod, that.requestMethod) &&
+                Utils.equals(this.requestTimestamp, that.requestTimestamp) &&
+                Utils.equals(this.lastAccessTimestamp, that.lastAccessTimestamp) &&
+                Utils.equals(this.expiryTimestamp, that.expiryTimestamp) &&
+                Utils.equals(this.httpStatusCode, that.httpStatusCode) &&
+                Utils.equals(this.valid, that.valid) &&
+                Utils.equals(this.usage, that.usage);
     }
 
     @Override
     public int hashCode() {
-        int result = this.url == null ? 0 : this.url.hashCode();
+        // *IMPORTANT* Never use URL.hashCode()! It will load the document associated with the URL
+        int result = this.url == null ? 0 : this.url.toString().hashCode();
         result = 31 * result + (this.requestMethod == null ? 0 : this.requestMethod.hashCode());
         result = 31 * result + (this.requestTimestamp == null ? 0 : this.requestTimestamp.hashCode());
         result = 31 * result + (this.lastAccessTimestamp == null ? 0 : this.lastAccessTimestamp.hashCode());
         result = 31 * result + (this.expiryTimestamp == null ? 0 : this.expiryTimestamp.hashCode());
         result = 31 * result + (this.httpStatusCode == null ? 0 : this.httpStatusCode.hashCode());
         result = 31 * result + (this.valid == null ? 0 : this.valid.hashCode());
+        result = 31 * result + (this.usage == null ? 0 : this.usage.hashCode());
         return result;
     }
 

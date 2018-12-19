@@ -20,6 +20,7 @@
  */
 package au.gov.aims.atlasmapperserver;
 
+import au.gov.aims.atlasmapperserver.cache.URLCache;
 import au.gov.aims.atlasmapperserver.collection.MultiKeyHashMap;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.DataSourceConfigHelper;
@@ -652,6 +653,8 @@ public class ConfigManager {
             return;
         }
 
+        URLCache urlCache = new URLCache(this);
+
         MultiKeyHashMap<Integer, String, AbstractDataSourceConfig> configs = this.getDataSourceConfigs();
         JSONArray dataJSonArr = this.getPostedData(request);
         if (dataJSonArr != null) {
@@ -659,14 +662,18 @@ public class ConfigManager {
                 JSONObject dataJSonObj = dataJSonArr.optJSONObject(i);
 
                 if (dataJSonObj != null) {
-                    Integer dataSourceId = dataJSonObj.optInt("id", -1);
-                    AbstractDataSourceConfig dataSourceConfig = configs.remove1(dataSourceId);
+                    Integer rowId = dataJSonObj.optInt("id", -1);
+                    AbstractDataSourceConfig dataSourceConfig = configs.remove1(rowId);
 
                     // Clear dataSource cache since it doesn't exist anymore
-                    URLCache.reloadDiskCacheMapIfNeeded(this.getApplicationFolder());
-                    RevivableThread.checkForInterruption();
+                    String dataSourceId = dataSourceConfig.getDataSourceId();
+                    try {
+                        urlCache.deleteEntity(dataSourceId);
+                    } catch (Exception ex) {
+                        LOGGER.log(Level.WARNING, String.format("Error occurred while deleting the datasource ID %s from the cache database: %s",
+                                dataSourceId, Utils.getExceptionMessage(ex)), ex);
+                    }
 
-                    URLCache.deleteCache(this, dataSourceConfig);
                     RevivableThread.checkForInterruption();
                 }
             }
@@ -892,14 +899,15 @@ public class ConfigManager {
     }
 
 
-    public URLSaveState getMapStateForDataset(ThreadLogger logger, ClientConfig clientConfig, String iso19115_19139url)
+    public URLSaveState getMapStateForDataset(ThreadLogger logger, URLCache urlCache, ClientConfig clientConfig, String iso19115_19139url)
             throws Exception, RevivableThreadInterruptedException {
 
         RevivableThread.checkForInterruption();
 
         JSONArray jsonLayers = new JSONArray();
 
-        TC211Document tc211Document = TC211Parser.parseURL(logger, "client " + clientConfig.getClientName(), this, null, Utils.toURL(iso19115_19139url), false, true);
+        TC211Parser tc211Parser = new TC211Parser();
+        TC211Document tc211Document = tc211Parser.parseURL(logger, urlCache, null, Utils.toURL(iso19115_19139url), false, true);
         RevivableThread.checkForInterruption();
         if (tc211Document == null) {
             return null;

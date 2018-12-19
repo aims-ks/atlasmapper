@@ -25,6 +25,7 @@ import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.thread.RevivableThread;
 import au.gov.aims.atlasmapperserver.thread.RevivableThreadInterruptedException;
+import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
 import org.apache.http.HttpEntity;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -32,11 +33,16 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.methods.RequestBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.json.JSONTokener;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Reader;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.sql.SQLException;
@@ -47,7 +53,12 @@ public class URLCache {
     private static final Logger LOGGER = Logger.getLogger(URLCache.class.getName());
     protected static final long MAX_CACHED_FILE_SIZE = 50 * 1024 * 1024; // in Bytes
 
+    // Minimum delay to wait between expiry entry clean-up
+    // NOTE: If the clean up request is sent for every URL request, that would slow down the system considerably
+    private static long EXPIRY_CLEANUP_MINIMUM_DELAY = 1000 * 60 * 5; // 5 minutes
+
     private CacheDatabase cacheDatabase;
+    private static long lastExpiryCleanupTimestamp = 0;
 
     public URLCache(ConfigManager configManager) {
         this.cacheDatabase = new CacheDatabase(configManager);
@@ -61,15 +72,29 @@ public class URLCache {
         return this.cacheDatabase;
     }
 
-    public CacheEntry getHttpHead(URL url)
+    public CacheEntry getHttpHead(URL url, String entityId)
             throws RevivableThreadInterruptedException, SQLException, IOException, ClassNotFoundException, URISyntaxException {
 
-        return this.getHttpHead(url, false);
+        return this.getHttpHead(url, entityId, null);
     }
 
-    public CacheEntry getHttpHead(URL url, boolean redownload)
+    /**
+     *
+     * @param url
+     * @param entityId
+     * @param redownload Null to let the system decide. false to get what is in the DB. true to force a re-download.
+     * @return
+     * @throws RevivableThreadInterruptedException
+     * @throws SQLException
+     * @throws IOException
+     * @throws ClassNotFoundException
+     * @throws URISyntaxException
+     */
+    public CacheEntry getHttpHead(URL url, String entityId, Boolean redownload)
             throws RevivableThreadInterruptedException, SQLException, IOException, ClassNotFoundException, URISyntaxException {
 
+        // First, delete expired entries if any
+        this.deleteExpired();
         RevivableThread.checkForInterruption();
 
         CacheEntry cacheEntry = null;
@@ -79,13 +104,14 @@ public class URLCache {
             cacheEntry = this.cacheDatabase.get(url);
 
             // If re-download is required, re-download the URL.
-            // Otherwise, simply return what we got from the DataBase.
+            // Otherwise, simply return what we got from the database.
             if (this.isDownloadRequired(cacheEntry, redownload, RequestMethod.HEAD)) {
                 cacheEntry = this.requestHttpHead(url);
             }
 
-            cacheEntry.setLastAccessTimestamp(CacheEntry.getCurrentTimestamp());
-            this.cacheDatabase.save(cacheEntry);
+            if (cacheEntry != null) {
+                cacheEntry.addUsage(entityId);
+            }
         } finally {
             this.cacheDatabase.close();
         }
@@ -93,15 +119,29 @@ public class URLCache {
         return cacheEntry;
     }
 
-    public CacheEntry getHttpDocument(URL url)
+    public CacheEntry getHttpDocument(URL url, String entityId)
             throws RevivableThreadInterruptedException, SQLException, IOException, ClassNotFoundException, URISyntaxException {
 
-        return this.getHttpDocument(url, false);
+        return this.getHttpDocument(url, entityId, null);
     }
 
-    public CacheEntry getHttpDocument(URL url, boolean redownload)
+    /**
+     *
+     * @param url
+     * @param entityId
+     * @param redownload Null to let the system decide. false to get what is in the DB. true to force a re-download.
+     * @return
+     * @throws RevivableThreadInterruptedException
+     * @throws SQLException
+     * @throws IOException
+     * @throws ClassNotFoundException
+     * @throws URISyntaxException
+     */
+    public CacheEntry getHttpDocument(URL url, String entityId, Boolean redownload)
             throws RevivableThreadInterruptedException, SQLException, IOException, ClassNotFoundException, URISyntaxException {
 
+        // First, delete expired entries if any
+        this.deleteExpired();
         RevivableThread.checkForInterruption();
 
         CacheEntry cacheEntry = null;
@@ -111,20 +151,86 @@ public class URLCache {
             cacheEntry = this.cacheDatabase.get(url);
 
             // If re-download is required, re-download the URL.
-            // Otherwise, simply return what we got from the DataBase.
+            // Otherwise, simply return what we got from the database.
             if (this.isDownloadRequired(cacheEntry, redownload, RequestMethod.GET)) {
                 cacheEntry = this.requestHttpDocument(url);
             } else {
                 this.cacheDatabase.loadDocument(cacheEntry);
             }
 
-            cacheEntry.setLastAccessTimestamp(CacheEntry.getCurrentTimestamp());
-            this.cacheDatabase.save(cacheEntry);
+            cacheEntry.addUsage(entityId);
         } finally {
             this.cacheDatabase.close();
         }
 
         return cacheEntry;
+    }
+
+    public void save(CacheEntry cacheEntry, boolean valid)
+            throws RevivableThreadInterruptedException, SQLException, IOException, ClassNotFoundException {
+
+        this.save(cacheEntry, valid, null);
+    }
+
+    public void save(CacheEntry cacheEntry, boolean valid, Long expiryTimestamp)
+            throws RevivableThreadInterruptedException, SQLException, IOException, ClassNotFoundException {
+
+        RevivableThread.checkForInterruption();
+
+        if (cacheEntry != null) {
+            try {
+                this.cacheDatabase.openConnection();
+
+                cacheEntry.setValid(valid);
+                cacheEntry.setExpiryTimestamp(expiryTimestamp);
+                cacheEntry.setLastAccessTimestamp(CacheEntry.getCurrentTimestamp());
+
+                this.cacheDatabase.save(cacheEntry);
+            } finally {
+                this.cacheDatabase.close();
+            }
+        }
+    }
+
+    public void deleteExpired()
+            throws SQLException, IOException, ClassNotFoundException {
+
+        this.deleteExpired(false);
+    }
+
+    public void deleteExpired(boolean force)
+            throws SQLException, IOException, ClassNotFoundException {
+
+        long currentTimestamp = CacheEntry.getCurrentTimestamp();
+        if (force || URLCache.lastExpiryCleanupTimestamp + URLCache.EXPIRY_CLEANUP_MINIMUM_DELAY < currentTimestamp) {
+            URLCache.lastExpiryCleanupTimestamp = currentTimestamp;
+
+            try {
+                this.cacheDatabase.openConnection();
+                this.cacheDatabase.deleteExpired();
+            } finally {
+                this.cacheDatabase.close();
+            }
+        }
+    }
+
+    public void cleanUp(String entityId, long expiryTimestamp)
+            throws RevivableThreadInterruptedException, SQLException, IOException, ClassNotFoundException {
+
+        RevivableThread.checkForInterruption();
+
+        try {
+            this.cacheDatabase.openConnection();
+            this.cacheDatabase.cleanUp(entityId, expiryTimestamp);
+        } finally {
+            this.cacheDatabase.close();
+        }
+    }
+
+    public void deleteEntity(String entityId)
+            throws RevivableThreadInterruptedException, SQLException, IOException, ClassNotFoundException {
+
+        this.cleanUp(entityId, 0);
     }
 
     private CacheEntry requestHttpHead(URL url) throws URISyntaxException, RevivableThreadInterruptedException, IOException {
@@ -232,10 +338,10 @@ public class URLCache {
         return cacheEntry;
     }
 
-    private boolean isDownloadRequired(CacheEntry cacheEntry, boolean redownload, RequestMethod requestMethod) {
+    private boolean isDownloadRequired(CacheEntry cacheEntry, Boolean redownload, RequestMethod requestMethod) {
         // The user specified a redownload
-        if (redownload) {
-            return true;
+        if (redownload != null) {
+            return redownload;
         }
 
         // The URL has never been downloaded or it's expired
@@ -249,6 +355,62 @@ public class URLCache {
         }
 
         return false;
+    }
+
+    public static JSONObject parseJSONObjectFile(File jsonFile, ThreadLogger logger, String urlStr) {
+        JSONObject jsonResponse = null;
+        Reader reader = null;
+        try {
+            reader = new FileReader(jsonFile);
+            jsonResponse = new JSONObject(new JSONTokener(reader));
+        } catch(Exception ex) {
+            if (logger != null) {
+                logger.log(Level.WARNING, String.format("Can not load the [JSON Object](%s): %s",
+                        urlStr, Utils.getExceptionMessage(ex)), ex);
+            } else {
+                LOGGER.log(Level.WARNING, String.format("Can not load the JSON Object %s: %s",
+                        urlStr, Utils.getExceptionMessage(ex)), ex);
+            }
+        } finally {
+            if (reader != null) {
+                try {
+                    reader.close();
+                } catch (Exception ex) {
+                    LOGGER.log(Level.SEVERE, String.format("Can not close the JSON file %s: %s",
+                            jsonFile.getAbsoluteFile().getAbsolutePath(), Utils.getExceptionMessage(ex)), ex);
+                }
+            }
+        }
+
+        return jsonResponse;
+    }
+
+    public static JSONArray parseJSONArrayFile(File jsonFile, ThreadLogger logger, String urlStr) {
+        JSONArray jsonResponse = null;
+        Reader reader = null;
+        try {
+            reader = new FileReader(jsonFile);
+            jsonResponse = new JSONArray(new JSONTokener(reader));
+        } catch(Exception ex) {
+            if (logger != null) {
+                logger.log(Level.WARNING, String.format("Can not load the [JSON Array](%s): %s",
+                        urlStr, Utils.getExceptionMessage(ex)), ex);
+            } else {
+                LOGGER.log(Level.WARNING, String.format("Can not load the JSON Array %s: %s",
+                        urlStr, Utils.getExceptionMessage(ex)), ex);
+            }
+        } finally {
+            if (reader != null) {
+                try {
+                    reader.close();
+                } catch (Exception ex) {
+                    LOGGER.log(Level.SEVERE, String.format("Can not close the JSON file %s: %s",
+                            jsonFile.getAbsoluteFile().getAbsolutePath(), Utils.getExceptionMessage(ex)), ex);
+                }
+            }
+        }
+
+        return jsonResponse;
     }
 
 }

@@ -22,6 +22,7 @@
 package au.gov.aims.atlasmapperserver;
 
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
+import au.gov.aims.atlasmapperserver.cache.URLCache;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.jsonWrappers.client.ClientWrapper;
 import au.gov.aims.atlasmapperserver.jsonWrappers.client.DataSourceWrapper;
@@ -53,6 +54,7 @@ import javax.servlet.ServletContext;
 
 import au.gov.aims.atlasmapperserver.thread.AbstractRunnableConfig;
 import au.gov.aims.atlasmapperserver.thread.ClientConfigThread;
+import au.gov.aims.atlasmapperserver.thread.RevivableThreadInterruptedException;
 import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -1099,7 +1101,9 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
     }
 
 
-    public JSONObject locationSearch(String query, String referer, String mapBounds, int offset, int qty) throws JSONException, IOException {
+    public JSONObject locationSearch(URLCache urlCache, String query, String referer, String mapBounds, int offset, int qty)
+            throws JSONException, IOException, RevivableThreadInterruptedException {
+
         if (Utils.isBlank(query) || qty <= 0) {
             return null;
         }
@@ -1131,7 +1135,7 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
         try {
             String googleSearchAPIKey = this.getGoogleSearchAPIKey();
             if (this.isShowGoogleResults() && Utils.isNotBlank(googleSearchAPIKey)) {
-                List<JSONObject> googleResults = LocationSearch.googleSearch(googleSearchAPIKey, referer, encodedQuery, mapBounds);
+                List<JSONObject> googleResults = LocationSearch.googleSearch(urlCache, googleSearchAPIKey, referer, encodedQuery, mapBounds);
                 if (googleResults != null && !googleResults.isEmpty()) {
                     resultsSet.addAll(googleResults);
                 }
@@ -1143,7 +1147,7 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
         try {
             String osmSearchAPIKey = this.getOsmSearchAPIKey();
             if (this.isShowOSMResults() && Utils.isNotBlank(osmSearchAPIKey)) {
-                List<JSONObject> osmNominatimResults = LocationSearch.osmNominatimSearch(osmSearchAPIKey, referer, encodedQuery, mapBounds);
+                List<JSONObject> osmNominatimResults = LocationSearch.osmNominatimSearch(urlCache, osmSearchAPIKey, referer, encodedQuery, mapBounds);
                 if (osmNominatimResults != null && !osmNominatimResults.isEmpty()) {
                     resultsSet.addAll(osmNominatimResults);
                 }
@@ -1155,7 +1159,7 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
         try {
             String arcGISSearchUrl = this.getArcGISSearchUrl();
             if (this.isShowArcGISResults() && Utils.isNotBlank(arcGISSearchUrl)) {
-                List<JSONObject> arcGISResults = LocationSearch.arcGISSearch(referer, arcGISSearchUrl, encodedQuery, mapBounds);
+                List<JSONObject> arcGISResults = LocationSearch.arcGISSearch(urlCache, referer, arcGISSearchUrl, encodedQuery, mapBounds);
                 if (arcGISResults != null && !arcGISResults.isEmpty()) {
                     resultsSet.addAll(arcGISResults);
                 }

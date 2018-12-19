@@ -20,15 +20,14 @@
  */
 package au.gov.aims.atlasmapperserver.xml.WMTS;
 
-import au.gov.aims.atlasmapperserver.ConfigManager;
-import au.gov.aims.atlasmapperserver.URLCache;
+import au.gov.aims.atlasmapperserver.Utils;
+import au.gov.aims.atlasmapperserver.cache.CacheEntry;
+import au.gov.aims.atlasmapperserver.cache.URLCache;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.thread.RevivableThread;
 import au.gov.aims.atlasmapperserver.thread.RevivableThreadInterruptedException;
 import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
-import org.json.JSONException;
 import org.xml.sax.SAXException;
-import org.xml.sax.SAXNotRecognizedException;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -44,47 +43,91 @@ public class WMTSParser {
     private static final Logger LOGGER = Logger.getLogger(WMTSParser.class.getName());
 
     /**
-     * Cached
-     * @param configManager Config manager associated to that URL, for caching purpose
+     *
+     * @param logger
+     * @param urlCache
      * @param dataSource Data source associated to that URL, for caching purpose
      * @param url Url of the document to parse
      * @param mandatory True to cancel the client generation if the file cause problem
      * @return
-     * @throws SAXException
-     * @throws ParserConfigurationException
-     * @throws IOException
-     * @throws JSONException
      * @throws RevivableThreadInterruptedException
      */
-    public static WMTSDocument parseURL(ThreadLogger logger, ConfigManager configManager, AbstractDataSourceConfig dataSource, URL url, boolean mandatory)
-            throws SAXException, ParserConfigurationException, IOException, JSONException, RevivableThreadInterruptedException {
+    public static WMTSDocument parseURL(
+            ThreadLogger logger,
+            URLCache urlCache,
+            AbstractDataSourceConfig dataSource,
+            URL url,
+            boolean mandatory
+    ) throws RevivableThreadInterruptedException {
 
         RevivableThread.checkForInterruption();
 
         String urlStr = url.toString();
-        File cachedDocumentFile = null;
 
         WMTSDocument wmtsDocument = null;
+
+        // Download GetCapabilities document (or get from cache)
+        CacheEntry capabilitiesCacheEntry = null;
         try {
-            cachedDocumentFile = URLCache.getURLFile(logger, "WMTS GetCapabilities document", configManager, dataSource, urlStr, URLCache.Category.CAPABILITIES_DOCUMENT, mandatory);
-            logger.log(Level.INFO, "Parsing WMTS GetCapabilities document");
-            wmtsDocument = parseFile(cachedDocumentFile, urlStr);
-            if (wmtsDocument == null) {
-                File rollbackFile = URLCache.rollbackURLFile(logger, "WMTS GetCapabilities document", configManager, cachedDocumentFile, urlStr, "Invalid WMTS document");
-                wmtsDocument = parseFile(rollbackFile, urlStr);
-            } else {
-                URLCache.commitURLFile(configManager, cachedDocumentFile, urlStr);
+            capabilitiesCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId());
+            if (capabilitiesCacheEntry != null) {
+                File wmtsDocumentFile = capabilitiesCacheEntry.getDocumentFile();
+                if (wmtsDocumentFile != null) {
+                    logger.log(Level.INFO, "Parsing WMTS GetCapabilities document");
+                    wmtsDocument = parseFile(wmtsDocumentFile, urlStr);
+                    if (wmtsDocument != null) {
+                        urlCache.save(capabilitiesCacheEntry, true);
+                    }
+                }
             }
         } catch (Exception ex) {
-            File rollbackFile = URLCache.rollbackURLFile(logger, "WMTS GetCapabilities document", configManager, cachedDocumentFile, urlStr, ex);
-            wmtsDocument = parseFile(rollbackFile, urlStr);
+            // The GetCapibilities document was not good. Use the previous version if possible
+            logger.log(Level.WARNING, String.format("Error occurred while parsing the [WMTS GetCapabilities document](%s): %s",
+                    urlStr, Utils.getExceptionMessage(ex)), ex);
         }
+
+        // Could not get a working GetCapabilities document
+        // Rollback to previous version
+        if (wmtsDocument == null) {
+            try {
+                CacheEntry rollbackCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId(), false);
+                if (rollbackCacheEntry != null) {
+                    Boolean valid = rollbackCacheEntry.getValid();
+                    if (valid != null && valid) {
+                        File rollbackFile = rollbackCacheEntry.getDocumentFile();
+                        if (rollbackFile != null) {
+                            wmtsDocument = parseFile(rollbackFile, urlStr);
+                            if (wmtsDocument != null) {
+                                // Save last access timestamp, usage, etc
+                                urlCache.save(rollbackCacheEntry, true);
+                            }
+                        }
+                    }
+                }
+            } catch (Exception exx) {
+                // This should not happen
+                logger.log(Level.WARNING, String.format("Error occurred while getting the previous [WMTS GetCapabilities document](%s): %s",
+                        urlStr, Utils.getExceptionMessage(exx)), exx);
+            }
+        }
+
+        // Even the rollback didn't work
+        if (wmtsDocument == null) {
+            // Save what we have in DB
+            try {
+                urlCache.save(capabilitiesCacheEntry, false);
+            } catch (Exception exxx) {
+                logger.log(Level.WARNING, String.format("Error occurred while saving the entry into the cache database [WMTS GetCapabilities document](%s): %s",
+                        urlStr, Utils.getExceptionMessage(exxx)), exxx);
+            }
+        }
+
         RevivableThread.checkForInterruption();
 
         return wmtsDocument;
     }
 
-    private static SAXParser getSAXParser() throws SAXException, SAXNotRecognizedException, ParserConfigurationException {
+    private static SAXParser getSAXParser() throws SAXException, ParserConfigurationException {
         SAXParserFactory factory = SAXParserFactory.newInstance();
 
         // Disabling DTD loading & validation

@@ -41,7 +41,8 @@ public class URLCacheTest {
         CacheDatabase cacheDatabase = urlCache.getCacheDatabase();
 
         URL eatlasUrl = new URL("https://eatlas.org.au");
-        // Ensure there is no entry for it in the DataBase
+        String entityId = "ea";
+        // Ensure there is no entry for it in the database
         try {
             cacheDatabase.openConnection();
             cacheDatabase.delete(eatlasUrl);
@@ -52,15 +53,25 @@ public class URLCacheTest {
 
         // Get Head
         long timeBeforeRequest = CacheEntry.getCurrentTimestamp();
-        CacheEntry cacheEntry = urlCache.getHttpHead(eatlasUrl);
-        long timeAfterRequest = CacheEntry.getCurrentTimestamp();
-
+        CacheEntry cacheEntry = urlCache.getHttpHead(eatlasUrl, entityId);
 
         Assert.assertNotNull(String.format("Could not get HTTP head for %s", eatlasUrl), cacheEntry);
 
+        // Ensure it's not in the data base yet (haven't been saved)
         try {
             cacheDatabase.openConnection();
-            Assert.assertTrue(String.format("The HTTP head request for %s was not saved in the cache DataBase.", eatlasUrl),
+            Assert.assertFalse(String.format("The HTTP head request for %s was saved in the cache database before the save method was called.", eatlasUrl),
+                    cacheDatabase.exists(eatlasUrl));
+        } finally {
+            cacheDatabase.close();
+        }
+
+        // Save it in the database and check that it's really there
+        urlCache.save(cacheEntry, true);
+        long timeAfterRequest = CacheEntry.getCurrentTimestamp();
+        try {
+            cacheDatabase.openConnection();
+            Assert.assertTrue(String.format("The HTTP head request for %s was not saved in the cache database.", eatlasUrl),
                     cacheDatabase.exists(eatlasUrl));
         } finally {
             cacheDatabase.close();
@@ -91,7 +102,8 @@ public class URLCacheTest {
         CacheDatabase cacheDatabase = urlCache.getCacheDatabase();
 
         URL eatlasUrl = new URL("https://eatlas.org.au");
-        // Ensure there is no entry for it in the DataBase
+        String entityId = "ea";
+        // Ensure there is no entry for it in the database
         try {
             cacheDatabase.openConnection();
             cacheDatabase.delete(eatlasUrl);
@@ -103,16 +115,25 @@ public class URLCacheTest {
         {
             // Download
             long timeBeforeRequest = CacheEntry.getCurrentTimestamp();
-            CacheEntry cacheEntry = urlCache.getHttpDocument(eatlasUrl);
+            CacheEntry cacheEntry = urlCache.getHttpDocument(eatlasUrl, entityId);
             LOGGER.log(Level.INFO, "Download: " + cacheEntry.toString());
-            long timeAfterRequest = CacheEntry.getCurrentTimestamp();
 
 
             Assert.assertNotNull(String.format("Could not get HTTP document for %s", eatlasUrl), cacheEntry);
 
             try {
                 cacheDatabase.openConnection();
-                Assert.assertTrue(String.format("The HTTP document request for %s was not saved in the cache DataBase.", eatlasUrl),
+                Assert.assertFalse(String.format("The HTTP document request for %s was saved in the cache database before the save method was called.", eatlasUrl),
+                        cacheDatabase.exists(eatlasUrl));
+            } finally {
+                cacheDatabase.close();
+            }
+
+            urlCache.save(cacheEntry, true);
+            long timeAfterRequest = CacheEntry.getCurrentTimestamp();
+            try {
+                cacheDatabase.openConnection();
+                Assert.assertTrue(String.format("The HTTP document request for %s was not saved in the cache database.", eatlasUrl),
                         cacheDatabase.exists(eatlasUrl));
             } finally {
                 cacheDatabase.close();
@@ -143,7 +164,8 @@ public class URLCacheTest {
         {
             // Get the document, from cache
             long timeBeforeRequest = CacheEntry.getCurrentTimestamp();
-            CacheEntry cacheEntry = urlCache.getHttpDocument(eatlasUrl);
+            CacheEntry cacheEntry = urlCache.getHttpDocument(eatlasUrl, entityId);
+            urlCache.save(cacheEntry, true);
             LOGGER.log(Level.INFO, "Get: " + cacheEntry.toString());
             long timeAfterRequest = CacheEntry.getCurrentTimestamp();
 
@@ -172,7 +194,8 @@ public class URLCacheTest {
         {
             // Re-download the document
             long timeBeforeRequest = CacheEntry.getCurrentTimestamp();
-            CacheEntry cacheEntry = urlCache.getHttpDocument(eatlasUrl, true);
+            CacheEntry cacheEntry = urlCache.getHttpDocument(eatlasUrl, entityId, true);
+            urlCache.save(cacheEntry, true);
             LOGGER.log(Level.INFO, "Re-download: " + cacheEntry.toString());
             long timeAfterRequest = CacheEntry.getCurrentTimestamp();
 
@@ -209,7 +232,8 @@ public class URLCacheTest {
         CacheDatabase cacheDatabase = urlCache.getCacheDatabase();
 
         URL eatlasUrl = new URL("https://eatlas.org.au");
-        // Ensure there is no entry for it in the DataBase
+        String entityId = "ea";
+        // Ensure there is no entry for it in the database
         try {
             cacheDatabase.openConnection();
             cacheDatabase.delete(eatlasUrl);
@@ -221,16 +245,17 @@ public class URLCacheTest {
         {
             // Get Head
             long timeBeforeRequest = CacheEntry.getCurrentTimestamp();
-            CacheEntry cacheEntry = urlCache.getHttpHead(eatlasUrl);
+            CacheEntry cacheEntry = urlCache.getHttpHead(eatlasUrl, entityId);
             LOGGER.log(Level.INFO, "Head: " + cacheEntry.toString());
-            long timeAfterRequest = CacheEntry.getCurrentTimestamp();
-
 
             Assert.assertNotNull(String.format("Could not get HTTP head for %s", eatlasUrl), cacheEntry);
 
+            urlCache.save(cacheEntry, true);
+            long timeAfterRequest = CacheEntry.getCurrentTimestamp();
+
             try {
                 cacheDatabase.openConnection();
-                Assert.assertTrue(String.format("The HTTP head request for %s was not saved in the cache DataBase.", eatlasUrl),
+                Assert.assertTrue(String.format("The HTTP head request for %s was not saved in the cache database.", eatlasUrl),
                         cacheDatabase.exists(eatlasUrl));
             } finally {
                 cacheDatabase.close();
@@ -263,7 +288,8 @@ public class URLCacheTest {
         {
             // Download the document
             long timeBeforeRequest = CacheEntry.getCurrentTimestamp();
-            CacheEntry cacheEntry = urlCache.getHttpDocument(eatlasUrl);
+            CacheEntry cacheEntry = urlCache.getHttpDocument(eatlasUrl, entityId);
+            urlCache.save(cacheEntry, true);
             LOGGER.log(Level.INFO, "Download: " + cacheEntry.toString());
             long timeAfterRequest = CacheEntry.getCurrentTimestamp();
 
@@ -292,7 +318,8 @@ public class URLCacheTest {
         {
             // Get HEAD, all required info are already cached
             long timeBeforeRequest = CacheEntry.getCurrentTimestamp();
-            CacheEntry cacheEntry = urlCache.getHttpHead(eatlasUrl);
+            CacheEntry cacheEntry = urlCache.getHttpHead(eatlasUrl, entityId);
+            urlCache.save(cacheEntry, true);
             LOGGER.log(Level.INFO, "Re-head: " + cacheEntry.toString());
             long timeAfterRequest = CacheEntry.getCurrentTimestamp();
 
@@ -318,7 +345,6 @@ public class URLCacheTest {
             cacheEntry.close();
         }
     }
-
 
 
     private void checkEatlasDownloadedDocument(File documentFile, URL url) throws IOException {

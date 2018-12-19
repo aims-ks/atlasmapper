@@ -37,6 +37,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -65,23 +67,29 @@ public class CacheDatabase implements Closeable {
 
         if (this.connection == null) {
             this.connection = getDBConnection();
-            this.createTable();
+            this.createTables();
         }
     }
 
-    private synchronized void createTable() throws SQLException {
+    private synchronized void createTables() throws SQLException {
+        this.createCacheTable();
+        this.createCacheUsageTable();
+    }
+
+    private synchronized void createCacheTable() throws SQLException {
         // http://www.h2database.com/html/datatypes.html
         // We need to use BIGINT for timestamp. INT would stop working after 19/01/2038 (max INT value: 2'147'483'647)
         //     https://www.unixtimestamp.com/index.php
         String createQuery = "CREATE TABLE IF NOT EXISTS cache(" +
-                "url VARCHAR(2048) PRIMARY KEY, " +
+                "url VARCHAR(2048), " +
                 "requestMethod VARCHAR(32), " + // HEAD, GET, etc
                 "requestTimestamp BIGINT, " +   // Max value: 9'223'372'036'854'775'807 (equivalent to Java long)
                 "lastAccessTimestamp BIGINT, " +
                 "expiryTimestamp BIGINT, " +
                 "httpStatusCode SMALLINT, " +    // Max value: 32'767
                 "valid BOOLEAN, " +              // TRUE or FALSE
-                "document BLOB)";                // Very large object, not stored in memory. Handled with InputStream
+                "document BLOB, " +              // Very large object, not stored in memory. Handled with InputStream
+                "PRIMARY KEY (url))";
 
         PreparedStatement createPreparedStatement = null;
         try {
@@ -92,7 +100,30 @@ public class CacheDatabase implements Closeable {
                 try {
                     createPreparedStatement.close();
                 } catch(SQLException ex) {
-                    LOGGER.log(Level.SEVERE, String.format("Can not close the create table statement: %s",
+                    LOGGER.log(Level.SEVERE, String.format("Can not close the create cache table statement: %s",
+                            Utils.getExceptionMessage(ex)), ex);
+                }
+            }
+        }
+    }
+
+    private synchronized void createCacheUsageTable() throws SQLException {
+        String createQuery = "CREATE TABLE IF NOT EXISTS cacheUsage(" +
+                "url VARCHAR(2048), " +
+                "entityId VARCHAR(1024), " +
+                "PRIMARY KEY (url, entityId)," +
+                "FOREIGN KEY (url) REFERENCES cache(url))";
+
+        PreparedStatement createPreparedStatement = null;
+        try {
+            createPreparedStatement = this.connection.prepareStatement(createQuery);
+            createPreparedStatement.executeUpdate();
+        } finally {
+            if (createPreparedStatement != null) {
+                try {
+                    createPreparedStatement.close();
+                } catch(SQLException ex) {
+                    LOGGER.log(Level.SEVERE, String.format("Can not close the create cache usage table statement: %s",
                             Utils.getExceptionMessage(ex)), ex);
                 }
             }
@@ -150,12 +181,15 @@ public class CacheDatabase implements Closeable {
 
             insertPreparedStatement.executeUpdate();
 
+            this.saveCacheUsage(cacheEntry);
+
+            this.connection.commit();
         } finally {
             if (insertPreparedStatement != null) {
                 try {
                     insertPreparedStatement.close();
                 } catch(SQLException ex) {
-                    LOGGER.log(Level.SEVERE, String.format("Can not close the insert statement: %s",
+                    LOGGER.log(Level.SEVERE, String.format("Can not close the insert cache statement: %s",
                             Utils.getExceptionMessage(ex)), ex);
                 }
             }
@@ -206,12 +240,15 @@ public class CacheDatabase implements Closeable {
 
             updatePreparedStatement.executeUpdate();
 
+            this.saveCacheUsage(cacheEntry);
+
+            this.connection.commit();
         } finally {
             if (updatePreparedStatement != null) {
                 try {
                     updatePreparedStatement.close();
                 } catch(SQLException ex) {
-                    LOGGER.log(Level.SEVERE, String.format("Can not close the update statement: %s",
+                    LOGGER.log(Level.SEVERE, String.format("Can not close the update cache statement: %s",
                             Utils.getExceptionMessage(ex)), ex);
                 }
             }
@@ -220,6 +257,158 @@ public class CacheDatabase implements Closeable {
                     inputStream.close();
                 } catch(IOException ex) {
                     LOGGER.log(Level.SEVERE, String.format("Can not close the updated document file input stream: %s",
+                            Utils.getExceptionMessage(ex)), ex);
+                }
+            }
+        }
+    }
+
+    public synchronized void delete(URL url) throws SQLException {
+        if (this.connection == null) {
+            throw new IllegalStateException("Database connection is closed.");
+        }
+
+        if (url == null) {
+            throw new IllegalArgumentException("URL is null.");
+        }
+
+        String deleteQuery = "DELETE FROM cache WHERE url = ?";
+
+        PreparedStatement deletePreparedStatement = null;
+        try {
+            this.saveCacheUsage(url, null);
+
+            deletePreparedStatement = this.connection.prepareStatement(deleteQuery);
+            deletePreparedStatement.setString(1, url.toString());
+            deletePreparedStatement.executeUpdate();
+
+            this.connection.commit();
+        } finally {
+            if (deletePreparedStatement != null) {
+                try {
+                    deletePreparedStatement.close();
+                } catch(SQLException ex) {
+                    LOGGER.log(Level.SEVERE, String.format("Can not close the delete cache statement: %s",
+                            Utils.getExceptionMessage(ex)), ex);
+                }
+            }
+        }
+    }
+
+    public synchronized void deleteExpired() throws SQLException {
+        if (this.connection == null) {
+            throw new IllegalStateException("Database connection is closed.");
+        }
+
+        String deleteQuery = "DELETE FROM cache " +
+            "WHERE expiryTimestamp < ?";
+
+        PreparedStatement deletePreparedStatement = null;
+        try {
+            deletePreparedStatement = this.connection.prepareStatement(deleteQuery);
+            deletePreparedStatement.setLong(1, CacheEntry.getCurrentTimestamp());
+
+            deletePreparedStatement.executeUpdate();
+        } finally {
+            if (deletePreparedStatement != null) {
+                try {
+                    deletePreparedStatement.close();
+                } catch(SQLException ex) {
+                    LOGGER.log(Level.SEVERE, String.format("Can not close the delete expired cache statement: %s",
+                            Utils.getExceptionMessage(ex)), ex);
+                }
+            }
+        }
+
+        this.connection.commit();
+    }
+
+    public synchronized void cleanUp(String entityId, long expiryTimestamp) throws SQLException {
+        if (this.connection == null) {
+            throw new IllegalStateException("Database connection is closed.");
+        }
+
+        if (entityId == null || entityId.isEmpty()) {
+            throw new IllegalArgumentException("EntityId is null.");
+        }
+
+        // Find deprecated entries
+        Set<String> deprecatedUrls = this.findDeprecatedUrls(entityId, expiryTimestamp);
+
+        // Remove usage of entityId for each deprecatedUrl found
+        if (deprecatedUrls != null && !deprecatedUrls.isEmpty()) {
+            for (String deprecatedUrl : deprecatedUrls) {
+                this.deleteCacheUsage(deprecatedUrl, entityId);
+            }
+        }
+
+        // Delete unused entries
+        this.deleteUnused();
+
+        this.connection.commit();
+    }
+
+    // Return a set of url which are deprecated for the given entity ID.
+    // The Entity ID should be removed from those cache entries.
+    private Set<String> findDeprecatedUrls(String entityId, long expiryTimestamp) throws SQLException {
+        Set<String> deprecatedUrls = new HashSet<String>();
+
+        String selectQuery = "SELECT c.url AS url " +
+                "FROM cache AS c " +
+                "LEFT JOIN cacheUsage AS cu ON c.url = cu.url " +
+                "WHERE c.lastAccessTimestamp < ? " +
+                    "AND cu.entityId = ?";
+
+        PreparedStatement selectPreparedStatement = null;
+        try {
+            selectPreparedStatement = this.connection.prepareStatement(selectQuery);
+            selectPreparedStatement.setLong(1, expiryTimestamp);
+            selectPreparedStatement.setString(2, entityId);
+
+            ResultSet resultSet = selectPreparedStatement.executeQuery();
+            while (resultSet.next()) {
+                deprecatedUrls.add(resultSet.getString("url"));
+            }
+        } finally {
+            if (selectPreparedStatement != null) {
+                try {
+                    selectPreparedStatement.close();
+                } catch(SQLException ex) {
+                    LOGGER.log(Level.SEVERE, String.format("Can not close the select deprecated cache usage statement: %s",
+                            Utils.getExceptionMessage(ex)), ex);
+                }
+            }
+        }
+
+        return deprecatedUrls;
+    }
+
+    private void deleteUnused() throws SQLException {
+
+        // Delete cache entries that are not found in cacheUsage table
+        //   https://stackoverflow.com/questions/3384127/delete-sql-rows-where-ids-do-not-have-a-match-from-another-table
+        String deleteQuery = "DELETE FROM cache " +
+            "WHERE url NOT IN " +
+            "(SELECT DISTINCT cu.url FROM cacheUsage cu)";
+
+        // NOTE: H2 does not like DELETE with JOIN
+        /*
+        String deleteQuery = "DELETE c " +
+            "FROM cache c " +
+            "LEFT JOIN cacheUsage cu ON c.url = cu.url " +
+            "WHERE cu.url IS NULL";
+        */
+
+        PreparedStatement deletePreparedStatement = null;
+        try {
+            deletePreparedStatement = this.connection.prepareStatement(deleteQuery);
+            deletePreparedStatement.executeUpdate();
+        } finally {
+            if (deletePreparedStatement != null) {
+                try {
+                    deletePreparedStatement.close();
+                } catch(SQLException ex) {
+                    LOGGER.log(Level.SEVERE, String.format("Can not close the delete unused cache statement: %s",
                             Utils.getExceptionMessage(ex)), ex);
                 }
             }
@@ -253,6 +442,132 @@ public class CacheDatabase implements Closeable {
         return inputStream;
     }
 
+    private void saveCacheUsage(CacheEntry cacheEntry) throws SQLException {
+        this.saveCacheUsage(cacheEntry.getUrl(), cacheEntry.getUsage());
+    }
+
+    // It is safe to close the PreparedStatement before commit
+    //   https://coderanch.com/t/303444/databases/Closing-Statement-object-prior-committing
+    private void saveCacheUsage(URL url, Set<String> usage) throws SQLException {
+        if (usage == null || usage.isEmpty()) {
+            String deleteAllCacheUsageQuery = "DELETE FROM cacheUsage WHERE url = ?";
+
+            PreparedStatement deleteAllCacheUsageStmt = null;
+            try {
+                deleteAllCacheUsageStmt = this.connection.prepareStatement(deleteAllCacheUsageQuery);
+                deleteAllCacheUsageStmt.setString(1, url.toString());
+                deleteAllCacheUsageStmt.executeUpdate();
+            } finally {
+                if (deleteAllCacheUsageStmt != null) {
+                    try {
+                        deleteAllCacheUsageStmt.close();
+                    } catch(SQLException ex) {
+                        LOGGER.log(Level.SEVERE, String.format("Can not close the delete cache usage statement: %s",
+                                Utils.getExceptionMessage(ex)), ex);
+                    }
+                }
+            }
+
+        } else {
+            // Get existing usage
+            Set<String> oldUsage = this.getCacheUsage(url);
+
+            // Delete deprecated usage
+            for (String oldId : oldUsage) {
+                if (!usage.contains(oldId)) {
+                    this.deleteCacheUsage(url.toString(), oldId);
+                }
+            }
+
+            // Insert new usage
+            for (String newId : usage) {
+                if (!oldUsage.contains(newId)) {
+                    this.insertCacheUsage(url, newId);
+                }
+            }
+        }
+    }
+
+    private void deleteCacheUsage(String urlStr, String entityId) throws SQLException {
+        String deleteCacheUsageQuery = "DELETE FROM cacheUsage WHERE url = ? AND entityId = ?";
+
+        PreparedStatement deleteCacheUsageStmt = null;
+        try {
+            deleteCacheUsageStmt = this.connection.prepareStatement(deleteCacheUsageQuery);
+            deleteCacheUsageStmt.setString(1, urlStr);
+            deleteCacheUsageStmt.setString(2, entityId);
+            deleteCacheUsageStmt.executeUpdate();
+        } finally {
+            if (deleteCacheUsageStmt != null) {
+                try {
+                    deleteCacheUsageStmt.close();
+                } catch(SQLException ex) {
+                    LOGGER.log(Level.SEVERE, String.format("Can not close the delete cache usage statement: %s",
+                            Utils.getExceptionMessage(ex)), ex);
+                }
+            }
+        }
+    }
+
+    private void insertCacheUsage(URL url, String entityId) throws SQLException {
+        String insertCacheUsageQuery = "INSERT INTO cacheUsage " +
+                "(url, entityId) " +
+                "values (?, ?)";
+
+        PreparedStatement insertCacheUsageStmt = null;
+        try {
+            insertCacheUsageStmt = this.connection.prepareStatement(insertCacheUsageQuery);
+            insertCacheUsageStmt.setString(1, url.toString());
+            insertCacheUsageStmt.setString(2, entityId);
+
+            insertCacheUsageStmt.executeUpdate();
+        } finally {
+            if (insertCacheUsageStmt != null) {
+                try {
+                    insertCacheUsageStmt.close();
+                } catch(SQLException ex) {
+                    LOGGER.log(Level.SEVERE, String.format("Can not close the insert cache usage statement: %s",
+                            Utils.getExceptionMessage(ex)), ex);
+                }
+            }
+        }
+    }
+
+    private Set<String> getCacheUsage(URL url) throws SQLException {
+        if (this.connection == null) {
+            throw new IllegalStateException("Database connection is closed.");
+        }
+
+        if (url == null) {
+            throw new IllegalArgumentException("URL is null.");
+        }
+
+        Set<String> cacheUsage = new HashSet<String>();
+        String selectQuery = "SELECT entityId FROM cacheUsage WHERE url = ?";
+
+        PreparedStatement selectPreparedStatement = null;
+        try {
+            selectPreparedStatement = this.connection.prepareStatement(selectQuery);
+            selectPreparedStatement.setString(1, url.toString());
+
+            ResultSet resultSet = selectPreparedStatement.executeQuery();
+            while (resultSet.next()) {
+                cacheUsage.add(resultSet.getString("entityId"));
+            }
+        } finally {
+            if (selectPreparedStatement != null) {
+                try {
+                    selectPreparedStatement.close();
+                } catch(SQLException ex) {
+                    LOGGER.log(Level.SEVERE, String.format("Can not close the select cache usage statement: %s",
+                            Utils.getExceptionMessage(ex)), ex);
+                }
+            }
+        }
+
+        return cacheUsage;
+    }
+
     public synchronized boolean exists(URL url) throws SQLException {
         if (this.connection == null) {
             throw new IllegalStateException("Database connection is closed.");
@@ -283,7 +598,7 @@ public class CacheDatabase implements Closeable {
                 try {
                     selectPreparedStatement.close();
                 } catch(SQLException ex) {
-                    LOGGER.log(Level.SEVERE, String.format("Can not close the select statement: %s",
+                    LOGGER.log(Level.SEVERE, String.format("Can not close the select cache statement: %s",
                             Utils.getExceptionMessage(ex)), ex);
                 }
             }
@@ -328,13 +643,15 @@ public class CacheDatabase implements Closeable {
                 cacheEntry.setValid((Boolean)resultSet.getObject("valid"));
 
                 cacheEntry.setDocumentFile(null);
+
+                cacheEntry.setUsage(this.getCacheUsage(url));
             }
         } finally {
             if (selectPreparedStatement != null) {
                 try {
                     selectPreparedStatement.close();
                 } catch(SQLException ex) {
-                    LOGGER.log(Level.SEVERE, String.format("Can not close the select statement: %s",
+                    LOGGER.log(Level.SEVERE, String.format("Can not close the select cache statement: %s",
                             Utils.getExceptionMessage(ex)), ex);
                 }
             }
@@ -389,7 +706,7 @@ public class CacheDatabase implements Closeable {
                 try {
                     selectPreparedStatement.close();
                 } catch(SQLException ex) {
-                    LOGGER.log(Level.SEVERE, String.format("Can not close the select statement: %s",
+                    LOGGER.log(Level.SEVERE, String.format("Can not close the select document statement: %s",
                             Utils.getExceptionMessage(ex)), ex);
                 }
             }
@@ -412,39 +729,17 @@ public class CacheDatabase implements Closeable {
         }
     }
 
-    public synchronized void delete(URL url) throws SQLException {
-        if (this.connection == null) {
-            throw new IllegalStateException("Database connection is closed.");
-        }
-
-        if (url == null) {
-            throw new IllegalArgumentException("URL is null.");
-        }
-
-        String deleteQuery = "DELETE FROM cache WHERE url = ?";
-
-        PreparedStatement deletePreparedStatement = null;
-        try {
-            deletePreparedStatement = this.connection.prepareStatement(deleteQuery);
-            deletePreparedStatement.setString(1, url.toString());
-            deletePreparedStatement.executeUpdate();
-        } finally {
-            if (deletePreparedStatement != null) {
-                try {
-                    deletePreparedStatement.close();
-                } catch(SQLException ex) {
-                    LOGGER.log(Level.SEVERE, String.format("Can not close the delete statement: %s",
-                            Utils.getExceptionMessage(ex)), ex);
-                }
-            }
-        }
-    }
-
     private Connection getDBConnection() throws ClassNotFoundException, SQLException {
         Class.forName(this.dbDriver);
 
-        return DriverManager.getConnection(
+        Connection connection = DriverManager.getConnection(
                 this.dbConnectionString, this.dbUser, this.dbPassword);
+
+        // Insert / Update / Delete affect multiple tables.
+        // Manually commit when everything is properly set to avoid corruption.
+        connection.setAutoCommit(false);
+
+        return connection;
     }
 
     private File getDatabaseDirectory() throws IOException {

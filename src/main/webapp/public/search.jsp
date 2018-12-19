@@ -44,6 +44,7 @@
 <%@page import="au.gov.aims.atlasmapperserver.Utils"%>
 <%@page import="org.json.JSONArray"%>
 <%@page import="org.json.JSONObject"%>
+<%@page import="au.gov.aims.atlasmapperserver.cache.URLCache" %>
 <%
 	// Needed by StripTagProxy:
 	//     http://docs.sencha.com/extjs/3.4.0/#!/api/Ext.data.ScriptTagProxy
@@ -76,6 +77,7 @@
 			(request.getParameter("limit") != null ? Integer.parseInt(request.getParameter("limit")) : 10));
 
 	ConfigManager configManager = ConfigHelper.getConfigManager(this.getServletConfig().getServletContext());
+	URLCache urlCache = new URLCache(configManager);
 
 	int indent = (request.getParameter("indent") != null ? Integer.parseInt(request.getParameter("indent")) : 0);
 	JSONObject jsonObj = new JSONObject();
@@ -96,7 +98,7 @@
 
 				try {
 					String referer = request.getRequestURL().toString();
-					results = clientConfig.locationSearch(query, referer, bounds, offset, qty);
+					results = clientConfig.locationSearch(urlCache, query, referer, bounds, offset, qty);
 				} catch (Exception ex) {
 					response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 					jsonObj.put("success", false);

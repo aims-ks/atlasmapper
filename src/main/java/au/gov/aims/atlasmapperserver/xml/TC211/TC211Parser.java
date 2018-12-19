@@ -21,8 +21,9 @@
 package au.gov.aims.atlasmapperserver.xml.TC211;
 
 import au.gov.aims.atlasmapperserver.ConfigManager;
-import au.gov.aims.atlasmapperserver.URLCache;
 import au.gov.aims.atlasmapperserver.Utils;
+import au.gov.aims.atlasmapperserver.cache.CacheEntry;
+import au.gov.aims.atlasmapperserver.cache.URLCache;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.jsonWrappers.client.LayerWrapper;
 import au.gov.aims.atlasmapperserver.thread.RevivableThread;
@@ -50,108 +51,121 @@ public class TC211Parser {
     private static final Logger LOGGER = Logger.getLogger(TC211Parser.class.getName());
 
     /**
-     * Cached
-     * @param configManager Config manager associated to that URL, for caching purpose
+     *
+     * @param logger
+     * @param urlCache
      * @param dataSource Data source associated to that URL, for caching purpose
      * @param url Url of the document to parse
      * @param mandatory True to cancel the client generation if the file cause problem
      * @param validMimeType True if the mime type specified in the document is TC211. This parameter is used to ignored warnings concerning MEST document with invalid mime type.
      * @return
-     * @throws SAXException
-     * @throws ParserConfigurationException
-     * @throws IOException
-     * @throws JSONException
+     * @throws RevivableThreadInterruptedException
      */
-    public static TC211Document parseURL(ThreadLogger logger, String downloadedEntityName, ConfigManager configManager, AbstractDataSourceConfig dataSource, URL url, boolean mandatory, boolean validMimeType)
-            throws SAXException, ParserConfigurationException, IOException, JSONException, RevivableThreadInterruptedException {
+    public TC211Document parseURL(
+            ThreadLogger logger,
+            URLCache urlCache,
+            AbstractDataSourceConfig dataSource,
+            URL url,
+            boolean mandatory,
+            boolean validMimeType
+    ) throws RevivableThreadInterruptedException {
 
         RevivableThread.checkForInterruption();
 
         String urlStr = url.toString();
-        File cachedDocumentFile = null;
-
-        TC211Document tc211Document = null;
-        try {
-            cachedDocumentFile = URLCache.getURLFile(
-                    logger, downloadedEntityName,
-                    configManager,
-                    dataSource,
-                    urlStr,
-                    validMimeType ? URLCache.Category.MEST_RECORD : URLCache.Category.BRUTEFORCE_MEST_RECORD,
-                    mandatory);
-            tc211Document = parseFile(cachedDocumentFile, urlStr);
-            if (tc211Document == null) {
-                File rollbackFile = URLCache.rollbackURLFile(logger, downloadedEntityName, configManager, cachedDocumentFile, urlStr, "Invalid TC211 document");
-                tc211Document = parseFile(rollbackFile, urlStr);
-            } else {
-                URLCache.commitURLFile(configManager, cachedDocumentFile, urlStr);
-            }
-        } catch (Exception ex) {
-            // Parsing a file that has already been accepted - Very unlikely to throw an exception here
-            File rollbackFile = URLCache.rollbackURLFile(logger, downloadedEntityName, configManager, cachedDocumentFile, urlStr, ex);
-            tc211Document = parseFile(rollbackFile, urlStr);
-        }
+        TC211Document tc211Document = this.parseRawURL(logger, urlCache, dataSource, url);
 
         RevivableThread.checkForInterruption();
 
         // Still no metadata document found
+        // Try different URL
         if (tc211Document == null) {
-            // Check if GeoNetwork returned an access denied (we can't rely on response HTTP code, GeoNetwork does not follow standards)
-            // TODO!!! cachedDocumentFile is null, findInFile doesn't do anything
-            if (Utils.findInFile("Operation not allowed", cachedDocumentFile)) {
-                logger.log(Level.WARNING, String.format("Unauthorised access to [%s](%s). Ensure the document is published.",
-                        downloadedEntityName, urlStr));
-
-            } else {
-                // Assuming the MEST service is GeoNetwork, try to craft a better URL
-                URL craftedUrl = null;
-                try {
-                    craftedUrl = TC211Parser.craftGeoNetworkMestUrl(url);
-                } catch (Exception ex) {
-                    // This should not happen
-                    logger.log(Level.WARNING, String.format("Unexpected error occurred while crafting a GeoNetwork URL: %s",
-                            Utils.getExceptionMessage(ex)), ex);
-                }
-                if (craftedUrl != null) {
-                    String craftedUrlStr = craftedUrl.toString();
-                    if (!craftedUrlStr.equals(urlStr)) {
-                        try {
-                            cachedDocumentFile = URLCache.getURLFile(
-                                    logger, downloadedEntityName,
-                                    configManager,
-                                    dataSource,
-                                    craftedUrlStr,
-                                    validMimeType ? URLCache.Category.MEST_RECORD : URLCache.Category.BRUTEFORCE_MEST_RECORD,
-                                    mandatory);
-                            RevivableThread.checkForInterruption();
-
-                            tc211Document = parseFile(cachedDocumentFile, craftedUrlStr);
-                            RevivableThread.checkForInterruption();
-
-                            if (tc211Document == null) {
-                                File rollbackFile = URLCache.rollbackURLFile(logger, downloadedEntityName, configManager, cachedDocumentFile, craftedUrlStr, "Invalid TC211 document");
-                                tc211Document = parseFile(rollbackFile, craftedUrlStr);
-                            } else {
-                                // NOTE: The capabilities document refer to a MEST document, but the URL is not
-                                //     an actual TC211 MEST record. Using some basic URL crafting, the AtlasMapper
-                                //     managed to find a URL that returns a valid MEST record. Therefore, the
-                                //     invalid URL should be linked (redirection) to the valid crafted one,
-                                //     so the application will not try to re-download the HTML one again.
-                                URLCache.setRedirection(configManager, urlStr, craftedUrlStr);
-                                URLCache.commitURLFile(configManager, cachedDocumentFile, craftedUrlStr);
-                            }
-                            RevivableThread.checkForInterruption();
-
-                        } catch (Exception ex) {
-                            // Parsing a file that has already been accepted - Very unlikely to throw an exception here
-                            File rollbackFile = URLCache.rollbackURLFile(logger, downloadedEntityName, configManager, cachedDocumentFile, craftedUrlStr, "Invalid TC211 document");
-                            tc211Document = parseFile(rollbackFile, craftedUrlStr);
-                        }
-                    }
+            // Assuming the MEST service is GeoNetwork, try to craft a better URL
+            URL craftedUrl = null;
+            try {
+                craftedUrl = TC211Parser.craftGeoNetworkMestUrl(url);
+            } catch (Exception ex) {
+                // This should not happen
+                logger.log(Level.WARNING, String.format("Unexpected error occurred while crafting a GeoNetwork URL: %s",
+                        Utils.getExceptionMessage(ex)), ex);
+            }
+            if (craftedUrl != null) {
+                String craftedUrlStr = craftedUrl.toString();
+                if (!craftedUrlStr.equals(urlStr)) {
+                    tc211Document = this.parseRawURL(logger, urlCache, dataSource, craftedUrl);
                 }
             }
         }
         RevivableThread.checkForInterruption();
+
+        return tc211Document;
+    }
+
+    private TC211Document parseRawURL(
+            ThreadLogger logger,
+            URLCache urlCache,
+            AbstractDataSourceConfig dataSource,
+            URL url
+    ) throws RevivableThreadInterruptedException {
+
+        RevivableThread.checkForInterruption();
+
+        String urlStr = url.toString();
+
+        TC211Document tc211Document = null;
+
+        // Download MEST record (or get from cache)
+        CacheEntry mestCacheEntry = null;
+        try {
+            mestCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId());
+            if (mestCacheEntry != null) {
+                File mestFile = mestCacheEntry.getDocumentFile();
+                if (mestFile != null) {
+                    logger.log(Level.INFO, String.format("Parsing [TC211 MEST record](%s)", urlStr));
+                    tc211Document = this.parseFile(mestFile, urlStr);
+                    if (tc211Document != null) {
+                        urlCache.save(mestCacheEntry, true);
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            // The MEST record was not good. Use the previous version if possible
+            logger.log(Level.WARNING, String.format("Error occurred while parsing the [TC211 MEST record](%s): %s",
+                    urlStr, Utils.getExceptionMessage(ex)), ex);
+        }
+
+        // Could not get a working JSON record
+        // Rollback to previous version
+        if (tc211Document == null) {
+            try {
+                CacheEntry rollbackMestCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId(), false);
+                if (rollbackMestCacheEntry != null) {
+                    File mestFile = rollbackMestCacheEntry.getDocumentFile();
+                    if (mestFile != null) {
+                        logger.log(Level.INFO, String.format("Parsing backup [TC211 MEST record](%s)", urlStr));
+                        tc211Document = this.parseFile(mestFile, urlStr);
+                        if (tc211Document != null) {
+                            urlCache.save(rollbackMestCacheEntry, true);
+                        }
+                    }
+                }
+            } catch (Exception ex) {
+                // The MEST record was not good. Use the previous version if possible
+                logger.log(Level.WARNING, String.format("Error occurred while parsing the backup [TC211 MEST record](%s): %s",
+                        urlStr, Utils.getExceptionMessage(ex)), ex);
+            }
+        }
+
+        // Even the rollback didn't work
+        if (tc211Document == null) {
+            // Save what we have in DB
+            try {
+                urlCache.save(mestCacheEntry, false);
+            } catch (Exception exxx) {
+                logger.log(Level.WARNING, String.format("Error occurred while saving the entry into the cache database [TC211 MEST record](%s): %s",
+                        urlStr, Utils.getExceptionMessage(exxx)), exxx);
+            }
+        }
 
         return tc211Document;
     }
@@ -241,8 +255,8 @@ public class TC211Parser {
      * @throws IOException
      * @throws JSONException
      */
-    public static TC211Document parseFile(File file, String location)
-            throws SAXException, ParserConfigurationException, IOException, RevivableThreadInterruptedException {
+    private TC211Document parseFile(File file, String location)
+            throws Exception, RevivableThreadInterruptedException {
 
         RevivableThread.checkForInterruption();
 
@@ -250,12 +264,24 @@ public class TC211Parser {
             return null;
         }
 
-        SAXParser saxParser = getSAXParser();
+        TC211Document doc;
+        try {
+            SAXParser saxParser = getSAXParser();
 
-        TC211Document doc = new TC211Document(location);
-        TC211Handler handler = new TC211Handler(doc);
+            doc = new TC211Document(location);
+            TC211Handler handler = new TC211Handler(doc);
 
-        saxParser.parse(file, handler);
+            saxParser.parse(file, handler);
+        } catch (Exception ex) {
+            // Could not parse the document.
+            // Check if GeoNetwork returned an access denied (we can't rely on response HTTP code, GeoNetwork does not follow standards)
+            if (Utils.findInFile("Operation not allowed", file)) {
+                throw new SAXException(String.format("Unauthorised access to %s. Ensure the document is published.", location));
+
+            } else {
+                throw ex;
+            }
+        }
         RevivableThread.checkForInterruption();
 
         return doc.isEmpty() ? null : doc;
