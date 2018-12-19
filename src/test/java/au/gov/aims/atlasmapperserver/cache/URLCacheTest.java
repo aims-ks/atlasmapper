@@ -237,7 +237,7 @@ public class URLCacheTest {
 
 
     @Test
-    public void getHttpHead_getHttpDocument_getHttpHead() throws Exception, RevivableThreadInterruptedException {
+    public void test_getHttpHead_getHttpDocument_getHttpHead() throws Exception, RevivableThreadInterruptedException {
         // Test that HEAD has no document
         // Test document after requesting GET
         // Test that request is still GET after requesting HEAD and document file is still there

@@ -56,8 +56,7 @@ public class TC211Parser {
      * @param urlCache
      * @param dataSource Data source associated to that URL, for caching purpose
      * @param url Url of the document to parse
-     * @param mandatory True to cancel the client generation if the file cause problem
-     * @param validMimeType True if the mime type specified in the document is TC211. This parameter is used to ignored warnings concerning MEST document with invalid mime type.
+     * @param forceDownload
      * @return
      * @throws RevivableThreadInterruptedException
      */
@@ -66,14 +65,13 @@ public class TC211Parser {
             URLCache urlCache,
             AbstractDataSourceConfig dataSource,
             URL url,
-            boolean mandatory,
-            boolean validMimeType
+            boolean forceDownload
     ) throws RevivableThreadInterruptedException {
 
         RevivableThread.checkForInterruption();
 
         String urlStr = url.toString();
-        TC211Document tc211Document = this.parseRawURL(logger, urlCache, dataSource, url);
+        TC211Document tc211Document = this.parseRawURL(logger, urlCache, dataSource, url, forceDownload);
 
         RevivableThread.checkForInterruption();
 
@@ -92,7 +90,7 @@ public class TC211Parser {
             if (craftedUrl != null) {
                 String craftedUrlStr = craftedUrl.toString();
                 if (!craftedUrlStr.equals(urlStr)) {
-                    tc211Document = this.parseRawURL(logger, urlCache, dataSource, craftedUrl);
+                    tc211Document = this.parseRawURL(logger, urlCache, dataSource, craftedUrl, forceDownload);
                 }
             }
         }
@@ -105,12 +103,17 @@ public class TC211Parser {
             ThreadLogger logger,
             URLCache urlCache,
             AbstractDataSourceConfig dataSource,
-            URL url
+            URL url,
+            boolean forceDownload
     ) throws RevivableThreadInterruptedException {
 
         RevivableThread.checkForInterruption();
 
         String urlStr = url.toString();
+        String dataSourceId = null;
+        if (dataSource != null) {
+            dataSourceId = dataSource.getDataSourceId();
+        }
 
         TC211Document tc211Document = null;
 
@@ -119,11 +122,15 @@ public class TC211Parser {
         CacheEntry rollbackMestCacheEntry = null;
         try {
             try {
-                mestCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId());
+                Boolean reDownload = null;
+                if (forceDownload) {
+                    reDownload = true;
+                }
+
+                mestCacheEntry = urlCache.getHttpDocument(url, dataSourceId, reDownload);
                 if (mestCacheEntry != null) {
                     File mestFile = mestCacheEntry.getDocumentFile();
                     if (mestFile != null) {
-                        logger.log(Level.INFO, String.format("Parsing [TC211 MEST record](%s)", urlStr));
                         tc211Document = this.parseFile(mestFile, urlStr);
                         if (tc211Document != null) {
                             urlCache.save(mestCacheEntry, true);
@@ -140,7 +147,7 @@ public class TC211Parser {
             // Rollback to previous version
             if (tc211Document == null) {
                 try {
-                    rollbackMestCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId(), false);
+                    rollbackMestCacheEntry = urlCache.getHttpDocument(url, dataSourceId, false);
                     if (rollbackMestCacheEntry != null) {
                         File mestFile = rollbackMestCacheEntry.getDocumentFile();
                         if (mestFile != null) {
@@ -163,9 +170,9 @@ public class TC211Parser {
                 // Save what we have in DB
                 try {
                     urlCache.save(mestCacheEntry, false);
-                } catch (Exception exxx) {
+                } catch (Exception ex) {
                     logger.log(Level.WARNING, String.format("Error occurred while saving the entry into the cache database [TC211 MEST record](%s): %s",
-                            urlStr, Utils.getExceptionMessage(exxx)), exxx);
+                            urlStr, Utils.getExceptionMessage(ex)), ex);
                 }
             }
 

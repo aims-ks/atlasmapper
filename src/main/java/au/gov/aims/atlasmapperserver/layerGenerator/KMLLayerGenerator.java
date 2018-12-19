@@ -105,47 +105,47 @@ public class KMLLayerGenerator extends AbstractLayerGenerator<KMLLayerConfig, KM
                         }
 
                         if (url != null) {
-                            // TODO redownloadPrimaryFiles should be used as a parameter of getHttpHead
-
+                            // If the "Re-check KML URLs" box is checked, force redownload links (redownload = true)
+                            // Otherwise, use what is in the database and request the URL that are not in the database (redownload = null)
+                            Boolean redownload = null;
                             if (redownloadPrimaryFiles) {
-                                CacheEntry cacheEntry = null;
-                                try {
-                                    cacheEntry = urlCache.getHttpHead(url, dataSourceConfig.getDataSourceId());
-                                    if (cacheEntry != null) {
-                                        if (cacheEntry.isSuccess()) {
-                                            layer.setKmlUrl(url.toString());
-
-                                            // Add the layer only if its configuration is valid
-                                            layerCatalog.addLayer(layer);
-
-                                            urlCache.save(cacheEntry, true);
-                                        } else {
-                                            Integer statusCode = cacheEntry.getHttpStatusCode();
-                                            if (statusCode == null) {
-                                                logger.log(Level.WARNING, String.format("Invalid entry for KML id %s: The [KML URL](%s).",
-                                                        kmlId, urlStr));
-                                            } else {
-                                                logger.log(Level.WARNING, String.format("Invalid entry for KML id %s: The [KML URL](%s) returned HTTP status code: %d",
-                                                        kmlId, urlStr, statusCode));
-                                            }
-                                            urlCache.save(cacheEntry, false);
-                                        }
-                                    } else {
-                                        logger.log(Level.WARNING, String.format("Invalid entry for KML id %s: The [KML URL](%s) is not accessible.",
-                                                kmlId, urlStr));
-                                    }
-                                } catch (Exception ex) {
-                                    logger.log(Level.WARNING, String.format("Invalid entry for KML id %s: The [KML URL](%s) is not accessible. Please look for typos: %s",
-                                            kmlId, urlStr, Utils.getExceptionMessage(ex)), ex);
-                                } finally {
-                                    if (cacheEntry != null) cacheEntry.close();
-                                }
-                            } else {
-                                layer.setKmlUrl(url.toString());
-
-                                // Add the layer only if its configuration is valid
-                                layerCatalog.addLayer(layer);
+                                redownload = true;
                             }
+
+                            CacheEntry cacheEntry = null;
+                            try {
+                                cacheEntry = urlCache.getHttpHead(url, dataSourceConfig.getDataSourceId(), redownload);
+                                if (cacheEntry != null) {
+                                    if (cacheEntry.isSuccess()) {
+                                        layer.setKmlUrl(url.toString());
+
+                                        // Add the layer only if its configuration is valid
+                                        layerCatalog.addLayer(layer);
+
+                                        urlCache.save(cacheEntry, true);
+                                    } else {
+                                        Integer statusCode = cacheEntry.getHttpStatusCode();
+                                        if (statusCode == null) {
+                                            logger.log(Level.WARNING, String.format("Invalid entry for KML id %s: The [KML URL](%s).",
+                                                    kmlId, urlStr));
+                                        } else {
+                                            logger.log(Level.WARNING, String.format("Invalid entry for KML id %s: The [KML URL](%s) returned HTTP status code: %d",
+                                                    kmlId, urlStr, statusCode));
+                                        }
+                                        urlCache.save(cacheEntry, false);
+                                    }
+                                } else {
+                                    logger.log(Level.WARNING, String.format("Invalid entry for KML id %s: The [KML URL](%s) is not accessible.",
+                                            kmlId, urlStr));
+                                }
+                            } catch (Exception ex) {
+                                logger.log(Level.WARNING, String.format("Invalid entry for KML id %s: The [KML URL](%s) is not accessible. Please look for typos: %s",
+                                        kmlId, urlStr, Utils.getExceptionMessage(ex)), ex);
+                            } finally {
+                                if (cacheEntry != null) cacheEntry.close();
+                            }
+
+
                         }
                     }
                 }

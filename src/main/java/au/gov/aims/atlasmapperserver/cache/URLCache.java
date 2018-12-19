@@ -109,7 +109,7 @@ public class URLCache {
                 cacheEntry = this.requestHttpHead(url);
             }
 
-            if (cacheEntry != null) {
+            if (cacheEntry != null && entityId != null) {
                 cacheEntry.addUsage(entityId);
             }
         } finally {
@@ -158,7 +158,9 @@ public class URLCache {
                 this.cacheDatabase.loadDocument(cacheEntry);
             }
 
-            cacheEntry.addUsage(entityId);
+            if (cacheEntry != null && entityId != null) {
+                cacheEntry.addUsage(entityId);
+            }
         } finally {
             this.cacheDatabase.close();
         }

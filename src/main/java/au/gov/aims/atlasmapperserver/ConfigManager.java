@@ -899,7 +899,7 @@ public class ConfigManager {
     }
 
 
-    public URLSaveState getMapStateForDataset(ThreadLogger logger, URLCache urlCache, ClientConfig clientConfig, String iso19115_19139url)
+    public URLSaveState getMapStateForDataset(ThreadLogger logger, URLCache urlCache, ClientConfig clientConfig, String iso19115_19139url, boolean forceMestDownload)
             throws Exception, RevivableThreadInterruptedException {
 
         RevivableThread.checkForInterruption();
@@ -907,7 +907,7 @@ public class ConfigManager {
         JSONArray jsonLayers = new JSONArray();
 
         TC211Parser tc211Parser = new TC211Parser();
-        TC211Document tc211Document = tc211Parser.parseURL(logger, urlCache, null, Utils.toURL(iso19115_19139url), false, true);
+        TC211Document tc211Document = tc211Parser.parseURL(logger, urlCache, null, Utils.toURL(iso19115_19139url), forceMestDownload);
         RevivableThread.checkForInterruption();
         if (tc211Document == null) {
             return null;

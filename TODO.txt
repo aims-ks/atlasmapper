@@ -23,6 +23,8 @@
     [ ] Craft Mest URL for New and Old GeoNetwork (using configurable array of templates? Not everyone does proper server side redirections)
     [ ] Level of logging with cache (we could log error for TC211 docs as DEBUG to reduce noise in User log window)
 
+    [ ] URLCache - Make a public isDownloadRequired and use it everywhere to tell the user what is about to be downloaded
+
 
 Re-download window:
 |---------------------------------|

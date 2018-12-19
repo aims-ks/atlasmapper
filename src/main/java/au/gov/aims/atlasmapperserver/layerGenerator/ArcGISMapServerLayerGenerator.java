@@ -34,7 +34,6 @@ import au.gov.aims.atlasmapperserver.thread.RevivableThread;
 import au.gov.aims.atlasmapperserver.thread.RevivableThreadInterruptedException;
 import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.opengis.referencing.NoSuchAuthorityCodeException;
 
@@ -114,7 +113,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
         Map<String, AbstractLayerConfig> layers = new HashMap<String, AbstractLayerConfig>();
 
         // Fill the Map of layers
-        this.parseJSON(logger, urlCache, layers, null, null, null, dataSourceConfig);
+        this.parseJSON(logger, urlCache, layers, null, null, null, dataSourceConfig, redownloadPrimaryFiles);
         RevivableThread.checkForInterruption();
 
         layerCatalog.addLayers(layers.values());
@@ -176,7 +175,8 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
             String treePath,
             String arcGISPath,
             String type,
-            ArcGISMapServerDataSourceConfig dataSourceConfig
+            ArcGISMapServerDataSourceConfig dataSourceConfig,
+            boolean forceDownload
     ) throws RevivableThreadInterruptedException {
 
         RevivableThread.checkForInterruption();
@@ -210,7 +210,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                     urlCache,
                     dataSourceConfig,
                     jsonUrl,
-                    true
+                    forceDownload
             );
         } catch (Exception ex) {
             RevivableThread.checkForInterruption();
@@ -251,7 +251,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                                         urlCache,
                                         dataSourceConfig,
                                         groupExtraJsonUrl,
-                                        true
+                                        forceDownload
                                 );
                             } catch (Exception ex) {
                                 RevivableThread.checkForInterruption();
@@ -288,7 +288,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                                         urlCache,
                                         dataSourceConfig,
                                         layerExtraJsonUrl,
-                                        true
+                                        forceDownload
                                 );
                             } catch (Exception ex) {
                                 RevivableThread.checkForInterruption();
@@ -362,7 +362,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                     // If one of the folder name is null or an empty string, the URL will be the same, returning the
                     // same folder name including the null / empty string.
                     if (Utils.isNotBlank(childArcGISPath)) {
-                        this.parseJSON(logger, urlCache, allLayers, childArcGISPath, childArcGISPath, null, dataSourceConfig);
+                        this.parseJSON(logger, urlCache, allLayers, childArcGISPath, childArcGISPath, null, dataSourceConfig, forceDownload);
                     }
                 }
             }
@@ -391,7 +391,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                                     urlCache,
                                     dataSourceConfig,
                                     serviceExtraJsonUrl,
-                                    true
+                                    forceDownload
                             );
                         } catch (Exception ex) {
                             RevivableThread.checkForInterruption();
@@ -401,7 +401,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                         }
                     }
 
-                    List<AbstractLayerConfig> subChildren = this.parseJSON(logger, urlCache, allLayers, treePath, childArcGISPath, childType, dataSourceConfig);
+                    List<AbstractLayerConfig> subChildren = this.parseJSON(logger, urlCache, allLayers, treePath, childArcGISPath, childType, dataSourceConfig, forceDownload);
                     if (subChildren != null) {
                         AbstractLayerConfig layerService = this.getLayerServiceConfig(logger, childArcGISPath, subChildren, jsonServiceExtra, dataSourceConfig);
                         this.ensureUniqueLayerId(layerService, dataSourceConfig);
@@ -434,8 +434,8 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
             URLCache urlCache,
             AbstractDataSourceConfig dataSource,
             String urlStr,
-            boolean mandatory
-    ) throws IOException, JSONException, RevivableThreadInterruptedException {
+            boolean forceDownload
+    ) throws IOException, RevivableThreadInterruptedException {
 
         RevivableThread.checkForInterruption();
 
@@ -447,7 +447,12 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
         CacheEntry rollbackJsonCacheEntry = null;
         try {
             try {
-                jsonCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId());
+                Boolean reDownload = null;
+                if (forceDownload) {
+                    reDownload = true;
+                }
+
+                jsonCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId(), reDownload);
                 if (jsonCacheEntry != null) {
                     File jsonFile = jsonCacheEntry.getDocumentFile();
                     if (jsonFile != null) {
@@ -487,9 +492,9 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                 // Save what we have in DB
                 try {
                     urlCache.save(jsonCacheEntry, false);
-                } catch (Exception exxx) {
+                } catch (Exception ex) {
                     logger.log(Level.WARNING, String.format("Error occurred while saving the entry into the cache database [WMTS GetCapabilities document](%s): %s",
-                            urlStr, Utils.getExceptionMessage(exxx)), exxx);
+                            urlStr, Utils.getExceptionMessage(ex)), ex);
                 }
             }
 

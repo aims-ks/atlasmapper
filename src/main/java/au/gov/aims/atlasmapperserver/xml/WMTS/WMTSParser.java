@@ -48,7 +48,7 @@ public class WMTSParser {
      * @param urlCache
      * @param dataSource Data source associated to that URL, for caching purpose
      * @param url Url of the document to parse
-     * @param mandatory True to cancel the client generation if the file cause problem
+     * @param forceDownload True to redownload required files. False to use the file from the cache, if available.
      * @return
      * @throws RevivableThreadInterruptedException
      */
@@ -57,7 +57,7 @@ public class WMTSParser {
             URLCache urlCache,
             AbstractDataSourceConfig dataSource,
             URL url,
-            boolean mandatory
+            boolean forceDownload
     ) throws RevivableThreadInterruptedException {
 
         RevivableThread.checkForInterruption();
@@ -71,7 +71,12 @@ public class WMTSParser {
         CacheEntry rollbackCacheEntry = null;
         try {
             try {
-                capabilitiesCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId());
+                Boolean redownload = null;
+                if (forceDownload) {
+                    redownload = true;
+                }
+
+                capabilitiesCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId(), redownload);
                 if (capabilitiesCacheEntry != null) {
                     File wmtsDocumentFile = capabilitiesCacheEntry.getDocumentFile();
                     if (wmtsDocumentFile != null) {
@@ -106,10 +111,10 @@ public class WMTSParser {
                             }
                         }
                     }
-                } catch (Exception exx) {
+                } catch (Exception ex) {
                     // This should not happen
                     logger.log(Level.WARNING, String.format("Error occurred while getting the previous [WMTS GetCapabilities document](%s): %s",
-                            urlStr, Utils.getExceptionMessage(exx)), exx);
+                            urlStr, Utils.getExceptionMessage(ex)), ex);
                 }
             }
 
@@ -118,9 +123,9 @@ public class WMTSParser {
                 // Save what we have in DB
                 try {
                     urlCache.save(capabilitiesCacheEntry, false);
-                } catch (Exception exxx) {
+                } catch (Exception ex) {
                     logger.log(Level.WARNING, String.format("Error occurred while saving the entry into the cache database [WMTS GetCapabilities document](%s): %s",
-                            urlStr, Utils.getExceptionMessage(exxx)), exxx);
+                            urlStr, Utils.getExceptionMessage(ex)), ex);
                 }
             }
 
