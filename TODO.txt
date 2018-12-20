@@ -13,8 +13,6 @@
 [X] Bring logs window back (generate button changes into loading icon)
 [X] Remove Generate all
 
-[ ] Deploy 2.0.0 in http://atlasmapper.org/
-
 [X] H2 cache (https://github.com/atlasmapper/atlasmapper/issues/115)
     [X] Do not show multiple warning / error for the same URL
             Make a public isDownloadRequired and use it everywhere to tell the user what is about to be downloaded
@@ -24,14 +22,8 @@
     [X] Level of logging with cache (we could log error for TC211 docs as DEBUG to reduce noise in User log window)
     [X] Use a different DB for location search
 
-[ ] Fix yellow triangle appear sometime with datasources
+[X] Fix yellow triangle appear sometime with datasources
+        It appear when the Datasource generate errors AND layers. This situation should not happen. We get this where there is unexpected NPE and other similar issues.
+        I fixed it by changing the WARNING status to an ERROR. If there is issue with the code and the datasource rebuild doesn't behave the way it should, that's an ERROR.
 
-
-Re-download window:
-|---------------------------------|
-|  What have changed?             |
-|  [X] Get Capabilities document  |  => force redownload when getting getCapabilities documents
-|  [ ] Metadata records           |  => force redownload when getting metadata records
-|---------------------------------|
-|             [Rebuild] [Cancel]  |
-|---------------------------------|
+[ ] Deploy ver 2.0 in http://atlasmapper.org/
