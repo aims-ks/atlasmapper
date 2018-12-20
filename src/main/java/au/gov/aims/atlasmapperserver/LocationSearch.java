@@ -44,7 +44,7 @@ import java.util.logging.Logger;
 public class LocationSearch {
     private static final Logger LOGGER = Logger.getLogger(LocationSearch.class.getName());
 
-    private static final String CACHE_ENTITY_ID = "__LOCATION_SEARCH__";
+    private static final String CACHE_ENTITY_ID = "LOCATION_SEARCH";
 
     // How long location search stays in cache
     // NOTE: Also see URLCache.EXPIRY_CLEANUP_MINIMUM_DELAY

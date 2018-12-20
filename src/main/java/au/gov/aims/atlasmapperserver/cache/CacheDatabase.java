@@ -49,6 +49,7 @@ public class CacheDatabase implements Closeable {
 
     // Configurable
     private String dbDriver = "org.h2.Driver";
+    private String dbName = "downloadDatabase";
     private String dbConnectionString = null;
     private String dbUser = null;
     private String dbPassword = null;
@@ -56,13 +57,20 @@ public class CacheDatabase implements Closeable {
     private Connection connection = null;
 
     public CacheDatabase(ConfigManager configManager) {
+        this(configManager, null);
+    }
+
+    public CacheDatabase(ConfigManager configManager, String databaseName) {
         this.configManager = configManager;
+        if (Utils.isNotBlank(databaseName)) {
+            this.dbName = databaseName.trim();
+        }
     }
 
     public void openConnection() throws SQLException, ClassNotFoundException, IOException {
         if (this.dbConnectionString == null) {
             File dbDir = this.getDatabaseDirectory();
-            this.dbConnectionString = String.format("jdbc:h2:%s/h2Database", dbDir.getAbsolutePath());
+            this.dbConnectionString = String.format("jdbc:h2:%s/" + this.dbName, dbDir.getAbsolutePath());
         }
 
         if (this.connection == null) {

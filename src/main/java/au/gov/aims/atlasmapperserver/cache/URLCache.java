@@ -66,6 +66,10 @@ public class URLCache {
         this.cacheDatabase = new CacheDatabase(configManager);
     }
 
+    public URLCache(ConfigManager configManager, String databaseName) {
+        this.cacheDatabase = new CacheDatabase(configManager, databaseName);
+    }
+
     public void startRun() {
         LOGGER.log(Level.INFO, "New run started");
         this.runStartTimestamp = CacheEntry.getCurrentTimestamp();

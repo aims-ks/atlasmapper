@@ -1141,7 +1141,8 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
                 }
             }
         } catch(Exception ex) {
-            LOGGER.log(Level.SEVERE, Utils.getExceptionMessage(ex), ex);
+            LOGGER.log(Level.SEVERE, String.format("Error occurred while doing a Google location search: %s",
+                    Utils.getExceptionMessage(ex)), ex);
         }
 
         try {
@@ -1153,7 +1154,8 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
                 }
             }
         } catch(Exception ex) {
-            LOGGER.log(Level.SEVERE, Utils.getExceptionMessage(ex), ex);
+            LOGGER.log(Level.SEVERE, String.format("Error occurred while doing a OSM location search: %s",
+                    Utils.getExceptionMessage(ex)), ex);
         }
 
         try {
@@ -1165,7 +1167,8 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
                 }
             }
         } catch(Exception ex) {
-            LOGGER.log(Level.SEVERE, Utils.getExceptionMessage(ex), ex);
+            LOGGER.log(Level.SEVERE, String.format("Error occurred while doing a ArcGIS location search: %s",
+                    Utils.getExceptionMessage(ex)), ex);
         }
 
         JSONObject[] results = resultsSet.toArray(new JSONObject[resultsSet.size()]);
