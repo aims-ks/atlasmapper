@@ -80,8 +80,9 @@ public class WMTSParser {
                     logger.log(Level.INFO, String.format("Downloading [WMTS GetCapabilities document](%s)", urlStr));
                 }
 
-                capabilitiesCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId(), redownload);
+                capabilitiesCacheEntry = urlCache.getCacheEntry(url);
                 if (capabilitiesCacheEntry != null) {
+                    urlCache.getHttpDocument(capabilitiesCacheEntry, dataSource.getDataSourceId(), redownload);
                     File wmtsDocumentFile = capabilitiesCacheEntry.getDocumentFile();
                     if (wmtsDocumentFile != null) {
                         logger.log(Level.INFO, String.format("Parsing [WMTS GetCapabilities document](%s)", urlStr));
@@ -101,8 +102,9 @@ public class WMTSParser {
             // Rollback to previous version
             if (wmtsDocument == null) {
                 try {
-                    rollbackCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId(), false);
+                    rollbackCacheEntry = urlCache.getCacheEntry(url);
                     if (rollbackCacheEntry != null) {
+                        urlCache.getHttpDocument(rollbackCacheEntry, dataSource.getDataSourceId(), false);
                         Boolean valid = rollbackCacheEntry.getValid();
                         if (valid != null && valid) {
                             File rollbackFile = rollbackCacheEntry.getDocumentFile();

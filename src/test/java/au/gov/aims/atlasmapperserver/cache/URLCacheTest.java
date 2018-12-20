@@ -54,7 +54,8 @@ public class URLCacheTest {
         try {
             // Get Head
             long timeBeforeRequest = CacheEntry.getCurrentTimestamp();
-            cacheEntry = urlCache.getHttpHead(eatlasUrl, entityId);
+            cacheEntry = urlCache.getCacheEntry(eatlasUrl);
+            urlCache.getHttpHead(cacheEntry, entityId);
 
             Assert.assertNotNull(String.format("Could not get HTTP head for %s", eatlasUrl), cacheEntry);
 
@@ -118,7 +119,8 @@ public class URLCacheTest {
         try {
             // Download
             long timeBeforeRequest = CacheEntry.getCurrentTimestamp();
-            cacheEntry = urlCache.getHttpDocument(eatlasUrl, entityId);
+            cacheEntry = urlCache.getCacheEntry(eatlasUrl);
+            urlCache.getHttpDocument(cacheEntry, entityId);
             LOGGER.log(Level.INFO, "Download: " + cacheEntry.toString());
 
 
@@ -171,7 +173,8 @@ public class URLCacheTest {
         try {
             // Get the document, from cache
             long timeBeforeRequest = CacheEntry.getCurrentTimestamp();
-            cacheEntry = urlCache.getHttpDocument(eatlasUrl, entityId);
+            cacheEntry = urlCache.getCacheEntry(eatlasUrl);
+            urlCache.getHttpDocument(cacheEntry, entityId);
             urlCache.save(cacheEntry, true);
             LOGGER.log(Level.INFO, "Get: " + cacheEntry.toString());
             long timeAfterRequest = CacheEntry.getCurrentTimestamp();
@@ -205,7 +208,8 @@ public class URLCacheTest {
         try {
             // Re-download the document
             long timeBeforeRequest = CacheEntry.getCurrentTimestamp();
-            cacheEntry = urlCache.getHttpDocument(eatlasUrl, entityId, true);
+            cacheEntry = urlCache.getCacheEntry(eatlasUrl);
+            urlCache.getHttpDocument(cacheEntry, entityId, true);
             urlCache.save(cacheEntry, true);
             LOGGER.log(Level.INFO, "Re-download: " + cacheEntry.toString());
             long timeAfterRequest = CacheEntry.getCurrentTimestamp();
@@ -260,7 +264,8 @@ public class URLCacheTest {
         try {
             // Get Head
             long timeBeforeRequest = CacheEntry.getCurrentTimestamp();
-            cacheEntry = urlCache.getHttpHead(eatlasUrl, entityId);
+            cacheEntry = urlCache.getCacheEntry(eatlasUrl);
+            urlCache.getHttpHead(cacheEntry, entityId);
             LOGGER.log(Level.INFO, "Head: " + cacheEntry.toString());
 
             Assert.assertNotNull(String.format("Could not get HTTP head for %s", eatlasUrl), cacheEntry);
@@ -307,7 +312,8 @@ public class URLCacheTest {
         try {
             // Download the document
             long timeBeforeRequest = CacheEntry.getCurrentTimestamp();
-            cacheEntry = urlCache.getHttpDocument(eatlasUrl, entityId);
+            cacheEntry = urlCache.getCacheEntry(eatlasUrl);
+            urlCache.getHttpDocument(cacheEntry, entityId);
             urlCache.save(cacheEntry, true);
             LOGGER.log(Level.INFO, "Download: " + cacheEntry.toString());
             long timeAfterRequest = CacheEntry.getCurrentTimestamp();
@@ -341,7 +347,8 @@ public class URLCacheTest {
         try {
             // Get HEAD, all required info are already cached
             long timeBeforeRequest = CacheEntry.getCurrentTimestamp();
-            cacheEntry = urlCache.getHttpHead(eatlasUrl, entityId);
+            cacheEntry = urlCache.getCacheEntry(eatlasUrl);
+            urlCache.getHttpHead(cacheEntry, entityId);
             urlCache.save(cacheEntry, true);
             LOGGER.log(Level.INFO, "Re-head: " + cacheEntry.toString());
             long timeAfterRequest = CacheEntry.getCurrentTimestamp();

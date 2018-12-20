@@ -114,8 +114,9 @@ public class KMLLayerGenerator extends AbstractLayerGenerator<KMLLayerConfig, KM
 
                             CacheEntry cacheEntry = null;
                             try {
-                                cacheEntry = urlCache.getHttpHead(url, dataSourceConfig.getDataSourceId(), redownload);
+                                cacheEntry = urlCache.getCacheEntry(url);
                                 if (cacheEntry != null) {
+                                    urlCache.getHttpHead(cacheEntry, dataSourceConfig.getDataSourceId(), redownload);
                                     if (cacheEntry.isSuccess()) {
                                         layer.setKmlUrl(url.toString());
 

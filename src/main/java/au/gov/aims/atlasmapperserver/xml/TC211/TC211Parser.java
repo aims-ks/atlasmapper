@@ -137,8 +137,9 @@ public class TC211Parser {
                     }
                 }
 
-                mestCacheEntry = urlCache.getHttpDocument(url, dataSourceId, reDownload);
+                mestCacheEntry = urlCache.getCacheEntry(url);
                 if (mestCacheEntry != null) {
+                    urlCache.getHttpDocument(mestCacheEntry, dataSourceId, reDownload);
                     File mestFile = mestCacheEntry.getDocumentFile();
                     if (mestFile != null) {
                         tc211Document = this.parseFile(mestFile, urlStr);
@@ -164,8 +165,9 @@ public class TC211Parser {
             // Rollback to previous version
             if (tc211Document == null) {
                 try {
-                    rollbackMestCacheEntry = urlCache.getHttpDocument(url, dataSourceId, false);
+                    rollbackMestCacheEntry = urlCache.getCacheEntry(url);
                     if (rollbackMestCacheEntry != null) {
+                        urlCache.getHttpDocument(rollbackMestCacheEntry, dataSourceId, false);
                         File mestFile = rollbackMestCacheEntry.getDocumentFile();
                         if (mestFile != null) {
                             tc211Document = this.parseFile(mestFile, urlStr);

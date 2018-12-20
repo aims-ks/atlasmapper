@@ -92,62 +92,32 @@ public class URLCache {
         return this.cacheDatabase;
     }
 
-    public CacheEntry getHttpHead(URL url, String entityId)
-            throws RevivableThreadInterruptedException, SQLException, IOException, ClassNotFoundException, URISyntaxException {
-
-        return this.getHttpHead(url, entityId, null);
-    }
-
-    /**
-     *
-     * @param url
-     * @param entityId
-     * @param redownload Null to let the system decide. false to get what is in the DB. true to force a re-download.
-     * @return
-     * @throws RevivableThreadInterruptedException
-     * @throws SQLException
-     * @throws IOException
-     * @throws ClassNotFoundException
-     * @throws URISyntaxException
-     */
-    public CacheEntry getHttpHead(URL url, String entityId, Boolean redownload)
-            throws RevivableThreadInterruptedException, SQLException, IOException, ClassNotFoundException, URISyntaxException {
-
-        // First, delete expired entries if any
-        this.deleteExpired();
-        RevivableThread.checkForInterruption();
-
-        CacheEntry cacheEntry = null;
+    public CacheEntry getCacheEntry(URL url) throws SQLException, IOException, ClassNotFoundException {
+        CacheEntry cacheEntry;
 
         try {
             this.cacheDatabase.openConnection();
             cacheEntry = this.cacheDatabase.get(url);
-
-            // If re-download is required, re-download the URL.
-            // Otherwise, simply return what we got from the database.
-            if (this.isDownloadRequired(cacheEntry, redownload, RequestMethod.HEAD)) {
-                cacheEntry = this.requestHttpHead(url);
-            }
-
-            if (cacheEntry != null && entityId != null) {
-                cacheEntry.addUsage(entityId);
-            }
         } finally {
             this.cacheDatabase.close();
+        }
+
+        if (cacheEntry == null) {
+            cacheEntry = new CacheEntry(url);
         }
 
         return cacheEntry;
     }
 
-    public CacheEntry getHttpDocument(URL url, String entityId)
+    public void getHttpHead(CacheEntry cacheEntry, String entityId)
             throws RevivableThreadInterruptedException, SQLException, IOException, ClassNotFoundException, URISyntaxException {
 
-        return this.getHttpDocument(url, entityId, null);
+        this.getHttpHead(cacheEntry, entityId, null);
     }
 
     /**
      *
-     * @param url
+     * @param cacheEntry
      * @param entityId
      * @param redownload Null to let the system decide. false to get what is in the DB. true to force a re-download.
      * @return
@@ -157,35 +127,67 @@ public class URLCache {
      * @throws ClassNotFoundException
      * @throws URISyntaxException
      */
-    public CacheEntry getHttpDocument(URL url, String entityId, Boolean redownload)
+    public void getHttpHead(CacheEntry cacheEntry, String entityId, Boolean redownload)
             throws RevivableThreadInterruptedException, SQLException, IOException, ClassNotFoundException, URISyntaxException {
+
+        if (entityId != null) {
+            cacheEntry.addUsage(entityId);
+        }
 
         // First, delete expired entries if any
         this.deleteExpired();
         RevivableThread.checkForInterruption();
 
-        CacheEntry cacheEntry = null;
+        // If re-download is required, re-download the URL.
+        // Otherwise, simply return what we got from the database.
+        if (this.isDownloadRequired(cacheEntry.getUrl(), redownload, RequestMethod.HEAD)) {
+            this.requestHttpHead(cacheEntry);
+        }
+    }
 
-        try {
-            this.cacheDatabase.openConnection();
-            cacheEntry = this.cacheDatabase.get(url);
+    public void getHttpDocument(CacheEntry cacheEntry, String entityId)
+            throws RevivableThreadInterruptedException, SQLException, IOException, ClassNotFoundException, URISyntaxException {
 
-            // If re-download is required, re-download the URL.
-            // Otherwise, simply return what we got from the database.
-            if (this.isDownloadRequired(cacheEntry, redownload, RequestMethod.GET)) {
-                cacheEntry = this.requestHttpDocument(url);
-            } else {
+        this.getHttpDocument(cacheEntry, entityId, null);
+    }
+
+    /**
+     *
+     * @param cacheEntry
+     * @param entityId
+     * @param redownload Null to let the system decide. false to get what is in the DB. true to force a re-download.
+     * @return
+     * @throws RevivableThreadInterruptedException
+     * @throws SQLException
+     * @throws IOException
+     * @throws ClassNotFoundException
+     * @throws URISyntaxException
+     */
+    public void getHttpDocument(CacheEntry cacheEntry, String entityId, Boolean redownload)
+            throws RevivableThreadInterruptedException, SQLException, IOException, ClassNotFoundException, URISyntaxException {
+
+        if (entityId != null) {
+            cacheEntry.addUsage(entityId);
+        }
+
+        // First, delete expired entries if any
+        this.deleteExpired();
+        RevivableThread.checkForInterruption();
+
+        URL url = cacheEntry.getUrl();
+
+        // If re-download is required, re-download the URL.
+        // Otherwise, simply return what we got from the database.
+        if (this.isDownloadRequired(url, redownload, RequestMethod.GET)) {
+            this.requestHttpDocument(cacheEntry);
+        } else {
+            try {
+                this.cacheDatabase.openConnection();
                 this.cacheDatabase.loadDocument(cacheEntry);
+            } finally {
+                this.cacheDatabase.close();
             }
-
-            if (cacheEntry != null && entityId != null) {
-                cacheEntry.addUsage(entityId);
-            }
-        } finally {
-            this.cacheDatabase.close();
         }
-
-        return cacheEntry;
     }
 
     public void save(CacheEntry cacheEntry, boolean valid)
@@ -276,14 +278,14 @@ public class URLCache {
         }
     }
 
-    private CacheEntry requestHttpHead(URL url) throws URISyntaxException, RevivableThreadInterruptedException, IOException {
-        CacheEntry cacheEntry = new CacheEntry(url);
+    private void requestHttpHead(CacheEntry cacheEntry) throws URISyntaxException, RevivableThreadInterruptedException, IOException {
         cacheEntry.setRequestMethod(RequestMethod.HEAD);
         cacheEntry.setRequestTimestamp(CacheEntry.getCurrentTimestamp());
 
         CloseableHttpClient httpClient = null;
         CloseableHttpResponse response = null;
         HttpUriRequest headRequest = null;
+        URL url = cacheEntry.getUrl();
         try {
             httpClient = Utils.createHttpClient();
             headRequest = RequestBuilder.head(url.toURI()).build();
@@ -312,12 +314,9 @@ public class URLCache {
                 }
             }
         }
-
-        return cacheEntry;
     }
 
-    private CacheEntry requestHttpDocument(URL url) throws URISyntaxException, RevivableThreadInterruptedException, IOException {
-        CacheEntry cacheEntry = new CacheEntry(url);
+    private void requestHttpDocument(CacheEntry cacheEntry) throws URISyntaxException, RevivableThreadInterruptedException, IOException {
         cacheEntry.setRequestMethod(RequestMethod.GET);
         cacheEntry.setRequestTimestamp(CacheEntry.getCurrentTimestamp());
 
@@ -326,6 +325,7 @@ public class URLCache {
         FileOutputStream out = null;
         CloseableHttpClient httpClient = null;
         CloseableHttpResponse response = null;
+        URL url = cacheEntry.getUrl();
         try {
             httpClient = Utils.createHttpClient();
             httpGet = new HttpGet(url.toURI());
@@ -380,48 +380,50 @@ public class URLCache {
                 }
             }
         }
-
-        return cacheEntry;
     }
 
-    public boolean isDownloadRequired(URL url) throws SQLException, IOException, ClassNotFoundException {
+    public boolean isDownloadRequired(URL url)
+            throws SQLException, IOException, ClassNotFoundException {
+
+        return this.isDownloadRequired(url, null, RequestMethod.GET);
+    }
+
+    private boolean isDownloadRequired(URL url, Boolean redownload, RequestMethod requestMethod)
+            throws SQLException, IOException, ClassNotFoundException {
+
         CacheEntry cacheEntry = null;
 
         try {
             this.cacheDatabase.openConnection();
             cacheEntry = this.cacheDatabase.get(url);
 
-            return this.isDownloadRequired(cacheEntry, null, RequestMethod.GET);
+            // If the user requested a redownload (or explicitly requested no download)
+            if (redownload != null) {
+                if (redownload) {
+                    // Return true if the file has not been re-downloaded since the beginning of the run (rebuild)
+                    if (this.runStartTimestamp == null || cacheEntry.getRequestTimestamp() < this.runStartTimestamp) {
+                        return true;
+                    }
+                } else {
+                    return false;
+                }
+            }
+
+            // The URL has never been downloaded or it's expired
+            if (cacheEntry == null || cacheEntry.isExpired()) {
+                return true;
+            }
+
+            // The URL has been requested as a HTTP HEAD only. It needs to be re-requested again with a HTTP GET request.
+            if (!RequestMethod.HEAD.equals(requestMethod) && RequestMethod.HEAD.equals(cacheEntry.getRequestMethod())) {
+                return true;
+            }
 
         } finally {
             this.cacheDatabase.close();
             if (cacheEntry != null) {
                 cacheEntry.close();
             }
-        }
-    }
-
-    private boolean isDownloadRequired(CacheEntry cacheEntry, Boolean redownload, RequestMethod requestMethod) {
-        // If the user requested a redownload (or explicitly requested no download)
-        if (redownload != null) {
-            if (redownload) {
-                // Return true if the file has not been re-downloaded since the beginning of the run (rebuild)
-                if (this.runStartTimestamp == null || cacheEntry.getRequestTimestamp() < this.runStartTimestamp) {
-                    return true;
-                }
-            } else {
-                return false;
-            }
-        }
-
-        // The URL has never been downloaded or it's expired
-        if (cacheEntry == null || cacheEntry.isExpired()) {
-            return true;
-        }
-
-        // The URL has been requested as a HTTP HEAD only. It needs to be re-requested again with a HTTP GET request.
-        if (!RequestMethod.HEAD.equals(requestMethod) && RequestMethod.HEAD.equals(cacheEntry.getRequestMethod())) {
-            return true;
         }
 
         return false;

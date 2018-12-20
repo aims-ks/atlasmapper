@@ -306,8 +306,9 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                         logger.log(Level.INFO, String.format("Downloading [WMS GetCapabilities document](%s)", urlStr));
                     }
 
-                    capabilitiesCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId(), redownload);
+                    capabilitiesCacheEntry = urlCache.getCacheEntry(url);
                     if (capabilitiesCacheEntry != null) {
+                        urlCache.getHttpDocument(capabilitiesCacheEntry, dataSource.getDataSourceId(), redownload);
                         File wmsCapabilitiesFile = capabilitiesCacheEntry.getDocumentFile();
                         if (wmsCapabilitiesFile != null) {
                             logger.log(Level.INFO, String.format("Parsing [WMS GetCapabilities document](%s)", urlStr));
@@ -327,8 +328,9 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                 // Rollback to previous version
                 if (wmsCapabilities == null) {
                     try {
-                        rollbackCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId(), false);
+                        rollbackCacheEntry = urlCache.getCacheEntry(url);
                         if (rollbackCacheEntry != null) {
+                            urlCache.getHttpDocument(rollbackCacheEntry, dataSource.getDataSourceId(), false);
                             Boolean valid = rollbackCacheEntry.getValid();
                             if (valid != null && valid) {
                                 File rollbackFile = rollbackCacheEntry.getDocumentFile();
@@ -573,10 +575,11 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                             reDownloadHead = true;
                         }
 
-                        gwcCapHead = urlCache.getHttpHead(gwcCapUrl, dataSourceClone.getDataSourceId(), reDownloadHead);
+                        gwcCapHead = urlCache.getCacheEntry(gwcCapUrl);
                         if (gwcCapHead == null) {
                             logger.log(errorLevel, "Invalid URL: " + gwcCapUrl.toString());
                         } else {
+                            urlCache.getHttpHead(gwcCapHead, dataSourceClone.getDataSourceId(), reDownloadHead);
                             if (gwcCapHead.isPageNotFound()) {
                                 // Don't bother giving a warning for a URL not found if the document is not mandatory
                                 logger.log(errorLevel, "Document not found (404): " + gwcCapUrl.toString());
@@ -624,8 +627,9 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                                 reDownloadHead = true;
                             }
 
-                            getCapHead = urlCache.getHttpHead(modifiedGwcCapUrl, dataSourceClone.getDataSourceId(), reDownloadHead);
+                            getCapHead = urlCache.getCacheEntry(modifiedGwcCapUrl);
                             if (getCapHead != null) {
+                                urlCache.getHttpHead(getCapHead, dataSourceClone.getDataSourceId(), reDownloadHead);
                                 if (getCapHead.isSuccess()) {
                                     // Try to download the doc again
                                     document = WMTSParser.parseURL(logger, urlCache, dataSourceClone, modifiedGwcCapUrl, forceDownload);

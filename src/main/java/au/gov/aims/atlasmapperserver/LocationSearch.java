@@ -400,8 +400,9 @@ public class LocationSearch {
         URL url = new URL(urlStr);
         CacheEntry cacheEntry = null;
         try {
-            cacheEntry = urlcache.getHttpDocument(url, CACHE_ENTITY_ID);
+            cacheEntry = urlcache.getCacheEntry(url);
             if (cacheEntry != null) {
+                urlcache.getHttpDocument(cacheEntry, CACHE_ENTITY_ID);
                 File jsonFile = cacheEntry.getDocumentFile();
                 if (jsonFile != null) {
                     jsonResponse = URLCache.parseJSONObjectFile(jsonFile, null, urlStr);
@@ -428,8 +429,9 @@ public class LocationSearch {
         URL url = new URL(urlStr);
         CacheEntry cacheEntry = null;
         try {
-            cacheEntry = urlcache.getHttpDocument(url, CACHE_ENTITY_ID);
+            cacheEntry = urlcache.getCacheEntry(url);
             if (cacheEntry != null) {
+                urlcache.getHttpDocument(cacheEntry, CACHE_ENTITY_ID);
                 File jsonFile = cacheEntry.getDocumentFile();
                 if (jsonFile != null) {
                     jsonResponse = URLCache.parseJSONArrayFile(jsonFile, null, urlStr);

@@ -456,8 +456,9 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                     logger.log(Level.INFO, String.format("Downloading [JSON URL](%s)", urlStr));
                 }
 
-                jsonCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId(), reDownload);
+                jsonCacheEntry = urlCache.getCacheEntry(url);
                 if (jsonCacheEntry != null) {
+                    urlCache.getHttpDocument(jsonCacheEntry, dataSource.getDataSourceId(), reDownload);
                     File jsonFile = jsonCacheEntry.getDocumentFile();
                     if (jsonFile != null) {
                         jsonResponse = URLCache.parseJSONObjectFile(jsonFile, logger, urlStr);
@@ -475,8 +476,9 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
             // Rollback to previous version
             if (jsonResponse == null) {
                 try {
-                    rollbackJsonCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId(), false);
+                    rollbackJsonCacheEntry = urlCache.getCacheEntry(url);
                     if (rollbackJsonCacheEntry != null) {
+                        urlCache.getHttpDocument(rollbackJsonCacheEntry, dataSource.getDataSourceId(), false);
                         File jsonFile = rollbackJsonCacheEntry.getDocumentFile();
                         if (jsonFile != null) {
                             jsonResponse = URLCache.parseJSONObjectFile(jsonFile, logger, urlStr);
