@@ -220,10 +220,9 @@ public abstract class AbstractDataSourceConfig extends AbstractRunnableConfig<Ab
         }
     }
 
-    public void process(boolean redownloadBrokenFiles, boolean clearCapabilitiesCache, boolean clearMetadataCache) {
+    public void process(boolean clearCapabilitiesCache, boolean clearMetadataCache) {
         if (this.isIdle()) {
             this.configThread.setDataSourceConfig(this);
-            this.configThread.setRedownloadBrokenFiles(redownloadBrokenFiles);
             this.configThread.setClearCapabilitiesCache(clearCapabilitiesCache);
             this.configThread.setClearMetadataCache(clearMetadataCache);
 

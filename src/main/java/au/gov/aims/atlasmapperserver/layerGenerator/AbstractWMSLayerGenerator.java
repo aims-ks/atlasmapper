@@ -821,7 +821,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                         if (!triedUrls.contains(urlStr)) {
                             triedUrls.add(urlStr);
                             try {
-                                tc211Document = tc211Parser.parseURL(logger, urlCache, dataSourceClone, url, forceMestDownload);
+                                tc211Document = tc211Parser.parseURL(logger, urlCache, dataSourceClone, layerName, url, forceMestDownload);
                                 if (tc211Document == null || tc211Document.isEmpty()) { tc211Document = null; }
                             } catch (Exception e) {
                                 logger.log(Level.WARNING, String.format("Unexpected exception while parsing the [metadata document URL](%s). " +
@@ -851,7 +851,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                             if (!triedUrls.contains(urlStr)) {
                                 triedUrls.add(urlStr);
                                 try {
-                                    tc211Document = tc211Parser.parseURL(logger, urlCache, dataSourceClone, url, forceMestDownload);
+                                    tc211Document = tc211Parser.parseURL(logger, urlCache, dataSourceClone, layerName, url, forceMestDownload);
                                     if (tc211Document != null && !tc211Document.isEmpty()) {
                                         validMetadataUrl = metadataUrl;
                                     } else {

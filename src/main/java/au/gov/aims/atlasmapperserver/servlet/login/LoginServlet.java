@@ -145,7 +145,7 @@ public class LoginServlet extends HttpServlet {
 
 		if (isValid) {
 			// TODO Initiate the user session
-			LOGGER.log(Level.INFO, "User [{0}] has log in", user.getLoginName());
+			LOGGER.log(Level.INFO, "User [{0}] has logged in", user.getLoginName());
 			session.setAttribute(LOGGED_USER_KEY, user.getLoginName());
 			return user;
 		} else {

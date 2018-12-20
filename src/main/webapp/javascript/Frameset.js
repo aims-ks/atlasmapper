@@ -254,7 +254,7 @@ Ext.define('Frameset', {
             resizable: true,
             plain: true,
             border: false,
-            width: 550,
+            width: 800,
             height: 400,
             items: [{
                 xtype: 'panel',

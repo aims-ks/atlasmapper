@@ -67,6 +67,7 @@ public class URLCache {
     }
 
     public void startRun() {
+        LOGGER.log(Level.INFO, "New run started");
         this.runStartTimestamp = CacheEntry.getCurrentTimestamp();
     }
 
@@ -79,6 +80,7 @@ public class URLCache {
         long elapseTime = endRunTimestamp - this.runStartTimestamp;
         this.runStartTimestamp = null;
 
+        LOGGER.log(Level.INFO, String.format("End of run (%d ms)", elapseTime));
         return elapseTime;
     }
 
@@ -286,7 +288,7 @@ public class URLCache {
             httpClient = Utils.createHttpClient();
             headRequest = RequestBuilder.head(url.toURI()).build();
 
-            LOGGER.log(Level.INFO, "HEAD: " + url.toString());
+            LOGGER.log(Level.INFO, "HTTP HEAD " + url.toString());
             response = httpClient.execute(headRequest);
             RevivableThread.checkForInterruption();
 
@@ -328,7 +330,7 @@ public class URLCache {
             httpClient = Utils.createHttpClient();
             httpGet = new HttpGet(url.toURI());
 
-            LOGGER.log(Level.INFO, "GET: " + url.toString());
+            LOGGER.log(Level.INFO, "HTTP GET " + url.toString());
             response = httpClient.execute(httpGet);
             RevivableThread.checkForInterruption();
 

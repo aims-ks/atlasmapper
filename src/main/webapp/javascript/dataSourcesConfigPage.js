@@ -1142,20 +1142,14 @@ Ext.define('Writer.LayerServerConfigGrid', {
                         value: 'Rebuild the data source information with the latest settings and re-harvest documents.'
                     }, {
                         xtype: 'checkboxfield',
-                        qtipHtml: 'Redownload files that failed to download or parse previously.',
-                        boxLabel: 'Redownload broken or corrupted files',
-                        checked: true,
-                        name: 'redownloadBrokenFiles'
-                    }, {
-                        xtype: 'checkboxfield',
                         qtipHtml: 'Redownload the capabilities document.',
                         boxLabel: 'Redownload the capabilities document',
                         checked: true,
                         name: 'clearCapCache'
                     }, {
                         xtype: 'checkboxfield',
-                        qtipHtml: 'Redownload the MEST records. This operation may takes a fair amount of time.',
-                        boxLabel: 'Redownload the MEST records (may take over 30 minutes)',
+                        qtipHtml: 'Redownload the MEST records. This operation may take several minutes.',
+                        boxLabel: 'Redownload the MEST records.',
                         name: 'clearMestCache'
                     }
                 ];
@@ -1166,12 +1160,6 @@ Ext.define('Writer.LayerServerConfigGrid', {
                     {
                         xtype: 'displayfield',
                         value: 'Rebuild the data source information with the latest settings and re-harvest capabilities documents.'
-                    }, {
-                        xtype: 'checkboxfield',
-                        qtipHtml: 'Redownload files that failed to download or parse previously.',
-                        boxLabel: 'Redownload broken or corrupted files',
-                        checked: true,
-                        name: 'redownloadBrokenFiles'
                     }, {
                         xtype: 'checkboxfield',
                         qtipHtml: 'Redownload the capabilities document.',
@@ -1187,12 +1175,6 @@ Ext.define('Writer.LayerServerConfigGrid', {
                     {
                         xtype: 'displayfield',
                         value: 'Rebuild the data source information with the latest settings and re-harvest JSON documents.'
-                    }, {
-                        xtype: 'checkboxfield',
-                        qtipHtml: 'Redownload files that failed to download or parse previously.',
-                        boxLabel: 'Redownload broken or corrupted files',
-                        checked: true,
-                        name: 'redownloadBrokenFiles'
                     }, {
                         xtype: 'checkboxfield',
                         qtipHtml: 'Redownload the JSON documents (equivalent to WMS capabilities document for ArcGIS services).',
@@ -1258,7 +1240,6 @@ Ext.define('Writer.LayerServerConfigGrid', {
                             var values = form.getFieldValues();
 
                             var ajaxParams = {
-                                'redownloadBrokenFiles': !!values['redownloadBrokenFiles'],
                                 'clearCapCache': !!values['clearCapCache'],
                                 'clearMestCache': !!values['clearMestCache'],
                                 'jsonResponse': true

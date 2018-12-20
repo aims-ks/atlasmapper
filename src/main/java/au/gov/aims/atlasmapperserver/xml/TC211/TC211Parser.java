@@ -64,6 +64,7 @@ public class TC211Parser {
             ThreadLogger logger,
             URLCache urlCache,
             AbstractDataSourceConfig dataSource,
+            String layerId,
             URL url,
             boolean forceDownload
     ) throws RevivableThreadInterruptedException {
@@ -71,7 +72,7 @@ public class TC211Parser {
         RevivableThread.checkForInterruption();
 
         String urlStr = url.toString();
-        TC211Document tc211Document = this.parseRawURL(logger, urlCache, dataSource, url, forceDownload);
+        TC211Document tc211Document = this.parseRawURL(logger, urlCache, dataSource, layerId, url, false, forceDownload);
 
         RevivableThread.checkForInterruption();
 
@@ -90,7 +91,7 @@ public class TC211Parser {
             if (craftedUrl != null) {
                 String craftedUrlStr = craftedUrl.toString();
                 if (!craftedUrlStr.equals(urlStr)) {
-                    tc211Document = this.parseRawURL(logger, urlCache, dataSource, craftedUrl, forceDownload);
+                    tc211Document = this.parseRawURL(logger, urlCache, dataSource, layerId, craftedUrl, true, forceDownload);
                 }
             }
         }
@@ -103,7 +104,9 @@ public class TC211Parser {
             ThreadLogger logger,
             URLCache urlCache,
             AbstractDataSourceConfig dataSource,
+            String layerId,
             URL url,
+            boolean craftedUrl,
             boolean forceDownload
     ) throws RevivableThreadInterruptedException {
 
@@ -128,7 +131,10 @@ public class TC211Parser {
                 }
 
                 if (forceDownload || urlCache.isDownloadRequired(url)) {
-                    logger.log(Level.INFO, String.format("Downloading [TC211 MEST record](%s)", urlStr));
+                    if (!craftedUrl) {
+                        logger.log(Level.INFO, String.format("Downloading [TC211 MEST record](%s) for layer %s",
+                                urlStr, layerId));
+                    }
                 }
 
                 mestCacheEntry = urlCache.getHttpDocument(url, dataSourceId, reDownload);
@@ -137,14 +143,21 @@ public class TC211Parser {
                     if (mestFile != null) {
                         tc211Document = this.parseFile(mestFile, urlStr);
                         if (tc211Document != null) {
+                            if (craftedUrl) {
+                                logger.log(Level.WARNING, String.format("Using crafted URL for the [TC211 MEST record](%s) for layer %s. " +
+                                        "You should modify the layer information to use this URL instead: %s",
+                                        urlStr, layerId, urlStr));
+                            }
                             urlCache.save(mestCacheEntry, true);
                         }
                     }
                 }
             } catch (Exception ex) {
-                // The MEST record was not good. Use the previous version if possible
-                logger.log(Level.WARNING, String.format("Error occurred while parsing the [TC211 MEST record](%s): %s",
-                        urlStr, Utils.getExceptionMessage(ex)), ex);
+                if (!craftedUrl) {
+                    // The MEST record was not good. Use the previous version if possible
+                    logger.log(Level.WARNING, String.format("Error occurred while parsing the [TC211 MEST record](%s) for layer %s: %s",
+                            urlStr, layerId, Utils.getExceptionMessage(ex)), ex);
+                }
             }
 
             // Could not get a working JSON record
@@ -155,17 +168,20 @@ public class TC211Parser {
                     if (rollbackMestCacheEntry != null) {
                         File mestFile = rollbackMestCacheEntry.getDocumentFile();
                         if (mestFile != null) {
-                            logger.log(Level.INFO, String.format("Parsing backup [TC211 MEST record](%s)", urlStr));
                             tc211Document = this.parseFile(mestFile, urlStr);
                             if (tc211Document != null) {
+                                if (!craftedUrl) {
+                                    logger.log(Level.WARNING, String.format("Invalid [TC211 MEST record](%s) response used by layer %s. Using backup.",
+                                            urlStr, layerId));
+                                }
                                 urlCache.save(rollbackMestCacheEntry, true);
                             }
                         }
                     }
                 } catch (Exception ex) {
-                    // The MEST record was not good. Use the previous version if possible
-                    logger.log(Level.WARNING, String.format("Error occurred while parsing the backup [TC211 MEST record](%s): %s",
-                            urlStr, Utils.getExceptionMessage(ex)), ex);
+                    // The backup was also not good. The user do not need to know about that...
+                    LOGGER.log(Level.FINEST, String.format("Error occurred while parsing the backup TC211 MEST record %s for layer %s: %s",
+                            urlStr, layerId, Utils.getExceptionMessage(ex)), ex);
                 }
             }
 
@@ -175,8 +191,9 @@ public class TC211Parser {
                 try {
                     urlCache.save(mestCacheEntry, false);
                 } catch (Exception ex) {
-                    logger.log(Level.WARNING, String.format("Error occurred while saving the entry into the cache database [TC211 MEST record](%s): %s",
-                            urlStr, Utils.getExceptionMessage(ex)), ex);
+                    logger.log(Level.WARNING, String.format("Error occurred while saving the entry into the " +
+                            "cache database [TC211 MEST record](%s) for layer %s: %s",
+                            urlStr, layerId, Utils.getExceptionMessage(ex)), ex);
                 }
             }
 
@@ -294,7 +311,7 @@ public class TC211Parser {
             // Could not parse the document.
             // Check if GeoNetwork returned an access denied (we can't rely on response HTTP code, GeoNetwork does not follow standards)
             if (Utils.findInFile("Operation not allowed", file)) {
-                throw new SAXException(String.format("Unauthorised access to %s. Ensure the document is published.", location));
+                throw new SAXException(String.format("Unauthorised access to %s. Check if the document is published.", location));
 
             } else {
                 throw ex;

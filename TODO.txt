@@ -15,15 +15,15 @@
 
 [ ] Deploy 2.0.0 in http://atlasmapper.org/
 
-[ ] H2 cache (https://github.com/atlasmapper/atlasmapper/issues/115)
-    [ ] Do not show multiple warning / error for the same URL
-            Get URL Status (never downloaded, out of date, last download failed, available, etc)
+[X] H2 cache (https://github.com/atlasmapper/atlasmapper/issues/115)
+    [X] Do not show multiple warning / error for the same URL
+            Make a public isDownloadRequired and use it everywhere to tell the user what is about to be downloaded
             The app decide what to do depending on the status. The cache doesn't log anything, the app does before requesting download or whatever.
-    [ ] Return file even when status code is 500 (TC211Parser.java line 93) - NOTE: Multiple layers may share same metadata URL (do not retry URL for a given time?)
+    [X] Return file even when status code is 500 (TC211Parser.java line 93) - NOTE: Multiple layers may share same metadata URL (do not retry URL for a given time?)
     [ ] Craft Mest URL for New and Old GeoNetwork (using configurable array of templates? Not everyone does proper server side redirections)
-    [ ] Level of logging with cache (we could log error for TC211 docs as DEBUG to reduce noise in User log window)
+    [X] Level of logging with cache (we could log error for TC211 docs as DEBUG to reduce noise in User log window)
 
-    [ ] URLCache - Make a public isDownloadRequired and use it everywhere to tell the user what is about to be downloaded
+    [ ] Use a different DB for location search
 
 
 Re-download window:
@@ -31,7 +31,6 @@ Re-download window:
 |  What have changed?             |
 |  [X] Get Capabilities document  |  => force redownload when getting getCapabilities documents
 |  [ ] Metadata records           |  => force redownload when getting metadata records
-|  [ ] Failed URL                 |  => ifExists && get return Failure = force redownload
 |---------------------------------|
 |             [Rebuild] [Cancel]  |
 |---------------------------------|

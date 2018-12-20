@@ -22,7 +22,6 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
     private static final Logger LOGGER = Logger.getLogger(AbstractDataSourceConfigThread.class.getName());
 
     private AbstractDataSourceConfig dataSourceConfig;
-    private boolean redownloadBrokenFiles;
     private boolean clearCapabilitiesCache;
     private boolean clearMetadataCache;
 
@@ -32,14 +31,6 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
 
     public void setDataSourceConfig(AbstractDataSourceConfig dataSourceConfig) {
         this.dataSourceConfig = dataSourceConfig;
-    }
-
-    public boolean isRedownloadBrokenFiles() {
-        return this.redownloadBrokenFiles;
-    }
-
-    public void setRedownloadBrokenFiles(boolean redownloadBrokenFiles) {
-        this.redownloadBrokenFiles = redownloadBrokenFiles;
     }
 
     public boolean isClearCapabilitiesCache() {
