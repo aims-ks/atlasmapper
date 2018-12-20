@@ -79,7 +79,9 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
                 layerCatalog = this.getLayerCatalog(logger, urlcache, dataSourceConfigClone, this.clearCapabilitiesCache, this.clearMetadataCache);
 
                 // Save the data source state into a file
-                dataSourceConfigClone.save(logger, layerCatalog);
+                if (layerCatalog != null) {
+                    dataSourceConfigClone.save(logger, layerCatalog);
+                }
             } catch(Exception ex) {
                 logger.log(Level.SEVERE, "An error occurred while generating the layer catalogue: " + Utils.getExceptionMessage(ex), ex);
             }
@@ -132,6 +134,9 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
 
         // LayerCatalog before overrides
         DataSourceWrapper rawLayerCatalog = this.getRawLayerCatalog(logger, urlCache, dataSourceConfigClone, redownloadPrimaryFiles, redownloadSecondaryFiles);
+        if (rawLayerCatalog == null) {
+            return null;
+        }
         RevivableThread.checkForInterruption();
 
         // Map of layers, after overrides, used to create the final layer catalog

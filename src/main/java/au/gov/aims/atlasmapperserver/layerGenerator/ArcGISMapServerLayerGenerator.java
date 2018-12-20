@@ -128,6 +128,30 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
     }
 */
 
+    private String getLayerPath(String arcGISPath, String type, String layerId) {
+        StringBuilder layerPath = new StringBuilder();
+
+        if (Utils.isNotBlank(arcGISPath)) {
+            layerPath.append(arcGISPath);
+        }
+
+        if (this.isServiceSupported(type)) {
+            if (layerPath.length() > 0 && layerPath.charAt(layerPath.length() -1) != '/') {
+                layerPath.append("/");
+            }
+            layerPath.append(type);
+        }
+
+        if (Utils.isNotBlank(layerId)) {
+            if (layerPath.length() > 0 && layerPath.charAt(layerPath.length() -1) != '/') {
+                layerPath.append("/");
+            }
+            layerPath.append(layerId);
+        }
+
+        return layerPath.toString();
+    }
+
     private String getJSONUrl(String baseUrlStr, String arcGISPath, String type) throws UnsupportedEncodingException {
         return getJSONUrl(baseUrlStr, arcGISPath, type, null);
     }
@@ -135,19 +159,12 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
     private String getJSONUrl(String baseUrlStr, String arcGISPath, String type, String layerId) throws UnsupportedEncodingException {
         StringBuilder url = new StringBuilder(baseUrlStr);
 
-        if (Utils.isNotBlank(arcGISPath)) {
-            if (url.charAt(url.length() -1) != '/') { url.append("/"); }
-            url.append(arcGISPath);
-        }
-
-        if (this.isServiceSupported(type)) {
-            if (url.charAt(url.length() -1) != '/') { url.append("/"); }
-            url.append(type);
-        }
-
-        if (Utils.isNotBlank(layerId)) {
-            if (url.charAt(url.length() -1) != '/') { url.append("/"); }
-            url.append(layerId);
+        String layerPath = this.getLayerPath(arcGISPath, type, layerId);
+        if (Utils.isNotBlank(layerPath)) {
+            if (url.charAt(url.length() -1) != '/') {
+                url.append("/");
+            }
+            url.append(layerPath);
         }
 
         // IMPORTANT: Some version of ArcGIS give weird output without pretty=true:
@@ -209,6 +226,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                     logger,
                     urlCache,
                     dataSourceConfig,
+                    this.getLayerPath(arcGISPath, type, null),
                     jsonUrl,
                     forceDownload
             );
@@ -250,6 +268,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                                         logger,
                                         urlCache,
                                         dataSourceConfig,
+                                        this.getLayerPath(arcGISPath, type, groupId),
                                         groupExtraJsonUrl,
                                         forceDownload
                                 );
@@ -287,6 +306,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                                         logger,
                                         urlCache,
                                         dataSourceConfig,
+                                        this.getLayerPath(arcGISPath, type, layerId),
                                         layerExtraJsonUrl,
                                         forceDownload
                                 );
@@ -390,6 +410,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                                     logger,
                                     urlCache,
                                     dataSourceConfig,
+                                    this.getLayerPath(childArcGISPath, childType, null),
                                     serviceExtraJsonUrl,
                                     forceDownload
                             );
@@ -433,11 +454,16 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
             ThreadLogger logger,
             URLCache urlCache,
             AbstractDataSourceConfig dataSource,
+            String path, // Used for debugging
             String urlStr,
             boolean forceDownload
     ) throws IOException, RevivableThreadInterruptedException {
 
         RevivableThread.checkForInterruption();
+
+        if (Utils.isBlank(path)) {
+            path = "/";
+        }
 
         URL url = new URL(urlStr);
         JSONObject jsonResponse = null;
@@ -453,7 +479,8 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                 }
 
                 if (forceDownload || urlCache.isDownloadRequired(url)) {
-                    logger.log(Level.INFO, String.format("Downloading [JSON URL](%s)", urlStr));
+                    logger.log(Level.INFO, String.format("Downloading [JSON URL](%s) for %s",
+                            urlStr, path));
                 }
 
                 jsonCacheEntry = urlCache.getCacheEntry(url);
@@ -468,8 +495,8 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                     }
                 }
             } catch (Exception ex) {
-                logger.log(Level.WARNING, String.format("Error occurred while parsing the [JSON URL](%s): %s",
-                        urlStr, Utils.getExceptionMessage(ex)), ex);
+                logger.log(Level.WARNING, String.format("Error occurred while parsing the [JSON URL](%s) for %s: %s",
+                        urlStr, path, Utils.getExceptionMessage(ex)), ex);
             }
 
             // Could not get a working JSON document
@@ -488,8 +515,8 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                         }
                     }
                 } catch (Exception ex) {
-                    logger.log(Level.WARNING, String.format("Error occurred while parsing backup the [JSON URL](%s): %s",
-                            urlStr, Utils.getExceptionMessage(ex)), ex);
+                    logger.log(Level.WARNING, String.format("Error occurred while parsing backup the [JSON URL](%s) for %s: %s",
+                            urlStr, path, Utils.getExceptionMessage(ex)), ex);
                 }
             }
 
@@ -499,8 +526,9 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                 try {
                     urlCache.save(jsonCacheEntry, false);
                 } catch (Exception ex) {
-                    logger.log(Level.WARNING, String.format("Error occurred while saving the entry into the cache database [WMTS GetCapabilities document](%s): %s",
-                            urlStr, Utils.getExceptionMessage(ex)), ex);
+                    logger.log(Level.WARNING, String.format("Error occurred while saving the entry into " +
+                            "the cache database [JSON URL](%s) for %s: %s",
+                            urlStr, path, Utils.getExceptionMessage(ex)), ex);
                 }
             }
 

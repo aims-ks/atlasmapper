@@ -56,6 +56,10 @@ public abstract class AbstractLayerGenerator<L extends AbstractLayerConfig, D ex
         urlCache.cleanUp(dataSourceConfigClone.getDataSourceId());
         RevivableThread.checkForInterruption();
 
+        if (rawLayerCatalog == null) {
+            return null;
+        }
+
         logger.log(Level.INFO, "Building data source layer catalogue");
         DataSourceWrapper catalogWrapper = new DataSourceWrapper();
         for (AbstractLayerConfig layer : rawLayerCatalog.getLayers()) {

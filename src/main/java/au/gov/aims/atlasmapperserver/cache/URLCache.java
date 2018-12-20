@@ -401,7 +401,9 @@ public class URLCache {
             if (redownload != null) {
                 if (redownload) {
                     // Return true if the file has not been re-downloaded since the beginning of the run (rebuild)
-                    if (this.runStartTimestamp == null || cacheEntry.getRequestTimestamp() < this.runStartTimestamp) {
+                    if (this.runStartTimestamp == null ||
+                            cacheEntry == null || cacheEntry.getRequestTimestamp() == null ||
+                            cacheEntry.getRequestTimestamp() < this.runStartTimestamp) {
                         return true;
                     }
                 } else {

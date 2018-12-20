@@ -145,7 +145,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                     dataSourceServiceUrlStr,
                     redownloadGetCapabilitiesFiles);
         } catch (Exception ex) {
-            logger.log(Level.SEVERE, String.format("Error occurred while parsing the [GetCapabilities document](%s): %s",
+            logger.log(Level.SEVERE, String.format("Error occurred while parsing the [WMS GetCapabilities document](%s): %s",
                     dataSourceServiceUrlStr, Utils.getExceptionMessage(ex)), ex);
             return null;
         }

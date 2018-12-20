@@ -25,6 +25,8 @@
 
     [ ] Use a different DB for location search
 
+[ ] Fix yellow triangle appear sometime with datasources
+
 
 Re-download window:
 |---------------------------------|

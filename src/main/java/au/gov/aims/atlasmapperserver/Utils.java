@@ -832,10 +832,7 @@ public class Utils {
         double[] reprojectedCoordinates = reprojectCoordinates(coordinates, sourceCRS, targetCRS);
 
         // Verify out of range coordinates
-        if (!validateDegreesCoordinates(reprojectedCoordinates)) {
-            // Out of bound coordinates are usually due to invalid input. No data is better than wrong data.
-            throw new TransformException("Coordinates out of bounds");
-        }
+        validateDegreesCoordinates(reprojectedCoordinates);
 
         return reprojectedCoordinates;
     }
@@ -858,17 +855,13 @@ public class Utils {
         double[] reprojectedCoordinates = reprojectCoordinates(coordinates, sourceCRS, targetCRS);
 
         // Verify out of range coordinates
-        if (!validateDegreesCoordinates(reprojectedCoordinates)) {
-            // Out of bound coordinates are usually due to invalid input. No data is better than wrong data.
-            throw new TransformException("Coordinates out of bounds");
-        }
+        validateDegreesCoordinates(reprojectedCoordinates);
 
         return reprojectedCoordinates;
     }
 
-    private static boolean validateDegreesCoordinates(double[] coordinates) {
+    private static void validateDegreesCoordinates(double[] coordinates) throws TransformException {
         // Verify out of range coordinates
-        boolean valid = true;
         for (int i=0; i+1 < coordinates.length; i += 2) {
 
             double x = coordinates[i];   // Longitude
@@ -880,12 +873,10 @@ public class Utils {
 
             if (xOut || yOut) {
                 // Out of bound coordinates are usually due to invalid input. No data is better than wrong data.
-                LOGGER.log(Level.INFO, "Coordinates out of bounds: [{0}, {1}] minimum values: [{2}, {3}] maximum values: [{4}, {5}]",
-                        new Object[]{ x, y, Longitude.MIN_VALUE, Latitude.MIN_VALUE, Longitude.MAX_VALUE, Latitude.MAX_VALUE });
-                valid = false;
+                throw new TransformException(String.format("Coordinates out of bounds: [%.2f, %.2f] minimum values: [%.1f, %.1f] maximum values: [%.1f, %.1f]",
+                        x, y, Longitude.MIN_VALUE, Latitude.MIN_VALUE, Longitude.MAX_VALUE, Latitude.MAX_VALUE));
             }
         }
-        return valid;
     }
 
     /**
