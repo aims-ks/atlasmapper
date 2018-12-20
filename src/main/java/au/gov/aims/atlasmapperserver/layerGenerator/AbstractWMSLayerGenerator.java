@@ -263,7 +263,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
             String wmsVersion,
             AbstractDataSourceConfig dataSource,
             String urlStr,
-            boolean forceRedownload
+            boolean forceDownload
     ) throws IOException, SAXException, URISyntaxException, RevivableThreadInterruptedException {
 
         File capabilitiesFile = null;
@@ -298,8 +298,12 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
             try {
                 try {
                     Boolean redownload = null;
-                    if (forceRedownload) {
+                    if (forceDownload) {
                         redownload = true;
+                    }
+
+                    if (forceDownload || urlCache.isDownloadRequired(url)) {
+                        logger.log(Level.INFO, String.format("Downloading [WMS GetCapabilities document](%s)", urlStr));
                     }
 
                     capabilitiesCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId(), redownload);

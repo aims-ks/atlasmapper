@@ -323,6 +323,12 @@ public class CacheDatabase implements Closeable {
         this.connection.commit();
     }
 
+    /**
+     * Remove association with entityId for entries that were not visited since expiryTimestamp
+     * @param entityId
+     * @param expiryTimestamp
+     * @throws SQLException
+     */
     public synchronized void cleanUp(String entityId, long expiryTimestamp) throws SQLException {
         if (this.connection == null) {
             throw new IllegalStateException("Database connection is closed.");

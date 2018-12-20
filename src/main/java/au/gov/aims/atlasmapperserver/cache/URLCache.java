@@ -60,8 +60,26 @@ public class URLCache {
     private CacheDatabase cacheDatabase;
     private static long lastExpiryCleanupTimestamp = 0;
 
+    private Long runStartTimestamp;
+
     public URLCache(ConfigManager configManager) {
         this.cacheDatabase = new CacheDatabase(configManager);
+    }
+
+    public void startRun() {
+        this.runStartTimestamp = CacheEntry.getCurrentTimestamp();
+    }
+
+    public long endRun() {
+        if (this.runStartTimestamp == null) {
+            return -1;
+        }
+
+        long endRunTimestamp = CacheEntry.getCurrentTimestamp();
+        long elapseTime = endRunTimestamp - this.runStartTimestamp;
+        this.runStartTimestamp = null;
+
+        return elapseTime;
     }
 
     /**
@@ -216,10 +234,37 @@ public class URLCache {
         }
     }
 
-    public void cleanUp(String entityId, long expiryTimestamp)
+    /**
+     * Remove association with entityId for entries that were not visited since the beginning of the run
+     * @param entityId
+     * @throws RevivableThreadInterruptedException
+     * @throws SQLException
+     * @throws IOException
+     * @throws ClassNotFoundException
+     */
+    public void cleanUp(String entityId)
             throws RevivableThreadInterruptedException, SQLException, IOException, ClassNotFoundException {
 
         RevivableThread.checkForInterruption();
+
+        if (this.runStartTimestamp != null) {
+            this.cleanUp(entityId, this.runStartTimestamp);
+        } else {
+            LOGGER.log(Level.WARNING, "Clean up called outside of a run!");
+        }
+    }
+
+    public void deleteEntity(String entityId)
+            throws RevivableThreadInterruptedException, SQLException, IOException, ClassNotFoundException {
+
+        RevivableThread.checkForInterruption();
+
+        // cleanUp will remove all association with entityId, then will removed entries that are unused.
+        this.cleanUp(entityId, 0);
+    }
+
+    private void cleanUp(String entityId, long expiryTimestamp)
+            throws SQLException, IOException, ClassNotFoundException {
 
         try {
             this.cacheDatabase.openConnection();
@@ -227,12 +272,6 @@ public class URLCache {
         } finally {
             this.cacheDatabase.close();
         }
-    }
-
-    public void deleteEntity(String entityId)
-            throws RevivableThreadInterruptedException, SQLException, IOException, ClassNotFoundException {
-
-        this.cleanUp(entityId, 0);
     }
 
     private CacheEntry requestHttpHead(URL url) throws URISyntaxException, RevivableThreadInterruptedException, IOException {
@@ -246,6 +285,8 @@ public class URLCache {
         try {
             httpClient = Utils.createHttpClient();
             headRequest = RequestBuilder.head(url.toURI()).build();
+
+            LOGGER.log(Level.INFO, "HEAD: " + url.toString());
             response = httpClient.execute(headRequest);
             RevivableThread.checkForInterruption();
 
@@ -287,6 +328,7 @@ public class URLCache {
             httpClient = Utils.createHttpClient();
             httpGet = new HttpGet(url.toURI());
 
+            LOGGER.log(Level.INFO, "GET: " + url.toString());
             response = httpClient.execute(httpGet);
             RevivableThread.checkForInterruption();
 
@@ -340,10 +382,34 @@ public class URLCache {
         return cacheEntry;
     }
 
+    public boolean isDownloadRequired(URL url) throws SQLException, IOException, ClassNotFoundException {
+        CacheEntry cacheEntry = null;
+
+        try {
+            this.cacheDatabase.openConnection();
+            cacheEntry = this.cacheDatabase.get(url);
+
+            return this.isDownloadRequired(cacheEntry, null, RequestMethod.GET);
+
+        } finally {
+            this.cacheDatabase.close();
+            if (cacheEntry != null) {
+                cacheEntry.close();
+            }
+        }
+    }
+
     private boolean isDownloadRequired(CacheEntry cacheEntry, Boolean redownload, RequestMethod requestMethod) {
-        // The user specified a redownload
+        // If the user requested a redownload (or explicitly requested no download)
         if (redownload != null) {
-            return redownload;
+            if (redownload) {
+                // Return true if the file has not been re-downloaded since the beginning of the run (rebuild)
+                if (this.runStartTimestamp == null || cacheEntry.getRequestTimestamp() < this.runStartTimestamp) {
+                    return true;
+                }
+            } else {
+                return false;
+            }
         }
 
         // The URL has never been downloaded or it's expired

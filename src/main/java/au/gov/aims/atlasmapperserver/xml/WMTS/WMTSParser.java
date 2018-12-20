@@ -76,11 +76,15 @@ public class WMTSParser {
                     redownload = true;
                 }
 
+                if (forceDownload || urlCache.isDownloadRequired(url)) {
+                    logger.log(Level.INFO, String.format("Downloading [WMTS GetCapabilities document](%s)", urlStr));
+                }
+
                 capabilitiesCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId(), redownload);
                 if (capabilitiesCacheEntry != null) {
                     File wmtsDocumentFile = capabilitiesCacheEntry.getDocumentFile();
                     if (wmtsDocumentFile != null) {
-                        logger.log(Level.INFO, "Parsing WMTS GetCapabilities document");
+                        logger.log(Level.INFO, String.format("Parsing [WMTS GetCapabilities document](%s)", urlStr));
                         wmtsDocument = parseFile(wmtsDocumentFile, urlStr);
                         if (wmtsDocument != null) {
                             urlCache.save(capabilitiesCacheEntry, true);

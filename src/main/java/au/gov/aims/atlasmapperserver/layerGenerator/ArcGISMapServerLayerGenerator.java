@@ -452,6 +452,10 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                     reDownload = true;
                 }
 
+                if (forceDownload || urlCache.isDownloadRequired(url)) {
+                    logger.log(Level.INFO, String.format("Downloading [JSON URL](%s)", urlStr));
+                }
+
                 jsonCacheEntry = urlCache.getHttpDocument(url, dataSource.getDataSourceId(), reDownload);
                 if (jsonCacheEntry != null) {
                     File jsonFile = jsonCacheEntry.getDocumentFile();

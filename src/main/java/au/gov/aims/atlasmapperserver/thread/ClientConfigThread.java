@@ -4,6 +4,7 @@ import au.gov.aims.atlasmapperserver.ClientConfig;
 import au.gov.aims.atlasmapperserver.ConfigType;
 import au.gov.aims.atlasmapperserver.ProjectInfo;
 import au.gov.aims.atlasmapperserver.Utils;
+import au.gov.aims.atlasmapperserver.cache.URLCache;
 import au.gov.aims.atlasmapperserver.jsonWrappers.client.ClientWrapper;
 import au.gov.aims.atlasmapperserver.jsonWrappers.client.DataSourceWrapper;
 import au.gov.aims.atlasmapperserver.jsonWrappers.client.LayerWrapper;
@@ -54,10 +55,11 @@ public class ClientConfigThread extends AbstractConfigThread {
     @Override
     public void run() {
         ThreadLogger logger = this.getLogger();
+        // Currently only used to calculate the re-build time
+        URLCache urlcache = new URLCache(this.clientConfig.getConfigManager());
 
         try {
-            // Collect error messages
-            Date startDate = new Date();
+            urlcache.startRun();
             logger.log(Level.INFO, "Building client: " + this.clientConfig.getClientName());
 
             RevivableThread.checkForInterruption();
@@ -194,8 +196,7 @@ public class ClientConfigThread extends AbstractConfigThread {
             }
 
             // Create the elapse time message
-            Date endDate = new Date();
-            long elapseTimeMs = endDate.getTime() - startDate.getTime();
+            long elapseTimeMs = urlcache.endRun();
             double elapseTimeSec = elapseTimeMs / 1000.0;
             double elapseTimeMin = elapseTimeSec / 60.0;
 

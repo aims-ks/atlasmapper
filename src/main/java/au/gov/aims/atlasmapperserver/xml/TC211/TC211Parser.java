@@ -127,6 +127,10 @@ public class TC211Parser {
                     reDownload = true;
                 }
 
+                if (forceDownload || urlCache.isDownloadRequired(url)) {
+                    logger.log(Level.INFO, String.format("Downloading [TC211 MEST record](%s)", urlStr));
+                }
+
                 mestCacheEntry = urlCache.getHttpDocument(url, dataSourceId, reDownload);
                 if (mestCacheEntry != null) {
                     File mestFile = mestCacheEntry.getDocumentFile();

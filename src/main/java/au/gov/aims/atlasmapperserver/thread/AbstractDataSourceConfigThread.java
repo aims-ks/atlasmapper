@@ -1,7 +1,6 @@
 package au.gov.aims.atlasmapperserver.thread;
 
 import au.gov.aims.atlasmapperserver.Utils;
-import au.gov.aims.atlasmapperserver.cache.CacheEntry;
 import au.gov.aims.atlasmapperserver.cache.URLCache;
 import au.gov.aims.atlasmapperserver.collection.BlackAndWhiteListFilter;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
@@ -66,7 +65,7 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
 
         try {
             // startDate: Used to log the elapse time
-            long startTimestamp = CacheEntry.getCurrentTimestamp();
+            urlcache.startRun();
             logger.log(Level.INFO, "Generating data source: " + this.dataSourceConfig.getDataSourceName());
 
             RevivableThread.checkForInterruption();
@@ -95,8 +94,7 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
             }
 
             // Create the elapse time message
-            long endTimestamp = CacheEntry.getCurrentTimestamp();
-            long elapseTimeMs = endTimestamp - startTimestamp;
+            long elapseTimeMs = urlcache.endRun();
             double elapseTimeSec = elapseTimeMs / 1000.0;
             double elapseTimeMin = elapseTimeSec / 60.0;
 

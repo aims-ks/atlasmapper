@@ -50,14 +50,10 @@ public abstract class AbstractLayerGenerator<L extends AbstractLayerConfig, D ex
             boolean redownloadSecondaryFiles
     ) throws IOException, JSONException, RevivableThreadInterruptedException, SQLException, ClassNotFoundException {
 
-        // startTimestamp: Used to delete old entries in the cache (entries that do not get
-        //     access after that date are considered unused and are removed)
-        long startTimestamp = CacheEntry.getCurrentTimestamp();
-
         LayerCatalog rawLayerCatalog = this.generateRawLayerCatalog(logger, urlCache, dataSourceConfigClone, redownloadPrimaryFiles, redownloadSecondaryFiles);
         RevivableThread.checkForInterruption();
 
-        urlCache.cleanUp(dataSourceConfigClone.getDataSourceId(), startTimestamp);
+        urlCache.cleanUp(dataSourceConfigClone.getDataSourceId());
         RevivableThread.checkForInterruption();
 
         logger.log(Level.INFO, "Building data source layer catalogue");
