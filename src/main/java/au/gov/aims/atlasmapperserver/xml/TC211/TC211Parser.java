@@ -38,9 +38,6 @@ import javax.xml.parsers.SAXParserFactory;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -77,25 +74,49 @@ public class TC211Parser {
         RevivableThread.checkForInterruption();
 
         // Still no metadata document found
-        // Try different URL
+        // Try different URLs
         if (tc211Document == null) {
-            // Assuming the MEST service is GeoNetwork, try to craft a better URL
-            URL craftedUrl = null;
             try {
-                craftedUrl = TC211Parser.craftGeoNetworkMestUrl(url);
+                GeoNetworkUrlBuilder geoNetworkUrlBuilder = new GeoNetworkUrlBuilder(url);
+                RevivableThread.checkForInterruption();
+
+                if (geoNetworkUrlBuilder.isValidGeoNetworkUrl()) {
+                    // Try GeoNetwork 2.10 URL
+                    URL geoNetwork2_10Url = geoNetworkUrlBuilder.craftGeoNetwork2_10MestUrl();
+                    try {
+                        if (geoNetwork2_10Url != null) {
+                            String geoNetwork2_10UrlStr = geoNetwork2_10Url.toString();
+                            if (!geoNetwork2_10UrlStr.equals(urlStr)) {
+                                tc211Document = this.parseRawURL(logger, urlCache, dataSource, layerId, geoNetwork2_10Url, true, forceDownload);
+                            }
+                        }
+                    } catch(Exception ex) {
+                        LOGGER.log(Level.WARNING, "Error occurred while parsing the GeoNetwork 2.10 MEST record URL: " + geoNetwork2_10Url);
+                    }
+                    RevivableThread.checkForInterruption();
+
+                    // Still not good, try old Legacy GeoNetwork URL
+                    if (tc211Document == null) {
+                        URL geoNetworkLegacyUrl = geoNetworkUrlBuilder.craftGeoNetworkLegacyMestUrl();
+                        try {
+                            if (geoNetworkLegacyUrl != null) {
+                                String geoNetworkLegacyUrlStr = geoNetworkLegacyUrl.toString();
+                                if (!geoNetworkLegacyUrlStr.equals(urlStr)) {
+                                    tc211Document = this.parseRawURL(logger, urlCache, dataSource, layerId, geoNetworkLegacyUrl, true, forceDownload);
+                                }
+                            }
+                        } catch(Exception ex) {
+                            LOGGER.log(Level.WARNING, "Error occurred while parsing the Legacy GeoNetwork MEST record URL: " + geoNetworkLegacyUrl);
+                        }
+                    }
+                    RevivableThread.checkForInterruption();
+                }
             } catch (Exception ex) {
                 // This should not happen
                 logger.log(Level.WARNING, String.format("Unexpected error occurred while crafting a GeoNetwork URL: %s",
                         Utils.getExceptionMessage(ex)), ex);
             }
-            if (craftedUrl != null) {
-                String craftedUrlStr = craftedUrl.toString();
-                if (!craftedUrlStr.equals(urlStr)) {
-                    tc211Document = this.parseRawURL(logger, urlCache, dataSource, layerId, craftedUrl, true, forceDownload);
-                }
-            }
         }
-        RevivableThread.checkForInterruption();
 
         return tc211Document;
     }
@@ -205,71 +226,6 @@ public class TC211Parser {
         }
 
         return tc211Document;
-    }
-
-    /**
-     * 1. Find pattern in the URL that would be good indication that we have a GeoNetwork URL.
-     * 2. Craft a URL to the XML document.
-     *
-     * Example:
-     *     http://www.cmar.csiro.au/geonetwork/srv/en/metadata.show?uuid=urn:cmar.csiro.au:dataset:13028&currTab=full
-     * should return:
-     *     http://www.cmar.csiro.au/geonetwork/srv/en/iso19139.xml?uuid=urn:cmar.csiro.au:dataset:13028&currTab=full
-     *
-     * Example:
-     *     http://www.cmar.csiro.au/geonetwork/srv/en/metadata.show?id=44003&currTab=full
-     * should return:
-     *     http://www.cmar.csiro.au/geonetwork/srv/en/iso19139.xml?id=44003&currTab=full
-     * @param brokenUrl
-     * @return
-     */
-    protected static URL craftGeoNetworkMestUrl(URL brokenUrl) throws URISyntaxException, MalformedURLException {
-        if (brokenUrl == null) {
-            return null;
-        }
-
-        String brokenUrlQuery = brokenUrl.getQuery();
-        if (Utils.isNotBlank(brokenUrlQuery)) {
-            // The Scheme is the URL's protocol (http)
-            String scheme = brokenUrl.getProtocol();
-
-            // The Authority is the URL's host and the port number if needed
-            int port = brokenUrl.getPort(); // 80, 443, etc. -1 if not set
-            String authority = brokenUrl.getHost() + (port > 0 ? ":"+port : ""); // www.domain.com:80
-
-            // URI and URL agree to call this a path
-            String path = brokenUrl.getPath(); // geonetwork/srv/en/metadata.show
-
-            String[] brokenUrlParams = brokenUrlQuery.split("&");
-            for (String paramStr : brokenUrlParams) {
-                String[] param = paramStr.split("=");
-                if ("id".equalsIgnoreCase(param[0]) || "uuid".equalsIgnoreCase(param[0])) {
-                    // Transform "geonetwork/srv/en/metadata.show" into "geonetwork/srv/en/iso19139.xml"
-                    int slashIdx = path.lastIndexOf("/");
-
-                    String newPath = slashIdx <= 0 ? "/iso19139.xml" :
-                            path.substring(0, slashIdx) + "/iso19139.xml";
-
-                    URI uri = new URI(
-                            scheme,
-                            authority,
-                            newPath,
-                            brokenUrlQuery,
-                            null);
-
-                    String cleanUrlStr = uri.toASCIIString();
-
-                    // Return null if the crafted URL is the same as the input one.
-                    if (cleanUrlStr.equals(brokenUrl.toString())) {
-                        return null;
-                    }
-
-                    return new URL(cleanUrlStr);
-                }
-            }
-        }
-
-        return null;
     }
 
     private static SAXParser getSAXParser() throws SAXException, ParserConfigurationException {

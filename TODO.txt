@@ -18,7 +18,7 @@
             Make a public isDownloadRequired and use it everywhere to tell the user what is about to be downloaded
             The app decide what to do depending on the status. The cache doesn't log anything, the app does before requesting download or whatever.
     [X] Return file even when status code is 500 (TC211Parser.java line 93) - NOTE: Multiple layers may share same metadata URL (do not retry URL for a given time?)
-    [ ] Craft Mest URL for New and Old GeoNetwork (using configurable array of templates? Not everyone does proper server side redirections)
+    [X] Craft Mest URL for New and Old GeoNetwork (using configurable array of templates? Not everyone does proper server side redirections)
     [X] Level of logging with cache (we could log error for TC211 docs as DEBUG to reduce noise in User log window)
     [X] Use a different DB for location search
 
