@@ -130,8 +130,9 @@ public abstract class AbstractDataSourceConfig extends AbstractRunnableConfig<Ab
             // It do not contains any layers, there is nothing to do with it.
             status = "INVALID";
         } else if (nbErrors > 0) {
-            // It contains error, but it also contains some layers so it is usable.
-            status = "PASSED";
+            // It contains error, but it also contains some layers.
+            // The datasource might be usable (PASSED), but better not take chances...
+            status = "INVALID";
         }
 
         dataSourceWrapper.setStatus(status);
@@ -220,10 +221,9 @@ public abstract class AbstractDataSourceConfig extends AbstractRunnableConfig<Ab
         }
     }
 
-    public void process(boolean redownloadBrokenFiles, boolean clearCapabilitiesCache, boolean clearMetadataCache) {
+    public void process(boolean clearCapabilitiesCache, boolean clearMetadataCache) {
         if (this.isIdle()) {
             this.configThread.setDataSourceConfig(this);
-            this.configThread.setRedownloadBrokenFiles(redownloadBrokenFiles);
             this.configThread.setClearCapabilitiesCache(clearCapabilitiesCache);
             this.configThread.setClearMetadataCache(clearMetadataCache);
 

@@ -21,6 +21,7 @@
 
 package au.gov.aims.atlasmapperserver;
 
+import au.gov.aims.atlasmapperserver.cache.URLCache;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.ArcGISMapServerDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
@@ -39,13 +40,14 @@ public class ArcGISLayersTest {
     @Ignore
     public void testGetLayerConfigs() throws RevivableThreadInterruptedException {
         ThreadLogger logger = new ThreadLogger();
+        URLCache urlCache = new URLCache(null);
 
         ArcGISMapServerDataSourceConfig dataSourceConfig = new ArcGISMapServerDataSourceConfig(null);
         dataSourceConfig.setDataSourceId("gbrmpa");
         dataSourceConfig.setServiceUrl("http://www.gbrmpa.gov.au/spatial_services/gbrmpaBounds/MapServer");
 
         ArcGISMapServerLayerGenerator arcGISLayers = new ArcGISMapServerLayerGenerator();
-        LayerCatalog layerCatalogue = arcGISLayers.generateRawLayerCatalog(logger, dataSourceConfig, false, false);
+        LayerCatalog layerCatalogue = arcGISLayers.generateRawLayerCatalog(logger, urlCache, dataSourceConfig, false, false);
         List<AbstractLayerConfig> layers = layerCatalogue.getLayers();
 
         for (AbstractLayerConfig layer : layers) {

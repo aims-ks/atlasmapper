@@ -1,6 +1,7 @@
 package au.gov.aims.atlasmapperserver.thread;
 
 import au.gov.aims.atlasmapperserver.Utils;
+import au.gov.aims.atlasmapperserver.cache.URLCache;
 import au.gov.aims.atlasmapperserver.collection.BlackAndWhiteListFilter;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.jsonWrappers.client.DataSourceWrapper;
@@ -8,11 +9,9 @@ import au.gov.aims.atlasmapperserver.jsonWrappers.client.LayerWrapper;
 import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
-import au.gov.aims.atlasmapperserver.URLCache;
 import org.json.JSONObject;
 import org.json.JSONSortedObject;
 
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -23,7 +22,6 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
     private static final Logger LOGGER = Logger.getLogger(AbstractDataSourceConfigThread.class.getName());
 
     private AbstractDataSourceConfig dataSourceConfig;
-    private boolean redownloadBrokenFiles;
     private boolean clearCapabilitiesCache;
     private boolean clearMetadataCache;
 
@@ -33,14 +31,6 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
 
     public void setDataSourceConfig(AbstractDataSourceConfig dataSourceConfig) {
         this.dataSourceConfig = dataSourceConfig;
-    }
-
-    public boolean isRedownloadBrokenFiles() {
-        return this.redownloadBrokenFiles;
-    }
-
-    public void setRedownloadBrokenFiles(boolean redownloadBrokenFiles) {
-        this.redownloadBrokenFiles = redownloadBrokenFiles;
     }
 
     public boolean isClearCapabilitiesCache() {
@@ -62,37 +52,12 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
     @Override
     public void run() {
         ThreadLogger logger = this.getLogger();
+        URLCache urlcache = new URLCache(this.dataSourceConfig.getConfigManager());
 
         try {
             // startDate: Used to log the elapse time
-            Date startDate = new Date();
+            urlcache.startRun();
             logger.log(Level.INFO, "Generating data source: " + this.dataSourceConfig.getDataSourceName());
-
-            logger.log(Level.INFO, "Refresh disk cache");
-            try {
-                URLCache.reloadDiskCacheMapIfNeeded(this.dataSourceConfig.getConfigManager().getApplicationFolder());
-            } catch(Exception ex) {
-                logger.log(Level.SEVERE, "An error occurred while reloading the disk cache: " + Utils.getExceptionMessage(ex), ex);
-            }
-
-            RevivableThread.checkForInterruption();
-
-            // 1. Clear the cache
-            // NOTE: I could set a complex logic here to call clearCache only once, but that would not save much processing time.
-            try {
-                if (this.redownloadBrokenFiles) {
-                    URLCache.markCacheForReDownload(this.dataSourceConfig.getConfigManager(), this.dataSourceConfig, true, null);
-                }
-                if (this.clearCapabilitiesCache) {
-                    URLCache.markCacheForReDownload(this.dataSourceConfig.getConfigManager(), this.dataSourceConfig, false, URLCache.Category.CAPABILITIES_DOCUMENT);
-                }
-                if (this.clearMetadataCache) {
-                    URLCache.markCacheForReDownload(this.dataSourceConfig.getConfigManager(), this.dataSourceConfig, false, URLCache.Category.MEST_RECORD);
-                    URLCache.markCacheForReDownload(this.dataSourceConfig.getConfigManager(), this.dataSourceConfig, false, URLCache.Category.BRUTEFORCE_MEST_RECORD);
-                }
-            } catch(Exception ex) {
-                logger.log(Level.SEVERE, "An error occurred while invalidating the disk cache: " + Utils.getExceptionMessage(ex), ex);
-            }
 
             RevivableThread.checkForInterruption();
 
@@ -111,17 +76,18 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
 
                 // Download / parse the capabilities doc
                 // Set the layers and capabilities overrides into the clone
-                layerCatalog = this.getLayerCatalog(logger, dataSourceConfigClone, this.clearCapabilitiesCache, this.clearMetadataCache);
+                layerCatalog = this.getLayerCatalog(logger, urlcache, dataSourceConfigClone, this.clearCapabilitiesCache, this.clearMetadataCache);
 
                 // Save the data source state into a file
-                dataSourceConfigClone.save(logger, layerCatalog);
+                if (layerCatalog != null) {
+                    dataSourceConfigClone.save(logger, layerCatalog);
+                }
             } catch(Exception ex) {
                 logger.log(Level.SEVERE, "An error occurred while generating the layer catalogue: " + Utils.getExceptionMessage(ex), ex);
             }
 
             // Create the elapse time message
-            Date endDate = new Date();
-            long elapseTimeMs = endDate.getTime() - startDate.getTime();
+            long elapseTimeMs = urlcache.endRun();
             double elapseTimeSec = elapseTimeMs / 1000.0;
             double elapseTimeMin = elapseTimeSec / 60.0;
 
@@ -129,11 +95,6 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
                     AbstractConfigThread.ELAPSE_TIME_FORMAT.format(elapseTimeMin) + " min" :
                     AbstractConfigThread.ELAPSE_TIME_FORMAT.format(elapseTimeSec) + " sec"));
 
-            try {
-                URLCache.saveDiskCacheMap(this.dataSourceConfig.getConfigManager().getApplicationFolder());
-            } catch(Exception ex) {
-                logger.log(Level.SEVERE, "An error occurred while saving the disk cache: " + Utils.getExceptionMessage(ex), ex);
-            }
         } catch (RevivableThreadInterruptedException ex) {
             logger.log(Level.SEVERE, "Data source generation cancelled by user.", ex);
         }
@@ -142,6 +103,7 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
     // LayerCatalog - Before data source overrides
     private DataSourceWrapper getRawLayerCatalog(
             ThreadLogger logger,
+            URLCache urlCache,
             AbstractDataSourceConfig dataSourceConfigClone,
             boolean redownloadPrimaryFiles,
             boolean redownloadSecondaryFiles
@@ -151,7 +113,7 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
 
         AbstractLayerGenerator layerGenerator = dataSourceConfigClone.createLayerGenerator();
         if (layerGenerator != null) {
-            rawLayerCatalog = layerGenerator.generateLayerCatalog(logger, dataSourceConfigClone, redownloadPrimaryFiles, redownloadSecondaryFiles);
+            rawLayerCatalog = layerGenerator.generateLayerCatalog(logger, urlCache, dataSourceConfigClone, redownloadPrimaryFiles, redownloadSecondaryFiles);
         }
         RevivableThread.checkForInterruption();
 
@@ -162,6 +124,7 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
 
     private DataSourceWrapper getLayerCatalog(
             ThreadLogger logger,
+            URLCache urlCache,
             AbstractDataSourceConfig dataSourceConfigClone,
             boolean redownloadPrimaryFiles,
             boolean redownloadSecondaryFiles
@@ -170,7 +133,10 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
         RevivableThread.checkForInterruption();
 
         // LayerCatalog before overrides
-        DataSourceWrapper rawLayerCatalog = this.getRawLayerCatalog(logger, dataSourceConfigClone, redownloadPrimaryFiles, redownloadSecondaryFiles);
+        DataSourceWrapper rawLayerCatalog = this.getRawLayerCatalog(logger, urlCache, dataSourceConfigClone, redownloadPrimaryFiles, redownloadSecondaryFiles);
+        if (rawLayerCatalog == null) {
+            return null;
+        }
         RevivableThread.checkForInterruption();
 
         // Map of layers, after overrides, used to create the final layer catalog
@@ -306,7 +272,7 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
         JSONObject layers = layerCatalog.getLayers();
         int nbLayers = layers == null ? 0 : layers.length();
 
-        // TODO Log number of cached layers
+        // TODO Log number of cached layers (GWC)
         if (nbLayers > 1) {
             logger.log(Level.INFO, String.format("The data source contains %d layers.",
                     nbLayers));

@@ -94,7 +94,6 @@ page contentType="application/json" pageEncoding="UTF-8"%><%
                             } else {
                                 // Refresh cache and merging error messages
                                 dataSource.process(
-                                        true, // redownloadBrokenFiles
                                         true, // clearCapabilitiesCache
                                         false // clearMetadataCache
                                 );

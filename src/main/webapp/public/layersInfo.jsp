@@ -32,6 +32,7 @@
 <%@page import="au.gov.aims.atlasmapperserver.ServletUtils"%>
 <%@page import="au.gov.aims.atlasmapperserver.jsonWrappers.client.URLSaveState"%>
 <%@page import="au.gov.aims.atlasmapperserver.thread.ThreadLogger"%>
+<%@page import="au.gov.aims.atlasmapperserver.cache.URLCache"%>
 <%@page contentType="application/json" pageEncoding="UTF-8"%>
 <%
     String[] layerIds = ServletUtils.getComaSeparatedParameters(request, "layerIds");
@@ -39,6 +40,7 @@
     String clientId = request.getParameter("client");
 
     ConfigManager configManager = ConfigHelper.getConfigManager(this.getServletConfig().getServletContext());
+    URLCache urlCache = new URLCache(configManager);
 
     int indent = (request.getParameter("indent") != null ? Integer.parseInt(request.getParameter("indent")) : 0);
     JSONObject jsonObj = new JSONObject();
@@ -56,7 +58,7 @@
         } else {
             if (Utils.isNotBlank(iso19115_19139url)) {
                 ThreadLogger logger = new ThreadLogger();
-                URLSaveState mapState = configManager.getMapStateForDataset(logger, clientConfig, iso19115_19139url);
+                URLSaveState mapState = configManager.getMapStateForDataset(logger, urlCache, clientConfig, iso19115_19139url, false);
 
                 if (mapState == null) {
                     response.setStatus(HttpServletResponse.SC_BAD_REQUEST);

@@ -21,6 +21,7 @@
 
 package au.gov.aims.atlasmapperserver.layerGenerator;
 
+import au.gov.aims.atlasmapperserver.cache.URLCache;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.XYZDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
 import au.gov.aims.atlasmapperserver.layerConfig.XYZLayerConfig;
@@ -52,6 +53,7 @@ public class XYZLayerGenerator extends AbstractLayerGenerator<XYZLayerConfig, XY
     @Override
     public LayerCatalog generateRawLayerCatalog(
             ThreadLogger logger,
+            URLCache urlCache,
             XYZDataSourceConfig dataSourceConfig,
             boolean redownloadPrimaryFiles,
             boolean redownloadSecondaryFiles

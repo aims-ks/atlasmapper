@@ -621,7 +621,7 @@ public class Utils {
         binaryCopy(in, out, -1);
     }
 
-    public static void binaryCopy(InputStream in, OutputStream out, int maxBytesFileSize) throws IOException {
+    public static void binaryCopy(InputStream in, OutputStream out, long maxBytesFileSize) throws IOException {
         if (in == null || out == null) {
             return;
         }
@@ -635,19 +635,17 @@ public class Utils {
                 if (maxBytesFileSize >= 0) {
                     totalBytesRead += bytesRead;
                     if (totalBytesRead > maxBytesFileSize) {
-                        throw new IOException("File size exceeded. The maximum size allowed for this file is " + maxBytesFileSize + " bytes.");
+                        throw new IOException(String.format(
+                            "File size exceeded. The maximum size allowed is %d bytes.", maxBytesFileSize));
                     }
                 }
                 out.write(buf, 0, bytesRead);
             }
         } finally {
-            if (out != null) {
-                try {
-                    out.flush();
-                } catch(Exception e) {
-                    LOGGER.log(Level.SEVERE, "Cant flush the output: {0}", Utils.getExceptionMessage(e));
-                    LOGGER.log(Level.FINE, "Stack trace:", e);
-                }
+            try {
+                out.flush();
+            } catch (Exception ex) {
+                LOGGER.log(Level.SEVERE, String.format("Cant flush the output: %s", Utils.getExceptionMessage(ex)), ex);
             }
         }
     }
@@ -834,10 +832,7 @@ public class Utils {
         double[] reprojectedCoordinates = reprojectCoordinates(coordinates, sourceCRS, targetCRS);
 
         // Verify out of range coordinates
-        if (!validateDegreesCoordinates(reprojectedCoordinates)) {
-            // Out of bound coordinates are usually due to invalid input. No data is better than wrong data.
-            throw new TransformException("Coordinates out of bounds");
-        }
+        validateDegreesCoordinates(reprojectedCoordinates);
 
         return reprojectedCoordinates;
     }
@@ -860,17 +855,13 @@ public class Utils {
         double[] reprojectedCoordinates = reprojectCoordinates(coordinates, sourceCRS, targetCRS);
 
         // Verify out of range coordinates
-        if (!validateDegreesCoordinates(reprojectedCoordinates)) {
-            // Out of bound coordinates are usually due to invalid input. No data is better than wrong data.
-            throw new TransformException("Coordinates out of bounds");
-        }
+        validateDegreesCoordinates(reprojectedCoordinates);
 
         return reprojectedCoordinates;
     }
 
-    private static boolean validateDegreesCoordinates(double[] coordinates) {
+    private static void validateDegreesCoordinates(double[] coordinates) throws TransformException {
         // Verify out of range coordinates
-        boolean valid = true;
         for (int i=0; i+1 < coordinates.length; i += 2) {
 
             double x = coordinates[i];   // Longitude
@@ -882,12 +873,10 @@ public class Utils {
 
             if (xOut || yOut) {
                 // Out of bound coordinates are usually due to invalid input. No data is better than wrong data.
-                LOGGER.log(Level.INFO, "Coordinates out of bounds: [{0}, {1}] minimum values: [{2}, {3}] maximum values: [{4}, {5}]",
-                        new Object[]{ x, y, Longitude.MIN_VALUE, Latitude.MIN_VALUE, Longitude.MAX_VALUE, Latitude.MAX_VALUE });
-                valid = false;
+                throw new TransformException(String.format("Coordinates out of bounds: [%.2f, %.2f] minimum values: [%.1f, %.1f] maximum values: [%.1f, %.1f]",
+                        x, y, Longitude.MIN_VALUE, Latitude.MIN_VALUE, Longitude.MAX_VALUE, Latitude.MAX_VALUE));
             }
         }
-        return valid;
     }
 
     /**
@@ -1022,6 +1011,20 @@ public class Utils {
 
         return truncated ? highlightedStr + ellipsis : highlightedStr;
     }
+
+    // This is in Java 1.7, but this application is backward compatible with older version of Java
+    public static boolean equals(Object o1, Object o2) {
+        if (o1 == null) {
+            return o2 == null;
+        }
+
+        if (o2 == null) {
+            return false;
+        }
+
+        return o1.equals(o2);
+    }
+
     protected static class Occurrence implements Comparable<Occurrence> {
         public int start;
         public int end;

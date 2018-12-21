@@ -33,7 +33,6 @@
 <%@page import="org.json.JSONObject"%>
 <%@page import="au.gov.aims.atlasmapperserver.ConfigManager"%>
 <%@page import="au.gov.aims.atlasmapperserver.ActionType"%>
-<%@page import="sun.reflect.generics.reflectiveObjects.NotImplementedException"%>
 <%@page import="au.gov.aims.atlasmapperserver.thread.ThreadLogger"%>
 <%@page contentType="application/json" pageEncoding="UTF-8"%>
 <%
@@ -44,7 +43,6 @@
     String actionStr = request.getParameter("action");
     String dataSourceId = request.getParameter("dataSourceId");
     String idStr = request.getParameter("id");
-    String redownloadBrokenFilesStr = request.getParameter("redownloadBrokenFiles");
     String clearCapabilitiesCacheStr = request.getParameter("clearCapCache");
     String clearMetadataCacheStr = request.getParameter("clearMestCache");
 
@@ -205,7 +203,6 @@
                             jsonObj.put("errors", new JSONArray().put("Missing parameter [id]."));
                         } else {
                             Integer id = null;
-                            boolean redownloadBrokenFiles = false;
                             boolean clearCapabilitiesCache = false;
                             boolean clearMetadataCache = false;
 
@@ -215,15 +212,6 @@
                                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                                 jsonObj.put("success", false);
                                 jsonObj.put("errors", new JSONArray().put("Invalid id format. Expected integer."));
-                            }
-                            if (redownloadBrokenFilesStr != null) {
-                                try {
-                                    redownloadBrokenFiles = Boolean.parseBoolean(redownloadBrokenFilesStr);
-                                } catch(Exception e) {
-                                    response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                                    jsonObj.put("success", false);
-                                    jsonObj.put("errors", new JSONArray().put("Invalid redownloadBrokenFiles format. Expected boolean."));
-                                }
                             }
                             if (clearCapabilitiesCacheStr != null) {
                                 try {
@@ -250,7 +238,7 @@
                                 jsonObj.put("errors", new JSONArray().put("Invalid id."));
                             } else {
                                 AbstractDataSourceConfig foundDataSourceConfig = configManager.getDataSourceConfig(id);
-                                foundDataSourceConfig.process(redownloadBrokenFiles, clearCapabilitiesCache, clearMetadataCache);
+                                foundDataSourceConfig.process(clearCapabilitiesCache, clearMetadataCache);
                                 response.setStatus(HttpServletResponse.SC_OK);
                                 jsonObj.put("message", "Rebuilding Data source");
                                 jsonObj.put("success", true);

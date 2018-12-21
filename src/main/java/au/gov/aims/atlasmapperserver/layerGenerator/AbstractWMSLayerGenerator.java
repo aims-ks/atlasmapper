@@ -22,8 +22,10 @@
 package au.gov.aims.atlasmapperserver.layerGenerator;
 
 import au.gov.aims.atlasmapperserver.ConfigManager;
-import au.gov.aims.atlasmapperserver.URLCache;
 import au.gov.aims.atlasmapperserver.Utils;
+import au.gov.aims.atlasmapperserver.cache.CacheEntry;
+import au.gov.aims.atlasmapperserver.cache.URLCache;
+import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.WMSDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerStyleConfig;
@@ -42,13 +44,22 @@ import org.geotools.data.ows.StyleImpl;
 import org.geotools.data.ows.WMSCapabilities;
 import org.geotools.data.ows.WMSRequest;
 import org.geotools.data.wms.xml.MetadataURL;
+import org.geotools.data.wms.xml.WMSSchema;
+import org.geotools.ows.ServiceException;
+import org.geotools.xml.DocumentFactory;
+import org.geotools.xml.handlers.DocumentHandler;
 import org.json.JSONException;
 import org.json.JSONSortedObject;
 import org.opengis.util.InternationalString;
+import org.xml.sax.SAXException;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -110,9 +121,10 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
     @Override
     public LayerCatalog generateRawLayerCatalog(
             ThreadLogger logger,
+            URLCache urlCache,
             D dataSourceClone,
-            boolean redownloadPrimaryFiles,
-            boolean redownloadSecondaryFiles
+            boolean redownloadGetCapabilitiesFiles,
+            boolean redownloadMestRecordFiles
     ) throws RevivableThreadInterruptedException {
 
         RevivableThread.checkForInterruption();
@@ -125,55 +137,60 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 
         WMSCapabilities wmsCapabilities = null;
         try {
-            wmsCapabilities = URLCache.getWMSCapabilitiesResponse(
+            wmsCapabilities = this.getWMSCapabilitiesResponse(
                     logger,
-                    configManager,
+                    urlCache,
                     this.wmsVersion,
                     dataSourceClone,
                     dataSourceServiceUrlStr,
-                    URLCache.Category.CAPABILITIES_DOCUMENT,
-                    true);
+                    redownloadGetCapabilitiesFiles);
         } catch (Exception ex) {
-            logger.log(Level.WARNING, String.format("Error occurred while parsing the [GetCapabilities document](%s): %s",
+            logger.log(Level.SEVERE, String.format("Error occurred while parsing the [WMS GetCapabilities document](%s): %s",
                     dataSourceServiceUrlStr, Utils.getExceptionMessage(ex)), ex);
+            return null;
         }
 
-        if (wmsCapabilities != null) {
-            WMSRequest wmsRequestCapabilities = wmsCapabilities.getRequest();
-            if (wmsRequestCapabilities != null) {
-                if (Utils.isNotBlank(dataSourceClone.getGetMapUrl())) {
-                    try {
-                        wmsServiceUrl = Utils.toURL(dataSourceClone.getGetMapUrl());
-                    } catch (Exception ex) {
-                        logger.log(Level.WARNING, String.format("Can not create a URL object from the string %s: %s",
-                                dataSourceClone.getGetMapUrl(), Utils.getExceptionMessage(ex)), ex);
-                    }
-                } else {
-                    wmsServiceUrl = this.getOperationUrl(wmsRequestCapabilities.getGetMap());
+        if (wmsCapabilities == null) {
+            logger.log(Level.SEVERE, String.format("Could not parse the [GetCapabilities document](%s).",
+                    dataSourceServiceUrlStr));
+            return null;
+        }
+
+        WMSRequest wmsRequestCapabilities = wmsCapabilities.getRequest();
+        if (wmsRequestCapabilities != null) {
+            if (Utils.isNotBlank(dataSourceClone.getGetMapUrl())) {
+                try {
+                    wmsServiceUrl = Utils.toURL(dataSourceClone.getGetMapUrl());
+                } catch (Exception ex) {
+                    logger.log(Level.WARNING, String.format("Can not create a URL object from the string %s: %s",
+                            dataSourceClone.getGetMapUrl(), Utils.getExceptionMessage(ex)), ex);
                 }
-                dataSourceClone.setServiceUrl(wmsServiceUrl);
+            } else {
+                wmsServiceUrl = this.getOperationUrl(wmsRequestCapabilities.getGetMap());
+            }
+            dataSourceClone.setServiceUrl(wmsServiceUrl);
 
-                if (Utils.isBlank(dataSourceClone.getFeatureRequestsUrl())) {
-                    dataSourceClone.setFeatureRequestsUrl(this.getOperationUrl(wmsRequestCapabilities.getGetFeatureInfo()));
-                }
-
-                dataSourceClone.setLegendUrl(this.getOperationUrl(wmsRequestCapabilities.getGetLegendGraphic()));
-                dataSourceClone.setWmsVersion(wmsCapabilities.getVersion());
-
-                // GetStyles URL is in GeoTools API but not in the Capabilities document.
-                //     GeoTools probably craft the URL. It's not very useful.
-                //this.stylesUrl = this.getOperationUrl(wmsRequestCapabilities.getGetStyles());
+            if (Utils.isBlank(dataSourceClone.getFeatureRequestsUrl())) {
+                dataSourceClone.setFeatureRequestsUrl(this.getOperationUrl(wmsRequestCapabilities.getGetFeatureInfo()));
             }
 
-            layersMap = this.getLayersInfoFromCaps(logger, wmsCapabilities, dataSourceClone);
+            dataSourceClone.setLegendUrl(this.getOperationUrl(wmsRequestCapabilities.getGetLegendGraphic()));
+            dataSourceClone.setWmsVersion(wmsCapabilities.getVersion());
 
-            // Set default style of each layer
-            if (layersMap != null && !layersMap.isEmpty()) {
-                for (L layer : layersMap.values()) {
-                    this.setDefaultLayerStyle(configManager, layer);
-                }
+            // GetStyles URL is in GeoTools API but not in the Capabilities document.
+            //     GeoTools probably craft the URL. It's not very useful.
+            //this.stylesUrl = this.getOperationUrl(wmsRequestCapabilities.getGetStyles());
+        }
+
+        layersMap = this.getLayersInfoFromCaps(logger, urlCache, wmsCapabilities, dataSourceClone, redownloadMestRecordFiles);
+
+        // Set default style of each layer
+        if (layersMap != null && !layersMap.isEmpty()) {
+            for (L layer : layersMap.values()) {
+                this.setDefaultLayerStyle(configManager, layer);
             }
         }
+
         if (wmsServiceUrl == null && dataSourceServiceUrlStr != null) {
             try {
                 wmsServiceUrl = Utils.toURL(dataSourceServiceUrlStr);
@@ -189,7 +206,9 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
         if (layersMap != null && !layersMap.isEmpty()) {
             if (dataSourceClone.isWebCacheEnable() != null && dataSourceClone.isWebCacheEnable() && wmsServiceUrl != null) {
                 layers = new ArrayList<L>(layersMap.size());
-                Map<String, L> cachedLayers = this.generateRawCachedLayerConfigs(logger, dataSourceClone, wmsServiceUrl);
+                Map<String, L> cachedLayers = this.generateRawCachedLayerConfigs(
+                        logger, urlCache, dataSourceClone, wmsServiceUrl, redownloadGetCapabilitiesFiles, redownloadMestRecordFiles);
+
                 RevivableThread.checkForInterruption();
 
                 // Since we are not parsing the Cache server WMS capability document, we can not find which version of WMS it is using...
@@ -238,6 +257,157 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
         return layerCatalog;
     }
 
+    public WMSCapabilities getWMSCapabilitiesResponse(
+            ThreadLogger logger,
+            URLCache urlCache,
+            String wmsVersion,
+            AbstractDataSourceConfig dataSource,
+            String urlStr,
+            boolean forceDownload
+    ) throws IOException, SAXException, URISyntaxException, RevivableThreadInterruptedException {
+
+        File capabilitiesFile = null;
+        WMSCapabilities wmsCapabilities = null;
+
+        RevivableThread.checkForInterruption();
+
+        if (urlStr.startsWith("file://")) {
+            // Local file URL
+            capabilitiesFile = new File(new URI(urlStr));
+            wmsCapabilities = this.getCapabilities(capabilitiesFile);
+
+        } else {
+            // TODO Find a nicer way to detect if the URL is a complete URL to a GetCapabilities document
+            if (!urlStr.contains("?")) {
+                if (Utils.isBlank(wmsVersion)) {
+                    wmsVersion = "1.3.0";
+                }
+
+                // URL pointing at a WMS service
+                urlStr = Utils.addUrlParameter(urlStr, "SERVICE", "WMS");
+                urlStr = Utils.addUrlParameter(urlStr, "REQUEST", "GetCapabilities");
+                urlStr = Utils.addUrlParameter(urlStr, "VERSION", wmsVersion);
+            }
+            URL url = new URL(urlStr);
+
+            RevivableThread.checkForInterruption();
+
+            // Download GetCapabilities document (or get from cache)
+            CacheEntry capabilitiesCacheEntry = null;
+            CacheEntry rollbackCacheEntry = null;
+            try {
+                try {
+                    Boolean redownload = null;
+                    if (forceDownload) {
+                        redownload = true;
+                    }
+
+                    if (forceDownload || urlCache.isDownloadRequired(url)) {
+                        logger.log(Level.INFO, String.format("Downloading [WMS GetCapabilities document](%s)", urlStr));
+                    }
+
+                    capabilitiesCacheEntry = urlCache.getCacheEntry(url);
+                    if (capabilitiesCacheEntry != null) {
+                        urlCache.getHttpDocument(capabilitiesCacheEntry, dataSource.getDataSourceId(), redownload);
+                        File wmsCapabilitiesFile = capabilitiesCacheEntry.getDocumentFile();
+                        if (wmsCapabilitiesFile != null) {
+                            logger.log(Level.INFO, String.format("Parsing [WMS GetCapabilities document](%s)", urlStr));
+                            wmsCapabilities = this.getCapabilities(wmsCapabilitiesFile);
+                            if (wmsCapabilities != null) {
+                                urlCache.save(capabilitiesCacheEntry, true);
+                            }
+                        }
+                    }
+                } catch (Exception ex) {
+                    // The GetCapibilities document was not good. Use the previous version if possible
+                    logger.log(Level.WARNING, String.format("Error occurred while parsing the [WMS GetCapabilities document](%s): %s",
+                            urlStr, Utils.getExceptionMessage(ex)), ex);
+                }
+
+                // Could not get a working GetCapabilities document
+                // Rollback to previous version
+                if (wmsCapabilities == null) {
+                    try {
+                        rollbackCacheEntry = urlCache.getCacheEntry(url);
+                        if (rollbackCacheEntry != null) {
+                            urlCache.getHttpDocument(rollbackCacheEntry, dataSource.getDataSourceId(), false);
+                            Boolean valid = rollbackCacheEntry.getValid();
+                            if (valid != null && valid) {
+                                File rollbackFile = rollbackCacheEntry.getDocumentFile();
+                                if (rollbackFile != null) {
+                                    wmsCapabilities = this.getCapabilities(rollbackFile);
+                                    if (wmsCapabilities != null) {
+                                        // Save last access timestamp, usage, etc
+                                        urlCache.save(rollbackCacheEntry, true);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (Exception ex) {
+                        // This should not happen
+                        logger.log(Level.WARNING, String.format("Error occurred while getting the previous [WMS GetCapabilities document](%s): %s",
+                                urlStr, Utils.getExceptionMessage(ex)), ex);
+                    }
+                }
+
+                // Even the rollback didn't work
+                if (wmsCapabilities == null) {
+                    // Save what we have in DB
+                    try {
+                        urlCache.save(capabilitiesCacheEntry, false);
+                    } catch (Exception ex) {
+                        logger.log(Level.WARNING, String.format("Error occurred while saving the entry into the cache database [WMS GetCapabilities document](%s): %s",
+                                urlStr, Utils.getExceptionMessage(ex)), ex);
+                    }
+                }
+            } finally {
+                if (capabilitiesCacheEntry != null) capabilitiesCacheEntry.close();
+                if (rollbackCacheEntry != null) rollbackCacheEntry.close();
+            }
+        }
+        RevivableThread.checkForInterruption();
+
+        return wmsCapabilities;
+    }
+
+    private WMSCapabilities getCapabilities(File file) throws IOException, SAXException, RevivableThreadInterruptedException {
+        RevivableThread.checkForInterruption();
+
+        if (file == null || !file.exists()) {
+            return null;
+        }
+
+        InputStream inputStream = null;
+        try {
+            inputStream = new FileInputStream(file);
+            return this.getCapabilities(inputStream);
+        } finally {
+            if (inputStream != null) {
+                inputStream.close();
+            }
+        }
+    }
+
+    private WMSCapabilities getCapabilities(InputStream inputStream)
+            throws SAXException, RevivableThreadInterruptedException {
+
+        RevivableThread.checkForInterruption();
+
+        Map<String, Object> hints = new HashMap<String, Object>();
+        hints.put(DocumentHandler.DEFAULT_NAMESPACE_HINT_KEY, WMSSchema.getInstance());
+        hints.put(DocumentFactory.VALIDATION_HINT, Boolean.FALSE);
+
+        Object object = DocumentFactory.getInstance(inputStream, hints, Level.WARNING);
+        RevivableThread.checkForInterruption();
+
+        if (object instanceof ServiceException) {
+            throw (ServiceException)object;
+        }
+
+        return (WMSCapabilities)object;
+    }
+
+
     private void setLayerStylesCacheFlag(List<LayerStyleConfig> layerStyles, List<LayerStyleConfig> cachedStyles) {
         if (layerStyles != null && !layerStyles.isEmpty()) {
             boolean cachedStyleNotEmpty = cachedStyles != null && !cachedStyles.isEmpty();
@@ -264,8 +434,9 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
         }
     }
 
-    private Map<String, L> generateRawCachedLayerConfigs(ThreadLogger logger, D dataSourceClone, URL wmsServiceUrl)
-            throws RevivableThreadInterruptedException {
+    private Map<String, L> generateRawCachedLayerConfigs(
+            ThreadLogger logger, URLCache urlCache, D dataSourceClone, URL wmsServiceUrl, boolean forceGetCapabilitiesDownload, boolean forceMestDownload
+    ) throws RevivableThreadInterruptedException {
 
         RevivableThread.checkForInterruption();
 
@@ -274,7 +445,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
             return null;
         }
 
-        WMTSDocument gwcCapabilities = this.getGWCDocument(logger, dataSourceClone.getConfigManager(), wmsServiceUrl, dataSourceClone);
+        WMTSDocument gwcCapabilities = this.getGWCDocument(logger, urlCache, wmsServiceUrl, dataSourceClone, forceGetCapabilitiesDownload);
         RevivableThread.checkForInterruption();
 
         Map<String, L> layerConfigs = null;
@@ -288,7 +459,8 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
             if (rootLayer != null) {
                 // The boolean at the end is use to ignore the root from the capabilities document. It can be added (change to false) if some users think it's useful to see the root...
                 // NOTE: There should be no metadata document in GWC
-                this._propagateLayersInfoMapFromGeoToolRootLayer(logger, layerConfigs, rootLayer, new LinkedList<String>(), dataSourceClone, true);
+                this._propagateLayersInfoMapFromGeoToolRootLayer(
+                        logger, urlCache, layerConfigs, rootLayer, new LinkedList<String>(), dataSourceClone, true, forceMestDownload);
             }
         }
 
@@ -310,7 +482,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
      *     If that didn't work, try to rectify the WMTS capabilities document URL and try again.
      *     If that didn't work, return null and add an error.
      */
-    private WMTSDocument getGWCDocument(ThreadLogger logger, ConfigManager configManager, URL wmsServiceUrl, D dataSourceClone)
+    private WMTSDocument getGWCDocument(ThreadLogger logger, URLCache urlCache, URL wmsServiceUrl, D dataSourceClone, boolean forceDownload)
             throws RevivableThreadInterruptedException {
 
         RevivableThread.checkForInterruption();
@@ -396,23 +568,31 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                 } else {
                     // Get HTTP HEAD first. Only try to parse it if it returns a 200 (or equivalent)
                     logger.log(Level.INFO, String.format("Verifying [WMTS GetCapabilities URL](%s)", gwcCapUrl));
-                    URLCache.ResponseStatus status = URLCache.getHttpHead(gwcCapUrl.toString());
-                    if (status == null) {
-                        logger.log(errorLevel, "Invalid URL: " + gwcCapUrl.toString());
-                    } else {
-                        Integer statusCode = status.getStatusCode();
-                        if (statusCode == null) {
+                    CacheEntry gwcCapHead = null;
+                    try {
+                        Boolean reDownloadHead = null;
+                        if (forceDownload) {
+                            reDownloadHead = true;
+                        }
+
+                        gwcCapHead = urlCache.getCacheEntry(gwcCapUrl);
+                        if (gwcCapHead == null) {
                             logger.log(errorLevel, "Invalid URL: " + gwcCapUrl.toString());
                         } else {
-                            if (status.isPageNotFound()) {
+                            urlCache.getHttpHead(gwcCapHead, dataSourceClone.getDataSourceId(), reDownloadHead);
+                            if (gwcCapHead.isPageNotFound()) {
                                 // Don't bother giving a warning for a URL not found if the document is not mandatory
                                 logger.log(errorLevel, "Document not found (404): " + gwcCapUrl.toString());
-                            } else if (!status.isSuccess()) {
-                                logger.log(errorLevel, "Invalid URL (status code: " + statusCode + "): " + gwcCapUrl.toString());
+                                urlCache.save(gwcCapHead, false);
+                            } else if (!gwcCapHead.isSuccess()) {
+                                logger.log(errorLevel, "Invalid URL (status code: " + gwcCapHead.getHttpStatusCode() + "): " + gwcCapUrl.toString());
+                                urlCache.save(gwcCapHead, false);
                             } else {
-                                document = WMTSParser.parseURL(logger, configManager, dataSourceClone, gwcCapUrl, gwcMandatory);
+                                document = WMTSParser.parseURL(logger, urlCache, dataSourceClone, gwcCapUrl, forceDownload);
                             }
                         }
+                    } finally {
+                        if (gwcCapHead != null) gwcCapHead.close();
                     }
                 }
             } catch (Exception ex) {
@@ -440,19 +620,28 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 
                         // Get HTTP HEAD to test the crafted URL
                         logger.log(Level.INFO, String.format("Verifying crafted [WMTS GetCapabilities URL](%s)", modifiedGwcCapUrl));
-                        URLCache.ResponseStatus status = URLCache.getHttpHead(modifiedGwcCapUrl.toString());
-                        if (status != null && status.isSuccess()) {
-                            // Try to download the doc again
-                            document = WMTSParser.parseURL(logger, configManager, dataSourceClone, modifiedGwcCapUrl, gwcMandatory);
+                        CacheEntry getCapHead = null;
+                        try {
+                            Boolean reDownloadHead = null;
+                            if (forceDownload) {
+                                reDownloadHead = true;
+                            }
+
+                            getCapHead = urlCache.getCacheEntry(modifiedGwcCapUrl);
+                            if (getCapHead != null) {
+                                urlCache.getHttpHead(getCapHead, dataSourceClone.getDataSourceId(), reDownloadHead);
+                                if (getCapHead.isSuccess()) {
+                                    // Try to download the doc again
+                                    document = WMTSParser.parseURL(logger, urlCache, dataSourceClone, modifiedGwcCapUrl, forceDownload);
+                                } else {
+                                    urlCache.save(getCapHead, false);
+                                }
+                            }
+                        } finally {
+                            if (getCapHead != null) getCapHead.close();
                         }
 
-                        if (document != null) {
-                            URLCache.setRedirection(configManager, gwcCapUrl.toString(), modifiedGwcCapUrl.toString());
-                            // If it works, save the crafted URL
-                            gwcCapUrl = modifiedGwcCapUrl;
-                        }
                         RevivableThread.checkForInterruption();
-
                     } catch (Exception ex) {
                         // Error occurred while crafting the GWC URL. This is unlikely to happen.
                         logger.log(errorLevel, String.format("Fail to craft a valid WMTS GetCapabilities URL using the given broken [WMTS GetCapabilities URL](%s): %s",
@@ -483,8 +672,10 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
      */
     private Map<String, L> getLayersInfoFromCaps(
             ThreadLogger logger,
+            URLCache urlCache,
             WMSCapabilities wmsCapabilities,
-            D dataSourceClone // Data source of layers (to link the layer to its data source)
+            D dataSourceClone, // Data source of layers (to link the layer to its data source)
+            boolean forceMestDownload
     ) throws RevivableThreadInterruptedException {
 
         RevivableThread.checkForInterruption();
@@ -498,7 +689,8 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 
         Map<String, L> layerConfigs = new HashMap<String, L>();
         // The boolean at the end is use to ignore the root from the capabilities document. It can be added (change to false) if some users think it's useful to see the root...
-        this._propagateLayersInfoMapFromGeoToolRootLayer(logger, layerConfigs, rootLayer, new LinkedList<String>(), dataSourceClone, true);
+        this._propagateLayersInfoMapFromGeoToolRootLayer(
+                logger, urlCache, layerConfigs, rootLayer, new LinkedList<String>(), dataSourceClone, true, forceMestDownload);
 
         RevivableThread.checkForInterruption();
 
@@ -536,11 +728,13 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
     // The first one is just visualy more easy to understand.
     private void _propagateLayersInfoMapFromGeoToolRootLayer(
             ThreadLogger logger,
+            URLCache urlCache,
             Map<String, L> layerConfigs,
             Layer layer,
             List<String> treePath,
             D dataSourceClone,
-            boolean isRoot) throws RevivableThreadInterruptedException {
+            boolean isRoot,
+            boolean forceMestDownload) throws RevivableThreadInterruptedException {
 
         RevivableThread.checkForInterruption();
 
@@ -568,7 +762,8 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
             }
 
             for (Layer childLayer : children) {
-                this._propagateLayersInfoMapFromGeoToolRootLayer(logger, layerConfigs, childLayer, childrenTreePath, dataSourceClone, false);
+                this._propagateLayersInfoMapFromGeoToolRootLayer(
+                        logger, urlCache, layerConfigs, childLayer, childrenTreePath, dataSourceClone, false, forceMestDownload);
             }
         } else {
             // The layer do not have any children, so it is a real layer
@@ -584,7 +779,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                 }
             }
 
-            L layerConfig = this.layerToLayerConfig(logger, layer, treePathBuf.toString(), dataSourceClone);
+            L layerConfig = this.layerToLayerConfig(logger, urlCache, layer, treePathBuf.toString(), dataSourceClone, forceMestDownload);
             if (layerConfig != null) {
                 layerConfigs.put(layerConfig.getLayerId(), layerConfig);
             }
@@ -600,9 +795,11 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
      */
     private L layerToLayerConfig(
             ThreadLogger logger,
+            URLCache urlCache,
             Layer layer,
             String treePath,
-            D dataSourceClone) throws RevivableThreadInterruptedException {
+            D dataSourceClone,
+            boolean forceMestDownload) throws RevivableThreadInterruptedException {
 
         RevivableThread.checkForInterruption();
 
@@ -615,6 +812,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
         }
 
         TC211Document tc211Document = null;
+        TC211Parser tc211Parser = new TC211Parser();
         List<MetadataURL> metadataUrls = layer.getMetadataURL();
         if (metadataUrls != null && !metadataUrls.isEmpty()) {
             // Keep track or URLs that has been tried to avoid trying the same URL multiple times for the same record.
@@ -627,7 +825,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                         if (!triedUrls.contains(urlStr)) {
                             triedUrls.add(urlStr);
                             try {
-                                tc211Document = TC211Parser.parseURL(logger, "metadata for layer " + layerName, dataSourceClone.getConfigManager(), dataSourceClone, url, false, true);
+                                tc211Document = tc211Parser.parseURL(logger, urlCache, dataSourceClone, layerName, url, forceMestDownload);
                                 if (tc211Document == null || tc211Document.isEmpty()) { tc211Document = null; }
                             } catch (Exception e) {
                                 logger.log(Level.WARNING, String.format("Unexpected exception while parsing the [metadata document URL](%s). " +
@@ -657,7 +855,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                             if (!triedUrls.contains(urlStr)) {
                                 triedUrls.add(urlStr);
                                 try {
-                                    tc211Document = TC211Parser.parseURL(logger, "metadata for layer " + layerName, dataSourceClone.getConfigManager(), dataSourceClone, url, false, false);
+                                    tc211Document = tc211Parser.parseURL(logger, urlCache, dataSourceClone, layerName, url, forceMestDownload);
                                     if (tc211Document != null && !tc211Document.isEmpty()) {
                                         validMetadataUrl = metadataUrl;
                                     } else {
