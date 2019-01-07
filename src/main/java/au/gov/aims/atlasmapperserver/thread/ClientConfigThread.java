@@ -278,13 +278,12 @@ public class ClientConfigThread extends AbstractConfigThread {
             indexValues.put("pageHeader", Utils.safeJsStr(this.clientConfig.getPageHeader()));
             indexValues.put("pageFooter", Utils.safeJsStr(this.clientConfig.getPageFooter()));
             indexValues.put("timestamp", ""+Utils.getCurrentTimestamp());
-            indexValues.put("useGoogle", googleDataSource != null
-                    && (googleDataSource.getGoogleJavaScript() == null || !googleDataSource.getGoogleJavaScript().contains("maps.google.com/maps/api")));
+
             if (googleDataSource != null) {
+                indexValues.put("googleAPIKey", googleDataSource.getGoogleAPIKey());
                 indexValues.put("googleJavaScript", googleDataSource.getGoogleJavaScript());
-            } else {
-                indexValues.put("googleJavaScript", "");
             }
+
             indexValues.put("welcomeMsg", this.clientConfig.getWelcomeMsg());
             indexValues.put("headExtra", this.clientConfig.getHeadExtra());
             Utils.processTemplate(templatesConfig, "index.html", indexValues, atlasMapperClientFolder);
@@ -299,13 +298,12 @@ public class ClientConfigThread extends AbstractConfigThread {
             embeddedValues.put("pageHeader", Utils.safeJsStr(this.clientConfig.getPageHeader()));
             embeddedValues.put("pageFooter", Utils.safeJsStr(this.clientConfig.getPageFooter()));
             embeddedValues.put("timestamp", ""+Utils.getCurrentTimestamp());
-            embeddedValues.put("useGoogle", googleDataSource != null
-                    && (googleDataSource.getGoogleJavaScript() == null || !googleDataSource.getGoogleJavaScript().contains("maps.google.com/maps/api")));
+
             if (googleDataSource != null) {
+                embeddedValues.put("googleAPIKey", googleDataSource.getGoogleAPIKey());
                 embeddedValues.put("googleJavaScript", googleDataSource.getGoogleJavaScript());
-            } else {
-                embeddedValues.put("googleJavaScript", "");
             }
+
             // No welcome message
             Utils.processTemplate(templatesConfig, "embedded.html", embeddedValues, atlasMapperClientFolder);
 

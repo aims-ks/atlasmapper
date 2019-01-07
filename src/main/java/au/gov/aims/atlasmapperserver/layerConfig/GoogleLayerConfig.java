@@ -23,6 +23,8 @@ package au.gov.aims.atlasmapperserver.layerConfig;
 
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.Utils;
+import au.gov.aims.atlasmapperserver.annotation.ConfigField;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -30,40 +32,51 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class GoogleLayerConfig extends AbstractLayerConfig {
-	private static final Logger LOGGER = Logger.getLogger(GoogleLayerConfig.class.getName());
-	private static final String NUM_ZOOM_LEVELS_KEY = "numZoomLevels";
+    private static final Logger LOGGER = Logger.getLogger(GoogleLayerConfig.class.getName());
+    private static final String NUM_ZOOM_LEVELS_KEY = "numZoomLevels";
 
-	public GoogleLayerConfig(ConfigManager configManager) {
-		super(configManager);
-	}
+    @ConfigField
+    private JSONArray styledMapType;
 
-	public void setNumZoomLevels(Integer numZoomLevels) {
-		JSONObject olOptions = this.getOlOptions();
-		if (olOptions == null) {
-			olOptions = new JSONObject();
-			this.setOlOptions(olOptions);
-		}
-		if (numZoomLevels == null) {
-			if (olOptions.has(NUM_ZOOM_LEVELS_KEY)) {
-				olOptions.remove(NUM_ZOOM_LEVELS_KEY);
-			}
-		} else {
-			try {
-				olOptions.put(NUM_ZOOM_LEVELS_KEY, numZoomLevels);
-			} catch(JSONException ex) {
-				// This will probably never happen...
-				LOGGER.log(Level.SEVERE, "Can not set the {0} properties for a google layer: {1}",
-						new String[] { NUM_ZOOM_LEVELS_KEY, Utils.getExceptionMessage(ex) });
-				LOGGER.log(Level.FINE, "Stack trace: ", ex);
-			}
-		}
-	}
+    public GoogleLayerConfig(ConfigManager configManager) {
+        super(configManager);
+    }
 
-	public Integer getNumZoomLevels() {
-		JSONObject olOptions = this.getOlOptions();
-		if (olOptions == null && olOptions.has(NUM_ZOOM_LEVELS_KEY)) {
-			return olOptions.optInt(NUM_ZOOM_LEVELS_KEY);
-		}
-		return null;
-	}
+    public JSONArray getStyledMapType() {
+        return this.styledMapType;
+    }
+
+    public void setStyledMapType(JSONArray styledMapType) {
+        this.styledMapType = styledMapType;
+    }
+
+    public void setNumZoomLevels(Integer numZoomLevels) {
+        JSONObject olOptions = this.getOlOptions();
+        if (olOptions == null) {
+            olOptions = new JSONObject();
+            this.setOlOptions(olOptions);
+        }
+        if (numZoomLevels == null) {
+            if (olOptions.has(NUM_ZOOM_LEVELS_KEY)) {
+                olOptions.remove(NUM_ZOOM_LEVELS_KEY);
+            }
+        } else {
+            try {
+                olOptions.put(NUM_ZOOM_LEVELS_KEY, numZoomLevels);
+            } catch(JSONException ex) {
+                // This will probably never happen...
+                LOGGER.log(Level.SEVERE, "Can not set the {0} properties for a google layer: {1}",
+                        new String[] { NUM_ZOOM_LEVELS_KEY, Utils.getExceptionMessage(ex) });
+                LOGGER.log(Level.FINE, "Stack trace: ", ex);
+            }
+        }
+    }
+
+    public Integer getNumZoomLevels() {
+        JSONObject olOptions = this.getOlOptions();
+        if (olOptions != null && olOptions.has(NUM_ZOOM_LEVELS_KEY)) {
+            return olOptions.optInt(NUM_ZOOM_LEVELS_KEY);
+        }
+        return null;
+    }
 }

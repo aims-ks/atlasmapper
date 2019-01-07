@@ -317,6 +317,14 @@ Ext.define('Writer.LayerServerConfigForm', {
             }, browserSpecificEditAreaConfig
         );
 
+        var googleAPIKey = {
+            fieldLabel: 'Google API Key (<a href="manualOverrideDoc.html#google" target="_blank">doc</a>)',
+            qtipTitle: 'Google API Key',
+            qtipHtml: 'Google API Key used to request Google map layers',
+            name: 'googleAPIKey',
+            allowBlank: false
+        };
+
         // If the behaviour of this field is altered, don't forget to also modify the
         // documentation associated with it in "manualOverrideDoc.html".
         var googleJavaScript = {
@@ -328,7 +336,7 @@ Ext.define('Writer.LayerServerConfigForm', {
             xtype: 'textareafield',
             name: 'googleJavaScript',
             height: 300
-            };
+        };
 
         var legendParameters = {
             // For special GeoServer legend params, see:
@@ -563,6 +571,7 @@ Ext.define('Writer.LayerServerConfigForm', {
                 break;
 
             case 'GOOGLE':
+                items.push(googleAPIKey);
                 items.push(comment);
 
                 advancedItems.push(globalManualOverride);
@@ -1609,6 +1618,7 @@ Ext.define('Writer.LayerServerConfig', {
         {name: 'legendDpiSupport', type: 'boolean', defaultValue: false},
         'legendParameters',
         'blackAndWhiteListedLayers',
+        'googleAPIKey',
         'googleJavaScript',
         'baseLayers',
         'overlayLayers',

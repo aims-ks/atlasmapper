@@ -24,65 +24,65 @@ window["Atlas"] = window["Atlas"] || {};
 window["Atlas"]["Layer"] = window["Atlas"]["Layer"] || {};
 
 Atlas.Layer.LayerHelper = {
-	// Static method
-	// Parent is a layer group (AtlasLayer) when the layer is a child of that group
-	createLayer: function(mapPanel, layerJSon, parent) {
-		var atlasLayer = null;
+    // Static method
+    // Parent is a layer group (AtlasLayer) when the layer is a child of that group
+    createLayer: function(mapPanel, layerJSon, parent) {
+        var atlasLayer = null;
 
-		if (layerJSon instanceof OpenLayers.Layer) {
-			atlasLayer = new Atlas.Layer.AbstractLayer(mapPanel, {}, parent);
-			atlasLayer.getExtent = function() {
-				return this.computeExtent();
-			};
-			atlasLayer.setLayer(layerJSon);
+        if (layerJSon instanceof OpenLayers.Layer) {
+            atlasLayer = new Atlas.Layer.AbstractLayer(mapPanel, {}, parent);
+            atlasLayer.getExtent = function() {
+                return this.computeExtent();
+            };
+            atlasLayer.setLayer(layerJSon);
 
-		} else {
-			if (typeof(layerJSon['layerType']) === 'undefined') {
-				alert('Layer '+layerJSon['layerId']+' has no layerType defined.');
-				return;
-			}
+        } else {
+            if (typeof(layerJSon['layerType']) === 'undefined') {
+                alert('Layer '+layerJSon['layerId']+' has no layerType defined.');
+                return null;
+            }
 
-			switch (layerJSon['layerType']) {
-				case 'DUMMY':
-					// Dummy layers are used to create a tree node that can contains a layer object that is not load on the map.
-					atlasLayer = new Atlas.Layer.Dummy(mapPanel, layerJSon, parent);
-					break;
-				case 'NCWMS':
-					atlasLayer = new Atlas.Layer.NCWMS(mapPanel, layerJSon, parent);
-					break;
-				case 'ARCGIS_MAPSERVER':
-					atlasLayer = new Atlas.Layer.ArcGISMapServer(mapPanel, layerJSon, parent);
-					break;
-				case 'ARCGIS_CACHE':
-					atlasLayer = new Atlas.Layer.ArcGISCache(mapPanel, layerJSon, parent);
-					break;
-				case 'WMS':
-					atlasLayer = new Atlas.Layer.WMS(mapPanel, layerJSon, parent);
-					break;
-				case 'WMTS':
-					atlasLayer = new Atlas.Layer.WMTS(mapPanel, layerJSon, parent);
-					break;
-				case 'KML':
-					atlasLayer = new Atlas.Layer.KML(mapPanel, layerJSon, parent);
-					break;
-				case 'GOOGLE':
-					atlasLayer = new Atlas.Layer.Google(mapPanel, layerJSon, parent);
-					break;
-				case 'BING':
-					atlasLayer = new Atlas.Layer.Bing(mapPanel, layerJSon, parent);
-					break;
-				case 'XYZ':
-					atlasLayer = new Atlas.Layer.XYZ(mapPanel, layerJSon, parent);
-					break;
-				case 'SERVICE':
-				case 'GROUP':
-					atlasLayer = new Atlas.Layer.Group(mapPanel, layerJSon, parent);
-					break;
-				default:
-					alert('Layer type '+layerJSon['layerType']+' for layer '+layerJSon['layerId']+', is not implemented.');
-			}
-		}
+            switch (layerJSon['layerType']) {
+                case 'DUMMY':
+                    // Dummy layers are used to create a tree node that can contains a layer object that is not load on the map.
+                    atlasLayer = new Atlas.Layer.Dummy(mapPanel, layerJSon, parent);
+                    break;
+                case 'NCWMS':
+                    atlasLayer = new Atlas.Layer.NCWMS(mapPanel, layerJSon, parent);
+                    break;
+                case 'ARCGIS_MAPSERVER':
+                    atlasLayer = new Atlas.Layer.ArcGISMapServer(mapPanel, layerJSon, parent);
+                    break;
+                case 'ARCGIS_CACHE':
+                    atlasLayer = new Atlas.Layer.ArcGISCache(mapPanel, layerJSon, parent);
+                    break;
+                case 'WMS':
+                    atlasLayer = new Atlas.Layer.WMS(mapPanel, layerJSon, parent);
+                    break;
+                case 'WMTS':
+                    atlasLayer = new Atlas.Layer.WMTS(mapPanel, layerJSon, parent);
+                    break;
+                case 'KML':
+                    atlasLayer = new Atlas.Layer.KML(mapPanel, layerJSon, parent);
+                    break;
+                case 'GOOGLE':
+                    atlasLayer = new Atlas.Layer.Google(mapPanel, layerJSon, parent);
+                    break;
+                case 'BING':
+                    atlasLayer = new Atlas.Layer.Bing(mapPanel, layerJSon, parent);
+                    break;
+                case 'XYZ':
+                    atlasLayer = new Atlas.Layer.XYZ(mapPanel, layerJSon, parent);
+                    break;
+                case 'SERVICE':
+                case 'GROUP':
+                    atlasLayer = new Atlas.Layer.Group(mapPanel, layerJSon, parent);
+                    break;
+                default:
+                    alert('Layer type '+layerJSon['layerType']+' for layer '+layerJSon['layerId']+', is not implemented.');
+            }
+        }
 
-		return atlasLayer;
-	}
+        return atlasLayer;
+    }
 };

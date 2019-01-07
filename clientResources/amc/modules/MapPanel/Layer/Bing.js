@@ -24,30 +24,30 @@ window["Atlas"] = window["Atlas"] || {};
 window["Atlas"]["Layer"] = window["Atlas"]["Layer"] || {};
 
 Atlas.Layer.Bing = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
-	supportLoadEvents: false,
+    supportLoadEvents: false,
 
-	/**
-	 * Constructor: Atlas.Layer.Bing
-	 *
-	 * Parameters:
-	 * jsonLayer - {Object} Hashtable of layer attributes
-	 * mapPanel - {Object} Instance of the MapPanel in which the layer is used
-	 */
-	initialize: function(mapPanel, jsonLayer, parent) {
-		Atlas.Layer.AbstractLayer.prototype.initialize.apply(this, arguments);
+    /**
+     * Constructor: Atlas.Layer.Bing
+     *
+     * Parameters:
+     * jsonLayer - {Object} Hashtable of layer attributes
+     * mapPanel - {Object} Instance of the MapPanel in which the layer is used
+     */
+    initialize: function(mapPanel, jsonLayer, parent) {
+        Atlas.Layer.AbstractLayer.prototype.initialize.apply(this, arguments);
 
-		if (this.json != null) {
-			var layerOptions = {
-				name: this.getTitle(),
-				key: this.json['bingAPIKey'],
-				type: this.json['layerName']
-			};
+        if (this.json != null) {
+            var layerOptions = {
+                name: this.getTitle(),
+                key: this.json['bingAPIKey'],
+                type: this.json['layerName']
+            };
 
-			if (typeof(this.json['olOptions']) !== 'undefined') {
-				layerOptions = this.applyOlOverrides(layerOptions, this.json['olOptions']);
-			}
+            if (typeof(this.json['olOptions']) !== 'undefined') {
+                layerOptions = this.applyOlOverrides(layerOptions, this.json['olOptions']);
+            }
 
-			this.setLayer(new OpenLayers.Layer.Bing(layerOptions));
-		}
-	}
+            this.setLayer(new OpenLayers.Layer.Bing(layerOptions));
+        }
+    }
 });

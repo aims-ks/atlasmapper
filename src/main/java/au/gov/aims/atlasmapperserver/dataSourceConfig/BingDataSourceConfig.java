@@ -27,23 +27,23 @@ import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
 import au.gov.aims.atlasmapperserver.layerGenerator.BingLayerGenerator;
 
 public class BingDataSourceConfig extends AbstractDataSourceConfig {
-	@ConfigField
-	private String bingAPIKey;
+    @ConfigField
+    private String bingAPIKey;
 
-	public BingDataSourceConfig(ConfigManager configManager) {
-		super(configManager);
-	}
+    public BingDataSourceConfig(ConfigManager configManager) {
+        super(configManager);
+    }
 
-	@Override
-	public AbstractLayerGenerator createLayerGenerator() {
-		return new BingLayerGenerator();
-	}
+    @Override
+    public AbstractLayerGenerator createLayerGenerator() {
+        return new BingLayerGenerator();
+    }
 
-	public String getBingAPIKey() {
-		return this.bingAPIKey;
-	}
+    public String getBingAPIKey() {
+        return this.bingAPIKey;
+    }
 
-	public void setBingAPIKey(String bingAPIKey) {
-		this.bingAPIKey = bingAPIKey;
-	}
+    public void setBingAPIKey(String bingAPIKey) {
+        this.bingAPIKey = bingAPIKey;
+    }
 }

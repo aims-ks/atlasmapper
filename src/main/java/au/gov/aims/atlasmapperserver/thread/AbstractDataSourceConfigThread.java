@@ -182,6 +182,8 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
                                     jsonLayerOverride.getLayerType(), jsonLayerOverride, dataSourceConfigClone.getConfigManager());
 
                             LayerWrapper layerWrapper = new LayerWrapper(manualLayer.toJSonObject());
+
+                            logger.log(Level.INFO, String.format("Adding layer defined in layer overrides: %s", layerId));
                             layersMap.put(
                                     layerId,
                                     layerWrapper);
