@@ -28,51 +28,52 @@ import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 import java.util.Arrays;
 
 public class WMSLayerConfig extends AbstractLayerConfig {
-	@ConfigField
-	private Boolean wmsQueryable;
+    @ConfigField
+    private Boolean wmsQueryable;
 
-	@ConfigField
-	private String[] wmsFeatureRequestLayers;
+    @ConfigField
+    private String[] wmsFeatureRequestLayers;
 
-	public WMSLayerConfig(ConfigManager configManager) {
-		super(configManager);
-	}
+    public WMSLayerConfig(ConfigManager configManager) {
+        super(configManager);
+    }
 
-	public Boolean isWmsQueryable() {
-		return this.wmsQueryable;
-	}
+    public Boolean isWmsQueryable() {
+        return this.wmsQueryable;
+    }
 
-	public void setWmsQueryable(Boolean wmsQueryable) {
-		this.wmsQueryable = wmsQueryable;
-	}
+    public void setWmsQueryable(Boolean wmsQueryable) {
+        this.wmsQueryable = wmsQueryable;
+    }
 
-	public String[] getWmsFeatureRequestLayers() {
-		return wmsFeatureRequestLayers;
-	}
+    public String[] getWmsFeatureRequestLayers() {
+        return this.wmsFeatureRequestLayers;
+    }
 
-	public void setWmsFeatureRequestLayers(String[] wmsFeatureRequestLayers) {
-		this.wmsFeatureRequestLayers = wmsFeatureRequestLayers;
-	}
+    public void setWmsFeatureRequestLayers(String[] wmsFeatureRequestLayers) {
+        this.wmsFeatureRequestLayers = wmsFeatureRequestLayers;
+    }
 
-	public String toString() {
-		return "WMSLayerConfig {\n" +
-				(Utils.isBlank(this.getLayerId()) ? "" :       "	layerId=" + this.getLayerId() + "\n") +
-				(Utils.isBlank(this.getLayerName()) ? "" :     "	layerName=" + this.getLayerName() + "\n") +
-				(this.getAliasIds()==null ? "" :               "	aliasIds=" + Arrays.toString(this.getAliasIds()) + "\n") +
-				(Utils.isBlank(this.getTitle()) ? "" :         "	title=" + this.getTitle() + "\n") +
-				(Utils.isBlank(this.getDescription()) ? "" :   "	description=" + this.getDescription() + "\n") +
-				(this.getLayerBoundingBox()==null ? "" :       "	layerBoundingBox=" + Arrays.toString(this.getLayerBoundingBox()) + "\n") +
-				(this.getInfoHtmlUrls()==null ? "" :           "	infoHtmlUrls=" + Arrays.toString(this.getInfoHtmlUrls()) + "\n") +
-				(this.isIsBaseLayer()==null ? "" :             "	isBaseLayer=" + this.isIsBaseLayer() + "\n") +
-				(this.isHasLegend()==null ? "" :               "	hasLegend=" + this.isHasLegend() + "\n") +
-				(Utils.isBlank(this.getLegendGroup()) ? "" :   "	legendGroup=" + this.getLegendGroup() + "\n") +
-				(Utils.isBlank(this.getLegendTitle()) ? "" :   "	legendTitle=" + this.getLegendTitle() + "\n") +
-				(wmsQueryable==null ? "" :                     "	wmsQueryable=" + wmsQueryable + "\n") +
-				(Utils.isBlank(this.getTreePath()) ? "" :      "	treePath=" + this.getTreePath() + "\n") +
-				(wmsFeatureRequestLayers==null ? "" :          "	wmsFeatureRequestLayers=" + Arrays.toString(wmsFeatureRequestLayers) + "\n") +
-				(this.getStyles()==null ? "" :                 "	styles=" + this.getStyles() + "\n") +
-				(this.getOptions()==null ? "" :                "	options=" + this.getOptions() + "\n") +
-				(this.isSelected()==null ? "" :                "	selected=" + this.isSelected() + "\n") +
-				'}';
-	}
+    @Override
+    public String toString() {
+        return "WMSLayerConfig {\n" +
+                (Utils.isBlank(this.getLayerId()) ? "" :       "	layerId=" + this.getLayerId() + "\n") +
+                (Utils.isBlank(this.getLayerName()) ? "" :     "	layerName=" + this.getLayerName() + "\n") +
+                (this.getAliasIds()==null ? "" :               "	aliasIds=" + Arrays.toString(this.getAliasIds()) + "\n") +
+                (Utils.isBlank(this.getTitle()) ? "" :         "	title=" + this.getTitle() + "\n") +
+                (Utils.isBlank(this.getDescription()) ? "" :   "	description=" + this.getDescription() + "\n") +
+                (this.getLayerBoundingBox()==null ? "" :       "	layerBoundingBox=" + Arrays.toString(this.getLayerBoundingBox()) + "\n") +
+                (this.getInfoHtmlUrls()==null ? "" :           "	infoHtmlUrls=" + Arrays.toString(this.getInfoHtmlUrls()) + "\n") +
+                (this.isIsBaseLayer()==null ? "" :             "	isBaseLayer=" + this.isIsBaseLayer() + "\n") +
+                (this.isHasLegend()==null ? "" :               "	hasLegend=" + this.isHasLegend() + "\n") +
+                (Utils.isBlank(this.getLegendGroup()) ? "" :   "	legendGroup=" + this.getLegendGroup() + "\n") +
+                (Utils.isBlank(this.getLegendTitle()) ? "" :   "	legendTitle=" + this.getLegendTitle() + "\n") +
+                (this.wmsQueryable==null ? "" :                "	wmsQueryable=" + this.wmsQueryable + "\n") +
+                (Utils.isBlank(this.getTreePath()) ? "" :      "	treePath=" + this.getTreePath() + "\n") +
+                (this.wmsFeatureRequestLayers==null ? "" :     "	wmsFeatureRequestLayers=" + Arrays.toString(this.wmsFeatureRequestLayers) + "\n") +
+                (this.getStyles()==null ? "" :                 "	styles=" + this.getStyles() + "\n") +
+                (this.getOptions()==null ? "" :                "	options=" + this.getOptions() + "\n") +
+                (this.isSelected()==null ? "" :                "	selected=" + this.isSelected() + "\n") +
+            '}';
+    }
 }

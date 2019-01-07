@@ -21,310 +21,313 @@
 -->
 
 <html>
-	<head>
-		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-		<link rel="icon" type="image/png" href="../resources/favicon.png" />
-		<title>Manual Override documentation</title>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <link rel="icon" type="image/png" href="../resources/favicon.png" />
+        <title>Manual Override documentation</title>
 
-		<style type="text/css">
-			table {
-				border-collapse: collapse;
-				border: 1px solid #99BCE8;
-				width: 100%;
-			}
-			table th, table td {
-				vertical-align: top;
-				padding: 0.2em;
-			}
-			table th {
-				border: 1px solid #FFFFFF;
-				background-color: #99BCE8;
-			}
-			table td {
-				border: 1px solid #99BCE8;
-			}
-			table tr td.attr {
-				font-family: monospace, sans-serif;
-				width: 300px;
-			}
-			table tr .type {
-				width: 100px;
-			}
+        <style type="text/css">
+            table {
+                border-collapse: collapse;
+                border: 1px solid #99BCE8;
+                width: 100%;
+            }
+            table th, table td {
+                vertical-align: top;
+                padding: 0.2em;
+            }
+            table th {
+                border: 1px solid #FFFFFF;
+                background-color: #99BCE8;
+            }
+            table td {
+                border: 1px solid #99BCE8;
+            }
+            table tr td.attr {
+                font-family: monospace, sans-serif;
+                width: 300px;
+            }
+            table tr .type {
+                width: 100px;
+            }
 
-			table.urlSpecialChars {
-				width: 500px;
-			}
-			table.urlSpecialChars td.char,
-			table.urlSpecialChars td.enc {
-				text-align: center;
-			}
-			table.urlSpecialChars td.char {
-				font-size: 1.5em;
-			}
+            table.urlSpecialChars {
+                width: 500px;
+            }
+            table.urlSpecialChars td.char,
+            table.urlSpecialChars td.enc {
+                text-align: center;
+            }
+            table.urlSpecialChars td.char {
+                font-size: 1.5em;
+            }
 
-			blockquote {
-				background-color: #DDDDDD;
-				padding: 0.5em 0.7em;
-			}
-			blockquote pre {
-				margin: 0;
-			}
+            pre,
+            blockquote {
+                background-color: #DDDDDD;
+                padding: 0.5em 0.7em;
+            }
+            blockquote pre {
+                margin: 0;
+            }
 
-			#workflowDiv,
-			#settingsDiv,
-			#layerGroupsDiv,
-			#wikiDiv,
-			#attributesDiv {
-				margin-left: 2em;
-			}
+            #workflowDiv,
+            #settingsDiv,
+            #layerGroupsDiv,
+            #wikiDiv,
+            #attributesDiv {
+                margin-left: 2em;
+            }
 
-			#workflowDiv .diagram {
-				float: right;
-				width: 660px;
-				margin-left: 1em;
-			}
+            #workflowDiv .diagram {
+                float: right;
+                width: 660px;
+                margin-left: 1em;
+            }
 
-			img.imgClass {
-				border: 10px ridge #CC9977;
-				margin: 10px 0;
-			}
-		</style>
-	</head>
+            img.imgClass {
+                border: 10px ridge #CC9977;
+                margin: 10px 0;
+            }
+        </style>
+    </head>
 
-	<body>
-		<h1>Manual Override documentation</h1>
+    <body>
+        <h1>Manual Override documentation</h1>
 
-		<!-- NOTE: [a name="workflow"] is deprecated and not supported in HTML5. ID is the proper way of defining anchor. -->
-		<h2 id="workflow">Workflow</h2>
-		<div id="workflowDiv">
-			<p>
-				Description of the workflow followed to generate a client.
-			</p>
+        <p>For adding a custom Google layer, see: <a href="#googleAddLayer">Adding a custom Google layer</a>
 
-			<h3>Building a data source</h3>
-			<img class="diagram" src="../resources/images/workflow.png" alt="AtlasMapper workflow diagram" />
-			<ol>
-				<li>When the button <em>Build</em> is pressed, the AtlasMapper download or reuse cached document from the data source service to discover the layers.
-				In the case of WMS service, it download the GetCapabilities document. For ArcGIS, it download the JSON files, etc.</li>
-				<li>For each WMS layers, it also download its associated <em>TC211</em>
-					metadata document (also known as MEST record), when specified in the field <em>MetadataURL</em> of the GetCapabilities document.
-					<ul>
-						<li>If the TC211 document has a <em>CI_OnlineResource</em> link with a name
-							that match the layer name, than the <em>CI_OnlineResource</em> description is append the layer description,
-							with the metadata description, and the links.</li>
-						<li>If the TC211 document do not have a <em>CI_OnlineResource</em> link with a name that match the layer name,
-							than only the metadata description and the links are append to the layer description.</li>
-					</ul>
-				</li>
-				<li>The layer overrides described in the AtlasMapper data source's advanced tab are applied.</li>
-				<li>The layers information and the data source information are saved on the disk in a <em>Data source saved state</em> file.</li>
-			</ol>
+        <!-- NOTE: [a name="workflow"] is deprecated and not supported in HTML5. ID is the proper way of defining anchor. -->
+        <h2 id="workflow">Workflow</h2>
+        <div id="workflowDiv">
+            <p>
+                Description of the workflow followed to generate a client.
+            </p>
 
-			<h3>Generating a client</h3>
-			<ol>
-				<li>When the button <em>Generate</em> is pressed, the AtlasMapper collect the layers for each data source associated with the client, from the <em>Data source saved state</em> files.</li>
-				<li>The layer overrides described in the AtlasMapper client's advanced tab are applied.</li>
-				<li>The client templates, client files, client configuration file and the layer catalog
-					file are saved on disk, ready to use with the AtlasMapper client.</li>
-			</ol>
-		</div>
+            <h3>Building a data source</h3>
+            <img class="diagram" src="../resources/images/workflow.png" alt="AtlasMapper workflow diagram" />
+            <ol>
+                <li>When the button <em>Build</em> is pressed, the AtlasMapper download or reuse cached document from the data source service to discover the layers.
+                In the case of WMS service, it download the GetCapabilities document. For ArcGIS, it download the JSON files, etc.</li>
+                <li>For each WMS layers, it also download its associated <em>TC211</em>
+                    metadata document (also known as MEST record), when specified in the field <em>MetadataURL</em> of the GetCapabilities document.
+                    <ul>
+                        <li>If the TC211 document has a <em>CI_OnlineResource</em> link with a name
+                            that match the layer name, than the <em>CI_OnlineResource</em> description is append the layer description,
+                            with the metadata description, and the links.</li>
+                        <li>If the TC211 document do not have a <em>CI_OnlineResource</em> link with a name that match the layer name,
+                            than only the metadata description and the links are append to the layer description.</li>
+                    </ul>
+                </li>
+                <li>The layer overrides described in the AtlasMapper data source's advanced tab are applied.</li>
+                <li>The layers information and the data source information are saved on the disk in a <em>Data source saved state</em> file.</li>
+            </ol>
 
-		<h2 id="settings">Settings in AtlasMapper</h2>
-		<div id="settingsDiv">
-			<p>
-				This field must respect the JSON syntax, a subset of JavaScript. If
-				it contains errors, the form will refuse to submit. It always start
-				with <b>{</b> and ends with <b>}</b>. To override an attribute of a
-				layer, specified the layer ID following by a column <b>:</b> and the
-				curly brackets <b>{</b> and <b>}</b>. Add the attributes inside the
-				brackets.
-			</p>
-			<p>
-				The attributes for a layer are build from the capabilities document,
-				for WMS layers, after applying the manual overrides from the layer
-				data source than the manual overrides from the client.
-			</p>
-			<h3>Examples</h3>
-			<p>
-				The following bloc override the mime type of the layer using the attribute
-				<i>olParams</i> and mime type of the legend graphics using <i>legendParameters</i> for the
-				layer ID <i>ea:bluemarble</i> of the datasource <i>ea</i> to request tiles and legend graphics as GIF:
-			</p>
+            <h3>Generating a client</h3>
+            <ol>
+                <li>When the button <em>Generate</em> is pressed, the AtlasMapper collect the layers for each data source associated with the client, from the <em>Data source saved state</em> files.</li>
+                <li>The layer overrides described in the AtlasMapper client's advanced tab are applied.</li>
+                <li>The client templates, client files, client configuration file and the layer catalog
+                    file are saved on disk, ready to use with the AtlasMapper client.</li>
+            </ol>
+        </div>
+
+        <h2 id="settings">Settings in AtlasMapper</h2>
+        <div id="settingsDiv">
+            <p>
+                This field must respect the JSON syntax, a subset of JavaScript. If
+                it contains errors, the form will refuse to submit. It always start
+                with <b>{</b> and ends with <b>}</b>. To override an attribute of a
+                layer, specified the layer ID following by a column <b>:</b> and the
+                curly brackets <b>{</b> and <b>}</b>. Add the attributes inside the
+                brackets.
+            </p>
+            <p>
+                The attributes for a layer are build from the capabilities document,
+                for WMS layers, after applying the manual overrides from the layer
+                data source than the manual overrides from the client.
+            </p>
+            <h3>Examples</h3>
+            <p>
+                The following bloc override the mime type of the layer using the attribute
+                <i>olParams</i> and mime type of the legend graphics using <i>legendParameters</i> for the
+                layer ID <i>ea:bluemarble</i> of the datasource <i>ea</i> to request tiles and legend graphics as GIF:
+            </p>
 <pre>
 {
-	"ea_ea:bluemarble": {
-		"olParams": {"format": "image/gif"},
-		"legendParameters": {
-			"FORMAT": "image/gif"
-		}
-	}
+    "ea_ea:bluemarble": {
+        "olParams": {"format": "image/gif"},
+        "legendParameters": {
+            "FORMAT": "image/gif"
+        }
+    }
 }
 </pre>
 
-			<p>
-				This example show how to deactivate the feature requests for the
-				layer ID <i>ea:GBR_GBRMPA_GBR-features</i> of the datasource <i>ea</i> and change the default style
-				and change the title of an other one.
-			</p>
+            <p>
+                This example show how to deactivate the feature requests for the
+                layer ID <i>ea:GBR_GBRMPA_GBR-features</i> of the datasource <i>ea</i> and change the default style
+                and change the title of an other one.
+            </p>
 <pre>
 {
-	"ea_ea:GBR_GBRMPA_GBR-features": {
-		"wmsQueryable": false,
-		"styles": {
-			"GBR-features_Reefs-outline-BW": {"default": true},
-			"GBR-features_Baselayer": {
-				"title": "GBR features for baselayer"
-			}
-		}
-	}
+    "ea_ea:GBR_GBRMPA_GBR-features": {
+        "wmsQueryable": false,
+        "styles": {
+            "GBR-features_Reefs-outline-BW": {"default": true},
+            "GBR-features_Baselayer": {
+                "title": "GBR features for baselayer"
+            }
+        }
+    }
 }
 </pre>
 
-			<p>
-				The next example show how to disable the legend for multiple layers.
-				This feature is useful for layer groups serve by GeoServer since
-				this server can't provide legend graphics for grouped layers.
-			</p>
+            <p>
+                The next example show how to disable the legend for multiple layers.
+                This feature is useful for layer groups serve by GeoServer since
+                this server can't provide legend graphics for grouped layers.
+            </p>
 <pre>
 {
-	"ea_GBR_JCU_Bathymetry-3DGBR_Land-and-sea": {"hasLegend": false},
-	"ea_World_NE2-coast-cities-reefs_Baselayer": {"hasLegend": false},
-	"ea_ea:World_NED_NE2": {"hasLegend": false}
+    "ea_GBR_JCU_Bathymetry-3DGBR_Land-and-sea": {"hasLegend": false},
+    "ea_World_NE2-coast-cities-reefs_Baselayer": {"hasLegend": false},
+    "ea_ea:World_NED_NE2": {"hasLegend": false}
 }
 </pre>
 
-			<p>
-				This last example show how to move a layer from a data source to an other,
-				in the <i>Add layers</i> window. This is generally used to regroup layers from
-				data source that provide only one or very few layers.
-			</p>
+            <p>
+                This last example show how to move a layer from a data source to an other,
+                in the <i>Add layers</i> window. This is generally used to regroup layers from
+                data source that provide only one or very few layers.
+            </p>
 <pre>
 {
-	"one_Unique-layer": {
-		"dataSourceName": "eAtlas"
-	}
+    "one_Unique-layer": {
+        "dataSourceName": "eAtlas"
+    }
 }
 </pre>
-		</div>
+        </div>
 
-		<h2 id="layerGroups">Layer groups</h2>
-		<div id="layerGroupsDiv">
-			<p>
-				The <i>AtlasMapper</i> also allow the admin to setup custom <b>layer groups</b>,
-				that are added to the client as a single layer. That layer can be opened
-				like a folder to set options on individual layers of the group. Since
-				it is a client side group, each layers of the group has to be rendered
-				separately on OpenLayers. It is advisable to keep the number of layers
-				on a group bellow 5.
-			</p>
-			<p>
-				<b>Layer groups</b> have the same attributes as normal layers, but has to
-				be entirely configured since the layer do not exist on the server. The important
-				attributes to set are:
-			</p>
-			<table>
-				<tr>
-					<th class="attr">Attribute</th>
-					<th class="type">Value (example)</th>
-					<th class="desc">Description</th>
-				</tr>
-				<tr>
-					<td>layerType</td>
-					<td>"GROUP"</td>
-					<td>To tell AtlasMapper that it's a layer group</td>
-				</tr>
+        <h2 id="layerGroups">Layer groups</h2>
+        <div id="layerGroupsDiv">
+            <p>
+                The <i>AtlasMapper</i> also allow the admin to setup custom <b>layer groups</b>,
+                that are added to the client as a single layer. That layer can be opened
+                like a folder to set options on individual layers of the group. Since
+                it is a client side group, each layers of the group has to be rendered
+                separately on OpenLayers. It is advisable to keep the number of layers
+                on a group bellow 5.
+            </p>
+            <p>
+                <b>Layer groups</b> have the same attributes as normal layers, but has to
+                be entirely configured since the layer do not exist on the server. The important
+                attributes to set are:
+            </p>
+            <table>
+                <tr>
+                    <th class="attr">Attribute</th>
+                    <th class="type">Value (example)</th>
+                    <th class="desc">Description</th>
+                </tr>
+                <tr>
+                    <td>layerType</td>
+                    <td>"GROUP"</td>
+                    <td>To tell AtlasMapper that it's a layer group</td>
+                </tr>
 
-				<tr>
-					<td>description</td>
-					<td>"The layer's description"</td>
-					<td>This is shown in the layer info panel</td>
-				</tr>
-				<tr>
-					<td>layerBoundingBox</td>
-					<td>[134.91053, -29.91797, 156.53147, -8.29703]</td>
-					<td>The cumulative bounding box of all layers of the group, to enable the locate feature.</td>
-				</tr>
-				<tr>
-					<td>layers</td>
-					<td>["ea_ea:QLD_DEEDI_Coastal-wetlands", "ea_ea:QLD_DEEDI_Coastal-wetlands_Study-regions"]</td>
-					<td>List of layers contained in the group, assuming they are provided by one of the data source of the client.</td>
-				</tr>
-				<tr>
-					<td>title</td>
-					<td>"Mangroves"</td>
-					<td>The name of the layer, as it will appear in the layer list, either in the tree and in the layer switcher.</td>
-				</tr>
-				<tr>
-					<td>version</td>
-					<td>1.1</td>
-					<td>This feature is only available with version 1.1 of the configuration standard.</td>
-				</tr>
-				<tr>
-					<td>treePath</td>
-					<td>"Terrestrial biology/Coastal wetlands"</td>
-					<td>The layer group will appear under the folder <i>Terrestrial biology</i> &gt; <i>Coastal wetlands</i></td>
-				</tr>
-				<tr>
-					<td>wmsQueryable</td>
-					<td>false</td>
-					<td>Layer groups are not currently queryable. If this setting is not set to false, OpenLayers will try to send request to a unregistered layer, which may cause some errors.</td>
-				</tr>
-			</table>
-			<p>
-				The following example set up a layer group titled <i>Mangroves</i>, having the following 2 layers:
-				<i>ea_ea:QLD_DEEDI_Coastal-wetlands</i>, <i>ea_ea:QLD_DEEDI_Coastal-wetlands_Study-regions</i>
-			</p>
+                <tr>
+                    <td>description</td>
+                    <td>"The layer's description"</td>
+                    <td>This is shown in the layer info panel</td>
+                </tr>
+                <tr>
+                    <td>layerBoundingBox</td>
+                    <td>[134.91053, -29.91797, 156.53147, -8.29703]</td>
+                    <td>The cumulative bounding box of all layers of the group, to enable the locate feature.</td>
+                </tr>
+                <tr>
+                    <td>layers</td>
+                    <td>["ea_ea:QLD_DEEDI_Coastal-wetlands", "ea_ea:QLD_DEEDI_Coastal-wetlands_Study-regions"]</td>
+                    <td>List of layers contained in the group, assuming they are provided by one of the data source of the client.</td>
+                </tr>
+                <tr>
+                    <td>title</td>
+                    <td>"Mangroves"</td>
+                    <td>The name of the layer, as it will appear in the layer list, either in the tree and in the layer switcher.</td>
+                </tr>
+                <tr>
+                    <td>version</td>
+                    <td>1.1</td>
+                    <td>This feature is only available with version 1.1 of the configuration standard.</td>
+                </tr>
+                <tr>
+                    <td>treePath</td>
+                    <td>"Terrestrial biology/Coastal wetlands"</td>
+                    <td>The layer group will appear under the folder <i>Terrestrial biology</i> &gt; <i>Coastal wetlands</i></td>
+                </tr>
+                <tr>
+                    <td>wmsQueryable</td>
+                    <td>false</td>
+                    <td>Layer groups are not currently queryable. If this setting is not set to false, OpenLayers will try to send request to a unregistered layer, which may cause some errors.</td>
+                </tr>
+            </table>
+            <p>
+                The following example set up a layer group titled <i>Mangroves</i>, having the following 2 layers:
+                <i>ea_ea:QLD_DEEDI_Coastal-wetlands</i>, <i>ea_ea:QLD_DEEDI_Coastal-wetlands_Study-regions</i>
+            </p>
 <pre>
 {
-	"ea_mangroves": {
-		"layerType": "GROUP",
-		"description": "Layer group for the layers \"QLD Coastal wetlands - Study regions\" and \"QLD Coastal wetlands (DEEDI)\"",
-		"layerBoundingBox": [
-			134.91053,
-			-29.91797,
-			156.53147,
-			-8.29703
-		],
-		"layers": [
-			"ea_ea:QLD_DEEDI_Coastal-wetlands",
-			"ea_ea:QLD_DEEDI_Coastal-wetlands_Study-regions"
-		],
-		"title": "Mangroves",
-		"version": 1.1,
-		"treePath": "Terrestrial biology/Coastal wetlands",
-		"wmsQueryable": false
-	}
+    "ea_mangroves": {
+        "layerType": "GROUP",
+        "description": "Layer group for the layers \"QLD Coastal wetlands - Study regions\" and \"QLD Coastal wetlands (DEEDI)\"",
+        "layerBoundingBox": [
+            134.91053,
+            -29.91797,
+            156.53147,
+            -8.29703
+        ],
+        "layers": [
+            "ea_ea:QLD_DEEDI_Coastal-wetlands",
+            "ea_ea:QLD_DEEDI_Coastal-wetlands_Study-regions"
+        ],
+        "title": "Mangroves",
+        "version": 1.1,
+        "treePath": "Terrestrial biology/Coastal wetlands",
+        "wmsQueryable": false
+    }
 }
 </pre>
-		</div>
+        </div>
 
-		<h2 id="wiki">Wiki format</h2>
-		<div id="wikiDiv">
-			<p>
-				Layer description can be written using a custom format, which is a
-				mix between the Wiki format and the Google format. This format is a
-				compromise between a HTML format and a text format. It still looks
-				good on application that do not support HTML, and it support enough
-				formating options to customise the description style.
-			</p>
-			<p>The text is converted into HTML following these rules:</p>
+        <h2 id="wiki">Wiki format</h2>
+        <div id="wikiDiv">
+            <p>
+                Layer description can be written using a custom format, which is a
+                mix between the Wiki format and the Google format. This format is a
+                compromise between a HTML format and a text format. It still looks
+                good on application that do not support HTML, and it support enough
+                formating options to customise the description style.
+            </p>
+            <p>The text is converted into HTML following these rules:</p>
 
 
-			<h3>Styles:</h3>
-			<ul>
-				<li>Bold: *expression*</li>
-				<li>Italic: /expression/</li>
-				<li>Underline: _expression_</li>
-				<li>Strike: -expression-</li>
-			</ul>
-			<p>Rules:</p>
-			<ul>
-				<li>Styles starts at the beginning of a word and end at the end of a word. It can not be used inside one.</li>
-				<li>Styles started in a wiki block, like a list item, must end in the same block.</li>
-				<li>Styles can be nested, but can not overlap with any other styles of other wiki blocks.</li>
-			</ul>
-			<h4>Example:</h4>
-			<blockquote>
+            <h3>Styles:</h3>
+            <ul>
+                <li>Bold: *expression*</li>
+                <li>Italic: /expression/</li>
+                <li>Underline: _expression_</li>
+                <li>Strike: -expression-</li>
+            </ul>
+            <p>Rules:</p>
+            <ul>
+                <li>Styles starts at the beginning of a word and end at the end of a word. It can not be used inside one.</li>
+                <li>Styles started in a wiki block, like a list item, must end in the same block.</li>
+                <li>Styles can be nested, but can not overlap with any other styles of other wiki blocks.</li>
+            </ul>
+            <h4>Example:</h4>
+            <blockquote>
 <pre>
 Bold: *expression*
 Italic: /expression/
@@ -336,30 +339,30 @@ _*Nested bold and underlined*_ (Valid)
 *_Overlapping bold and underlined*_ (Invalid, only the first style, bold, is applied)
 *not bo*ld (The end of the bold style is inside a word)
 </pre>
-			</blockquote>
-			<h4>Produce:</h4>
-			<blockquote>
-				Bold: <b>expression</b><br/>
-				Italic: <i>expression</i><br/>
-				Underline: <u>expression</u><br/>
-				Strike: <s>expression</s><br/>
-				All 4, nested: <b><i><u><s>expression</s></u></i></b><br/>
-				All 4, mixed: <i><b>Mix</b> <u>of <s>different</s></u> <b>styles</b></i><br/>
-				<u><b>Nested bold and underlined</b></u> (Valid)<br/>
-				<b>_Overlapping bold and underlined</b>_ (Invalid, only the first style, bold, is applied)<br/>
-				*not bo*ld (The end of the bold style is inside a word)<br/>
-			</blockquote>
+            </blockquote>
+            <h4>Produce:</h4>
+            <blockquote>
+                Bold: <b>expression</b><br/>
+                Italic: <i>expression</i><br/>
+                Underline: <u>expression</u><br/>
+                Strike: <s>expression</s><br/>
+                All 4, nested: <b><i><u><s>expression</s></u></i></b><br/>
+                All 4, mixed: <i><b>Mix</b> <u>of <s>different</s></u> <b>styles</b></i><br/>
+                <u><b>Nested bold and underlined</b></u> (Valid)<br/>
+                <b>_Overlapping bold and underlined</b>_ (Invalid, only the first style, bold, is applied)<br/>
+                *not bo*ld (The end of the bold style is inside a word)<br/>
+            </blockquote>
 
 
 
-			<h3>Headers:</h3>
-			<p>
-				Headers must be alone on their line. They are delimited by
-				equals (=) characters. The number of equals (=) characters
-				define the level of the header.
-			</p>
-			<h4>Example:</h4>
-			<blockquote>
+            <h3>Headers:</h3>
+            <p>
+                Headers must be alone on their line. They are delimited by
+                equals (=) characters. The number of equals (=) characters
+                define the level of the header.
+            </p>
+            <h4>Example:</h4>
+            <blockquote>
 <pre>
 ==Heading 1==
 ===Heading 2===
@@ -370,151 +373,151 @@ _*Nested bold and underlined*_ (Valid)
 ========Too many "equals"========
 =======Unbalanced (use the minimum between the start and the end)====
 </pre>
-			</blockquote>
-			<h4>Produce:</h4>
-			<blockquote>
-				<h1>Heading 1</h1>
-				<h2>Heading 2</h2>
-				<h3>Heading 3</h3>
-				<h4>Heading 4</h4>
-				<h5>Heading 5</h5>
-				<h6>Heading 6</h6>
-				========Too many "equals"========
-				<h3>===Unbalanced (use the minimum between the start and the end)</h3>
-			</blockquote>
+            </blockquote>
+            <h4>Produce:</h4>
+            <blockquote>
+                <h1>Heading 1</h1>
+                <h2>Heading 2</h2>
+                <h3>Heading 3</h3>
+                <h4>Heading 4</h4>
+                <h5>Heading 5</h5>
+                <h6>Heading 6</h6>
+                ========Too many "equals"========
+                <h3>===Unbalanced (use the minimum between the start and the end)</h3>
+            </blockquote>
 
 
 
-			<h3>Bullet list:</h3>
-			<p>
-				Bullet list are alone on their line. Each line of the list starts
-				with stars (*) following by a space. The number of stars (*)
-				determine the level of the list.
-			</p>
-			<h4>Example:</h4>
-			<blockquote>
+            <h3>Bullet list:</h3>
+            <p>
+                Bullet list are alone on their line. Each line of the list starts
+                with stars (*) following by a space. The number of stars (*)
+                determine the level of the list.
+            </p>
+            <h4>Example:</h4>
+            <blockquote>
 <pre>
 * First element
 ** /Sub/ element
 * *2nd* element
 </pre>
-			</blockquote>
-			<h4>Produce:</h4>
-			<blockquote>
-				<ul>
-					<li>
-						First element
-						<ul>
-							<li><i>Sub</i> element</li>
-						</ul>
-					</li>
-					<li><b>2nd</b> element</li>
-				</ul>
-			</blockquote>
+            </blockquote>
+            <h4>Produce:</h4>
+            <blockquote>
+                <ul>
+                    <li>
+                        First element
+                        <ul>
+                            <li><i>Sub</i> element</li>
+                        </ul>
+                    </li>
+                    <li><b>2nd</b> element</li>
+                </ul>
+            </blockquote>
 
 
 
-			<h3>Numbered list:</h3>
-			<p>
-				Numbered list are alone on their line. Each line of the list starts
-				with hashes (#) following by a space. The number of hashes (#)
-				determine the level of the list.
-			</p>
-			<h4>Example:</h4>
-			<blockquote>
+            <h3>Numbered list:</h3>
+            <p>
+                Numbered list are alone on their line. Each line of the list starts
+                with hashes (#) following by a space. The number of hashes (#)
+                determine the level of the list.
+            </p>
+            <h4>Example:</h4>
+            <blockquote>
 <pre>
 # First element
 ## /Sub/ element
 # *2nd* element
 </pre>
-			</blockquote>
-			<h4>Produce:</h4>
-			<blockquote>
-				<ol>
-					<li>
-						First element
-						<ol>
-							<li><i>Sub</i> element</li>
-						</ol>
-					</li>
-					<li><b>2nd</b> element</li>
-				</ol>
-			</blockquote>
+            </blockquote>
+            <h4>Produce:</h4>
+            <blockquote>
+                <ol>
+                    <li>
+                        First element
+                        <ol>
+                            <li><i>Sub</i> element</li>
+                        </ol>
+                    </li>
+                    <li><b>2nd</b> element</li>
+                </ol>
+            </blockquote>
 
 
 
-			<h3>URLs:</h3>
-			<p>
-				Every URLs present in the document are converted to HTML link.
-				The wiki format allow you to get some control over how it's done.<br/>
-				<br/>
-				<strong>IMPORTANT:</strong> The URL must be properly encoded, expecially
-				if it contains one of the following characters:
-			</p>
-			<table class="urlSpecialChars">
-				<tr>
-					<th class="name">Character name</th>
-					<th class="char">Character</th>
-					<th class="enc">Encoded</th>
-				</tr>
-				<tr>
-					<td class="name">Opening square bracket</td>
-					<td class="char">[</td>
-					<td class="enc">%5B</td>
-				</tr>
-				<tr>
-					<td class="name">Closing square bracket</td>
-					<td class="char">]</td>
-					<td class="enc">%5D</td>
-				</tr>
-				<tr>
-					<td class="name">Pipe <em>or</em> Vertical bar</td>
-					<td class="char">|</td>
-					<td class="enc">%7C</td>
-				</tr>
-			</table>
+            <h3>URLs:</h3>
+            <p>
+                Every URLs present in the document are converted to HTML link.
+                The wiki format allow you to get some control over how it's done.<br/>
+                <br/>
+                <strong>IMPORTANT:</strong> The URL must be properly encoded, expecially
+                if it contains one of the following characters:
+            </p>
+            <table class="urlSpecialChars">
+                <tr>
+                    <th class="name">Character name</th>
+                    <th class="char">Character</th>
+                    <th class="enc">Encoded</th>
+                </tr>
+                <tr>
+                    <td class="name">Opening square bracket</td>
+                    <td class="char">[</td>
+                    <td class="enc">%5B</td>
+                </tr>
+                <tr>
+                    <td class="name">Closing square bracket</td>
+                    <td class="char">]</td>
+                    <td class="enc">%5D</td>
+                </tr>
+                <tr>
+                    <td class="name">Pipe <em>or</em> Vertical bar</td>
+                    <td class="char">|</td>
+                    <td class="enc">%7C</td>
+                </tr>
+            </table>
 
-			<ul>
-				<li>
-					<strong>Simple</strong><br/>
-					URLs can be simply part of the text, or surround by double square brackets ([[]]), for better control.<br/>
-					Format: [[url]]
-				</li>
-				<li>
-					<strong>Labeled</strong><br/>
-					Label can be defined by adding a pipe (|) after the URL, following by the text label.<br/>
-					Format: [[url|label]]<br/>
-					<strong>NOTE:</strong> The label may contains wiki format.
-				</li>
-				<li>
-					<strong>Image</strong><br/>
-					To add an image, the keyword IMG must be added before the URL, followed by a pipe (|).<br/>
-					Format: [[IMG|url|alternative text]]<br/>
-				</li>
-				<li>
-					<strong>Image with dimensions and/or CSS Class</strong><br/>
-					Optionals arguments can be provided to specified the image width/height and CSS Classes<br/>
-					Format: [[IMG|url|alternative text|widthXheight|CSS Class]]<br/>
-					<strong>NOTE:</strong> Supports all CSS units. The default unit is 'px'. The character '?' can be used for width or height to let the browser decide of the value (keep image ratio).
-				</li>
-				<li>
-					<strong>Download</strong><br/>
-					Normal links are shown in a new browser window / tab. This is not needed the desired behaviour
-					for documents that should be downloaded. For those documents, the keyword DOWNLOAD may be
-					added before the URL, followed by a pipe (|).<br/>
-					<strong>WARNING:</strong> This feature use the <a href="http://www.w3.org/html/wg/drafts/html/master/links.html#downloading-resources" target="_blank">download</a>
-					attribute of HTML 5. It force HTML 5 browsers to download the resource instead of
-					displaying it, and it simply works as a normal link if the browser do not support HTML 5.
-					<ul>
-						<li>Simple format: [[DOWNLOAD|url]] <i>the filename is extracted from the URL and used for the label and download attribute.</i></li>
-						<li>Format with filename: [[DOWNLOAD|url|filename]] <i>the filename is used for the label and download attribute.</i></li>
-						<li>Labeled format: [[DOWNLOAD|url|filename|label]] <i>the filename is only used for the download attribute.</i></li>
-					</ul>
-					<strong>NOTE:</strong> The label may contains wiki format.
-				</li>
-			</ul>
-			<h4>Examples:</h4>
-			<blockquote>
+            <ul>
+                <li>
+                    <strong>Simple</strong><br/>
+                    URLs can be simply part of the text, or surround by double square brackets ([[]]), for better control.<br/>
+                    Format: [[url]]
+                </li>
+                <li>
+                    <strong>Labeled</strong><br/>
+                    Label can be defined by adding a pipe (|) after the URL, following by the text label.<br/>
+                    Format: [[url|label]]<br/>
+                    <strong>NOTE:</strong> The label may contains wiki format.
+                </li>
+                <li>
+                    <strong>Image</strong><br/>
+                    To add an image, the keyword IMG must be added before the URL, followed by a pipe (|).<br/>
+                    Format: [[IMG|url|alternative text]]<br/>
+                </li>
+                <li>
+                    <strong>Image with dimensions and/or CSS Class</strong><br/>
+                    Optionals arguments can be provided to specified the image width/height and CSS Classes<br/>
+                    Format: [[IMG|url|alternative text|widthXheight|CSS Class]]<br/>
+                    <strong>NOTE:</strong> Supports all CSS units. The default unit is 'px'. The character '?' can be used for width or height to let the browser decide of the value (keep image ratio).
+                </li>
+                <li>
+                    <strong>Download</strong><br/>
+                    Normal links are shown in a new browser window / tab. This is not needed the desired behaviour
+                    for documents that should be downloaded. For those documents, the keyword DOWNLOAD may be
+                    added before the URL, followed by a pipe (|).<br/>
+                    <strong>WARNING:</strong> This feature use the <a href="http://www.w3.org/html/wg/drafts/html/master/links.html#downloading-resources" target="_blank">download</a>
+                    attribute of HTML 5. It force HTML 5 browsers to download the resource instead of
+                    displaying it, and it simply works as a normal link if the browser do not support HTML 5.
+                    <ul>
+                        <li>Simple format: [[DOWNLOAD|url]] <i>the filename is extracted from the URL and used for the label and download attribute.</i></li>
+                        <li>Format with filename: [[DOWNLOAD|url|filename]] <i>the filename is used for the label and download attribute.</i></li>
+                        <li>Labeled format: [[DOWNLOAD|url|filename|label]] <i>the filename is only used for the download attribute.</i></li>
+                    </ul>
+                    <strong>NOTE:</strong> The label may contains wiki format.
+                </li>
+            </ul>
+            <h4>Examples:</h4>
+            <blockquote>
 <pre>
 http://www.google.com/
 [[http://google.com/]]
@@ -529,593 +532,625 @@ http://www.google.com/
 [[DOWNLOAD|../resources/images/maps-small.jpg|maps.jpg|Maps]]
 [[DOWNLOAD|../resources/images/maps-small.jpg|maps.jpg|[[IMG|../resources/images/maps-small.jpg|Maps|?X100|imgClass]]]]
 </pre>
-			</blockquote>
-			<h4>Produce:</h4>
-			<blockquote>
-				<a href="http://www.google.com/" target="_blank">http://www.google.com/</a><br/>
-				<a href="http://google.com/" target="_blank">http://google.com/</a><br/>
-				<a href="http://www.google.com/" target="_blank">Google</a><br/>
-				<a href="page2.html" target="_blank"><b>Page <i>2</i></b></a><br/>
-				<img src="../resources/images/maps-small.jpg" alt="Maps" title="Maps"/><br/>
-				<img src="../resources/images/maps-small.jpg" style="height:100px" alt="Maps" title="Maps"/><br/>
-				<img src="../resources/images/maps-small.jpg" style="width:10%" alt="Maps" title="Maps"/><br/>
-				<img src="../resources/images/maps-small.jpg" class="imgClass" alt="Maps" title="Maps"/><br/>
-				<a href="../resources/images/maps-small.jpg" download="maps-small.jpg" target="blank">maps-small.jpg</a><br/>
-				<a href="../resources/images/maps-small.jpg" download="maps.jpg" target="blank">maps.jpg</a><br/>
-				<a href="../resources/images/maps-small.jpg" download="maps.jpg" target="blank">Maps</a><br/>
-				<a href="../resources/images/maps-small.jpg" download="maps.jpg" target="blank"><img src="../resources/images/maps-small.jpg" style="height:100px" class="imgClass" alt="Maps" title="Maps"/></a><br/>
-			</blockquote>
-		</div>
+            </blockquote>
+            <h4>Produce:</h4>
+            <blockquote>
+                <a href="http://www.google.com/" target="_blank">http://www.google.com/</a><br/>
+                <a href="http://google.com/" target="_blank">http://google.com/</a><br/>
+                <a href="http://www.google.com/" target="_blank">Google</a><br/>
+                <a href="page2.html" target="_blank"><b>Page <i>2</i></b></a><br/>
+                <img src="../resources/images/maps-small.jpg" alt="Maps" title="Maps"/><br/>
+                <img src="../resources/images/maps-small.jpg" style="height:100px" alt="Maps" title="Maps"/><br/>
+                <img src="../resources/images/maps-small.jpg" style="width:10%" alt="Maps" title="Maps"/><br/>
+                <img src="../resources/images/maps-small.jpg" class="imgClass" alt="Maps" title="Maps"/><br/>
+                <a href="../resources/images/maps-small.jpg" download="maps-small.jpg" target="blank">maps-small.jpg</a><br/>
+                <a href="../resources/images/maps-small.jpg" download="maps.jpg" target="blank">maps.jpg</a><br/>
+                <a href="../resources/images/maps-small.jpg" download="maps.jpg" target="blank">Maps</a><br/>
+                <a href="../resources/images/maps-small.jpg" download="maps.jpg" target="blank"><img src="../resources/images/maps-small.jpg" style="height:100px" class="imgClass" alt="Maps" title="Maps"/></a><br/>
+            </blockquote>
+        </div>
 
 
-		<h2 id="attributes">Attributes</h2>
-		<div id="attributesDiv">
-			<p>
-				The following table show the layers attributes that can be specified:
-			</p>
+        <h2 id="attributes">Attributes</h2>
+        <div id="attributesDiv">
+            <p>
+                The following table show the layers attributes that can be specified:
+            </p>
 
-			<table>
-				<tr>
-					<th class="attr">Attribute</th>
-					<th class="type">Type</th>
-					<th class="desc">Description</th>
-				</tr>
-				<tr>
-					<td class="attr">title</td>
-					<td class="type">String</td>
-					<td class="desc">The displayed name of the layer, shown in multiple location in the client.</td>
-				</tr>
-				<tr>
-					<td class="attr">description</td>
-					<td class="type">String</td>
-					<td class="desc">A description of the layer, shown in the layer info panel of the client.</td>
-				</tr>
-				<tr>
-					<td class="attr">descriptionFormat</td>
-					<td class="type">String</td>
-					<td class="desc">The format of the description field. Possible value: <i>wiki</i>, <i>text</i>, <i>html</i>. Default: <i>wiki</i>
-						<ul>
-							<li><strong>text</strong>: URL and new lines are automatically converted into HTML.</li>
-							<li><strong>html</strong>: No processing is done on the description. It's used directly in the <i>description</i> panel.</li>
-							<li><strong>wiki</strong>: The text is converted into HTML following <a href="#wiki">Wiki format rules</a>.</li>
-						</ul>
-					</td>
-				</tr>
-				<tr>
-					<td class="attr">dataSourceId</td>
-					<td class="type">String</td>
-					<td class="desc">The ID of the data source, as specified in the data source page. This field can be used to specified which URL to use to get the tiles, legend, feature requests, etc.</td>
-				</tr>
-				<tr>
-					<td class="attr">layerBoundingBox</td>
-					<td class="type">Array of 4 decimal numbers</td>
-					<td class="desc">The coordinate of the top-left corner and the bottom-right corner of the layer. Those coordinates are used to locate the layer when the <i>Locate</i> button is pressed.</td>
-				</tr>
-				<tr>
-					<td class="attr">wmsQueryable</td>
-					<td class="type">Boolean</td>
-					<td class="desc"><i>true</i> to allow a layer to receive WMS Feature requests, <i>false</i> otherwise.</td>
-				</tr>
-				<tr>
-					<td class="attr">cached</td>
-					<td class="type">Boolean</td>
-					<td class="desc"><i>true</i> to allow the application to request the layer's tiles through the cache, <i>false</i> otherwise. Default: determined from the WMTS document (available on most GeoServer)</td>
-				</tr>
-				<tr>
-					<td class="attr">isBaseLayer</td>
-					<td class="type">Boolean</td>
-					<td class="desc"><i>true</i> to make this layer a base layer, <i>false</i> otherwise. Note that it is better to use the <i>Base layers</i> field in the <i>Data sources</i> configuration page.</td>
-				</tr>
-				<tr>
-					<td class="attr">hasLegend</td>
-					<td class="type">Boolean</td>
-					<td class="desc"><i>false</i> to disable the legend of this layer.</td>
-				</tr>
-				<tr>
-					<td class="attr">legendUrl</td>
-					<td class="type">URL</td>
-					<td class="desc">URL to an image, to be use as a legend, to substitute the one provide by the server. This attribute is usually accompanied with <i>"legendDpiSupport": false</i>.</td>
-				</tr>
-				<tr>
-					<td class="attr">legendDpiSupport</td>
-					<td class="type">Boolean</td>
-					<td class="desc">False if the legend URL do not support DPI parameter. If this options is not set properly, the legend graphic will not be resized when the map DPI is changed, for layers of data sources that support DPI.</td>
-				</tr>
-				<tr>
-					<td class="attr">legendGroup</td>
-					<td class="type">String</td>
-					<td class="desc">Name of the group that will be use to group legend together, in the legend window.</td>
-				</tr>
-				<tr>
-					<td class="attr">legendTitle</td>
-					<td class="type">String</td>
-					<td class="desc">Name of the layer, to be display in the legend window.</td>
-				</tr>
-				<tr>
-					<td class="attr">infoHtmlUrls</td> <!-- TODO Is this field work? -->
-					<td class="type">Array of URL</td>
-					<td class="desc">URLs of documents that will be displayed in the Layer info panel.</td>
-				</tr>
-				<tr>
-					<td class="attr">layers</td>
-					<td class="type">Array of String</td>
-					<td class="desc">Used with <i>layer groups</i>. List of layers, added as children in the layer switcher, when adding this layer to the map.</td>
-				</tr>
-				<tr>
-					<td class="attr">aliasIds</td> <!-- TODO Is this field still useful? -->
-					<td class="type">Array of String</td>
-					<td class="desc">List of IDs that can be used to refer to this layer.</td>
-				</tr>
-				<tr>
-					<td class="attr">featureRequestsUrl</td>
-					<td class="type">URL</td>
-					<td class="desc">URL used to send the feature requests. Useful to redirect the feature requests of WebCache layers to a WMS server.</td>
-				</tr>
-				<tr>
-					<td class="attr">serverUrls</td>
-					<td class="type">Array of URL</td>
-					<td class="desc">URL used to request the tiles. The application currently only support one URL. The first one only is used.</td>
-				</tr>
-				<tr>
-					<td class="attr">webCacheUrl</td>
-					<td class="type">URL</td>
-					<td class="desc">URL of the server used to request the layer from a cache, when the URL only contains supported parameters.</td>
-				</tr>
-				<tr>
-					<td class="attr">webCacheSupportedParameters</td>
-					<td class="type">Array of String</td>
-					<td class="desc">List of the parameters supported by the WebCache server.</td>
-				</tr>
-				<tr>
-					<td class="attr">dataSourceName</td>
-					<td class="type">String</td>
-					<td class="desc">Specified a different data source name for this layer, to display it in a different tab in the <i>Add layers</i> window.</td>
-				</tr>
-				<tr>
-					<td class="attr">layerType</td>
-					<td class="type">String</td>
-					<td class="desc">Override the type of layer (GROUP, KML, WMS, NCWMS, ARCGIS_MAPSERVER, etc). This option should not be used in normals circumstances, other that defining a <i>layer group</i>.<br/>NOTE: This attribute used to be called <i>dataSourceType</i></td>
-				</tr>
-				<tr>
-					<td class="attr">legendParameters</td>
-					<td class="type">String</td>
-					<td class="desc">
-						String of pairs <i>parameter=value</i>, separated by coma. Those parameters are sent with the request for the legend graphic.<br/>
-						Example: The following will increase the font size and change the font colour of a GeoServer legend (those parameters are not standard)
+            <table>
+                <tr>
+                    <th class="attr">Attribute</th>
+                    <th class="type">Type</th>
+                    <th class="desc">Description</th>
+                </tr>
+                <tr>
+                    <td class="attr">title</td>
+                    <td class="type">String</td>
+                    <td class="desc">The displayed name of the layer, shown in multiple location in the client.</td>
+                </tr>
+                <tr>
+                    <td class="attr">description</td>
+                    <td class="type">String</td>
+                    <td class="desc">A description of the layer, shown in the layer info panel of the client.</td>
+                </tr>
+                <tr>
+                    <td class="attr">descriptionFormat</td>
+                    <td class="type">String</td>
+                    <td class="desc">The format of the description field. Possible value: <i>wiki</i>, <i>text</i>, <i>html</i>. Default: <i>wiki</i>
+                        <ul>
+                            <li><strong>text</strong>: URL and new lines are automatically converted into HTML.</li>
+                            <li><strong>html</strong>: No processing is done on the description. It's used directly in the <i>description</i> panel.</li>
+                            <li><strong>wiki</strong>: The text is converted into HTML following <a href="#wiki">Wiki format rules</a>.</li>
+                        </ul>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="attr">dataSourceId</td>
+                    <td class="type">String</td>
+                    <td class="desc">The ID of the data source, as specified in the data source page. This field can be used to specified which URL to use to get the tiles, legend, feature requests, etc.</td>
+                </tr>
+                <tr>
+                    <td class="attr">layerBoundingBox</td>
+                    <td class="type">Array of 4 decimal numbers</td>
+                    <td class="desc">The coordinate of the top-left corner and the bottom-right corner of the layer. Those coordinates are used to locate the layer when the <i>Locate</i> button is pressed.</td>
+                </tr>
+                <tr>
+                    <td class="attr">wmsQueryable</td>
+                    <td class="type">Boolean</td>
+                    <td class="desc"><i>true</i> to allow a layer to receive WMS Feature requests, <i>false</i> otherwise.</td>
+                </tr>
+                <tr>
+                    <td class="attr">cached</td>
+                    <td class="type">Boolean</td>
+                    <td class="desc"><i>true</i> to allow the application to request the layer's tiles through the cache, <i>false</i> otherwise. Default: determined from the WMTS document (available on most GeoServer)</td>
+                </tr>
+                <tr>
+                    <td class="attr">isBaseLayer</td>
+                    <td class="type">Boolean</td>
+                    <td class="desc"><i>true</i> to make this layer a base layer, <i>false</i> otherwise. Note that it is better to use the <i>Base layers</i> field in the <i>Data sources</i> configuration page.</td>
+                </tr>
+                <tr>
+                    <td class="attr">hasLegend</td>
+                    <td class="type">Boolean</td>
+                    <td class="desc"><i>false</i> to disable the legend of this layer.</td>
+                </tr>
+                <tr>
+                    <td class="attr">legendUrl</td>
+                    <td class="type">URL</td>
+                    <td class="desc">URL to an image, to be use as a legend, to substitute the one provide by the server. This attribute is usually accompanied with <i>"legendDpiSupport": false</i>.</td>
+                </tr>
+                <tr>
+                    <td class="attr">legendDpiSupport</td>
+                    <td class="type">Boolean</td>
+                    <td class="desc">False if the legend URL do not support DPI parameter. If this options is not set properly, the legend graphic will not be resized when the map DPI is changed, for layers of data sources that support DPI.</td>
+                </tr>
+                <tr>
+                    <td class="attr">legendGroup</td>
+                    <td class="type">String</td>
+                    <td class="desc">Name of the group that will be use to group legend together, in the legend window.</td>
+                </tr>
+                <tr>
+                    <td class="attr">legendTitle</td>
+                    <td class="type">String</td>
+                    <td class="desc">Name of the layer, to be display in the legend window.</td>
+                </tr>
+                <tr>
+                    <td class="attr">infoHtmlUrls</td> <!-- TODO Is this field work? -->
+                    <td class="type">Array of URL</td>
+                    <td class="desc">URLs of documents that will be displayed in the Layer info panel.</td>
+                </tr>
+                <tr>
+                    <td class="attr">layers</td>
+                    <td class="type">Array of String</td>
+                    <td class="desc">Used with <i>layer groups</i>. List of layers, added as children in the layer switcher, when adding this layer to the map.</td>
+                </tr>
+                <tr>
+                    <td class="attr">aliasIds</td> <!-- TODO Is this field still useful? -->
+                    <td class="type">Array of String</td>
+                    <td class="desc">List of IDs that can be used to refer to this layer.</td>
+                </tr>
+                <tr>
+                    <td class="attr">featureRequestsUrl</td>
+                    <td class="type">URL</td>
+                    <td class="desc">URL used to send the feature requests. Useful to redirect the feature requests of WebCache layers to a WMS server.</td>
+                </tr>
+                <tr>
+                    <td class="attr">serverUrls</td>
+                    <td class="type">Array of URL</td>
+                    <td class="desc">URL used to request the tiles. The application currently only support one URL. The first one only is used.</td>
+                </tr>
+                <tr>
+                    <td class="attr">webCacheUrl</td>
+                    <td class="type">URL</td>
+                    <td class="desc">URL of the server used to request the layer from a cache, when the URL only contains supported parameters.</td>
+                </tr>
+                <tr>
+                    <td class="attr">webCacheSupportedParameters</td>
+                    <td class="type">Array of String</td>
+                    <td class="desc">List of the parameters supported by the WebCache server.</td>
+                </tr>
+                <tr>
+                    <td class="attr">dataSourceName</td>
+                    <td class="type">String</td>
+                    <td class="desc">Specified a different data source name for this layer, to display it in a different tab in the <i>Add layers</i> window.</td>
+                </tr>
+                <tr>
+                    <td class="attr">layerType</td>
+                    <td class="type">String</td>
+                    <td class="desc">Override the type of layer (GROUP, KML, WMS, NCWMS, ARCGIS_MAPSERVER, etc). This option should not be used in normals circumstances, other that defining a <i>layer group</i>.<br/>NOTE: This attribute used to be called <i>dataSourceType</i></td>
+                </tr>
+                <tr>
+                    <td class="attr">legendParameters</td>
+                    <td class="type">String</td>
+                    <td class="desc">
+                        String of pairs <i>parameter=value</i>, separated by coma. Those parameters are sent with the request for the legend graphic.<br/>
+                        Example: The following will increase the font size and change the font colour of a GeoServer legend (those parameters are not standard)
 <pre>
 {
-	"ea_ea:GBR_JCU_Bathymetry-3DGBR_Hillshade": {
-		"legendParameters": "FORMAT=image/png,LEGEND_OPTIONS=fontColor:ff0000;fontSize:16"
-	}
+    "ea_ea:GBR_JCU_Bathymetry-3DGBR_Hillshade": {
+        "legendParameters": "FORMAT=image/png,LEGEND_OPTIONS=fontColor:ff0000;fontSize:16"
+    }
 }
 </pre>
-						NOTE: To add/set legends parameters to all layers of a client, use the field <i>Legend parameters</i>, found bellow the <i>Layers' manual override</i> in the advanced tab.
-					</td>
-				</tr>
-				<tr>
-					<td class="attr">wmsFeatureRequestLayers</td>
-					<td class="type">Array of Layer ID</td>
-					<td class="desc">List of layers to be request when a feature request is sent to this layer.</td>
-				</tr>
-				<!-- TODO Enable this when transectable will be implemented
-				<tr>
-					<td class="attr">wmsTransectable</td>
-					<td class="type">Boolean</td>
-					<td class="desc"><i>true</i> to allow the client to draw transect on this layer, <i>false</i> otherwise.</td>
-				</tr>
-				-->
-				<tr>
-					<td class="attr">default</td>
-					<td class="type">Boolean</td>
-					<td class="desc"><i>true</i> to load this layer when the client load, <i>false</i> otherwise. (default value: false)</td>
-				</tr>
-				<tr>
-					<td class="attr">styles</td>
-					<td class="type">JSON Object</td>
-					<td class="desc">
-						Define the styles of this layer.<br/>
-						List of available options for styles:
-						<table>
-							<tr>
-								<th class="attr">Attribute</th>
-								<th class="type">Type</th>
-								<th class="desc">Description</th>
-							</tr>
-							<tr>
-								<td class="attr">title</td>
-								<td class="type">String</td>
-								<td class="desc">The displayed name for this style. It's shown in the dropdown list in the option panel of the layer.</td>
-							</tr>
-							<tr>
-								<td class="attr">description</td>
-								<td class="type">String</td>
-								<td class="desc">A description for the layer. This field currently has no use in the AtlasMapper client.</td>
-							</tr>
-							<tr>
-								<td class="attr">default</td>
-								<td class="type">Boolean</td>
-								<td class="desc"><i>true</i> to specified which style is considered as the default for GeoServer; the one that is used when the STYLES parameter is not specified in the request. You should only set this parameter if the AtlasMapper select the wrong style as the default.</td>
-							</tr>
-							<tr>
-								<td class="attr">selected</td>
-								<td class="type">Boolean</td>
-								<td class="desc"><i>true</i> to load this style by default when the layer is loaded, <i>false</i> otherwise. (default value: false)</td>
-							</tr>
-							<tr>
-								<td class="attr">cached</td>
-								<td class="type">Boolean</td>
-								<td class="desc"><i>true</i> to allow the application to request the tiles of this style through the cache, <i>false</i> otherwise. Default: determined from the WMTS document (available on most GeoServer)</td>
-							</tr>
-						</table>
-						For more info, check the example above or the styles' definition for a layer in the file <i>layers.json</i>.
-					</td>
-				</tr>
-				<tr>
-					<td class="attr">options</td>
-					<td class="type">Array of JSON Object</td>
-					<td class="desc">
-						Define extra options to be added in the options panel of this layer.<br/>
-						Example:<br/>
+                        NOTE: To add/set legends parameters to all layers of a client, use the field <i>Legend parameters</i>, found bellow the <i>Layers' manual override</i> in the advanced tab.
+                    </td>
+                </tr>
+                <tr>
+                    <td class="attr">wmsFeatureRequestLayers</td>
+                    <td class="type">Array of Layer ID</td>
+                    <td class="desc">List of layers to be request when a feature request is sent to this layer.</td>
+                </tr>
+                <!-- TODO Enable this when transectable will be implemented
+                <tr>
+                    <td class="attr">wmsTransectable</td>
+                    <td class="type">Boolean</td>
+                    <td class="desc"><i>true</i> to allow the client to draw transect on this layer, <i>false</i> otherwise.</td>
+                </tr>
+                -->
+                <tr>
+                    <td class="attr">default</td>
+                    <td class="type">Boolean</td>
+                    <td class="desc"><i>true</i> to load this layer when the client load, <i>false</i> otherwise. (default value: false)</td>
+                </tr>
+                <tr>
+                    <td class="attr">styles</td>
+                    <td class="type">JSON Object</td>
+                    <td class="desc">
+                        Define the styles of this layer.<br/>
+                        List of available options for styles:
+                        <table>
+                            <tr>
+                                <th class="attr">Attribute</th>
+                                <th class="type">Type</th>
+                                <th class="desc">Description</th>
+                            </tr>
+                            <tr>
+                                <td class="attr">title</td>
+                                <td class="type">String</td>
+                                <td class="desc">The displayed name for this style. It's shown in the dropdown list in the option panel of the layer.</td>
+                            </tr>
+                            <tr>
+                                <td class="attr">description</td>
+                                <td class="type">String</td>
+                                <td class="desc">A description for the layer. This field currently has no use in the AtlasMapper client.</td>
+                            </tr>
+                            <tr>
+                                <td class="attr">default</td>
+                                <td class="type">Boolean</td>
+                                <td class="desc"><i>true</i> to specified which style is considered as the default for GeoServer; the one that is used when the STYLES parameter is not specified in the request. You should only set this parameter if the AtlasMapper select the wrong style as the default.</td>
+                            </tr>
+                            <tr>
+                                <td class="attr">selected</td>
+                                <td class="type">Boolean</td>
+                                <td class="desc"><i>true</i> to load this style by default when the layer is loaded, <i>false</i> otherwise. (default value: false)</td>
+                            </tr>
+                            <tr>
+                                <td class="attr">cached</td>
+                                <td class="type">Boolean</td>
+                                <td class="desc"><i>true</i> to allow the application to request the tiles of this style through the cache, <i>false</i> otherwise. Default: determined from the WMTS document (available on most GeoServer)</td>
+                            </tr>
+                        </table>
+                        For more info, check the example above or the styles' definition for a layer in the file <i>layers.json</i>.
+                    </td>
+                </tr>
+                <tr>
+                    <td class="attr">options</td>
+                    <td class="type">Array of JSON Object</td>
+                    <td class="desc">
+                        Define extra options to be added in the options panel of this layer.<br/>
+                        Example:<br/>
 <pre>
 "ea_ea:bluemarble" : {
-	"options": [
-		{
-			"name": "comment",
-			"title": "Comment",
-			"type": "textarea"
-		}
-	]
+    "options": [
+        {
+            "name": "comment",
+            "title": "Comment",
+            "type": "textarea"
+        }
+    ]
 }
 </pre>
-						<b>WARNING</b> this attribute is under development and may be unstable or change considerably between versions.<br/>
-						List of available attributes for this field:
-						<table>
-							<tr>
-								<td class="attr">name</td>
-								<td class="type">String</td>
-								<td class="desc">The parameter's name, added to the request.</td>
-							</tr>
-							<tr>
-								<th class="attr">Attribute</th>
-								<th class="type">Type</th>
-								<th class="desc">Description</th>
-							</tr>
-							<tr>
-								<td class="attr">title</td>
-								<td class="type">String</td>
-								<td class="desc">The displayed name for this option. It's shown as a label for the new input.</td>
-							</tr>
-							<tr>
-								<td class="attr">type</td>
-								<td class="type">String</td>
-								<td class="desc">
-									The ExtJS xtype for the input.<br/>
-									List of available types:
-									<ul>
-										<li><b>checkbox</b></li>
-										<li><b>combo</b>: for dropdown. Not supported yet.</li>
-										<li><b>displayfield</b>: to display a readonly value.</li>
-										<li><b>hidden</b>: to send a value to the server without showing it to the user.</li>
-										<li><b>numberfield</b></li>
-										<li><b>sliderfield</b></li>
-										<li><b>textarea</b></li>
-										<li><b>textfield</b></li>
-										<li><b>timefield</b></li>
-										<li><b>datefield</b>: For date in format d/m/Y</li>
-										<li><b>ux-datefield</b>: For date displayed in format d/m/Y but sent to the server in format Y-m-d</li>
-										<li><b>ux-ncdatetimefield</b>: For date and time displayed in format d/m/Y and saved in the ISO format expected by NCWMS server.</li>
-										<li><b>ux-ncplotpanel</b>: To add time series and transect drawing features on NCWMS layers. NOTE: The <i>name</i> field is ignored with this type since it do not change the layer URL.</li>
-									</ul>
-								</td>
-							</tr>
-							<tr>
-								<td class="attr">mandatory</td>
-								<td class="type">Boolean</td>
-								<td class="desc"><i>true</i> to force the user to fill the option with a value, <i>false</i> otherwise. (default value: <i>false</i>)</td>
-							</tr>
-							<tr>
-								<td class="attr">defaultValue</td>
-								<td class="type">String</td>
-								<td class="desc">Value pre-entered in the field.</td>
-							</tr>
-						</table>
-					</td>
-				</tr>
-				<tr>
-					<td class="attr">selected</td>
-					<td class="type">Boolean</td>
-					<td class="desc">
-						<i>false</i> to add the layer in the layer switcher but not on the map (visibility false) when loaded for the first time.<br/>
-						<b>NOTE:</b> This is a temporary field that will be removed after the Save State feature has been developed.
-					</td>
-				</tr>
-				<tr>
-					<td class="attr">shownOnlyInLayerGroup</td>
-					<td class="type">Boolean</td>
-					<td class="desc">
-						<i>true</i> to hide the layer from the add layer tree. This is used with layers that are included in a layer group.
-					</td>
-				</tr>
-				<tr>
-					<td class="attr">cached</td>
-					<td class="type">Boolean</td>
-					<td class="desc">
-						Default: <i>true</i>. Set to <i>false</i> if the layer should never be request to the cache (GWC).
-					</td>
-				</tr>
-				<tr>
-					<td class="attr">olParams</td>
-					<td class="type">JSON Object</td>
-					<td class="desc">
-						Define the OGC URL parameters overrides.<br/>
-						Some OpenLayers layer class has an attribute called params. Those params are used in the
-						request to get the map images (usually tiles). They can be overridden by setting a value
-						for <i>olParams</i>.<br/>
-						For example, a layer can be request as a GIF using this override:
+                        <b>WARNING</b> this attribute is under development and may be unstable or change considerably between versions.<br/>
+                        List of available attributes for this field:
+                        <table>
+                            <tr>
+                                <td class="attr">name</td>
+                                <td class="type">String</td>
+                                <td class="desc">The parameter's name, added to the request.</td>
+                            </tr>
+                            <tr>
+                                <th class="attr">Attribute</th>
+                                <th class="type">Type</th>
+                                <th class="desc">Description</th>
+                            </tr>
+                            <tr>
+                                <td class="attr">title</td>
+                                <td class="type">String</td>
+                                <td class="desc">The displayed name for this option. It's shown as a label for the new input.</td>
+                            </tr>
+                            <tr>
+                                <td class="attr">type</td>
+                                <td class="type">String</td>
+                                <td class="desc">
+                                    The ExtJS xtype for the input.<br/>
+                                    List of available types:
+                                    <ul>
+                                        <li><b>checkbox</b></li>
+                                        <li><b>combo</b>: for dropdown. Not supported yet.</li>
+                                        <li><b>displayfield</b>: to display a readonly value.</li>
+                                        <li><b>hidden</b>: to send a value to the server without showing it to the user.</li>
+                                        <li><b>numberfield</b></li>
+                                        <li><b>sliderfield</b></li>
+                                        <li><b>textarea</b></li>
+                                        <li><b>textfield</b></li>
+                                        <li><b>timefield</b></li>
+                                        <li><b>datefield</b>: For date in format d/m/Y</li>
+                                        <li><b>ux-datefield</b>: For date displayed in format d/m/Y but sent to the server in format Y-m-d</li>
+                                        <li><b>ux-ncdatetimefield</b>: For date and time displayed in format d/m/Y and saved in the ISO format expected by NCWMS server.</li>
+                                        <li><b>ux-ncplotpanel</b>: To add time series and transect drawing features on NCWMS layers. NOTE: The <i>name</i> field is ignored with this type since it do not change the layer URL.</li>
+                                    </ul>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="attr">mandatory</td>
+                                <td class="type">Boolean</td>
+                                <td class="desc"><i>true</i> to force the user to fill the option with a value, <i>false</i> otherwise. (default value: <i>false</i>)</td>
+                            </tr>
+                            <tr>
+                                <td class="attr">defaultValue</td>
+                                <td class="type">String</td>
+                                <td class="desc">Value pre-entered in the field.</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="attr">selected</td>
+                    <td class="type">Boolean</td>
+                    <td class="desc">
+                        <i>false</i> to add the layer in the layer switcher but not on the map (visibility false) when loaded for the first time.<br/>
+                        <b>NOTE:</b> This is a temporary field that will be removed after the Save State feature has been developed.
+                    </td>
+                </tr>
+                <tr>
+                    <td class="attr">shownOnlyInLayerGroup</td>
+                    <td class="type">Boolean</td>
+                    <td class="desc">
+                        <i>true</i> to hide the layer from the add layer tree. This is used with layers that are included in a layer group.
+                    </td>
+                </tr>
+                <tr>
+                    <td class="attr">cached</td>
+                    <td class="type">Boolean</td>
+                    <td class="desc">
+                        Default: <i>true</i>. Set to <i>false</i> if the layer should never be request to the cache (GWC).
+                    </td>
+                </tr>
+                <tr>
+                    <td class="attr">olParams</td>
+                    <td class="type">JSON Object</td>
+                    <td class="desc">
+                        Define the OGC URL parameters overrides.<br/>
+                        Some OpenLayers layer class has an attribute called params. Those params are used in the
+                        request to get the map images (usually tiles). They can be overridden by setting a value
+                        for <i>olParams</i>.<br/>
+                        For example, a layer can be request as a GIF using this override:
 <pre>
 "ea_ea:bluemarble" : {
-	"olParams": {
-		"format": "image/gif"
-	}
+    "olParams": {
+        "format": "image/gif"
+    }
 }
 </pre>
-						List of some useful params:
-						<table>
-							<tr>
-								<th>Param</th>
-								<th>Type</th>
-								<th>Description</th>
-								<th>Example</th>
-							</tr>
-							<tr>
-								<td>format</td>
-								<td>Mimetype (String). Default: usually "image/png" or "image/gif", depend on the server</td>
-								<td></td>
-								<td>"format": "image/jpeg"</td>
-							</tr>
-							<tr>
-								<td>COLORSCALERANGE</td>
-								<td>Colour range (String). Default: different for each ncWMS layer</td>
-								<td>Colour range used for ncWMS layers, coma separated.</td>
-								<td>"COLORSCALERANGE": "0,1"</td>
-							</tr>
-						</table>
-						<b>NOTE:</b> For the "version" parameter, it's preferable to use the <i>wmsVersion</i> and <i>cacheWmsVersion</i>
-						attribute, since the AtlasMapper need to be able to switch between the 2 for data source that has web cache enable.<br/>
-						See: <a href="http://nsidc.org/data/atlas/ogc_services.html#WMS">OGC WMS parameters</a>.
-					</td>
-				</tr>
-				<tr>
-					<td class="attr">olOptions</td>
-					<td class="type">JSON Object</td>
-					<td class="desc">
-						Define the OpenLayers options overrides.<br/>
-						All OpenLayers layer class has options. Those options can be overridden by setting a value for <i>olOptions</i>.<br/>
-						For example, a layer can be request as a single tile, and be displayed at 50% opacity by default:
+                        List of some useful params:
+                        <table>
+                            <tr>
+                                <th>Param</th>
+                                <th>Type</th>
+                                <th>Description</th>
+                                <th>Example</th>
+                            </tr>
+                            <tr>
+                                <td>format</td>
+                                <td>Mimetype (String). Default: usually "image/png" or "image/gif", depend on the server</td>
+                                <td></td>
+                                <td>"format": "image/jpeg"</td>
+                            </tr>
+                            <tr>
+                                <td>COLORSCALERANGE</td>
+                                <td>Colour range (String). Default: different for each ncWMS layer</td>
+                                <td>Colour range used for ncWMS layers, coma separated.</td>
+                                <td>"COLORSCALERANGE": "0,1"</td>
+                            </tr>
+                        </table>
+                        <b>NOTE:</b> For the "version" parameter, it's preferable to use the <i>wmsVersion</i> and <i>cacheWmsVersion</i>
+                        attribute, since the AtlasMapper need to be able to switch between the 2 for data source that has web cache enable.<br/>
+                        See: <a href="http://nsidc.org/data/atlas/ogc_services.html#WMS">OGC WMS parameters</a>.
+                    </td>
+                </tr>
+                <tr>
+                    <td class="attr">olOptions</td>
+                    <td class="type">JSON Object</td>
+                    <td class="desc">
+                        Define the OpenLayers options overrides.<br/>
+                        All OpenLayers layer class has options. Those options can be overridden by setting a value for <i>olOptions</i>.<br/>
+                        For example, a layer can be request as a single tile, and be displayed at 50% opacity by default:
 <pre>
 "ea_ea:bluemarble" : {
-	"olOptions": {
-		"opacity": 0.5,
-		"singleTile": true
-	}
+    "olOptions": {
+        "opacity": 0.5,
+        "singleTile": true
+    }
 }
 </pre>
-						List of some useful options:
-						<table>
-							<tr>
-								<th>Option</th>
-								<th style="width: 150px">Type</th>
-								<th>Description</th>
-								<th>Example</th>
-							</tr>
-							<tr>
-								<td>opacity</td>
-								<td>Real value, between 0 and 1. Default: 1</td>
-								<td>The layer's opacity.</td>
-								<td>"opacity": 0.5</td>
-							</tr>
-							<tr>
-								<td>singleTile</td>
-								<td>Boolean. Default: false</td>
-								<td>Moves the layer into single-tile mode, meaning that one tile will be loaded. The tile's size will be determined by the 'ratio' property.  When the tile is dragged such that it does not cover the entire viewport, it is reloaded.<br/>
-									<b>NOTE:</b> this option should not be used with <i>ncWMS</i> since the tiles can not exceed 1024x1024.
-								</td>
-								<td>"singleTile": true</td>
-							</tr>
-							<tr>
-								<td>gutter</td>
-								<td>Integer (in pixels). Default: 0</td>
-								<td>Determines the width (in pixels) of the gutter around image tiles to ignore. By setting this property to a non-zero value, images will be requested that are wider and taller than the tile size by a value of 2 x gutter. This allows artifacts of rendering at tile edges to be ignored. Set a gutter value that is equal to half the size of the widest symbol that needs to be displayed. Defaults to zero. Non-tiled layers always have zero gutter.<br/>
-									<b>IMPORTANT:</b> This attribute have a strange behaviour when the map DPI is modified.
-								</td>
-								<td>"gutter": 20</td>
-							</tr>
-							<tr>
-								<td>numZoomLevels</td>
-								<td>Integer. Default: 16</td>
-								<td>When specified on a base layer, it set the number of zoom level for the map.<br/>
-									<b>NOTE:</b> It could be dangerous to use a value higher than 22; beyond that point, the amount of tiles needed to represent the whole world is astronomical.
-								</td>
-								<td>"numZoomLevels": 20</td>
-							</tr>
-						</table>
-						See: <a href="http://dev.openlayers.org/releases/OpenLayers-2.12/doc/apidocs/files/OpenLayers/Layer/Grid-js.html">OpenLayers Grid layer API</a>, list of <i>Properties</i>.
-						The list is spread out between all layers sub-classes / super-classes. It's often a matter of trial and error to find out what works and what doesn't.
-					</td>
-				</tr>
-				<!-- styles & layerOptions: [name, type, mandatory, defaultValue] -->
-				<tr>
-					<td class="attr">treePath</td>
-					<td class="type">String</td>
-					<td class="desc">Path separated by "/", representing the path where the layer will be found in the add layer window. For WMS services, this attribute is usually the same as the wmsPath from WMS capabilities document.</td>
-				</tr>
-				<tr>
-					<td class="attr">wmsVersion</td>
-					<td class="type">String</td>
-					<td class="desc">The WMS version send in the request, when requesting tiles direct from the WMS service; "1.1.1", "1.3.0"</td>
-				</tr>
-				<tr>
-					<td class="attr">cacheWmsVersion</td>
-					<td class="type">String</td>
-					<td class="desc">The WMS version send in the request, when requesting tiles through the web cache; "1.1.1", "1.3.0"</td>
-				</tr>
-				<tr>
-					<td class="attr">wmsRequestMimeType</td>
-					<td class="type">Mime type</td>
-					<td class="desc"><b>DEPRECATED by <i>"olParams": {"format": "image/png"}</i></b><br/>Mime type used to request the tiles. Usualy <i>image/jpeg</i>, <i>image/png</i> or <i>image/gif</i></td>
-				</tr>
-			</table>
+                        List of some useful options:
+                        <table>
+                            <tr>
+                                <th>Option</th>
+                                <th style="width: 150px">Type</th>
+                                <th>Description</th>
+                                <th>Example</th>
+                            </tr>
+                            <tr>
+                                <td>opacity</td>
+                                <td>Real value, between 0 and 1. Default: 1</td>
+                                <td>The layer's opacity.</td>
+                                <td>"opacity": 0.5</td>
+                            </tr>
+                            <tr>
+                                <td>singleTile</td>
+                                <td>Boolean. Default: false</td>
+                                <td>Moves the layer into single-tile mode, meaning that one tile will be loaded. The tile's size will be determined by the 'ratio' property.  When the tile is dragged such that it does not cover the entire viewport, it is reloaded.<br/>
+                                    <b>NOTE:</b> this option should not be used with <i>ncWMS</i> since the tiles can not exceed 1024x1024.
+                                </td>
+                                <td>"singleTile": true</td>
+                            </tr>
+                            <tr>
+                                <td>gutter</td>
+                                <td>Integer (in pixels). Default: 0</td>
+                                <td>Determines the width (in pixels) of the gutter around image tiles to ignore. By setting this property to a non-zero value, images will be requested that are wider and taller than the tile size by a value of 2 x gutter. This allows artifacts of rendering at tile edges to be ignored. Set a gutter value that is equal to half the size of the widest symbol that needs to be displayed. Defaults to zero. Non-tiled layers always have zero gutter.<br/>
+                                    <b>IMPORTANT:</b> This attribute have a strange behaviour when the map DPI is modified.
+                                </td>
+                                <td>"gutter": 20</td>
+                            </tr>
+                            <tr>
+                                <td>numZoomLevels</td>
+                                <td>Integer. Default: 16</td>
+                                <td>When specified on a base layer, it set the number of zoom level for the map.<br/>
+                                    <b>NOTE:</b> It could be dangerous to use a value higher than 22; beyond that point, the amount of tiles needed to represent the whole world is astronomical.
+                                </td>
+                                <td>"numZoomLevels": 20</td>
+                            </tr>
+                        </table>
+                        See: <a href="http://dev.openlayers.org/releases/OpenLayers-2.12/doc/apidocs/files/OpenLayers/Layer/Grid-js.html">OpenLayers Grid layer API</a>, list of <i>Properties</i>.
+                        The list is spread out between all layers sub-classes / super-classes. It's often a matter of trial and error to find out what works and what doesn't.
+                    </td>
+                </tr>
+                <!-- styles & layerOptions: [name, type, mandatory, defaultValue] -->
+                <tr>
+                    <td class="attr">treePath</td>
+                    <td class="type">String</td>
+                    <td class="desc">Path separated by "/", representing the path where the layer will be found in the add layer window. For WMS services, this attribute is usually the same as the wmsPath from WMS capabilities document.</td>
+                </tr>
+                <tr>
+                    <td class="attr">wmsVersion</td>
+                    <td class="type">String</td>
+                    <td class="desc">The WMS version send in the request, when requesting tiles direct from the WMS service; "1.1.1", "1.3.0"</td>
+                </tr>
+                <tr>
+                    <td class="attr">cacheWmsVersion</td>
+                    <td class="type">String</td>
+                    <td class="desc">The WMS version send in the request, when requesting tiles through the web cache; "1.1.1", "1.3.0"</td>
+                </tr>
+                <tr>
+                    <td class="attr">wmsRequestMimeType</td>
+                    <td class="type">Mime type</td>
+                    <td class="desc"><b>DEPRECATED by <i>"olParams": {"format": "image/png"}</i></b><br/>Mime type used to request the tiles. Usualy <i>image/jpeg</i>, <i>image/png</i> or <i>image/gif</i></td>
+                </tr>
+            </table>
 
-			<h4>URL state support</h4>
-			<p>
-				The AtlasMapper support various URL parameters that allow linking capability to a certain map state. Not all state information can be set yet, which mean that the Save State feature is still required.
-			</p>
-			<table>
-				<tr>
-					<th class="attr">Parameter</th>
-					<th class="type">Type</th>
-					<th class="desc">Description</th>
-				</tr>
-				<tr>
-					<td class="attr">maps</td>
-					<td class="type">Integer</td>
-					<td class="desc">Number of side-by-side maps the client should start with.</td>
-				</tr>
-				<tr>
-					<td class="attr">intro</td>
-					<td class="type">Boolean</td>
-					<td class="desc"><i>false</i> to disable the welcome message (introduction splash window) (default: <i>true</i>).<br/>
-						<b>NOTE:</b> The welcome message window is not available with the embedded map.</td>
-				</tr>
-				<tr>
-					<td class="attr">leg</td>
-					<td class="type">Boolean</td>
-					<td class="desc"><i>true</i> to enable the legend window in the embedded map (default: <i>false</i>).</td>
-				</tr>
-				<tr>
-					<td class="attr">ll</td>
-					<td class="type">Coma separated list of 2 Integer</td>
-					<td class="desc">Coordinates of the center of the map, in <i>longitude,latitude</i> format.</td>
-				</tr>
-				<tr>
-					<td class="attr">z</td>
-					<td class="type">Integer</td>
-					<td class="desc">Zoom level</td>
-				</tr>
-				<tr>
-					<td class="attr">l0</td>
-					<td class="type">Coma separated list of String</td>
-					<td class="desc">List of extra layer IDs to load on the map <i>0</i>. <i>lN</i> can be used to specified the layers to a given map ID <i>N</i>, in case multi-maps are used.<br/>
-							<b>NOTE:</b> The client expect the layer IDs to start with the data source ID, as in the rest of the admin config.</td>
-				</tr>
-				<tr>
-					<td class="attr">s0</td>
-					<td class="type">Coma separated list of String</td>
-					<td class="desc">List of default style name for the extra layers of map <i>0</i>. The style at index <i>N</i> in the list will be apply to the layer at index <i>N</i> in <i>l0</i>. The style names must match the name sent in the <i>WMS request</i>. <i>sN</i> can be used to specified the styles to a given map ID <i>N</i>, in case multi-maps are used.</td>
-				</tr>
-				<tr>
-					<td class="attr">o0</td>
-					<td class="type">Coma separated list of float</td>
-					<td class="desc">List of extra layer opacity for map <i>0</i>. The layer opacity at index <i>N</i> in the list will be apply to the layer at index <i>N</i> in <i>l0</i>. The value must be include between <i>0</i> and <i>1</i> (default <i>1</i>). <i>oN</i> can be used to specified the styles to a given map ID <i>N</i>, in case multi-maps are used.</td>
-				</tr>
-				<tr>
-					<td class="attr">v0</td>
-					<td class="type">Coma separated list of boolean</td>
-					<td class="desc">List of extra layer visibility for map <i>0</i>. The value at index <i>N</i> in the list will be apply to the layer at index <i>N</i> in <i>l0</i>. The value must <i>true</i> or <i>false</i>, case insensitive (default: <i>true</i>). <i>oN</i> can be used to specified the styles to a given map ID <i>N</i>, in case multi-maps are used.</td>
-				</tr>
-			</table>
-			<p>
-				<b>Example</b> of a URL for the client <i>demo</i> that load the map at zoom level <i>4</i> with the following extra layers:<br/>
+            <h4>URL state support</h4>
+            <p>
+                The AtlasMapper support various URL parameters that allow linking capability to a certain map state. Not all state information can be set yet, which mean that the Save State feature is still required.
+            </p>
+            <table>
+                <tr>
+                    <th class="attr">Parameter</th>
+                    <th class="type">Type</th>
+                    <th class="desc">Description</th>
+                </tr>
+                <tr>
+                    <td class="attr">maps</td>
+                    <td class="type">Integer</td>
+                    <td class="desc">Number of side-by-side maps the client should start with.</td>
+                </tr>
+                <tr>
+                    <td class="attr">intro</td>
+                    <td class="type">Boolean</td>
+                    <td class="desc"><i>false</i> to disable the welcome message (introduction splash window) (default: <i>true</i>).<br/>
+                        <b>NOTE:</b> The welcome message window is not available with the embedded map.</td>
+                </tr>
+                <tr>
+                    <td class="attr">leg</td>
+                    <td class="type">Boolean</td>
+                    <td class="desc"><i>true</i> to enable the legend window in the embedded map (default: <i>false</i>).</td>
+                </tr>
+                <tr>
+                    <td class="attr">ll</td>
+                    <td class="type">Coma separated list of 2 Integer</td>
+                    <td class="desc">Coordinates of the center of the map, in <i>longitude,latitude</i> format.</td>
+                </tr>
+                <tr>
+                    <td class="attr">z</td>
+                    <td class="type">Integer</td>
+                    <td class="desc">Zoom level</td>
+                </tr>
+                <tr>
+                    <td class="attr">l0</td>
+                    <td class="type">Coma separated list of String</td>
+                    <td class="desc">List of extra layer IDs to load on the map <i>0</i>. <i>lN</i> can be used to specified the layers to a given map ID <i>N</i>, in case multi-maps are used.<br/>
+                            <b>NOTE:</b> The client expect the layer IDs to start with the data source ID, as in the rest of the admin config.</td>
+                </tr>
+                <tr>
+                    <td class="attr">s0</td>
+                    <td class="type">Coma separated list of String</td>
+                    <td class="desc">List of default style name for the extra layers of map <i>0</i>. The style at index <i>N</i> in the list will be apply to the layer at index <i>N</i> in <i>l0</i>. The style names must match the name sent in the <i>WMS request</i>. <i>sN</i> can be used to specified the styles to a given map ID <i>N</i>, in case multi-maps are used.</td>
+                </tr>
+                <tr>
+                    <td class="attr">o0</td>
+                    <td class="type">Coma separated list of float</td>
+                    <td class="desc">List of extra layer opacity for map <i>0</i>. The layer opacity at index <i>N</i> in the list will be apply to the layer at index <i>N</i> in <i>l0</i>. The value must be include between <i>0</i> and <i>1</i> (default <i>1</i>). <i>oN</i> can be used to specified the styles to a given map ID <i>N</i>, in case multi-maps are used.</td>
+                </tr>
+                <tr>
+                    <td class="attr">v0</td>
+                    <td class="type">Coma separated list of boolean</td>
+                    <td class="desc">List of extra layer visibility for map <i>0</i>. The value at index <i>N</i> in the list will be apply to the layer at index <i>N</i> in <i>l0</i>. The value must <i>true</i> or <i>false</i>, case insensitive (default: <i>true</i>). <i>oN</i> can be used to specified the styles to a given map ID <i>N</i>, in case multi-maps are used.</td>
+                </tr>
+            </table>
+            <p>
+                <b>Example</b> of a URL for the client <i>demo</i> that load the map at zoom level <i>4</i> with the following extra layers:<br/>
 <pre>
 ala_ALA:fire_frq
-	Visible: false
+    Visible: false
 ea_ea:GBR_UQ_Inshore-pesticides_AvDryPSHeq-2005-6
-	Default style: Inshore-pesticides-AvDryPSHeq-Blue
-	Opacity: 0.5
+    Default style: Inshore-pesticides-AvDryPSHeq-Blue
+    Opacity: 0.5
 </pre>
-				<i>http://domain.com/atlasmapper/client/demo/index.html?z=4&l0=ala_ALA:fire_frq,ea_ea:GBR_UQ_Inshore-pesticides_AvDryPSHeq-2005-6&s0=,Inshore-pesticides-AvDryPSHeq-Blue&o0=,0.5&v0=false</i>
-			</p>
-		</div>
+                <i>http://domain.com/atlasmapper/client/demo/index.html?z=4&l0=ala_ALA:fire_frq,ea_ea:GBR_UQ_Inshore-pesticides_AvDryPSHeq-2005-6&s0=,Inshore-pesticides-AvDryPSHeq-Blue&o0=,0.5&v0=false</i>
+            </p>
+        </div>
 
-		<h2 id="google">Google Java Script</h2>
-		<div id="googleDiv">
-			<p>
-				The Google data source configuration works in a quite different way than other data sources.
-			</p>
+        <h2 id="google">Google Data Source</h2>
+        <div id="googleDiv">
+            <p>
+                The Google data source configuration works sightly differently than other data sources.
+            </p>
 
-			<p>
-				The field <i>Google Java Script</i> can be used to add some extra JavaScript to the map client
-				when the Google data source is used. If the JavaScript block contains the string
-				<i>maps.google.com/maps/api</i>, the content of the field will replace the default
-				Google API import block.
-			</p>
+            <h3 id="googleAPIKey">Google API Key</h3>
+            <div>
+                <p>
+                    Google requires that its maps layers are requested using a
+                    <a href="https://developers.google.com/maps/documentation/javascript/get-api-key" target="_blank">Google API Key</a>.
+                    You will need to request one and enter it in the <i>Google API Key</i> field of your Google data source
+                    in order to be able to use Google layers.
+                </p>
+            </div>
 
-			<p>
-				Google Maps now require a <a href="https://developers.google.com/maps/documentation/javascript/get-api-key" target="_blank">Google API key</a>.
-				When we will have some development time on that project,
-				we should modify the configuration window to add a <i>API Key</i> field.
-				In the time been, the API Key should be added to the JavaScript used to pull the Google API script.
-				You can do that by adding the following line to the <i>Google Java Script</i> field.
-			</p>
-			<pre>&lt;script src="https://maps.google.com/maps/api/js?v=3.7&key=<b>AIzaXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</b>"&gt;&lt;/script&gt;</pre>
-		</div>
+            <h3 id="googleAddLayer">Adding a custom Google layer</h3>
+            <div>
+                <p>
+                    Custom Google layers can be added using the <i>Layers' global manual override</i> in the <i>advanced</i> tab
+                    of the Google data source configuration.
+                </p>
 
-		<h2 id="experimental">Experimental features</h2>
-		<div id="experimentalDiv">
-			<p>
-				The following list of features are experimental. They can be used but the interface is subject to
-				change in the next releases, without backward compatibility.
-			</p>
+                <p>For example, to add the Google Flat layer, paste the following code in <i>manual override</i>:</p>
+<pre>
+{"g_FLAT": {
+    "isBaseLayer": true,
+    "layerBoundingBox": [
+        -180,
+        -90,
+        80,
+        90
+    ],
+    "layerName": "FLAT",
+    "layerType": "GOOGLE",
+    "olOptions": {"numZoomLevels": 20},
+    "styledMapType": [{
+        "featureType": "all",
+        "stylers": [{"visibility": "on"}],
+        "elementType": "geometry.fill"
+    }],
+    "title": "Google Flat"
+}}
+</pre>
+            </div>
 
-			<h3 id="webapi">Web API</h3>
-			<div id="webapiDiv">
-				<p>
-					The <i>Web API</i> can be used to trigger action from a URL, without having to login. For security
-					reason, the URL can only be called from <i>localhost</i>.
-				</p>
-				<p>
-					<b>Usage:</b> http://localhost:8080/atlasmapper/localhost/api.jsp?action=<b>&lt;ACTION&gt;</b>&amp;<b>&lt;PARAMETERS&gt;</b>
-				</p>
-				<table>
-					<tr>
-						<th class="desc">Description</th>
-						<th class="action">Action</th>
-						<th class="params">Parameters</th>
-						<th class="examples">Examples</th>
-					</tr>
-					<tr>
-						<td class="desc">
-							Re-harvest data sources &amp; re-generate clients.<br/>
-							<b>NOTE:</b> When data sources and clients are specified in the URL, the data sources
-								are always harvested before generating the client. This may not be the case if
-								they are called in individual URLs.
-						</td>
-						<td class="action">REFRESH</td>
-						<td class="params">
-							<ul>
-								<li><b>dataSourceIds:</b> Optional coma separated list of data source ID.</li>
-								<li><b>clientIds:</b> Optional coma separated list of client ID.</li>
-							</ul>
-						</td>
-						<td class="examples">
-							<ul>
-								<li>
-									Refresh the cache for the data sources ID "ea" and "imos":<br/>
-									<b>http://localhost:8080/atlasmapper/localhost/api.jsp?action=REFRESH&amp;dataSourceIds=ea,imos</b>
-								</li>
-								<li>
-									Regenerate the clients ID "demo" and "maps":<br/>
-									<b>http://localhost:8080/atlasmapper/localhost/api.jsp?action=REFRESH&amp;clientIds=demo,maps</b>
-								</li>
-								<li>
-									Refresh the cache for the data source "ea", then regenerate the client "demo":<br/>
-									<b>http://localhost:8080/atlasmapper/localhost/api.jsp?action=REFRESH&amp;dataSourceIds=ea&amp;clientIds=demo</b>
-								</li>
-							</ul>
-						</td>
-					</tr>
-				</table>
-			</div>
-		</div>
-	</body>
+            <h3 id="googleJavaScript">Google Java Script</h3>
+            <div>
+                <p>
+                    The field <i>Google Java Script</i> can be used to add some extra JavaScript to the map client
+                    when the Google data source is used.
+                </p>
+            </div>
+        </div>
+
+        <h2 id="experimental">Experimental features</h2>
+        <div id="experimentalDiv">
+            <p>
+                The following list of features are experimental. They can be used but the interface is subject to
+                change in the next releases, without backward compatibility.
+            </p>
+
+            <h3 id="webapi">Web API</h3>
+            <div id="webapiDiv">
+                <p>
+                    The <i>Web API</i> can be used to trigger action from a URL, without having to login. For security
+                    reason, the URL can only be called from <i>localhost</i>.
+                </p>
+                <p>
+                    <b>Usage:</b> http://localhost:8080/atlasmapper/localhost/api.jsp?action=<b>&lt;ACTION&gt;</b>&amp;<b>&lt;PARAMETERS&gt;</b>
+                </p>
+                <table>
+                    <tr>
+                        <th class="desc">Description</th>
+                        <th class="action">Action</th>
+                        <th class="params">Parameters</th>
+                        <th class="examples">Examples</th>
+                    </tr>
+                    <tr>
+                        <td class="desc">
+                            Re-harvest data sources &amp; re-generate clients.<br/>
+                            <b>NOTE:</b> When data sources and clients are specified in the URL, the data sources
+                                are always harvested before generating the client. This may not be the case if
+                                they are called in individual URLs.
+                        </td>
+                        <td class="action">REFRESH</td>
+                        <td class="params">
+                            <ul>
+                                <li><b>dataSourceIds:</b> Optional coma separated list of data source ID.</li>
+                                <li><b>clientIds:</b> Optional coma separated list of client ID.</li>
+                            </ul>
+                        </td>
+                        <td class="examples">
+                            <ul>
+                                <li>
+                                    Refresh the cache for the data sources ID "ea" and "imos":<br/>
+                                    <b>http://localhost:8080/atlasmapper/localhost/api.jsp?action=REFRESH&amp;dataSourceIds=ea,imos</b>
+                                </li>
+                                <li>
+                                    Regenerate the clients ID "demo" and "maps":<br/>
+                                    <b>http://localhost:8080/atlasmapper/localhost/api.jsp?action=REFRESH&amp;clientIds=demo,maps</b>
+                                </li>
+                                <li>
+                                    Refresh the cache for the data source "ea", then regenerate the client "demo":<br/>
+                                    <b>http://localhost:8080/atlasmapper/localhost/api.jsp?action=REFRESH&amp;dataSourceIds=ea&amp;clientIds=demo</b>
+                                </li>
+                            </ul>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </body>
 </html>

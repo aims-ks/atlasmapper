@@ -27,25 +27,34 @@ import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
 import au.gov.aims.atlasmapperserver.layerGenerator.GoogleLayerGenerator;
 
 public class GoogleDataSourceConfig extends AbstractDataSourceConfig {
+    @ConfigField
+    private String googleAPIKey;
 
-	@ConfigField
-	private String googleJavaScript;
+    @ConfigField
+    private String googleJavaScript;
 
+    public GoogleDataSourceConfig(ConfigManager configManager) {
+        super(configManager);
+    }
 
-	public GoogleDataSourceConfig(ConfigManager configManager) {
-		super(configManager);
-	}
+    @Override
+    public AbstractLayerGenerator createLayerGenerator() {
+        return new GoogleLayerGenerator();
+    }
 
-	@Override
-	public AbstractLayerGenerator createLayerGenerator() {
-		return new GoogleLayerGenerator();
-	}
+    public String getGoogleAPIKey() {
+        return this.googleAPIKey;
+    }
 
-	public String getGoogleJavaScript() {
-		return this.googleJavaScript;
-	}
+    public void setGoogleAPIKey(String googleAPIKey) {
+        this.googleAPIKey = googleAPIKey;
+    }
 
-	public void setGoogleJavaScript(String googleJavaScript) {
-		this.googleJavaScript = googleJavaScript;
-	}
+    public String getGoogleJavaScript() {
+        return this.googleJavaScript;
+    }
+
+    public void setGoogleJavaScript(String googleJavaScript) {
+        this.googleJavaScript = googleJavaScript;
+    }
 }

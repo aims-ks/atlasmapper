@@ -21,7 +21,6 @@
 
 // Namespace declaration (equivalent to Ext.namespace("Atlas");)
 window["Atlas"] = window["Atlas"] || {};
-var customGoogleStyles;
 
 // The core play the role of an Event manager
 // Core can't use any ExtJS object since it may be use in an embedded map.

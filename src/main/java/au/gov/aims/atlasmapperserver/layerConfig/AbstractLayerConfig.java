@@ -373,23 +373,21 @@ public abstract class AbstractLayerConfig extends AbstractConfig {
     @Override
     public String toString() {
         return "AbstractLayerConfig {\n" +
-                (Utils.isBlank(layerId) ? "" :         "	layerId=" + layerId + "\n") +
-                (Utils.isBlank(layerName) ? "" :       "	layerName=" + layerName + "\n") +
-                (aliasIds==null ? "" :                 "	aliasIds=" + Arrays.toString(aliasIds) + "\n") +
-                (Utils.isBlank(title) ? "" :           "	title=" + title + "\n") +
-                (Utils.isBlank(description) ? "" :     "	description=" + description + "\n") +
-                (Utils.isBlank(treePath) ? "" :        "	treePath=" + treePath + "\n") +
-                (layerBoundingBox==null ? "" :         "	layerBoundingBox=" + Arrays.toString(layerBoundingBox) + "\n") +
-                (infoHtmlUrls==null ? "" :             "	infoHtmlUrls=" + Arrays.toString(infoHtmlUrls) + "\n") +
-                (isBaseLayer==null ? "" :              "	isBaseLayer=" + isBaseLayer + "\n") +
-                (hasLegend==null ? "" :                "	hasLegend=" + hasLegend + "\n") +
-                (Utils.isBlank(legendGroup) ? "" :     "	legendGroup=" + legendGroup + "\n") +
-                (Utils.isBlank(legendTitle) ? "" :     "	legendTitle=" + legendTitle + "\n") +
-                (styles==null ? "" :                   "	styles=" + styles + "\n") +
-                (options==null ? "" :                  "	options=" + options + "\n") +
-                (selected==null ? "" :                 "	selected=" + selected + "\n") +
-                // TODO Add interface fields
-//				"	dataSourceConfig=" + super.toString() + "\n" +
+                (Utils.isBlank(this.layerId) ? "" :         "	layerId=" + this.layerId + "\n") +
+                (Utils.isBlank(this.layerName) ? "" :       "	layerName=" + this.layerName + "\n") +
+                (this.aliasIds==null ? "" :                 "	aliasIds=" + Arrays.toString(this.aliasIds) + "\n") +
+                (Utils.isBlank(this.title) ? "" :           "	title=" + this.title + "\n") +
+                (Utils.isBlank(this.description) ? "" :     "	description=" + this.description + "\n") +
+                (Utils.isBlank(this.treePath) ? "" :        "	treePath=" + this.treePath + "\n") +
+                (this.layerBoundingBox==null ? "" :         "	layerBoundingBox=" + Arrays.toString(this.layerBoundingBox) + "\n") +
+                (this.infoHtmlUrls==null ? "" :             "	infoHtmlUrls=" + Arrays.toString(this.infoHtmlUrls) + "\n") +
+                (this.isBaseLayer==null ? "" :              "	isBaseLayer=" + this.isBaseLayer + "\n") +
+                (this.hasLegend==null ? "" :                "	hasLegend=" + this.hasLegend + "\n") +
+                (Utils.isBlank(this.legendGroup) ? "" :     "	legendGroup=" + this.legendGroup + "\n") +
+                (Utils.isBlank(this.legendTitle) ? "" :     "	legendTitle=" + this.legendTitle + "\n") +
+                (this.styles==null ? "" :                   "	styles=" + this.styles + "\n") +
+                (this.options==null ? "" :                  "	options=" + this.options + "\n") +
+                (this.selected==null ? "" :                 "	selected=" + this.selected + "\n") +
             '}';
     }
 }

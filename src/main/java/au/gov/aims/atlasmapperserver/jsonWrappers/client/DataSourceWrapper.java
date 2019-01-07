@@ -194,6 +194,13 @@ public class DataSourceWrapper extends AbstractWrapper {
         this.setValue("googleJavaScript", googleJavaScript);
     }
 
+    public String getGoogleAPIKey() {
+        return this.json.optString("googleAPIKey", null);
+    }
+    public void setGoogleAPIKey(String googleAPIKey) throws JSONException {
+        this.setValue("googleAPIKey", googleAPIKey);
+    }
+
     public JSONArray getWebCacheSupportedParameters() {
         return this.json.optJSONArray("webCacheSupportedParameters");
     }
@@ -333,6 +340,7 @@ public class DataSourceWrapper extends AbstractWrapper {
         dataSourceClone.setBlackAndWhiteListedLayers(null);
         dataSourceClone.setLastHarvested(null);
         dataSourceClone.setComment(null);
+        dataSourceClone.setGoogleAPIKey(null);
         dataSourceClone.setGoogleJavaScript(null);
 
         return dataSourceClone.getJSON();
