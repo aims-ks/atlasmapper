@@ -86,6 +86,15 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
                 logger.log(Level.SEVERE, "An error occurred while generating the layer catalogue: " + Utils.getExceptionMessage(ex), ex);
             }
 
+            if (layerCatalog == null) {
+                // Save the data source error state into a file
+                try {
+                    this.dataSourceConfig.save(logger, null);
+                } catch(Exception ex) {
+                    logger.log(Level.SEVERE, "An error occurred while saving the data source state: " + Utils.getExceptionMessage(ex), ex);
+                }
+            }
+
             // Create the elapse time message
             long elapseTimeMs = urlcache.endRun();
             double elapseTimeSec = elapseTimeMs / 1000.0;

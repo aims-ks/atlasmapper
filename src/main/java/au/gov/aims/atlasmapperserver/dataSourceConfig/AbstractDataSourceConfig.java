@@ -119,9 +119,16 @@ public abstract class AbstractDataSourceConfig extends AbstractRunnableConfig<Ab
 
         DataSourceWrapper dataSourceWrapper = new DataSourceWrapper(this.toJSonObject(true));
 
-        JSONObject layers = layerCatalog.getLayers();
-        int nbLayers = layers == null ? 0 : layers.length();
-        dataSourceWrapper.setLayers(layers);
+        int nbLayers = 0;
+        if (layerCatalog != null) {
+            JSONObject layers = layerCatalog.getLayers();
+            if (layers != null) {
+                nbLayers = layers.length();
+            }
+            dataSourceWrapper.setLayers(layers);
+        } else {
+            dataSourceWrapper.setLayers(null);
+        }
 
         int nbErrors = logger.getErrorCount();
 

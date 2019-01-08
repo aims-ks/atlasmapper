@@ -222,6 +222,8 @@ Ext.define('Frameset', {
      * @param msg
      * @param requestUrl
      * @param requestParameters
+     * @param stopRequestUrl
+     * @param stopRequestParameters
      * @param callback Function that gets called at the end of the process,
      *     with parameter responseObj, the JSON Object returned by the last request.
      */

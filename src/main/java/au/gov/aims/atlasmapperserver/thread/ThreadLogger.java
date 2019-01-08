@@ -20,6 +20,8 @@ public class ThreadLogger {
 
     public synchronized void reset() {
         this.logs.clear();
+        this.warningCount = 0;
+        this.errorCount = 0;
     }
 
     public synchronized List<ThreadLog> getLogs() {
