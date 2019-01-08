@@ -151,7 +151,8 @@ public class TC211Parser {
                     reDownload = true;
                 }
 
-                if (forceDownload || urlCache.isDownloadRequired(url)) {
+                boolean downloadRequired = forceDownload || urlCache.isDownloadRequired(url);
+                if (downloadRequired) {
                     if (!craftedUrl) {
                         logger.log(Level.INFO, String.format("Downloading [TC211 MEST record](%s) for layer %s",
                                 urlStr, layerId));
@@ -160,17 +161,28 @@ public class TC211Parser {
 
                 mestCacheEntry = urlCache.getCacheEntry(url);
                 if (mestCacheEntry != null) {
-                    urlCache.getHttpDocument(mestCacheEntry, dataSourceId, reDownload);
-                    File mestFile = mestCacheEntry.getDocumentFile();
-                    if (mestFile != null) {
-                        tc211Document = this.parseFile(mestFile, urlStr);
-                        if (tc211Document != null) {
-                            if (craftedUrl) {
-                                logger.log(Level.WARNING, String.format("Using crafted URL for the [TC211 MEST record](%s) for layer %s. " +
-                                        "You should modify the layer information to use this URL instead: %s",
-                                        urlStr, layerId, urlStr));
+                    // Avoid parsing document that are known to be unparsable
+                    boolean parsingRequired = true;
+                    if (!downloadRequired) {
+                        Boolean valid = mestCacheEntry.getValid();
+                        if (valid != null && !valid) {
+                            parsingRequired = false;
+                        }
+                    }
+
+                    if (parsingRequired) {
+                        urlCache.getHttpDocument(mestCacheEntry, dataSourceId, reDownload);
+                        File mestFile = mestCacheEntry.getDocumentFile();
+                        if (mestFile != null) {
+                            tc211Document = this.parseFile(mestFile, urlStr);
+                            if (tc211Document != null) {
+                                if (craftedUrl) {
+                                    logger.log(Level.WARNING, String.format("Using crafted URL for the [TC211 MEST record](%s) for layer %s. " +
+                                            "You should modify the layer information to use this URL instead: %s",
+                                            urlStr, layerId, urlStr));
+                                }
+                                urlCache.save(mestCacheEntry, true);
                             }
-                            urlCache.save(mestCacheEntry, true);
                         }
                     }
                 }
@@ -188,16 +200,25 @@ public class TC211Parser {
                 try {
                     rollbackMestCacheEntry = urlCache.getCacheEntry(url);
                     if (rollbackMestCacheEntry != null) {
-                        urlCache.getHttpDocument(rollbackMestCacheEntry, dataSourceId, false);
-                        File mestFile = rollbackMestCacheEntry.getDocumentFile();
-                        if (mestFile != null) {
-                            tc211Document = this.parseFile(mestFile, urlStr);
-                            if (tc211Document != null) {
-                                if (!craftedUrl) {
-                                    logger.log(Level.WARNING, String.format("Invalid [TC211 MEST record](%s) response used by layer %s. Using backup.",
-                                            urlStr, layerId));
+                        // Avoid parsing document that are known to be unparsable
+                        boolean parsingRequired = true;
+                        Boolean valid = rollbackMestCacheEntry.getValid();
+                        if (valid != null && !valid) {
+                            parsingRequired = false;
+                        }
+
+                        if (parsingRequired) {
+                            urlCache.getHttpDocument(rollbackMestCacheEntry, dataSourceId, false);
+                            File mestFile = rollbackMestCacheEntry.getDocumentFile();
+                            if (mestFile != null) {
+                                tc211Document = this.parseFile(mestFile, urlStr);
+                                if (tc211Document != null) {
+                                    if (!craftedUrl) {
+                                        logger.log(Level.WARNING, String.format("Invalid [TC211 MEST record](%s) response used by layer %s. Using backup.",
+                                                urlStr, layerId));
+                                    }
+                                    urlCache.save(rollbackMestCacheEntry, true);
                                 }
-                                urlCache.save(rollbackMestCacheEntry, true);
                             }
                         }
                     }

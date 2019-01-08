@@ -478,19 +478,31 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                     reDownload = true;
                 }
 
-                if (forceDownload || urlCache.isDownloadRequired(url)) {
+                boolean downloadRequired = forceDownload || urlCache.isDownloadRequired(url);
+                if (downloadRequired) {
                     logger.log(Level.INFO, String.format("Downloading [JSON URL](%s) for %s",
                             urlStr, path));
                 }
 
                 jsonCacheEntry = urlCache.getCacheEntry(url);
                 if (jsonCacheEntry != null) {
-                    urlCache.getHttpDocument(jsonCacheEntry, dataSource.getDataSourceId(), reDownload);
-                    File jsonFile = jsonCacheEntry.getDocumentFile();
-                    if (jsonFile != null) {
-                        jsonResponse = URLCache.parseJSONObjectFile(jsonFile, logger, urlStr);
-                        if (jsonResponse != null) {
-                            urlCache.save(jsonCacheEntry, true);
+                    // Avoid parsing document that are known to be unparsable
+                    boolean parsingRequired = true;
+                    if (!downloadRequired) {
+                        Boolean valid = jsonCacheEntry.getValid();
+                        if (valid != null && !valid) {
+                            parsingRequired = false;
+                        }
+                    }
+
+                    if (parsingRequired) {
+                        urlCache.getHttpDocument(jsonCacheEntry, dataSource.getDataSourceId(), reDownload);
+                        File jsonFile = jsonCacheEntry.getDocumentFile();
+                        if (jsonFile != null) {
+                            jsonResponse = URLCache.parseJSONObjectFile(jsonFile, logger, urlStr);
+                            if (jsonResponse != null) {
+                                urlCache.save(jsonCacheEntry, true);
+                            }
                         }
                     }
                 }
@@ -505,12 +517,21 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                 try {
                     rollbackJsonCacheEntry = urlCache.getCacheEntry(url);
                     if (rollbackJsonCacheEntry != null) {
-                        urlCache.getHttpDocument(rollbackJsonCacheEntry, dataSource.getDataSourceId(), false);
-                        File jsonFile = rollbackJsonCacheEntry.getDocumentFile();
-                        if (jsonFile != null) {
-                            jsonResponse = URLCache.parseJSONObjectFile(jsonFile, logger, urlStr);
-                            if (jsonResponse != null) {
-                                urlCache.save(rollbackJsonCacheEntry, true);
+                        // Avoid parsing document that are known to be unparsable
+                        boolean parsingRequired = true;
+                        Boolean valid = rollbackJsonCacheEntry.getValid();
+                        if (valid != null && !valid) {
+                            parsingRequired = false;
+                        }
+
+                        if (parsingRequired) {
+                            urlCache.getHttpDocument(rollbackJsonCacheEntry, dataSource.getDataSourceId(), false);
+                            File jsonFile = rollbackJsonCacheEntry.getDocumentFile();
+                            if (jsonFile != null) {
+                                jsonResponse = URLCache.parseJSONObjectFile(jsonFile, logger, urlStr);
+                                if (jsonResponse != null) {
+                                    urlCache.save(rollbackJsonCacheEntry, true);
+                                }
                             }
                         }
                     }

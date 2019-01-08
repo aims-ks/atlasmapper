@@ -302,19 +302,31 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                         redownload = true;
                     }
 
-                    if (forceDownload || urlCache.isDownloadRequired(url)) {
+                    boolean downloadRequired = forceDownload || urlCache.isDownloadRequired(url);
+                    if (downloadRequired) {
                         logger.log(Level.INFO, String.format("Downloading [WMS GetCapabilities document](%s)", urlStr));
                     }
 
                     capabilitiesCacheEntry = urlCache.getCacheEntry(url);
                     if (capabilitiesCacheEntry != null) {
-                        urlCache.getHttpDocument(capabilitiesCacheEntry, dataSource.getDataSourceId(), redownload);
-                        File wmsCapabilitiesFile = capabilitiesCacheEntry.getDocumentFile();
-                        if (wmsCapabilitiesFile != null) {
-                            logger.log(Level.INFO, String.format("Parsing [WMS GetCapabilities document](%s)", urlStr));
-                            wmsCapabilities = this.getCapabilities(wmsCapabilitiesFile);
-                            if (wmsCapabilities != null) {
-                                urlCache.save(capabilitiesCacheEntry, true);
+                        // Avoid parsing document that are known to be unparsable
+                        boolean parsingRequired = true;
+                        if (!downloadRequired) {
+                            Boolean valid = capabilitiesCacheEntry.getValid();
+                            if (valid != null && !valid) {
+                                parsingRequired = false;
+                            }
+                        }
+
+                        if (parsingRequired) {
+                            urlCache.getHttpDocument(capabilitiesCacheEntry, dataSource.getDataSourceId(), redownload);
+                            File wmsCapabilitiesFile = capabilitiesCacheEntry.getDocumentFile();
+                            if (wmsCapabilitiesFile != null) {
+                                logger.log(Level.INFO, String.format("Parsing [WMS GetCapabilities document](%s)", urlStr));
+                                wmsCapabilities = this.getCapabilities(wmsCapabilitiesFile);
+                                if (wmsCapabilities != null) {
+                                    urlCache.save(capabilitiesCacheEntry, true);
+                                }
                             }
                         }
                     }
@@ -330,9 +342,15 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                     try {
                         rollbackCacheEntry = urlCache.getCacheEntry(url);
                         if (rollbackCacheEntry != null) {
-                            urlCache.getHttpDocument(rollbackCacheEntry, dataSource.getDataSourceId(), false);
+                            // Avoid parsing document that are known to be unparsable
+                            boolean parsingRequired = true;
                             Boolean valid = rollbackCacheEntry.getValid();
-                            if (valid != null && valid) {
+                            if (valid != null && !valid) {
+                                parsingRequired = false;
+                            }
+
+                            if (parsingRequired) {
+                                urlCache.getHttpDocument(rollbackCacheEntry, dataSource.getDataSourceId(), false);
                                 File rollbackFile = rollbackCacheEntry.getDocumentFile();
                                 if (rollbackFile != null) {
                                     wmsCapabilities = this.getCapabilities(rollbackFile);

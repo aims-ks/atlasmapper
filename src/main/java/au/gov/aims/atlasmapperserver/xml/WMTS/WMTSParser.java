@@ -76,19 +76,31 @@ public class WMTSParser {
                     redownload = true;
                 }
 
-                if (forceDownload || urlCache.isDownloadRequired(url)) {
+                boolean downloadRequired = forceDownload || urlCache.isDownloadRequired(url);
+                if (downloadRequired) {
                     logger.log(Level.INFO, String.format("Downloading [WMTS GetCapabilities document](%s)", urlStr));
                 }
 
                 capabilitiesCacheEntry = urlCache.getCacheEntry(url);
                 if (capabilitiesCacheEntry != null) {
-                    urlCache.getHttpDocument(capabilitiesCacheEntry, dataSource.getDataSourceId(), redownload);
-                    File wmtsDocumentFile = capabilitiesCacheEntry.getDocumentFile();
-                    if (wmtsDocumentFile != null) {
-                        logger.log(Level.INFO, String.format("Parsing [WMTS GetCapabilities document](%s)", urlStr));
-                        wmtsDocument = parseFile(wmtsDocumentFile, urlStr);
-                        if (wmtsDocument != null) {
-                            urlCache.save(capabilitiesCacheEntry, true);
+                    // Avoid parsing document that are known to be unparsable
+                    boolean parsingRequired = true;
+                    if (!downloadRequired) {
+                        Boolean valid = capabilitiesCacheEntry.getValid();
+                        if (valid != null && !valid) {
+                            parsingRequired = false;
+                        }
+                    }
+
+                    if (parsingRequired) {
+                        urlCache.getHttpDocument(capabilitiesCacheEntry, dataSource.getDataSourceId(), redownload);
+                        File wmtsDocumentFile = capabilitiesCacheEntry.getDocumentFile();
+                        if (wmtsDocumentFile != null) {
+                            logger.log(Level.INFO, String.format("Parsing [WMTS GetCapabilities document](%s)", urlStr));
+                            wmtsDocument = parseFile(wmtsDocumentFile, urlStr);
+                            if (wmtsDocument != null) {
+                                urlCache.save(capabilitiesCacheEntry, true);
+                            }
                         }
                     }
                 }
@@ -104,9 +116,15 @@ public class WMTSParser {
                 try {
                     rollbackCacheEntry = urlCache.getCacheEntry(url);
                     if (rollbackCacheEntry != null) {
-                        urlCache.getHttpDocument(rollbackCacheEntry, dataSource.getDataSourceId(), false);
+                        // Avoid parsing document that are known to be unparsable
+                        boolean parsingRequired = true;
                         Boolean valid = rollbackCacheEntry.getValid();
-                        if (valid != null && valid) {
+                        if (valid != null && !valid) {
+                            parsingRequired = false;
+                        }
+
+                        if (parsingRequired) {
+                            urlCache.getHttpDocument(rollbackCacheEntry, dataSource.getDataSourceId(), false);
                             File rollbackFile = rollbackCacheEntry.getDocumentFile();
                             if (rollbackFile != null) {
                                 wmtsDocument = parseFile(rollbackFile, urlStr);
