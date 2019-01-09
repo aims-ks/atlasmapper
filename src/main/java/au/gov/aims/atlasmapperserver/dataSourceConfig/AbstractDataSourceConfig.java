@@ -127,7 +127,7 @@ public abstract class AbstractDataSourceConfig extends AbstractRunnableConfig<Ab
             }
             dataSourceWrapper.setLayers(layers);
         } else {
-            dataSourceWrapper.setLayers(null);
+            dataSourceWrapper.setLayers((JSONObject) null);
         }
 
         int nbErrors = logger.getErrorCount();

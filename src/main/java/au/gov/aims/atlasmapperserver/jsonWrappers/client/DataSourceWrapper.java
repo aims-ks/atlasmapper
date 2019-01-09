@@ -135,14 +135,21 @@ public class DataSourceWrapper extends AbstractWrapper {
         }
     }
 
+    public void setLayers(Map<String, LayerWrapper> layers) throws JSONException {
+        this.json.remove("layers");
+        this.addLayers(layers);
+    }
+
     public void addLayers(Map<String, LayerWrapper> layers) throws JSONException {
-        for (Map.Entry<String, LayerWrapper> layerEntry : layers.entrySet()) {
-            LayerWrapper layerWrapper = layerEntry.getValue();
-            String layerId = layerEntry.getKey();
-            if (layerId != null && !layerId.isEmpty() && layerWrapper != null) {
-                JSONObject jsonLayer = layerWrapper.getJSON();
-                if (jsonLayer != null && jsonLayer.length() > 0) {
-                    this.addLayer(layerId, jsonLayer);
+        if (layers != null && !layers.isEmpty()) {
+            for (Map.Entry<String, LayerWrapper> layerEntry : layers.entrySet()) {
+                LayerWrapper layerWrapper = layerEntry.getValue();
+                String layerId = layerEntry.getKey();
+                if (layerId != null && !layerId.isEmpty() && layerWrapper != null) {
+                    JSONObject jsonLayer = layerWrapper.getJSON();
+                    if (jsonLayer != null && jsonLayer.length() > 0) {
+                        this.addLayer(layerId, jsonLayer);
+                    }
                 }
             }
         }
@@ -335,7 +342,7 @@ public class DataSourceWrapper extends AbstractWrapper {
 
         // Remove unwanted values
         dataSourceClone.setId(null);
-        dataSourceClone.setLayers(null);
+        dataSourceClone.setLayers((JSONObject) null);
         dataSourceClone.setGlobalManualOverride(null);
         dataSourceClone.setBlackAndWhiteListedLayers(null);
         dataSourceClone.setLastHarvested(null);
