@@ -405,6 +405,18 @@ Ext.define('Writer.ClientConfigForm', {
                                     height: 300
                                 }, browserSpecificEditAreaConfig
                             ), {
+                                fieldLabel: 'Black/White layer filter',
+                                qtipHtml: 'List of layer ids or id patterns, separated by coma or new line. A star (<b>*</b>) can be used as a wild card, anywhere in the id string. More than one star can be used.<br/><br/>'+
+                                        'Ids that start with a minus (<b>-</b>) are <b>black listed</b> (removed), and those starting with a plus (<b>+</b>) are <b>white listed</b> (added). '+
+                                        'The AtlasMapper server does not generate any layer information for any black listed layers, so they are invisible for the AtlasMapper clients.<br/><br/>' +
+                                        'Initially all layers are included, then the filters are applied to this list.<br/><br/>' +
+                                        '<b>Example:</b> This filter will remove all <i>ea_</i> layers that do not start with <i>ea_base</i>, and will also remove the one starting with <i>ea_baselayer</i>:<br/>' +
+                                        '<pre>    -ea_*\n    +ea_base*\n    -ea_baselayer*</pre>',
+                                name: 'blackAndWhiteListedLayers',
+                                xtype: 'textareafield',
+                                resizable: {transparent: true}, resizeHandles: 's',
+                                height: 100
+                            }, {
                                 // For special GeoServer legend params, see:
                                 // http://docs.geoserver.org/latest/en/user/services/wms/get_legend_graphic/legendgraphic.html#raster-legends-explained
                                 fieldLabel: 'Legend parameters',
@@ -1391,6 +1403,7 @@ Ext.define('Writer.ClientConfig', {
 
         'manualOverride',
         'lastGenerated',
+        'blackAndWhiteListedLayers',
         'legendParameters',
         'clientUrl',
         'layerListUrl',

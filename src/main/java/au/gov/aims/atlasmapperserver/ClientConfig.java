@@ -23,6 +23,7 @@ package au.gov.aims.atlasmapperserver;
 
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 import au.gov.aims.atlasmapperserver.cache.URLCache;
+import au.gov.aims.atlasmapperserver.collection.BlackAndWhiteListFilter;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.jsonWrappers.client.ClientWrapper;
 import au.gov.aims.atlasmapperserver.jsonWrappers.client.DataSourceWrapper;
@@ -107,6 +108,9 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
 
     @ConfigField
     private JSONSortedObject manualOverride;
+
+    @ConfigField
+    private String blackAndWhiteListedLayers;
 
     @ConfigField
     private String legendParameters;
@@ -444,6 +448,29 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
             }
         }
 
+
+        // Apply client's black and white list
+        if (Utils.isNotBlank(this.blackAndWhiteListedLayers)) {
+            if (layers != null) {
+                HashMap<String, LayerWrapper> layersMap = new HashMap<String, LayerWrapper>();
+                Iterator<String> layerIds = layers.keys();
+                while (layerIds.hasNext()) {
+                    String layerId = layerIds.next();
+                    if (!layers.isNull(layerId)) {
+                        LayerWrapper layerWrapper = new LayerWrapper(layers.optJSONObject(layerId));
+                        layersMap.put(layerId, layerWrapper);
+                    }
+                }
+
+                // Remove blacklisted layers
+                BlackAndWhiteListFilter<LayerWrapper> blackAndWhiteFilter =
+                        new BlackAndWhiteListFilter<LayerWrapper>(this.blackAndWhiteListedLayers);
+                layersMap = blackAndWhiteFilter.filter(layersMap);
+
+                layerCatalog.setLayers(layersMap);
+            }
+        }
+
         return layerCatalog;
     }
 
@@ -603,6 +630,14 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
 
     public void setManualOverride(JSONSortedObject manualOverride) {
         this.manualOverride = manualOverride;
+    }
+
+    public String getBlackAndWhiteListedLayers() {
+        return this.blackAndWhiteListedLayers;
+    }
+
+    public void setBlackAndWhiteListedLayers(String blackAndWhiteListedLayers) {
+        this.blackAndWhiteListedLayers = blackAndWhiteListedLayers;
     }
 
     public String getLegendParameters() {
