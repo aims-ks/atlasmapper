@@ -936,11 +936,11 @@ Ext.define('Writer.ClientConfigGrid', {
                     }
                 }, {
                     header: 'Layer listing',
-                    flex: 1,
+                    width: 130,
                     sortable: true,
                     dataIndex: 'layerListUrl',
                     renderer: function(val) {
-                        return val ? '<a href="'+val+'" target="_blank">'+val+'</a>' : '';
+                        return val ? '<a href="'+val+'" target="_blank">Preview layers</a>' : '';
                     }
                 }, {
                     header: 'Last generated',

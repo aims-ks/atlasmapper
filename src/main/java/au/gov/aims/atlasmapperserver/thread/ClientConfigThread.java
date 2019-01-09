@@ -527,24 +527,24 @@ public class ClientConfigThread extends AbstractConfigThread {
                                         if (!baseLayerServiceUrl.endsWith("&") && !baseLayerServiceUrl.endsWith("?")) {
                                             baseLayerUrl.append(baseLayerServiceUrl.contains("?") ? "&" : "?");
                                         }
-                                        baseLayerUrl.append("LAYERS="); baseLayerUrl.append(URLEncoder.encode(baseLayerId, "UTF-8"));
+                                        baseLayerUrl.append("LAYERS=").append(URLEncoder.encode(baseLayerId, "UTF-8"));
                                         baseLayerUrl.append("&STYLES="); // Some servers need this parameter, even set to nothing
-                                        baseLayerUrl.append("&FORMAT="); baseLayerUrl.append(URLEncoder.encode("image/jpeg", "UTF-8"));
+                                        baseLayerUrl.append("&FORMAT=").append(URLEncoder.encode("image/jpeg", "UTF-8"));
                                         baseLayerUrl.append("&TRANSPARENT=false");
                                         baseLayerUrl.append("&SERVICE=WMS");
                                         baseLayerUrl.append("&VERSION=1.1.1"); // TODO Use version from config (and set the parameters properly; 1.3.0 needs CRS instead of SRS, inverted BBOX, etc.)
                                         baseLayerUrl.append("&REQUEST=GetMap");
-                                        baseLayerUrl.append("&EXCEPTIONS="); baseLayerUrl.append(URLEncoder.encode("application/vnd.ogc.se_inimage", "UTF-8"));
-                                        baseLayerUrl.append("&SRS="); baseLayerUrl.append(URLEncoder.encode(projection, "UTF-8")); // TODO Use client projection
+                                        baseLayerUrl.append("&EXCEPTIONS=").append(URLEncoder.encode("application/vnd.ogc.se_inimage", "UTF-8"));
+                                        baseLayerUrl.append("&SRS=").append(URLEncoder.encode(projection, "UTF-8")); // TODO Use client projection
 
-                                        baseLayerUrl.append("&BBOX=");
-                                        baseLayerUrl.append(bbox[0]); baseLayerUrl.append(",");
-                                        baseLayerUrl.append(bbox[1]); baseLayerUrl.append(",");
-                                        baseLayerUrl.append(bbox[2]); baseLayerUrl.append(",");
-                                        baseLayerUrl.append(bbox[3]);
+                                        baseLayerUrl.append("&BBOX=")
+                                            .append(bbox[0]).append(",")
+                                            .append(bbox[1]).append(",")
+                                            .append(bbox[2]).append(",")
+                                            .append(bbox[3]);
 
-                                        baseLayerUrl.append("&WIDTH=" + width);
-                                        baseLayerUrl.append("&HEIGHT=" + height);
+                                        baseLayerUrl.append("&WIDTH=").append(width);
+                                        baseLayerUrl.append("&HEIGHT=").append(height);
 
                                         layerMap.put("baseLayerUrl", baseLayerUrl.toString());
                                     }
