@@ -106,6 +106,8 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
 
         } catch (RevivableThreadInterruptedException ex) {
             logger.log(Level.SEVERE, "Data source generation cancelled by user.", ex);
+        } catch (Exception ex) {
+            logger.log(Level.SEVERE, "Error occurred while rebuilding the data source.", ex);
         }
     }
 

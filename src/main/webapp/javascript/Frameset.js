@@ -425,12 +425,17 @@ Ext.define('Frameset', {
 
         // Add exception stacktrace if available
         var stacktrace = '';
-        if (log.stacktrace && log.stacktrace.length > 0) {
+        if (log.exception || (log.stacktrace && log.stacktrace.length > 0)) {
             stacktrace += '<div class="stacktrace">';
             stacktrace += '<div class="uncollapse" onclick="showStacktrace(this);">[Stacktrace]</div>';
             stacktrace += '<div class="collapsed"><ul>';
-            for (var i=0; i<log.stacktrace.length; i++) {
-                stacktrace += '<li>' + Ext.String.htmlEncode(log.stacktrace[i]) + '</li>';
+            if (log.exception) {
+                stacktrace += '<li>' + Ext.String.htmlEncode(log.exception) + '</li>';
+            }
+            if (log.stacktrace && log.stacktrace.length > 0) {
+                for (var i=0; i<log.stacktrace.length; i++) {
+                    stacktrace += '<li>' + Ext.String.htmlEncode(log.stacktrace[i]) + '</li>';
+                }
             }
             stacktrace += '</ul></div>';
             stacktrace += '</div>';

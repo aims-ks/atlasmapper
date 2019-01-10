@@ -1,5 +1,6 @@
 package au.gov.aims.atlasmapperserver.thread;
 
+import au.gov.aims.atlasmapperserver.Utils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -48,6 +49,7 @@ public class ThreadLog {
 
         Throwable ex = this.getException();
         if (ex != null) {
+            json.put("exception", Utils.getExceptionMessage(ex));
             json.put("stacktrace", ex.getStackTrace());
         }
 

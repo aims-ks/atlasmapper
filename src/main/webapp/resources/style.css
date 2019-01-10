@@ -92,6 +92,9 @@ ol.bullet-list > li {
     background-color: #000000;
     color: #FFFFFF;
 }
+.logs-panel .x-panel-body em {
+    font-style: italic;
+}
 .logs-panel .x-panel-body a {
     color: #FFFFFF;
 }
