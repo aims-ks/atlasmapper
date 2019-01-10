@@ -206,8 +206,9 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 
         String serviceUrl = dataSourceConfig.getServiceUrl();
         if (serviceUrl == null) {
-            logger.log(Level.WARNING, String.format("The data source %s as no service URL.",
+            logger.log(Level.SEVERE, String.format("The data source %s as no service URL.",
                     dataSourceConfig.getDataSourceName()));
+            return null;
         }
 
         String jsonUrl;
