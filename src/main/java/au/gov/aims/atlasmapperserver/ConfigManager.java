@@ -637,8 +637,7 @@ public class ConfigManager {
                     Integer dataSourceId = dataJSonObj.optInt("id", -1);
                     AbstractDataSourceConfig dataSourceConfig = configs.get1(dataSourceId);
                     if (dataSourceConfig != null) {
-                        // Delete data source state file (it contains reference to the data source ID, it needs to be regenerated)
-                        dataSourceConfig.deleteCachedStateFile();
+                        File oldDataSourceStateFile = dataSourceConfig.getCacheStateFile();
                         String oldDataSourceStrId = dataSourceConfig.getDataSourceId();
 
                         // Update the object using the value from the form
@@ -649,6 +648,9 @@ public class ConfigManager {
                         // Update references in clients
                         String newDataSourceStrId = dataSourceConfig.getDataSourceId();
                         if (oldDataSourceStrId != null && !oldDataSourceStrId.equals(newDataSourceStrId)) {
+                            // Delete data source state file (it contains reference to the data source ID, it needs to be regenerated)
+                            oldDataSourceStateFile.delete();
+
                             if (this.clientConfigs != null && !this.clientConfigs.isEmpty()) {
                                 for (ClientConfig clientConfig : this.clientConfigs.values()) {
                                     clientConfig.replaceDataSource(oldDataSourceStrId, newDataSourceStrId);
