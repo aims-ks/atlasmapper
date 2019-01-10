@@ -45,102 +45,104 @@ import java.io.PrintWriter;
  */
 public class GZIPResponseWrapper extends HttpServletResponseWrapper {
 
-	protected HttpServletResponse origResponse = null;
-	protected ServletOutputStream stream = null;
-	protected PrintWriter writer = null;
+    protected HttpServletResponse origResponse = null;
+    protected ServletOutputStream stream = null;
+    protected PrintWriter writer = null;
 
-	/**
-	 * Create a new GZIPResponseWrapper
-	 *
-	 * @param response Original HTTP servlet response
-	 */
-	public GZIPResponseWrapper(HttpServletResponse response) {
-		super(response);
-		this.origResponse = response;
-	}
+    /**
+     * Create a new GZIPResponseWrapper
+     *
+     * @param response Original HTTP servlet response
+     */
+    public GZIPResponseWrapper(HttpServletResponse response) {
+        super(response);
+        this.origResponse = response;
+    }
 
-	/**
-	 * Create a new ServletOutputStream which returns a GZIPResponseStream
-	 *
-	 * @return GZIPResponseStream object
-	 * @throws IOException If there is an error creating the response stream
-	 */
-	public ServletOutputStream createOutputStream() throws IOException {
-		return (new GZIPResponseStream(this.origResponse));
-	}
+    /**
+     * Create a new ServletOutputStream which returns a GZIPResponseStream
+     *
+     * @return GZIPResponseStream object
+     * @throws IOException If there is an error creating the response stream
+     */
+    public ServletOutputStream createOutputStream() throws IOException {
+        return (new GZIPResponseStream(this.origResponse));
+    }
 
-	/**
-	 * Finish the response
-	 */
-	public void finishResponse() throws IOException {
-		try {
-			if (this.writer != null) {
-				this.writer.close();
-			}
-		} finally {
-			if (this.stream != null) {
-				this.stream.close();
-			}
-		}
-	}
+    /**
+     * Finish the response
+     */
+    public void finishResponse() throws IOException {
+        try {
+            if (this.writer != null) {
+                this.writer.close();
+            }
+        } finally {
+            if (this.stream != null) {
+                this.stream.close();
+            }
+        }
+    }
 
-	/**
-	 * Flush the output buffer
-	 *
-	 * @throws IOException If there is an error flushing the buffer
-	 */
-	@Override
-	public void flushBuffer() throws IOException {
-		this.stream.flush();
-	}
+    /**
+     * Flush the output buffer
+     *
+     * @throws IOException If there is an error flushing the buffer
+     */
+    @Override
+    public void flushBuffer() throws IOException {
+        if (this.stream != null) {
+            this.stream.flush();
+        }
+    }
 
-	/**
-	 * Retrieve the output stream for this response wrapper
-	 *
-	 * @return {@link #createOutputStream()}
-	 * @throws IOException If there is an error retrieving the output stream
-	 */
-	@Override
-	public ServletOutputStream getOutputStream() throws IOException {
-		if (this.writer != null) {
-			throw new IllegalStateException("getWriter() has already been called.");
-		}
+    /**
+     * Retrieve the output stream for this response wrapper
+     *
+     * @return {@link #createOutputStream()}
+     * @throws IOException If there is an error retrieving the output stream
+     */
+    @Override
+    public ServletOutputStream getOutputStream() throws IOException {
+        if (this.writer != null) {
+            throw new IllegalStateException("getWriter() has already been called.");
+        }
 
-		if (this.stream == null) {
-			this.stream = this.createOutputStream();
-		}
+        if (this.stream == null) {
+            this.stream = this.createOutputStream();
+        }
 
-		return this.stream;
-	}
+        return this.stream;
+    }
 
-	/**
-	 * Retrieve a writer for this response wrapper
-	 *
-	 * @return PrintWriter that wraps an OutputStreamWriter (using UTF-8 as encoding)
-	 * @throws IOException If there is an error retrieving the writer
-	 */
-	@Override
-	public PrintWriter getWriter() throws IOException {
-		if (this.writer != null) {
-			return (this.writer);
-		}
+    /**
+     * Retrieve a writer for this response wrapper
+     *
+     * @return PrintWriter that wraps an OutputStreamWriter (using UTF-8 as encoding)
+     * @throws IOException If there is an error retrieving the writer
+     */
+    @Override
+    public PrintWriter getWriter() throws IOException {
+        if (this.writer != null) {
+            return (this.writer);
+        }
 
-		if (this.stream != null) {
-			throw new IllegalStateException("getOutputStream() has already been called.");
-		}
+        if (this.stream != null) {
+            throw new IllegalStateException("getOutputStream() has already been called.");
+        }
 
-		this.stream = this.createOutputStream();
-		this.writer = new PrintWriter(new OutputStreamWriter(this.stream, "UTF-8"));
+        this.stream = this.createOutputStream();
+        this.writer = new PrintWriter(new OutputStreamWriter(this.stream, "UTF-8"));
 
-		return this.writer;
-	}
+        return this.writer;
+    }
 
-	/**
-	 * Set the content length for the response. Currently a no-op.
-	 *
-	 * @param length Content length
-	 */
-	@Override
-	public void setContentLength(int length) {
-	}
+    /**
+     * Set the content length for the response. Currently a no-op.
+     *
+     * @param length Content length
+     */
+    @Override
+    public void setContentLength(int length) {
+    }
 }

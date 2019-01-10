@@ -222,6 +222,8 @@ public class ClientConfigThread extends AbstractConfigThread {
 
         } catch (RevivableThreadInterruptedException ex) {
             logger.log(Level.SEVERE, "Client generation cancelled by user.", ex);
+        } catch (Exception ex) {
+            logger.log(Level.SEVERE, "Error occurred while generating the client.", ex);
         }
     }
 
@@ -424,11 +426,14 @@ public class ClientConfigThread extends AbstractConfigThread {
                     // Raw data source object containing values before override
 
                     if (dataSources != null) {
-                        dataSource = new DataSourceWrapper(dataSources.optJSONObject(dataSourceId));
+                        JSONObject jsonDataSource = dataSources.optJSONObject(dataSourceId);
+                        if (jsonDataSource != null) {
+                            dataSource = new DataSourceWrapper(jsonDataSource);
+                        }
                     }
 
                     if (dataSource == null) {
-                        logger.log(Level.WARNING, String.format("The client %s define a layer %s using an invalid data source %s.",
+                        logger.log(Level.WARNING, String.format("The client *%s* define the layer *%s* using the invalid data source *%s*.",
                                 this.clientConfig.getClientName(), layerName, dataSourceId));
                     } else {
                         String dataSourceName = dataSource.getDataSourceName();

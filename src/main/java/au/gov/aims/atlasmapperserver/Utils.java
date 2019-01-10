@@ -466,7 +466,8 @@ public class Utils {
     }
 
     public static String getExceptionMessage(Throwable ex) {
-        return getExceptionMessage(ex, "No message available");
+        String defaultMsg = ex == null ? "No message available" : ex.getClass().getName();
+        return getExceptionMessage(ex, defaultMsg);
     }
     public static String getExceptionMessage(Throwable ex, String defaultMsg) {
         String msg = null;
@@ -487,7 +488,7 @@ public class Utils {
                 msg = getExceptionMessage(ex.getCause(), defaultMsg);
             }
         }
-        if (msg == null || msg.isEmpty()) {
+        if (Utils.isBlank(msg)) {
             msg = defaultMsg;
         }
         return msg;
