@@ -637,18 +637,44 @@ public class ConfigManager {
                     Integer dataSourceId = dataJSonObj.optInt("id", -1);
                     AbstractDataSourceConfig dataSourceConfig = configs.get1(dataSourceId);
                     if (dataSourceConfig != null) {
+                        String oldDataSourceStrId = dataSourceConfig.getDataSourceId();
+                        File oldDataSourceStateFile = dataSourceConfig.getCacheStateFile();
+
                         // Update the object using the value from the form
                         dataSourceConfig.update(dataJSonObj, true);
                         dataSourceConfig.setModified(true);
                         this.ensureUniqueness(dataSourceConfig);
+
+                        String newDataSourceStrId = dataSourceConfig.getDataSourceId();
+                        File newDataSourceStateFile = dataSourceConfig.getCacheStateFile();
+
+                        // Rename data source state file
+                        if (newDataSourceStateFile != null && newDataSourceStateFile.exists()) {
+                            newDataSourceStateFile.delete();
+                        }
+                        if (oldDataSourceStateFile != null && oldDataSourceStateFile.exists()) {
+                            if (newDataSourceStateFile != null) {
+                                oldDataSourceStateFile.renameTo(newDataSourceStateFile);
+                            } else {
+                                oldDataSourceStateFile.delete();
+                            }
+                        }
+
+                        // Update references in clients
+                        if (oldDataSourceStrId != null && !oldDataSourceStrId.equals(newDataSourceStrId)) {
+                            if (this.clientConfigs != null && !this.clientConfigs.isEmpty()) {
+                                for (ClientConfig clientConfig : this.clientConfigs.values()) {
+                                    clientConfig.replaceDataSource(oldDataSourceStrId, newDataSourceStrId);
+                                }
+                                ConfigHelper.save();
+                            }
+                        }
                     }
                 }
             }
         }
     }
-    public synchronized void destroyDataSourceConfig(ServletRequest request) throws JSONException, IOException, RevivableThreadInterruptedException {
-        RevivableThread.checkForInterruption();
-
+    public synchronized void destroyDataSourceConfig(ServletRequest request) throws JSONException, IOException {
         if (request == null) {
             return;
         }
@@ -664,6 +690,8 @@ public class ConfigManager {
                 if (dataJSonObj != null) {
                     Integer rowId = dataJSonObj.optInt("id", -1);
                     AbstractDataSourceConfig dataSourceConfig = configs.remove1(rowId);
+                    // Delete data source state file from disk (example: "datasources/google.json")
+                    dataSourceConfig.deleteCachedStateFile();
 
                     // Clear dataSource cache since it doesn't exist anymore
                     String dataSourceId = dataSourceConfig.getDataSourceId();
@@ -674,7 +702,13 @@ public class ConfigManager {
                                 dataSourceId, Utils.getExceptionMessage(ex)), ex);
                     }
 
-                    RevivableThread.checkForInterruption();
+                    // Remove references in clients
+                    if (this.clientConfigs != null && !this.clientConfigs.isEmpty()) {
+                        for (ClientConfig clientConfig : this.clientConfigs.values()) {
+                            clientConfig.removeDataSource(dataSourceId);
+                        }
+                        ConfigHelper.save();
+                    }
                 }
             }
         }

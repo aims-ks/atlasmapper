@@ -263,9 +263,7 @@ public class URLCache {
     }
 
     public void deleteEntity(String entityId)
-            throws RevivableThreadInterruptedException, SQLException, IOException, ClassNotFoundException {
-
-        RevivableThread.checkForInterruption();
+            throws SQLException, IOException, ClassNotFoundException {
 
         // cleanUp will remove all association with entityId, then will removed entries that are unused.
         this.cleanUp(entityId, 0);

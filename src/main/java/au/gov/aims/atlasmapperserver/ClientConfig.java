@@ -267,6 +267,66 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
         super(configManager, new ClientConfigThread());
     }
 
+    public void removeDataSource(String dataSourceId) {
+        if (Utils.isNotBlank(dataSourceId)) {
+            JSONArray currentDataSources = this.getDataSources();
+            JSONArray newDataSources = new JSONArray();
+
+            if (currentDataSources != null) {
+                for (int i=0; i < currentDataSources.length(); i++) {
+                    String clientDataSourceId = currentDataSources.optString(i, null);
+                    if (Utils.isNotBlank(clientDataSourceId) && !dataSourceId.equals(clientDataSourceId)) {
+                        newDataSources.put(clientDataSourceId);
+                    }
+                }
+            }
+
+            this.setDataSources(newDataSources);
+        }
+    }
+
+    public void addDataSource(String dataSourceId) {
+        if (Utils.isNotBlank(dataSourceId)) {
+            boolean alreadyThere = false;
+            for (int i=0; i < this.dataSources.length() && !alreadyThere; i++) {
+                String clientDataSourceId = this.dataSources.optString(i, null);
+                if (dataSourceId.equals(clientDataSourceId)) {
+                    alreadyThere = true;
+                }
+            }
+
+            if (!alreadyThere) {
+                this.dataSources.put(dataSourceId);
+            }
+        }
+    }
+
+    /**
+     * Replace oldDataSourceId with newDataSourceId in the list of data source used by the client.
+     * This is used when a data source ID is modified.
+     * @param oldDataSourceId The old ID of the data source before the update.
+     * @param newDataSourceId The new ID of the data source after the update.
+     */
+    public void replaceDataSource(String oldDataSourceId, String newDataSourceId) {
+        if (Utils.isNotBlank(oldDataSourceId) && Utils.isNotBlank(newDataSourceId)) {
+            JSONArray currentDataSources = this.getDataSources();
+            JSONArray newDataSources = new JSONArray();
+
+            if (currentDataSources != null) {
+                for (int i=0; i < currentDataSources.length(); i++) {
+                    String clientDataSourceId = currentDataSources.optString(i, null);
+                    if (oldDataSourceId.equals(clientDataSourceId)) {
+                        newDataSources.put(newDataSourceId);
+                    } else {
+                        newDataSources.put(clientDataSourceId);
+                    }
+                }
+            }
+
+            this.setDataSources(newDataSources);
+        }
+    }
+
     public Map<String, DataSourceWrapper> loadDataSources() throws FileNotFoundException, JSONException {
         Map<String, DataSourceWrapper> dataSources = new HashMap<String, DataSourceWrapper>();
         JSONArray dataSourcesArray = this.getDataSources();
@@ -278,7 +338,9 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
                             this.getConfigManager().getApplicationFolder(),
                             clientDataSourceId);
 
-                    dataSources.put(clientDataSourceId, dataSourceWrapper);
+                    if (dataSourceWrapper != null) {
+                        dataSources.put(clientDataSourceId, dataSourceWrapper);
+                    }
                 }
             }
         }
