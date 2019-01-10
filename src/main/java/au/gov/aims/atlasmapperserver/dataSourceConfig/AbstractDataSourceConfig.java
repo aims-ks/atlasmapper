@@ -184,7 +184,7 @@ public abstract class AbstractDataSourceConfig extends AbstractRunnableConfig<Ab
     }
 
     public static DataSourceWrapper load(File dataSourceSavedStateFile) throws FileNotFoundException, JSONException {
-        if (!dataSourceSavedStateFile.exists()) {
+        if (dataSourceSavedStateFile == null || !dataSourceSavedStateFile.exists()) {
             return null;
         }
 
@@ -219,10 +219,13 @@ public abstract class AbstractDataSourceConfig extends AbstractRunnableConfig<Ab
         }
     }
 
-    public void deleteCachedState() {
+    public File getCacheStateFile() {
         File applicationFolder = this.getConfigManager().getApplicationFolder();
-        File dataSourceCatalogFile = FileFinder.getDataSourcesCatalogFile(applicationFolder, this.dataSourceId);
+        return FileFinder.getDataSourcesCatalogFile(applicationFolder, this.dataSourceId);
+    }
 
+    public void deleteCachedStateFile() {
+        File dataSourceCatalogFile = this.getCacheStateFile();
         if (dataSourceCatalogFile.exists()) {
             dataSourceCatalogFile.delete();
         }
