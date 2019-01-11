@@ -826,7 +826,7 @@ public class Utils {
     }
 
     public static double[] reprojectWKTCoordinatesToDegrees(double[] coordinates, String sourceWKT) throws FactoryException, TransformException {
-        CoordinateReferenceSystem targetCRS = CRS.decode("EPSG:4326");
+        CoordinateReferenceSystem targetCRS = CRS.decode("EPSG:4326", true);
 
         CoordinateReferenceSystem sourceCRS = CRS.parseWKT(sourceWKT);
 
@@ -839,11 +839,11 @@ public class Utils {
     }
 
     public static double[] reprojectWKIDCoordinatesToDegrees(double[] coordinates, String sourceWKID) throws FactoryException, TransformException {
-        CoordinateReferenceSystem targetCRS = CRS.decode("EPSG:4326");
+        CoordinateReferenceSystem targetCRS = CRS.decode("EPSG:4326", true);
 
-        // ESRI CRS 102100 is not supported, but it's the same as the google projection EPSG:900913
+        // ESRI CRS 102100 is not supported, but it's the same as the google projection EPSG:3857 (aka EPSG:900913)
         if ("EPSG:102100".equals(sourceWKID)) {
-            sourceWKID = "EPSG:900913";
+            sourceWKID = "EPSG:3857";
         }
 
         // ESRI CRS 104199 is not supported, and it seems to look pretty similar to EPSG:4326
@@ -851,7 +851,7 @@ public class Utils {
             sourceWKID = "EPSG:4326";
         }
 
-        CoordinateReferenceSystem sourceCRS = CRS.decode(sourceWKID);
+        CoordinateReferenceSystem sourceCRS = CRS.decode(sourceWKID, true);
 
         double[] reprojectedCoordinates = reprojectCoordinates(coordinates, sourceCRS, targetCRS);
 

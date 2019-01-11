@@ -24,227 +24,232 @@ window["Atlas"] = window["Atlas"] || {};
 window["Atlas"]["Layer"] = window["Atlas"]["Layer"] || {};
 
 Atlas.Layer.ArcGISMapServer = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
-	exportUrl: null,
-	identifyUrl: null,
+    exportUrl: null,
+    identifyUrl: null,
 
-	/**
-	 * Constructor: Atlas.Layer.ArcGISMapServer
-	 *
-	 * Parameters:
-	 * jsonLayer - {Object} Hashtable of layer attributes
-	 * mapPanel - {Object} Instance of the MapPanel in which the layer is used
-	 */
-	initialize: function(mapPanel, jsonLayer, parent) {
-		Atlas.Layer.AbstractLayer.prototype.initialize.apply(this, arguments);
+    /**
+     * Constructor: Atlas.Layer.ArcGISMapServer
+     *
+     * Parameters:
+     * jsonLayer - {Object} Hashtable of layer attributes
+     * mapPanel - {Object} Instance of the MapPanel in which the layer is used
+     */
+    initialize: function(mapPanel, jsonLayer, parent) {
+        Atlas.Layer.AbstractLayer.prototype.initialize.apply(this, arguments);
 
-		var url = this.json['serviceUrl'];
-		if (this.json['arcGISPath']) {
-			// Add a slash if the URL do not already ends with a slash
-			if (url.charAt(url.length - 1) !== '/') { url += '/'; }
-			url += this.json['arcGISPath'];
-		}
-		// Add a slash if the URL do not already ends with a slash
-		if (url.charAt(url.length - 1) !== '/') { url += '/'; }
-		url += 'MapServer/';
+        var url = this.json['serviceUrl'];
+        if (this.json['arcGISPath']) {
+            // Add a slash if the URL do not already ends with a slash
+            if (url.charAt(url.length - 1) !== '/') { url += '/'; }
 
-		this.exportUrl = url + 'export';
-		this.identifyUrl = url + 'identify';
+            var servicesIndex = url.lastIndexOf("/services/");
+            if (servicesIndex >= 0) {
+                url = url.substring(0, servicesIndex + "/services/".length);
+            }
+            url += this.json['arcGISPath'];
+        }
+        // Add a slash if the URL do not already ends with a slash
+        if (url.charAt(url.length - 1) !== '/') { url += '/'; }
+        url += 'MapServer/';
 
-		this.setLayer(new OpenLayers.Layer.ArcGIS93Rest(
-			this.getTitle(),
-			this.exportUrl,
-			this.getArcGISLayerParams(),
-			this.getArcGISLayerOptions()
-		));
+        this.exportUrl = url + 'export';
+        this.identifyUrl = url + 'identify';
 
-		// DPI
-		// The "dpi" attribute can be used with "Dynamic Map Service Layer", not "TiledMapServiceLayer":
-		//     http://forums.arcgis.com/threads/56085-dpi-properties-not-working
-	},
+        this.setLayer(new OpenLayers.Layer.ArcGIS93Rest(
+            this.getTitle(),
+            this.exportUrl,
+            this.getArcGISLayerParams(),
+            this.getArcGISLayerOptions()
+        ));
 
-	getServiceLayer: function() {
-		var serviceLayer = this;
-		while (serviceLayer != null && serviceLayer.json['layerType'] != 'SERVICE') {
-			serviceLayer = serviceLayer.parent;
-		}
-		return serviceLayer;
-	},
+        // DPI
+        // The "dpi" attribute can be used with "Dynamic Map Service Layer", not "TiledMapServiceLayer":
+        //     http://forums.arcgis.com/threads/56085-dpi-properties-not-working
+    },
 
-	getArcGISLayerParams: function() {
-		var layerParams = {
-			layers: "show:" + (this.json['layerName'] || this.json['layerId']),
-			transparent: true
-		};
+    getServiceLayer: function() {
+        var serviceLayer = this;
+        while (serviceLayer != null && serviceLayer.json['layerType'] != 'SERVICE') {
+            serviceLayer = serviceLayer.parent;
+        }
+        return serviceLayer;
+    },
 
-		if (typeof(this.json['forcePNG24']) !== 'undefined' && this.json['forcePNG24']) {
-			layerParams['format'] = 'PNG24';
-		}
+    getArcGISLayerParams: function() {
+        var layerParams = {
+            layers: "show:" + (this.json['layerName'] || this.json['layerId']),
+            transparent: true
+        };
 
-		if (typeof(this.json['olParams']) !== 'undefined') {
-			layerParams = this.applyOlOverrides(layerParams, this.json['olParams']);
-		}
+        if (typeof(this.json['forcePNG24']) !== 'undefined' && this.json['forcePNG24']) {
+            layerParams['format'] = 'PNG24';
+        }
 
-		return layerParams;
-	},
+        if (typeof(this.json['olParams']) !== 'undefined') {
+            layerParams = this.applyOlOverrides(layerParams, this.json['olParams']);
+        }
 
-	getArcGISLayerOptions: function() {
-		if (this.json == null) {
-			return null;
-		}
+        return layerParams;
+    },
 
-		var layerOptions = {
-			// Big tiles has less issues with labeling
-			tileSize: new OpenLayers.Size(512, 512),
-			isBaseLayer: false,
-			wrapDateLine: true
-			// Single tile make very nice map, with perfect labeling, but has some issues
-			// near the date line and it cost more for the server (need more resources).
-			//singleTile: true
-		};
-		// ESRI layers do not support
-		// Google projection (EPSG:900913) but they support
-		// ESRI projection (EPSG:102100) which is the same.
-		if (this.json['projection']) {
-			layerOptions.projection = this.json['projection'];
-		} else if (this.mapPanel && this.mapPanel.map && this.mapPanel.map.getProjection() === 'EPSG:900913') {
-			layerOptions.projection = 'EPSG:102100';
-		}
+    getArcGISLayerOptions: function() {
+        if (this.json == null) {
+            return null;
+        }
 
-		if (typeof(this.json['olOptions']) !== 'undefined') {
-			layerOptions = this.applyOlOverrides(layerOptions, this.json['olOptions']);
-		}
+        var layerOptions = {
+            // Big tiles has less issues with labeling
+            tileSize: new OpenLayers.Size(512, 512),
+            isBaseLayer: false,
+            wrapDateLine: true
+            // Single tile make very nice map, with perfect labeling, but has some issues
+            // near the date line and it cost more for the server (need more resources).
+            //singleTile: true
+        };
+        // ESRI layers do not support
+        // Google projection (EPSG:900913) but they support
+        // ESRI projection (EPSG:102100) which is the same.
+        if (this.json['projection']) {
+            layerOptions.projection = this.json['projection'];
+        } else if (this.mapPanel && this.mapPanel.map && this.mapPanel.map.getProjection() === 'EPSG:900913') {
+            layerOptions.projection = 'EPSG:102100';
+        }
 
-		return layerOptions;
-	},
+        if (typeof(this.json['olOptions']) !== 'undefined') {
+            layerOptions = this.applyOlOverrides(layerOptions, this.json['olOptions']);
+        }
 
-	/**
-	 * Method: getFeatureInfoURL
-	 * Build an object with the relevant options for the GetFeatureInfo request
-	 *
-	 * Parameters:
-	 * url - {String} The url to be used for sending the request
-	 * layers - {Array(<OpenLayers.Layer.WMS)} An array of layers
-	 * clickPosition - {<OpenLayers.Pixel>} The position on the map where the mouse
-	 *     event occurred.
-	 * format - {String} The format from the corresponding GetMap request
-	 *
-	 * return {
-	 *     url: String
-	 *     params: { String: String }
-	 * }
-	 */
-	// Override
-	getFeatureInfoURL: function(url, layer, clickPosition, format) {
-		var layerId = layer.atlasLayer.json['layerId'];
-		var layerProjection = this.layer.projection;
+        return layerOptions;
+    },
 
-		// Remove EPSG from the projection code.
-		var layerProjectionWKID = layerProjection.getCode().replace(/EPSG:\s*/gi, "");
+    /**
+     * Method: getFeatureInfoURL
+     * Build an object with the relevant options for the GetFeatureInfo request
+     *
+     * Parameters:
+     * url - {String} The url to be used for sending the request
+     * layers - {Array(<OpenLayers.Layer.WMS)} An array of layers
+     * clickPosition - {<OpenLayers.Pixel>} The position on the map where the mouse
+     *     event occurred.
+     * format - {String} The format from the corresponding GetMap request
+     *
+     * return {
+     *     url: String
+     *     params: { String: String }
+     * }
+     */
+    // Override
+    getFeatureInfoURL: function(url, layer, clickPosition, format) {
+        var layerId = layer.atlasLayer.json['layerId'];
+        var layerProjection = this.layer.projection;
 
-		// clickPosition is in pixels
-		var lonLatPoint = this.mapPanel.map.getLonLatFromPixel(clickPosition);
+        // Remove EPSG from the projection code.
+        var layerProjectionWKID = layerProjection.getCode().replace(/EPSG:\s*/gi, "");
 
-		// lonLatPoint is in the unit of the map, which is probably not in longitude-latitude. I prefer to make a point with it (x, y), to avoid confusion.
-		var reprojectedPoint = new OpenLayers.Geometry.Point(lonLatPoint.lon, lonLatPoint.lat);
-		var reprojectedMapExtent = this.mapPanel.map.getExtent();
+        // clickPosition is in pixels
+        var lonLatPoint = this.mapPanel.map.getLonLatFromPixel(clickPosition);
 
-		// The reprojectedPoint and reprojectedMapExtent are not reprojected yet.
-		if (this.mapPanel.map.getProjectionObject() != layerProjection) {
-			reprojectedPoint.transform(this.mapPanel.map.getProjectionObject(), layerProjection);
-			reprojectedMapExtent.transform(this.mapPanel.map.getProjectionObject(), layerProjection);
-		}
+        // lonLatPoint is in the unit of the map, which is probably not in longitude-latitude. I prefer to make a point with it (x, y), to avoid confusion.
+        var reprojectedPoint = new OpenLayers.Geometry.Point(lonLatPoint.lon, lonLatPoint.lat);
+        var reprojectedMapExtent = this.mapPanel.map.getExtent();
 
-		// IMPORTANT: Spaces are not welcome in params values (ArcGIS has some problems reading values with encoded spaces)
-		// API Doc: http://resources.esri.com/help/9.3/arcgisserver/apis/rest/identify.html
-		var params = {
-			f: "json",
-			pretty: "true", // Some server don't return the same value without this...
-			geometry: '{"x":'+reprojectedPoint.x+',"y":'+reprojectedPoint.y+',"spatialReference":{"wkid":'+layerProjectionWKID+'}}',
-			tolerance: 5,
-			returnGeometry: false, //true, TODO Enable geometry highlight
-			mapExtent: '{"xmin":'+reprojectedMapExtent.left+',"ymin":'+reprojectedMapExtent.bottom+',"xmax":'+reprojectedMapExtent.right+',"ymax":'+reprojectedMapExtent.top+',"spatialReference":{"wkid":'+layerProjectionWKID+'}}',
-			imageDisplay: '400,400,96', // ??
-			geometryType: 'esriGeometryPoint',
-			sr: layerProjectionWKID,
-			layers: 'all:'+this.json['layerName'] // Query only the current layer, from the list of all layers from the service. See the API.
-		};
+        // The reprojectedPoint and reprojectedMapExtent are not reprojected yet.
+        if (this.mapPanel.map.getProjectionObject() != layerProjection) {
+            reprojectedPoint.transform(this.mapPanel.map.getProjectionObject(), layerProjection);
+            reprojectedMapExtent.transform(this.mapPanel.map.getProjectionObject(), layerProjection);
+        }
 
-		// ACTIVATE FOR SERVICE REQUESTS - Request all layers of the service at once
-		//params.layers = 'all';
+        // IMPORTANT: Spaces are not welcome in params values (ArcGIS has some problems reading values with encoded spaces)
+        // API Doc: http://resources.esri.com/help/9.3/arcgisserver/apis/rest/identify.html
+        var params = {
+            f: "json",
+            pretty: "true", // Some server don't return the same value without this...
+            geometry: '{"x":'+reprojectedPoint.x+',"y":'+reprojectedPoint.y+',"spatialReference":{"wkid":'+layerProjectionWKID+'}}',
+            tolerance: 5,
+            returnGeometry: false, //true, TODO Enable geometry highlight
+            mapExtent: '{"xmin":'+reprojectedMapExtent.left+',"ymin":'+reprojectedMapExtent.bottom+',"xmax":'+reprojectedMapExtent.right+',"ymax":'+reprojectedMapExtent.top+',"spatialReference":{"wkid":'+layerProjectionWKID+'}}',
+            imageDisplay: '400,400,96', // ??
+            geometryType: 'esriGeometryPoint',
+            sr: layerProjectionWKID,
+            layers: 'all:'+this.json['layerName'] // Query only the current layer, from the list of all layers from the service. See the API.
+        };
 
-		// Since there is no OpenLayers API for this class, it can be useful to see the resulted URL.
-		// If you want to do some debugging, activate the following line in the generated client.
-		//console.log(OpenLayers.Util.urlAppend(this.identifyUrl, OpenLayers.Util.getParameterString(params || {})));
+        // ACTIVATE FOR SERVICE REQUESTS - Request all layers of the service at once
+        //params.layers = 'all';
 
-		return {
-			url: this.identifyUrl,
-			params: params
-		};
-	},
+        // Since there is no OpenLayers API for this class, it can be useful to see the resulted URL.
+        // If you want to do some debugging, activate the following line in the generated client.
+        //console.log(OpenLayers.Util.urlAppend(this.identifyUrl, OpenLayers.Util.getParameterString(params || {})));
 
-	// ACTIVATE FOR SERVICE REQUESTS - One request per service (instead of the same request repeated for all layers)
-	/*
-	getFeatureInfoLayerID: function() {
-		var serviceLayer = this.getServiceLayer();
-		if (serviceLayer == null) {
-			return null;
-		}
-		return serviceLayer.json['layerId'];
-	},
-	*/
+        return {
+            url: this.identifyUrl,
+            params: params
+        };
+    },
 
-	// Override
-	getFeatureInfoResponseFormat: function() {
-		return new OpenLayers.Format.WMSGetFeatureInfo();
-	},
+    // ACTIVATE FOR SERVICE REQUESTS - One request per service (instead of the same request repeated for all layers)
+    /*
+    getFeatureInfoLayerID: function() {
+        var serviceLayer = this.getServiceLayer();
+        if (serviceLayer == null) {
+            return null;
+        }
+        return serviceLayer.json['layerId'];
+    },
+    */
 
-	/**
-	 * Return the HTML chunk that will be displayed in the balloon.
-	 * @param xmlResponse RAW XML response
-	 * @param textResponse RAW text response
-	 * @return {String} The HTML content of the feature info balloon, or null if the layer info should not be shown.
-	 */
-	// Override
-	processFeatureInfoResponse: function(responseEvent) {
-		if (!responseEvent || !responseEvent.text) {
-			return false;
-		}
+    // Override
+    getFeatureInfoResponseFormat: function() {
+        return new OpenLayers.Format.WMSGetFeatureInfo();
+    },
 
-		var jsonResponse = eval("(" + responseEvent.text + ")");
-		if (!jsonResponse || !jsonResponse['results'] || !jsonResponse['results'][0]) {
-			return false;
-		}
+    /**
+     * Return the HTML chunk that will be displayed in the balloon.
+     * @param xmlResponse RAW XML response
+     * @param textResponse RAW text response
+     * @return {String} The HTML content of the feature info balloon, or null if the layer info should not be shown.
+     */
+    // Override
+    processFeatureInfoResponse: function(responseEvent) {
+        if (!responseEvent || !responseEvent.text) {
+            return false;
+        }
 
-		var title = this.getTitle();
-		/*
-		// ACTIVATE FOR SERVICE REQUESTS - display service name instead of the top layer name
-		var serviceLayer = this.getServiceLayer();
-		if (serviceLayer != null) {
-			title = serviceLayer.getTitle();
-		}
-		*/
+        var jsonResponse = eval("(" + responseEvent.text + ")");
+        if (!jsonResponse || !jsonResponse['results'] || !jsonResponse['results'][0]) {
+            return false;
+        }
 
-		var htmlResponse = '';
-		for (var i=0; i < jsonResponse['results'].length; i++) {
-			var attributes = jsonResponse['results'][i]['attributes'];
-			if (attributes) {
-				htmlResponse += '<table>';
-				var odd = true;
-				for (var key in attributes) {
-					if (attributes.hasOwnProperty(key)) {
-						var value = attributes[key];
-						htmlResponse += '<tr class="' + (odd?'odd':'even') + '">';
-						htmlResponse += '<td class="key">'+key+'</td>';
-						htmlResponse += '<td class="value">'+value+'</td>';
-						htmlResponse += '</tr>';
-						odd = !odd;
-					}
-				}
-				htmlResponse += '</table>';
-			}
-		}
+        var title = this.getTitle();
+        /*
+        // ACTIVATE FOR SERVICE REQUESTS - display service name instead of the top layer name
+        var serviceLayer = this.getServiceLayer();
+        if (serviceLayer != null) {
+            title = serviceLayer.getTitle();
+        }
+        */
 
-		// TODO Parse jsonResponse attributes according to a template specified for this layer / service / data source.
-		return '<div class="arcgisFeatureInfo"><h3>' + title + '</h3>' + (htmlResponse ? htmlResponse : ('<pre>' + responseEvent.text + '</pre>')) + '</div>';
-	}
+        var htmlResponse = '';
+        for (var i=0; i < jsonResponse['results'].length; i++) {
+            var attributes = jsonResponse['results'][i]['attributes'];
+            if (attributes) {
+                htmlResponse += '<table>';
+                var odd = true;
+                for (var key in attributes) {
+                    if (attributes.hasOwnProperty(key)) {
+                        var value = attributes[key];
+                        htmlResponse += '<tr class="' + (odd?'odd':'even') + '">';
+                        htmlResponse += '<td class="key">'+key+'</td>';
+                        htmlResponse += '<td class="value">'+value+'</td>';
+                        htmlResponse += '</tr>';
+                        odd = !odd;
+                    }
+                }
+                htmlResponse += '</table>';
+            }
+        }
+
+        // TODO Parse jsonResponse attributes according to a template specified for this layer / service / data source.
+        return '<div class="arcgisFeatureInfo"><h3>' + title + '</h3>' + (htmlResponse ? htmlResponse : ('<pre>' + responseEvent.text + '</pre>')) + '</div>';
+    }
 });
