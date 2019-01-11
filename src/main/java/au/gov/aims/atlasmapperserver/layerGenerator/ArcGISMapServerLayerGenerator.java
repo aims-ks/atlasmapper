@@ -112,6 +112,13 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
 
         Map<String, AbstractLayerConfig> layers = new HashMap<String, AbstractLayerConfig>();
 
+        String serviceUrl = dataSourceConfig.getServiceUrl();
+        if (serviceUrl == null) {
+            logger.log(Level.SEVERE, String.format("The data source %s as no service URL.",
+                    dataSourceConfig.getDataSourceName()));
+            return null;
+        }
+
         // Fill the Map of layers
         this.parseJSON(logger, urlCache, layers, null, null, null, dataSourceConfig, redownloadPrimaryFiles);
         RevivableThread.checkForInterruption();
@@ -152,19 +159,31 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
         return layerPath.toString();
     }
 
-    private String getJSONUrl(String baseUrlStr, String arcGISPath, String type) throws UnsupportedEncodingException {
+    protected String getJSONUrl(String baseUrlStr, String arcGISPath, String type) throws UnsupportedEncodingException {
         return getJSONUrl(baseUrlStr, arcGISPath, type, null);
     }
 
-    private String getJSONUrl(String baseUrlStr, String arcGISPath, String type, String layerId) throws UnsupportedEncodingException {
-        StringBuilder url = new StringBuilder(baseUrlStr);
+    protected String getJSONUrl(String baseUrlStr, String arcGISPath, String type, String layerId) throws UnsupportedEncodingException {
+        StringBuilder url = new StringBuilder();
 
         String layerPath = this.getLayerPath(arcGISPath, type, layerId);
         if (Utils.isNotBlank(layerPath)) {
-            if (url.charAt(url.length() -1) != '/') {
-                url.append("/");
+            // Add trailing slash, if missing
+            String fixedBaseUrlStr = baseUrlStr;
+            if (fixedBaseUrlStr.charAt(fixedBaseUrlStr.length() -1) != '/') {
+                fixedBaseUrlStr += "/";
             }
+            // Remove part of the URL that comes after "/services/". That parts is included in the layerPath
+            int servicesIndex = fixedBaseUrlStr.lastIndexOf("/services/");
+            if (servicesIndex >= 0) {
+                fixedBaseUrlStr = fixedBaseUrlStr.substring(0, servicesIndex + "/services/".length());
+            }
+
+            url.append(fixedBaseUrlStr);
+
             url.append(layerPath);
+        } else {
+            url.append(baseUrlStr);
         }
 
         // IMPORTANT: Some version of ArcGIS give weird output without pretty=true:
@@ -205,11 +224,6 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
         }
 
         String serviceUrl = dataSourceConfig.getServiceUrl();
-        if (serviceUrl == null) {
-            logger.log(Level.SEVERE, String.format("The data source %s as no service URL.",
-                    dataSourceConfig.getDataSourceName()));
-            return null;
-        }
 
         String jsonUrl;
         try {
