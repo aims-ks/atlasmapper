@@ -143,8 +143,16 @@ public class ClientConfigThread extends AbstractConfigThread {
             JSONObject generatedLayers = null;
             if (logger.getErrorCount() == 0) {
                 try {
-                    generatedMainConfig = new ClientWrapper(this.clientConfig.getConfigManager().getClientConfigFileJSon(layerCatalog, dataSources, this.clientConfig, ConfigType.MAIN, true));
-                    generatedEmbeddedConfig = new ClientWrapper(this.clientConfig.getConfigManager().getClientConfigFileJSon(layerCatalog, dataSources, this.clientConfig, ConfigType.EMBEDDED, true));
+                    JSONObject jsonMainConfig = this.clientConfig.getConfigManager().getClientConfigFileJSon(layerCatalog, dataSources, this.clientConfig, ConfigType.MAIN, true);
+                    if (jsonMainConfig != null) {
+                        generatedMainConfig = new ClientWrapper(jsonMainConfig);
+                    }
+
+                    JSONObject jsonEmbeddedConfig = this.clientConfig.getConfigManager().getClientConfigFileJSon(layerCatalog, dataSources, this.clientConfig, ConfigType.EMBEDDED, true);
+                    if (jsonEmbeddedConfig != null) {
+                        generatedEmbeddedConfig = new ClientWrapper(jsonEmbeddedConfig);
+                    }
+
                     generatedLayers = this.clientConfig.getConfigManager().getClientConfigFileJSon(layerCatalog, dataSources, this.clientConfig, ConfigType.LAYERS, true);
 
                     // Show warning for each default layers that are not defined in the layer catalog.
@@ -337,25 +345,31 @@ public class ClientConfigThread extends AbstractConfigThread {
             ClientWrapper embeddedConfig,
             JSONObject layers) throws JSONException, IOException {
 
-        File mainClientFile = this.clientConfig.getConfigManager().getClientMainConfigFile(this.clientConfig);
-        if (mainClientFile == null) {
-            throw new IllegalArgumentException("No file provided for the Main client configuration.");
-        } else {
-            this.clientConfig.getConfigManager().saveJSONConfig(mainConfig.getJSON(), mainClientFile);
+        if (mainConfig != null) {
+            File mainClientFile = this.clientConfig.getConfigManager().getClientMainConfigFile(this.clientConfig);
+            if (mainClientFile == null) {
+                throw new IllegalArgumentException("No file provided for the Main client configuration.");
+            } else {
+                this.clientConfig.getConfigManager().saveJSONConfig(mainConfig.getJSON(), mainClientFile);
+            }
         }
 
-        File embeddedClientFile = this.clientConfig.getConfigManager().getClientEmbeddedConfigFile(this.clientConfig);
-        if (embeddedClientFile == null) {
-            throw new IllegalArgumentException("No file provided for the Embedded client configuration.");
-        } else {
-            this.clientConfig.getConfigManager().saveJSONConfig(embeddedConfig.getJSON(), embeddedClientFile);
+        if (embeddedConfig != null) {
+            File embeddedClientFile = this.clientConfig.getConfigManager().getClientEmbeddedConfigFile(this.clientConfig);
+            if (embeddedClientFile == null) {
+                throw new IllegalArgumentException("No file provided for the Embedded client configuration.");
+            } else {
+                this.clientConfig.getConfigManager().saveJSONConfig(embeddedConfig.getJSON(), embeddedClientFile);
+            }
         }
 
-        File layersClientFile = this.clientConfig.getConfigManager().getClientLayersConfigFile(this.clientConfig);
-        if (layersClientFile == null) {
-            throw new IllegalArgumentException("No file provided for the layers configuration.");
-        } else {
-            this.clientConfig.getConfigManager().saveJSONConfig(layers, layersClientFile);
+        if (layers != null) {
+            File layersClientFile = this.clientConfig.getConfigManager().getClientLayersConfigFile(this.clientConfig);
+            if (layersClientFile == null) {
+                throw new IllegalArgumentException("No file provided for the layers configuration.");
+            } else {
+                this.clientConfig.getConfigManager().saveJSONConfig(layers, layersClientFile);
+            }
         }
     }
 
@@ -380,7 +394,7 @@ public class ClientConfigThread extends AbstractConfigThread {
             throws UnsupportedEncodingException {
         ThreadLogger logger = this.getLogger();
 
-        if (layerCatalog == null) {
+        if (layerCatalog == null || generatedMainConfig == null) {
             return null;
         }
         JSONObject layers = layerCatalog.getLayers();
@@ -407,167 +421,170 @@ public class ClientConfigThread extends AbstractConfigThread {
         while (layerIds.hasNext()) {
             String layerId = layerIds.next();
             if (!layers.isNull(layerId)) {
-                LayerWrapper layer = new LayerWrapper(layers.optJSONObject(layerId));
-                // Ignore layer groups
-                if (layer.getLayerName() != null) {
-                    String dataSourceId = layer.getDataSourceId();
-                    String layerName = layer.getLayerName();
-                    String layerTitle = layer.getTitle(layerName);
+                JSONObject jsonLayer = layers.optJSONObject(layerId);
+                if (jsonLayer != null) {
+                    LayerWrapper layer = new LayerWrapper(jsonLayer);
+                    // Ignore layer groups
+                    if (layer.getLayerName() != null) {
+                        String dataSourceId = layer.getDataSourceId();
+                        String layerName = layer.getLayerName();
+                        String layerTitle = layer.getTitle(layerName);
 
-                    String description = layer.getDescription();
-                    String descriptionFormat = layer.getDescriptionFormat();
-                    String systemDescription = layer.getSystemDescription();
+                        String description = layer.getDescription();
+                        String descriptionFormat = layer.getDescriptionFormat();
+                        String systemDescription = layer.getSystemDescription();
 
-                    String serviceUrl = layer.getServiceUrl();
-                    JSONArray jsonBbox = layer.getLayerBoundingBox();
+                        String serviceUrl = layer.getServiceUrl();
+                        JSONArray jsonBbox = layer.getLayerBoundingBox();
 
-                    // Data source object containing overridden values
-                    DataSourceWrapper dataSource = null;
-                    // Raw data source object containing values before override
+                        // Data source object containing overridden values
+                        DataSourceWrapper dataSource = null;
+                        // Raw data source object containing values before override
 
-                    if (dataSources != null) {
-                        JSONObject jsonDataSource = dataSources.optJSONObject(dataSourceId);
-                        if (jsonDataSource != null) {
-                            dataSource = new DataSourceWrapper(jsonDataSource);
-                        }
-                    }
-
-                    if (dataSource == null) {
-                        logger.log(Level.WARNING, String.format("The client *%s* define the layer *%s* using the invalid data source *%s*.",
-                                this.clientConfig.getClientName(), layerName, dataSourceId));
-                    } else {
-                        String dataSourceName = dataSource.getDataSourceName();
-
-                        // Find (or create) the layer list for this data source
-                        List<Map<String, String>> dataSourceLayerList = layersMap.get(dataSourceName);
-                        if (dataSourceLayerList == null) {
-                            dataSourceLayerList = new ArrayList<Map<String, String>>();
-                            layersMap.put(dataSourceName, dataSourceLayerList);
-                        }
-
-                        Map<String, String> layerMap = new HashMap<String, String>();
-
-                        if (serviceUrl == null || serviceUrl.isEmpty()) {
-                            serviceUrl = dataSource.getServiceUrl();
-                        }
-
-                        // https://eatlas.localhost/maps/ea/wms
-                        // LAYERS=ea%3AQLD_DEEDI_Coastal-wetlands
-                        // FORMAT=image%2Fpng
-                        // SERVICE=WMS
-                        // VERSION=1.1.1
-                        // REQUEST=GetMap
-                        // EXCEPTIONS=application%2Fvnd.ogc.se_inimage
-                        // SRS=EPSG%3A4326
-                        // BBOX=130.20938085938,-37.1985,161.23261914062,-1.0165
-                        // WIDTH=439
-                        // HEIGHT=512
-                        if (serviceUrl != null && !serviceUrl.isEmpty()) {
-                            if (dataSource.isExtendWMS()) {
-                                if (jsonBbox != null && jsonBbox.length() == 4) {
-                                    double[] bbox = new double[4];
-                                    // Left, Bottom, Right, Top
-                                    bbox[0] = jsonBbox.optDouble(0, -180);
-                                    bbox[1] = jsonBbox.optDouble(1, -90);
-                                    bbox[2] = jsonBbox.optDouble(2, 180);
-                                    bbox[3] = jsonBbox.optDouble(3, 90);
-
-                                    StringBuilder imageUrl = new StringBuilder(serviceUrl);
-                                    if (!serviceUrl.endsWith("&") && !serviceUrl.endsWith("?")) {
-                                        imageUrl.append(serviceUrl.contains("?") ? "&" : "?");
-                                    }
-                                    imageUrl.append("LAYERS="); imageUrl.append(URLEncoder.encode(layerName, "UTF-8"));
-                                    imageUrl.append("&STYLES="); // Some servers need this parameter, even set to nothing
-                                    imageUrl.append("&FORMAT="); imageUrl.append(URLEncoder.encode("image/png", "UTF-8"));
-                                    imageUrl.append("&TRANSPARENT=true");
-                                    imageUrl.append("&SERVICE=WMS");
-                                    imageUrl.append("&VERSION=1.1.1"); // TODO Use version from config (and set the parameters properly; 1.3.0 needs CRS instead of SRS, inverted BBOX, etc.)
-                                    imageUrl.append("&REQUEST=GetMap");
-                                    imageUrl.append("&EXCEPTIONS="); imageUrl.append(URLEncoder.encode("application/vnd.ogc.se_inimage", "UTF-8"));
-                                    imageUrl.append("&SRS="); imageUrl.append(URLEncoder.encode(projection, "UTF-8")); // TODO Use client projection
-
-                                    imageUrl.append("&BBOX=");
-                                    imageUrl.append(bbox[0]); imageUrl.append(",");
-                                    imageUrl.append(bbox[1]); imageUrl.append(",");
-                                    imageUrl.append(bbox[2]); imageUrl.append(",");
-                                    imageUrl.append(bbox[3]);
-
-                                    // Lon x Lat ratio (width / height  or  lon / lat)
-                                    double ratio = (bbox[2] - bbox[0]) / (bbox[3] - bbox[1]);
-
-                                    int width = defaultWidth;
-                                    int height = defaultHeight;
-
-                                    if (ratio > (((double)width)/height)) {
-                                        // Reduce height
-                                        height = (int)Math.round(width / ratio);
-                                    } else {
-                                        // Reduce width
-                                        width = (int)Math.round(height * ratio);
-                                    }
-
-                                    imageUrl.append("&WIDTH=" + width);
-                                    imageUrl.append("&HEIGHT=" + height);
-
-                                    layerMap.put("imageUrl", imageUrl.toString());
-                                    layerMap.put("imageWidth", ""+width);
-                                    layerMap.put("imageHeight", ""+height);
-
-                                    String baseLayerServiceUrl = this.clientConfig.getListBaseLayerServiceUrl();
-                                    String baseLayerId = this.clientConfig.getListBaseLayerId();
-                                    if (Utils.isNotBlank(baseLayerServiceUrl) && Utils.isNotBlank(baseLayerId)) {
-                                        // Base layer - Hardcoded
-                                        // https://maps.eatlas.org.au/maps/gwc/service/wms
-                                        // LAYERS=ea%3AWorld_NED_NE2
-                                        // TRANSPARENT=FALSE
-                                        // SERVICE=WMS
-                                        // VERSION=1.1.1
-                                        // REQUEST=GetMap
-                                        // FORMAT=image%2Fjpeg
-                                        // SRS=EPSG%3A4326
-                                        // BBOX=149.0625,-22.5,151.875,-19.6875
-                                        // WIDTH=256
-                                        // HEIGHT=256
-                                        StringBuilder baseLayerUrl = new StringBuilder(baseLayerServiceUrl);
-                                        if (!baseLayerServiceUrl.endsWith("&") && !baseLayerServiceUrl.endsWith("?")) {
-                                            baseLayerUrl.append(baseLayerServiceUrl.contains("?") ? "&" : "?");
-                                        }
-                                        baseLayerUrl.append("LAYERS=").append(URLEncoder.encode(baseLayerId, "UTF-8"));
-                                        baseLayerUrl.append("&STYLES="); // Some servers need this parameter, even set to nothing
-                                        baseLayerUrl.append("&FORMAT=").append(URLEncoder.encode("image/jpeg", "UTF-8"));
-                                        baseLayerUrl.append("&TRANSPARENT=false");
-                                        baseLayerUrl.append("&SERVICE=WMS");
-                                        baseLayerUrl.append("&VERSION=1.1.1"); // TODO Use version from config (and set the parameters properly; 1.3.0 needs CRS instead of SRS, inverted BBOX, etc.)
-                                        baseLayerUrl.append("&REQUEST=GetMap");
-                                        baseLayerUrl.append("&EXCEPTIONS=").append(URLEncoder.encode("application/vnd.ogc.se_inimage", "UTF-8"));
-                                        baseLayerUrl.append("&SRS=").append(URLEncoder.encode(projection, "UTF-8")); // TODO Use client projection
-
-                                        baseLayerUrl.append("&BBOX=")
-                                            .append(bbox[0]).append(",")
-                                            .append(bbox[1]).append(",")
-                                            .append(bbox[2]).append(",")
-                                            .append(bbox[3]);
-
-                                        baseLayerUrl.append("&WIDTH=").append(width);
-                                        baseLayerUrl.append("&HEIGHT=").append(height);
-
-                                        layerMap.put("baseLayerUrl", baseLayerUrl.toString());
-                                    }
-                                }
+                        if (dataSources != null) {
+                            JSONObject jsonDataSource = dataSources.optJSONObject(dataSourceId);
+                            if (jsonDataSource != null) {
+                                dataSource = new DataSourceWrapper(jsonDataSource);
                             }
                         }
 
-                        layerMap.put("id", layerId);
-                        layerMap.put("title", layerTitle);
-                        layerMap.put("description", description);
-                        layerMap.put("descriptionFormat", descriptionFormat);
-                        layerMap.put("systemDescription", systemDescription);
-                        String encodedLayerId = URLEncoder.encode(layerId, "UTF-8");
-                        layerMap.put("mapUrl", "index.html?intro=f&dl=t&loc=" + encodedLayerId + "&l0=" + encodedLayerId);
+                        if (dataSource == null) {
+                            logger.log(Level.WARNING, String.format("The client *%s* define the layer *%s* using the invalid data source *%s*.",
+                                    this.clientConfig.getClientName(), layerName, dataSourceId));
+                        } else {
+                            String dataSourceName = dataSource.getDataSourceName();
 
-                        dataSourceLayerList.add(layerMap);
+                            // Find (or create) the layer list for this data source
+                            List<Map<String, String>> dataSourceLayerList = layersMap.get(dataSourceName);
+                            if (dataSourceLayerList == null) {
+                                dataSourceLayerList = new ArrayList<Map<String, String>>();
+                                layersMap.put(dataSourceName, dataSourceLayerList);
+                            }
+
+                            Map<String, String> layerMap = new HashMap<String, String>();
+
+                            if (serviceUrl == null || serviceUrl.isEmpty()) {
+                                serviceUrl = dataSource.getServiceUrl();
+                            }
+
+                            // https://eatlas.localhost/maps/ea/wms
+                            // LAYERS=ea%3AQLD_DEEDI_Coastal-wetlands
+                            // FORMAT=image%2Fpng
+                            // SERVICE=WMS
+                            // VERSION=1.1.1
+                            // REQUEST=GetMap
+                            // EXCEPTIONS=application%2Fvnd.ogc.se_inimage
+                            // SRS=EPSG%3A4326
+                            // BBOX=130.20938085938,-37.1985,161.23261914062,-1.0165
+                            // WIDTH=439
+                            // HEIGHT=512
+                            if (serviceUrl != null && !serviceUrl.isEmpty()) {
+                                if (dataSource.isExtendWMS()) {
+                                    if (jsonBbox != null && jsonBbox.length() == 4) {
+                                        double[] bbox = new double[4];
+                                        // Left, Bottom, Right, Top
+                                        bbox[0] = jsonBbox.optDouble(0, -180);
+                                        bbox[1] = jsonBbox.optDouble(1, -90);
+                                        bbox[2] = jsonBbox.optDouble(2, 180);
+                                        bbox[3] = jsonBbox.optDouble(3, 90);
+
+                                        StringBuilder imageUrl = new StringBuilder(serviceUrl);
+                                        if (!serviceUrl.endsWith("&") && !serviceUrl.endsWith("?")) {
+                                            imageUrl.append(serviceUrl.contains("?") ? "&" : "?");
+                                        }
+                                        imageUrl.append("LAYERS="); imageUrl.append(URLEncoder.encode(layerName, "UTF-8"));
+                                        imageUrl.append("&STYLES="); // Some servers need this parameter, even set to nothing
+                                        imageUrl.append("&FORMAT="); imageUrl.append(URLEncoder.encode("image/png", "UTF-8"));
+                                        imageUrl.append("&TRANSPARENT=true");
+                                        imageUrl.append("&SERVICE=WMS");
+                                        imageUrl.append("&VERSION=1.1.1"); // TODO Use version from config (and set the parameters properly; 1.3.0 needs CRS instead of SRS, inverted BBOX, etc.)
+                                        imageUrl.append("&REQUEST=GetMap");
+                                        imageUrl.append("&EXCEPTIONS="); imageUrl.append(URLEncoder.encode("application/vnd.ogc.se_inimage", "UTF-8"));
+                                        imageUrl.append("&SRS="); imageUrl.append(URLEncoder.encode(projection, "UTF-8")); // TODO Use client projection
+
+                                        imageUrl.append("&BBOX=");
+                                        imageUrl.append(bbox[0]); imageUrl.append(",");
+                                        imageUrl.append(bbox[1]); imageUrl.append(",");
+                                        imageUrl.append(bbox[2]); imageUrl.append(",");
+                                        imageUrl.append(bbox[3]);
+
+                                        // Lon x Lat ratio (width / height  or  lon / lat)
+                                        double ratio = (bbox[2] - bbox[0]) / (bbox[3] - bbox[1]);
+
+                                        int width = defaultWidth;
+                                        int height = defaultHeight;
+
+                                        if (ratio > (((double)width)/height)) {
+                                            // Reduce height
+                                            height = (int)Math.round(width / ratio);
+                                        } else {
+                                            // Reduce width
+                                            width = (int)Math.round(height * ratio);
+                                        }
+
+                                        imageUrl.append("&WIDTH=" + width);
+                                        imageUrl.append("&HEIGHT=" + height);
+
+                                        layerMap.put("imageUrl", imageUrl.toString());
+                                        layerMap.put("imageWidth", ""+width);
+                                        layerMap.put("imageHeight", ""+height);
+
+                                        String baseLayerServiceUrl = this.clientConfig.getListBaseLayerServiceUrl();
+                                        String baseLayerId = this.clientConfig.getListBaseLayerId();
+                                        if (Utils.isNotBlank(baseLayerServiceUrl) && Utils.isNotBlank(baseLayerId)) {
+                                            // Base layer - Hardcoded
+                                            // https://maps.eatlas.org.au/maps/gwc/service/wms
+                                            // LAYERS=ea%3AWorld_NED_NE2
+                                            // TRANSPARENT=FALSE
+                                            // SERVICE=WMS
+                                            // VERSION=1.1.1
+                                            // REQUEST=GetMap
+                                            // FORMAT=image%2Fjpeg
+                                            // SRS=EPSG%3A4326
+                                            // BBOX=149.0625,-22.5,151.875,-19.6875
+                                            // WIDTH=256
+                                            // HEIGHT=256
+                                            StringBuilder baseLayerUrl = new StringBuilder(baseLayerServiceUrl);
+                                            if (!baseLayerServiceUrl.endsWith("&") && !baseLayerServiceUrl.endsWith("?")) {
+                                                baseLayerUrl.append(baseLayerServiceUrl.contains("?") ? "&" : "?");
+                                            }
+                                            baseLayerUrl.append("LAYERS=").append(URLEncoder.encode(baseLayerId, "UTF-8"));
+                                            baseLayerUrl.append("&STYLES="); // Some servers need this parameter, even set to nothing
+                                            baseLayerUrl.append("&FORMAT=").append(URLEncoder.encode("image/jpeg", "UTF-8"));
+                                            baseLayerUrl.append("&TRANSPARENT=false");
+                                            baseLayerUrl.append("&SERVICE=WMS");
+                                            baseLayerUrl.append("&VERSION=1.1.1"); // TODO Use version from config (and set the parameters properly; 1.3.0 needs CRS instead of SRS, inverted BBOX, etc.)
+                                            baseLayerUrl.append("&REQUEST=GetMap");
+                                            baseLayerUrl.append("&EXCEPTIONS=").append(URLEncoder.encode("application/vnd.ogc.se_inimage", "UTF-8"));
+                                            baseLayerUrl.append("&SRS=").append(URLEncoder.encode(projection, "UTF-8")); // TODO Use client projection
+
+                                            baseLayerUrl.append("&BBOX=")
+                                                .append(bbox[0]).append(",")
+                                                .append(bbox[1]).append(",")
+                                                .append(bbox[2]).append(",")
+                                                .append(bbox[3]);
+
+                                            baseLayerUrl.append("&WIDTH=").append(width);
+                                            baseLayerUrl.append("&HEIGHT=").append(height);
+
+                                            layerMap.put("baseLayerUrl", baseLayerUrl.toString());
+                                        }
+                                    }
+                                }
+                            }
+
+                            layerMap.put("id", layerId);
+                            layerMap.put("title", layerTitle);
+                            layerMap.put("description", description);
+                            layerMap.put("descriptionFormat", descriptionFormat);
+                            layerMap.put("systemDescription", systemDescription);
+                            String encodedLayerId = URLEncoder.encode(layerId, "UTF-8");
+                            layerMap.put("mapUrl", "index.html?intro=f&dl=t&loc=" + encodedLayerId + "&l0=" + encodedLayerId);
+
+                            dataSourceLayerList.add(layerMap);
+                        }
+
                     }
-
                 }
             }
         }
