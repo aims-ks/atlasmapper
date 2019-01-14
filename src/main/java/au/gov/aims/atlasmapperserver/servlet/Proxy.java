@@ -111,10 +111,15 @@ public class Proxy extends HttpServlet {
                 allAllowedHostCache = getAllProxyAllowedHosts(configManager);
             } else {
                 ClientConfig clientConfig = configManager.getClientConfig(clientId);
-                // The main config may be incomplete without the list of layers, but it will contains enough info to configure the proxy.
-                ClientWrapper jsonMainConfig = new ClientWrapper(configManager.getClientConfigFileJSon(logger, clientConfig, ConfigType.MAIN, false));
-                JSONObject jsonLayersConfig = configManager.getClientConfigFileJSon(logger, clientConfig, ConfigType.LAYERS, false);
-                Proxy.reloadConfig(jsonMainConfig, jsonLayersConfig, clientConfig);
+                if (clientConfig != null) {
+                    // The main config may be incomplete without the list of layers, but it will contains enough info to configure the proxy.
+                    JSONObject jsonMainClient = configManager.getClientConfigFileJSon(logger, clientConfig, ConfigType.MAIN, false);
+                    if (jsonMainClient != null) {
+                        ClientWrapper mainClientConfig = new ClientWrapper(jsonMainClient);
+                        JSONObject jsonLayersConfig = configManager.getClientConfigFileJSon(logger, clientConfig, ConfigType.LAYERS, false);
+                        Proxy.reloadConfig(mainClientConfig, jsonLayersConfig, clientConfig);
+                    }
+                }
             }
         } catch (Throwable ex) {
             LOGGER.log(Level.SEVERE, "Error occurred while reloading the proxy configuration: {0}", Utils.getExceptionMessage(ex));
@@ -186,10 +191,13 @@ public class Proxy extends HttpServlet {
             Iterator<String> keys = dataSources.keys();
             if (keys != null) {
                 while (keys.hasNext()) {
-                    DataSourceWrapper dataSource = new DataSourceWrapper(dataSources.optJSONObject(keys.next()));
+                    JSONObject jsonDataSource = dataSources.optJSONObject(keys.next());
+                    if (jsonDataSource != null) {
+                        DataSourceWrapper dataSource = new DataSourceWrapper(jsonDataSource);
 
-                    addProxyAllowedHost(allowedHosts, dataSource.getFeatureRequestsUrl());
-                    addProxyAllowedHost(allowedHosts, dataSource.getServiceUrl());
+                        addProxyAllowedHost(allowedHosts, dataSource.getFeatureRequestsUrl());
+                        addProxyAllowedHost(allowedHosts, dataSource.getServiceUrl());
+                    }
                 }
             }
         }
@@ -198,11 +206,14 @@ public class Proxy extends HttpServlet {
             Iterator<String> layerIds = layersConfig.keys();
             if (layerIds != null) {
                 while (layerIds.hasNext()) {
-                    LayerWrapper layer = new LayerWrapper(layersConfig.optJSONObject(layerIds.next()));
+                    JSONObject jsonLayer = layersConfig.optJSONObject(layerIds.next());
+                    if (jsonLayer != null) {
+                        LayerWrapper layer = new LayerWrapper(jsonLayer);
 
-                    addProxyAllowedHost(allowedHosts, layer.getKmlUrl());
-                    addProxyAllowedHost(allowedHosts, layer.getFeatureRequestsUrl());
-                    addProxyAllowedHost(allowedHosts, layer.getServiceUrl());
+                        addProxyAllowedHost(allowedHosts, layer.getKmlUrl());
+                        addProxyAllowedHost(allowedHosts, layer.getFeatureRequestsUrl());
+                        addProxyAllowedHost(allowedHosts, layer.getServiceUrl());
+                    }
                 }
             }
         }

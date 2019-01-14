@@ -350,7 +350,10 @@ public abstract class AbstractLayerConfig extends AbstractConfig {
             throws JSONException {
 
         JSONObject jsonLayer = layerWrapper.getJSON();
-        if (globalOverrides != null && jsonLayer != null) {
+        if (jsonLayer == null) {
+            return null;
+        }
+        if (globalOverrides != null) {
             JSONObject layerOverride = globalOverrides.optJSONObject(layerId);
             if (layerOverride != null && layerOverride.length() > 0) {
                 Iterator<String> keys = layerOverride.keys();

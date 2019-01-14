@@ -278,8 +278,9 @@ public class ConfigManager {
 
         if (dataSourceConfigsArray != null) {
             for (int i=0; i<dataSourceConfigsArray.length(); i++) {
-                DataSourceWrapper rawDataSourceWrapper = new DataSourceWrapper(dataSourceConfigsArray.optJSONObject(i));
-                if (rawDataSourceWrapper.getJSON() != null) {
+                JSONObject jsonDataSource = dataSourceConfigsArray.optJSONObject(i);
+                if (jsonDataSource != null) {
+                    DataSourceWrapper rawDataSourceWrapper = new DataSourceWrapper(jsonDataSource);
                     try {
                         AbstractDataSourceConfig dataSourceConfig = DataSourceConfigHelper.createDataSourceConfig(rawDataSourceWrapper, this);
 
@@ -603,8 +604,9 @@ public class ConfigManager {
         JSONArray dataJSonArr = this.getPostedData(request);
         if (dataJSonArr != null) {
             for (int i=0; i<dataJSonArr.length(); i++) {
-                DataSourceWrapper dataSourceWrapper = new DataSourceWrapper(dataJSonArr.optJSONObject(i));
-                if (dataSourceWrapper.getJSON() != null) {
+                JSONObject jsonDataSource = dataJSonArr.optJSONObject(i);
+                if (jsonDataSource != null) {
+                    DataSourceWrapper dataSourceWrapper = new DataSourceWrapper(jsonDataSource);
                     Integer id = dataSourceWrapper.getId();
                     if (id == null) {
                         dataSourceWrapper.setId(this.getNextDataSourceId());
@@ -813,8 +815,9 @@ public class ConfigManager {
         JSONArray dataJSonArr = this.getPostedData(request);
         if (dataJSonArr != null) {
             for (int i=0; i<dataJSonArr.length(); i++) {
-                DataSourceWrapper dataSourceWrapper = new DataSourceWrapper(dataJSonArr.optJSONObject(i));
-                if (dataSourceWrapper.getJSON() != null) {
+                JSONObject jsonDataSource = dataJSonArr.optJSONObject(i);
+                if (jsonDataSource != null) {
+                    DataSourceWrapper dataSourceWrapper = new DataSourceWrapper(jsonDataSource);
                     Integer clientId = dataSourceWrapper.getId();
                     ClientConfig clientConfig = configs.get1(clientId);
                     if (clientConfig != null) {
@@ -844,8 +847,9 @@ public class ConfigManager {
         JSONArray dataJSonArr = this.getPostedData(request);
         if (dataJSonArr != null) {
             for (int i=0; i<dataJSonArr.length(); i++) {
-                DataSourceWrapper dataSourceWrapper = new DataSourceWrapper(dataJSonArr.optJSONObject(i));
-                if (dataSourceWrapper.getJSON() != null) {
+                JSONObject jsonDataSource = dataJSonArr.optJSONObject(i);
+                if (jsonDataSource != null) {
+                    DataSourceWrapper dataSourceWrapper = new DataSourceWrapper(jsonDataSource);
                     Integer clientId = dataSourceWrapper.getId();
                     ClientConfig clientConfig =
                             configs.remove1(clientId);
@@ -947,32 +951,66 @@ public class ConfigManager {
                 LayerWrapper foundLayer = null;
                 String foundLayerId = null;
 
-                ClientWrapper fullConfig = new ClientWrapper(this.getClientConfigFileJSon(logger, clientConfig, ConfigType.FULL, false));
-                JSONObject dataSources = fullConfig.getDataSources();
-                JSONObject clientLayers = fullConfig.getLayers();
-                if (linkProtocol.isOGC()) {
-                    // WMS, ncWMS, etc. If not found, a basic WMS layer will be created with the info that we have.
-                    String serviceUrl = link.getUrl();
-                    String layerName = link.getName();
+                JSONObject jsonClient = this.getClientConfigFileJSon(logger, clientConfig, ConfigType.FULL, false);
+                if (jsonClient != null) {
+                    ClientWrapper fullConfig = new ClientWrapper(jsonClient);
+                    JSONObject dataSources = fullConfig.getDataSources();
+                    JSONObject clientLayers = fullConfig.getLayers();
+                    if (linkProtocol.isOGC()) {
+                        // WMS, ncWMS, etc. If not found, a basic WMS layer will be created with the info that we have.
+                        String serviceUrl = link.getUrl();
+                        String layerName = link.getName();
 
-                    if (Utils.isNotBlank(serviceUrl) && Utils.isNotBlank(layerName)) {
-                        // Suppress warnings: The JSON library do not use generics properly
-                        @SuppressWarnings("unchecked")
-                        Iterator<String> foundLayerIDs = clientLayers.keys();
-                        while(foundLayerIDs.hasNext() && foundLayer == null) {
-                            foundLayerId = foundLayerIDs.next();
-                            if (!clientLayers.isNull(foundLayerId)) {
-                                LayerWrapper layer = new LayerWrapper(clientLayers.optJSONObject(foundLayerId));
-                                String foundLayerName = layer.getLayerName();
-                                if (layerName.equals(foundLayerName)) {
-                                    // We found a layer with the same layer ID. We now have to check its data source
-                                    String foundDataSourceId = layer.getDataSourceId();
-                                    if (foundDataSourceId != null) {
-                                        DataSourceWrapper foundDataSource = new DataSourceWrapper(dataSources.optJSONObject(foundDataSourceId));
-                                        String foundServiceUrl = foundDataSource.getServiceUrl();
+                        if (Utils.isNotBlank(serviceUrl) && Utils.isNotBlank(layerName)) {
+                            // Suppress warnings: The JSON library do not use generics properly
+                            @SuppressWarnings("unchecked")
+                            Iterator<String> foundLayerIDs = clientLayers.keys();
+                            while(foundLayerIDs.hasNext() && foundLayer == null) {
+                                foundLayerId = foundLayerIDs.next();
+                                if (!clientLayers.isNull(foundLayerId)) {
+                                    JSONObject jsonLayer = clientLayers.optJSONObject(foundLayerId);
+                                    if (jsonLayer != null) {
+                                        LayerWrapper layer = new LayerWrapper(jsonLayer);
+                                        String foundLayerName = layer.getLayerName();
+                                        if (layerName.equals(foundLayerName)) {
+                                            // We found a layer with the same layer ID. We now have to check its data source
+                                            String foundDataSourceId = layer.getDataSourceId();
+                                            if (foundDataSourceId != null) {
+                                                JSONObject jsonFoundDataSource = dataSources.optJSONObject(foundDataSourceId);
+                                                if (jsonFoundDataSource != null) {
+                                                    DataSourceWrapper foundDataSource = new DataSourceWrapper(jsonFoundDataSource);
+                                                    String foundServiceUrl = foundDataSource.getServiceUrl();
 
-                                        // Check if URLs are similar ("http://www.a.com/?a=b&b=c" == "http://www.a.com:80/?b=c&a=b")
-                                        if (Utils.equalsWMSUrl(foundServiceUrl, serviceUrl)) {
+                                                    // Check if URLs are similar ("http://www.a.com/?a=b&b=c" == "http://www.a.com:80/?b=c&a=b")
+                                                    if (Utils.equalsWMSUrl(foundServiceUrl, serviceUrl)) {
+                                                        foundLayer = layer;
+                                                        foundLayer.setLayerId(foundLayerId);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                    } else if (linkProtocol.isKML()) {
+                        // KML layers. If not found, a basic KML layer will be created with the info that we have.
+                        String kmlUrl = link.getUrl();
+
+                        if (Utils.isNotBlank(kmlUrl)) {
+                            // Suppress warnings: The JSON library do not use generics properly
+                            @SuppressWarnings("unchecked")
+                            Iterator<String> foundLayerIDs = clientLayers.keys();
+                            while(foundLayerIDs.hasNext() && foundLayer == null) {
+                                foundLayerId = foundLayerIDs.next();
+                                if (!clientLayers.isNull(foundLayerId)) {
+                                    JSONObject jsonLayer = clientLayers.optJSONObject(foundLayerId);
+                                    if (jsonLayer != null) {
+                                        LayerWrapper layer = new LayerWrapper(jsonLayer);
+                                        String foundLayerKMLUrl = layer.getKmlUrl();
+                                        if (kmlUrl.equals(foundLayerKMLUrl)) {
+                                            // We found a layer with the same KML URL. Let assume it's the good one
                                             foundLayer = layer;
                                             foundLayer.setLayerId(foundLayerId);
                                         }
@@ -982,35 +1020,13 @@ public class ConfigManager {
                         }
                     }
 
-                } else if (linkProtocol.isKML()) {
-                    // KML layers. If not found, a basic KML layer will be created with the info that we have.
-                    String kmlUrl = link.getUrl();
-
-                    if (Utils.isNotBlank(kmlUrl)) {
-                        // Suppress warnings: The JSON library do not use generics properly
-                        @SuppressWarnings("unchecked")
-                        Iterator<String> foundLayerIDs = clientLayers.keys();
-                        while(foundLayerIDs.hasNext() && foundLayer == null) {
-                            foundLayerId = foundLayerIDs.next();
-                            if (!clientLayers.isNull(foundLayerId)) {
-                                LayerWrapper layer = new LayerWrapper(clientLayers.optJSONObject(foundLayerId));
-                                String foundLayerKMLUrl = layer.getKmlUrl();
-                                if (kmlUrl.equals(foundLayerKMLUrl)) {
-                                    // We found a layer with the same KML URL. Let assume it's the good one
-                                    foundLayer = layer;
-                                    foundLayer.setLayerId(foundLayerId);
-                                }
-                            }
-                        }
+                    if (foundLayer == null) {
+                        foundLayer = TC211Parser.createLayer(this, tc211Document, link);
                     }
-                }
 
-                if (foundLayer == null) {
-                    foundLayer = TC211Parser.createLayer(this, tc211Document, link);
-                }
-
-                if (foundLayer != null) {
-                    jsonLayers.put(foundLayer);
+                    if (foundLayer != null) {
+                        jsonLayers.put(foundLayer);
+                    }
                 }
             }
         }
@@ -1104,12 +1120,15 @@ public class ConfigManager {
         for (String rawLayerId : layerIds) {
             String layerId = rawLayerId.trim();
             if (clientLayers.has(layerId)) {
-                LayerWrapper jsonLayer = new LayerWrapper(clientLayers.optJSONObject(layerId));
-                if (asJSONObject) {
-                    foundLayersObj.put(layerId, jsonLayer.getJSON());
-                } else {
-                    jsonLayer.setLayerId(layerId);
-                    foundLayersArr.put(jsonLayer.getJSON());
+                JSONObject jsonLayer = clientLayers.optJSONObject(layerId);
+                if (jsonLayer != null) {
+                    LayerWrapper layer = new LayerWrapper(jsonLayer);
+                    if (asJSONObject) {
+                        foundLayersObj.put(layerId, layer.getJSON());
+                    } else {
+                        layer.setLayerId(layerId);
+                        foundLayersArr.put(layer.getJSON());
+                    }
                 }
             }
         }
@@ -1328,7 +1347,10 @@ public class ConfigManager {
                         }
                     }
                 } else {
-                    mainConfig = new ClientWrapper(this.loadExistingConfig(this.getClientMainConfigFile(clientConfig)));
+                    JSONObject jsonClient = this.loadExistingConfig(this.getClientMainConfigFile(clientConfig));
+                    if (jsonClient != null) {
+                        mainConfig = new ClientWrapper(jsonClient);
+                    }
                 }
 
                 if (mainConfig != null) {
@@ -1351,11 +1373,17 @@ public class ConfigManager {
                         embeddedConfig.setModules(modules);
                     }
                 } else {
-                    embeddedConfig = new ClientWrapper(this.loadExistingConfig(this.getClientEmbeddedConfigFile(clientConfig)));
+                    JSONObject jsonClient = this.loadExistingConfig(this.getClientEmbeddedConfigFile(clientConfig));
+                    if (jsonClient != null) {
+                        embeddedConfig = new ClientWrapper(jsonClient);
+                    }
                 }
 
-                this._setProxyUrl(embeddedConfig, clientConfig);
-                return embeddedConfig.getJSON();
+                if (embeddedConfig != null) {
+                    this._setProxyUrl(embeddedConfig, clientConfig);
+                    return embeddedConfig.getJSON();
+                }
+                return null;
 
             case LAYERS:
                 if (generate) {
@@ -1367,14 +1395,18 @@ public class ConfigManager {
             case FULL:
                 // FULL is only used by the data set URL (Embedded map created on the fly to display layers for a MEST URL)
 
-                mainConfig = new ClientWrapper(this.getClientConfigFileJSon(layerCatalog, dataSources, clientConfig, ConfigType.MAIN, generate));
-                layersConfig = this.getClientConfigFileJSon(layerCatalog, dataSources, clientConfig, ConfigType.LAYERS, generate);
+                JSONObject jsonClient = this.getClientConfigFileJSon(layerCatalog, dataSources, clientConfig, ConfigType.MAIN, generate);
+                if (jsonClient != null) {
+                    mainConfig = new ClientWrapper(jsonClient);
+                    layersConfig = this.getClientConfigFileJSon(layerCatalog, dataSources, clientConfig, ConfigType.LAYERS, generate);
 
-                // Making a copy of the mainConfig variable (clone) would be better, but the variable is never used
-                // after this, so it's faster (easier) to simply change it into the fullConfig.
-                fullConfig = mainConfig;
-                fullConfig.setLayers(layersConfig);
-                return fullConfig.getJSON();
+                    // Making a copy of the mainConfig variable (clone) would be better, but the variable is never used
+                    // after this, so it's faster (easier) to simply change it into the fullConfig.
+                    fullConfig = mainConfig;
+                    fullConfig.setLayers(layersConfig);
+                    return fullConfig.getJSON();
+                }
+                return null;
         }
         return null;
     }

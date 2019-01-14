@@ -166,11 +166,14 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
                     RevivableThread.checkForInterruption();
 
                     String rawLayerId = layersKeys.next();
-                    LayerWrapper layerWrapper = new LayerWrapper(layers.optJSONObject(rawLayerId));
-                    if (layerWrapper != null) {
-                        layersMap.put(
-                                rawLayerId,
-                                AbstractLayerConfig.applyGlobalOverrides(rawLayerId, layerWrapper, globalOverrides));
+                    JSONObject jsonLayer = layers.optJSONObject(rawLayerId);
+                    if (jsonLayer != null) {
+                        LayerWrapper layerWrapper = new LayerWrapper(jsonLayer);
+                        LayerWrapper overrideLayerWrapper =
+                                AbstractLayerConfig.applyGlobalOverrides(rawLayerId, layerWrapper, globalOverrides);
+                        if (overrideLayerWrapper != null) {
+                            layersMap.put(rawLayerId, overrideLayerWrapper);
+                        }
                     }
                 }
             }
@@ -186,11 +189,12 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
 
                 String layerId = layerIds.next();
                 if (!layersMap.containsKey(layerId)) {
-                    LayerWrapper jsonLayerOverride = new LayerWrapper(globalOverrides.optJSONObject(layerId));
-                    if (jsonLayerOverride != null && jsonLayerOverride.getJSON().length() > 0) {
+                    JSONObject jsonLayerOverride = globalOverrides.optJSONObject(layerId);
+                    if (jsonLayerOverride != null && jsonLayerOverride.length() > 0) {
+                        LayerWrapper layerOverride = new LayerWrapper(jsonLayerOverride);
                         try {
                             AbstractLayerConfig manualLayer = LayerCatalog.createLayer(
-                                    jsonLayerOverride.getLayerType(), jsonLayerOverride, dataSourceConfigClone.getConfigManager());
+                                    layerOverride.getLayerType(), layerOverride, dataSourceConfigClone.getConfigManager());
 
                             LayerWrapper layerWrapper = new LayerWrapper(manualLayer.toJSonObject());
 

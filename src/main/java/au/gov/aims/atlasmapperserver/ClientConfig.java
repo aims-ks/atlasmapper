@@ -393,12 +393,18 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
                                         rawLayerId));
                             }
 
-                            LayerWrapper layerWrapper = new LayerWrapper(rawLayers.optJSONObject(rawLayerId));
-                            // Associate the layer to its data source (NOTE: This property may already been overridden)
-                            if (layerWrapper.getDataSourceId() == null) {
-                                layerWrapper.setDataSourceId(dataSourceId);
+                            JSONObject jsonLayer = rawLayers.optJSONObject(rawLayerId);
+                            if (jsonLayer != null) {
+                                LayerWrapper layerWrapper = new LayerWrapper(jsonLayer);
+                                // Associate the layer to its data source (NOTE: This property may already been overridden)
+                                if (layerWrapper.getDataSourceId() == null) {
+                                    layerWrapper.setDataSourceId(dataSourceId);
+                                }
+                                LayerWrapper overrideLayerWrapper = AbstractLayerConfig.applyGlobalOverrides(rawLayerId, layerWrapper, clientOverrides);
+                                if (overrideLayerWrapper != null) {
+                                    layerCatalog.addLayer(rawLayerId, overrideLayerWrapper);
+                                }
                             }
-                            layerCatalog.addLayer(rawLayerId, AbstractLayerConfig.applyGlobalOverrides(rawLayerId, layerWrapper, clientOverrides));
                         }
                     }
                 }
@@ -416,17 +422,18 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
             while (layerIds.hasNext()) {
                 String layerId = layerIds.next();
                 if (layers.isNull(layerId)) {
-                    LayerWrapper jsonClientLayerOverride = new LayerWrapper(clientOverrides.optJSONObject(layerId));
-                    if (jsonClientLayerOverride.getJSON() == null) {
+                    JSONObject jsonClientLayerOverride = clientOverrides.optJSONObject(layerId);
+                    if (jsonClientLayerOverride == null) {
                         logger.log(Level.WARNING, String.format("Invalid manual override for new layer: %s",
                                 layerId));
                     } else {
+                        LayerWrapper clientLayerOverride = new LayerWrapper(jsonClientLayerOverride);
                         try {
                             DataSourceWrapper dataSource = null;
-                            String dataSourceId = jsonClientLayerOverride.getDataSourceId();
-                            String layerType = jsonClientLayerOverride.getLayerType();
+                            String dataSourceId = clientLayerOverride.getDataSourceId();
+                            String layerType = clientLayerOverride.getLayerType();
 
-                            if (Utils.isNotBlank(dataSourceId)) {
+                            if (dataSources != null && Utils.isNotBlank(dataSourceId)) {
                                 dataSource = dataSources.get(dataSourceId);
 
                                 if (dataSource == null) {
@@ -447,7 +454,7 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
                             }
 
                             AbstractLayerConfig manualLayer = LayerCatalog.createLayer(
-                                    layerType, jsonClientLayerOverride, this.getConfigManager());
+                                    layerType, clientLayerOverride, this.getConfigManager());
 
                             LayerWrapper layerWrapper = new LayerWrapper(manualLayer.toJSonObject());
 
@@ -474,36 +481,35 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
             while (layerIds.hasNext()) {
                 String layerId = layerIds.next();
                 if (!layers.isNull(layerId)) {
-                    LayerWrapper layerWrapper = new LayerWrapper(layers.optJSONObject(layerId));
+                    JSONObject jsonLayerWrapper = layers.optJSONObject(layerId);
+                    if (jsonLayerWrapper != null) {
+                        LayerWrapper layerWrapper = new LayerWrapper(jsonLayerWrapper);
 
-                    // Add layer group content in the description, and set flag to hide children layers in the layer tree (Add layer window).
-                    // I.E. Layers that are present in a layer group are not shown in the tree. This can be overridden by
-                    //     setting "shownOnlyInLayerGroup" to true in the layers overrides.
-                    if (layerWrapper.isGroup()) {
-                        JSONArray childrenLayers = layerWrapper.getLayers();
-                        if (childrenLayers != null && childrenLayers.length() > 0) {
-                            String layerGroupHTMLList = this.getHTMLListAndHideChildrenLayers(layers, childrenLayers);
+                        // Add layer group content in the description, and set flag to hide children layers in the layer tree (Add layer window).
+                        // I.E. Layers that are present in a layer group are not shown in the tree. This can be overridden by
+                        //     setting "shownOnlyInLayerGroup" to true in the layers overrides.
+                        if (layerWrapper.isGroup()) {
+                            JSONArray childrenLayers = layerWrapper.getLayers();
+                            if (childrenLayers != null && childrenLayers.length() > 0) {
+                                String layerGroupHTMLList = this.getHTMLListAndHideChildrenLayers(layers, childrenLayers);
 
-                            if (Utils.isNotBlank(layerGroupHTMLList)) {
-                                StringBuilder groupHtmlDescription = new StringBuilder();
-                                groupHtmlDescription.append("This layer regroup the following list of layers:");
-                                groupHtmlDescription.append(layerGroupHTMLList);
-
-                                layerWrapper.setSystemDescription(groupHtmlDescription.toString());
+                                if (Utils.isNotBlank(layerGroupHTMLList)) {
+                                    layerWrapper.setSystemDescription("This layer regroup the following list of layers:" + layerGroupHTMLList);
+                                }
                             }
                         }
-                    }
 
-                    // Set base layer attribute
-                    if (this.isBaseLayer(layerId)) {
-                        layerWrapper.setIsBaseLayer(true);
-                    } else {
-                        String layerName = layerWrapper.getLayerName();
-                        if (this.isBaseLayer(layerName)) {
-                            // Backward compatibility
-                            logger.log(Level.WARNING, String.format("Deprecated layer ID used for base layers. Layer id %s should be %s",
-                                    layerName, layerId));
+                        // Set base layer attribute
+                        if (this.isBaseLayer(layerId)) {
                             layerWrapper.setIsBaseLayer(true);
+                        } else {
+                            String layerName = layerWrapper.getLayerName();
+                            if (this.isBaseLayer(layerName)) {
+                                // Backward compatibility
+                                logger.log(Level.WARNING, String.format("Deprecated layer ID used for base layers. Layer id %s should be %s",
+                                        layerName, layerId));
+                                layerWrapper.setIsBaseLayer(true);
+                            }
                         }
                     }
                 }
@@ -519,8 +525,11 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
                 while (layerIds.hasNext()) {
                     String layerId = layerIds.next();
                     if (!layers.isNull(layerId)) {
-                        LayerWrapper layerWrapper = new LayerWrapper(layers.optJSONObject(layerId));
-                        layersMap.put(layerId, layerWrapper);
+                        JSONObject jsonLayerWrapper = layers.optJSONObject(layerId);
+                        if (jsonLayerWrapper != null) {
+                            LayerWrapper layerWrapper = new LayerWrapper(jsonLayerWrapper);
+                            layersMap.put(layerId, layerWrapper);
+                        }
                     }
                 }
 
@@ -1167,29 +1176,32 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
         for (int i=0, len=childrenLayersIds.length(); i<len; i++) {
             String childId = childrenLayersIds.optString(i, null);
             if (childId != null) {
-                LayerWrapper child = new LayerWrapper(layers.optJSONObject(childId));
-                htmlList.append("<li>");
-                String title = child.getTitle(child.getLayerName());
-                if (title != null) {
-                    title = title.trim();
-                }
-                if (Utils.isBlank(title)) {
-                    title = "NO NAME";
-                }
-                title = Utils.safeHTMLStr(title);
-                htmlList.append(title);
-
-                if (child.isGroup()) {
-                    JSONArray childrenLayers = child.getLayers();
-                    if (childrenLayers != null && childrenLayers.length() > 0) {
-                        htmlList.append(this.getHTMLListAndHideChildrenLayers(layers, childrenLayers));
+                JSONObject jsonChild = layers.optJSONObject(childId);
+                if (jsonChild != null) {
+                    LayerWrapper child = new LayerWrapper(jsonChild);
+                    htmlList.append("<li>");
+                    String title = child.getTitle(child.getLayerName());
+                    if (title != null) {
+                        title = title.trim();
                     }
-                }
-                htmlList.append("</li>");
+                    if (Utils.isBlank(title)) {
+                        title = "NO NAME";
+                    }
+                    title = Utils.safeHTMLStr(title);
+                    htmlList.append(title);
 
-                // Hide the children layer from the Catalog
-                if (child.isShownOnlyInLayerGroup() == null) {
-                    child.setShownOnlyInLayerGroup(true);
+                    if (child.isGroup()) {
+                        JSONArray childrenLayers = child.getLayers();
+                        if (childrenLayers != null && childrenLayers.length() > 0) {
+                            htmlList.append(this.getHTMLListAndHideChildrenLayers(layers, childrenLayers));
+                        }
+                    }
+                    htmlList.append("</li>");
+
+                    // Hide the children layer from the Catalog
+                    if (child.isShownOnlyInLayerGroup() == null) {
+                        child.setShownOnlyInLayerGroup(true);
+                    }
                 }
             }
         }
@@ -1326,28 +1338,31 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
         while (layerIds.hasNext()) {
             String layerId = layerIds.next();
             if (!layers.isNull(layerId)) {
-                LayerWrapper layer = new LayerWrapper(layers.optJSONObject(layerId));
+                JSONObject jsonLayer = layers.optJSONObject(layerId);
+                if (jsonLayer != null) {
+                    LayerWrapper layer = new LayerWrapper(jsonLayer);
 
-                title = Utils.safeHTMLStr(layer.getTitle());
-                textDescription = Utils.safeHTMLStr(layer.getTextDescription());
+                    title = Utils.safeHTMLStr(layer.getTitle());
+                    textDescription = Utils.safeHTMLStr(layer.getTextDescription());
 
-                titleResults = null; descResults = null;
-                if (terms.length > 0) {
-                    titleResults = Utils.findOccurrences(title, terms);
-                    descResults = Utils.findOccurrences(textDescription, terms);
-                    rank = titleResults.size() * 5 + descResults.size();
-                } else {
-                    // No search term, return everything
-                    rank = 1;
-                }
+                    titleResults = null; descResults = null;
+                    if (terms.length > 0) {
+                        titleResults = Utils.findOccurrences(title, terms);
+                        descResults = Utils.findOccurrences(textDescription, terms);
+                        rank = titleResults.size() * 5 + descResults.size();
+                    } else {
+                        // No search term, return everything
+                        rank = 1;
+                    }
 
-                if (rank > 0) {
-                    JSONObject layerFound = new JSONObject();
-                    layerFound.put("layerId", layerId);
-                    layerFound.put("title", Utils.getHighlightChunk(titleResults, title, 0));
-                    layerFound.put("excerpt", Utils.getHighlightChunk(descResults, textDescription, maxLength));
-                    layerFound.put("rank", rank);
-                    layersFound.add(layerFound);
+                    if (rank > 0) {
+                        JSONObject layerFound = new JSONObject();
+                        layerFound.put("layerId", layerId);
+                        layerFound.put("title", Utils.getHighlightChunk(titleResults, title, 0));
+                        layerFound.put("excerpt", Utils.getHighlightChunk(descResults, textDescription, maxLength));
+                        layerFound.put("rank", rank);
+                        layersFound.add(layerFound);
+                    }
                 }
             }
         }
