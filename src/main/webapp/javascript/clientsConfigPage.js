@@ -131,6 +131,7 @@ Ext.define('Writer.ClientConfigForm', {
             'mapMeasurementEnabled': true,
             'mapMeasurementLineEnabled': true,
             'mapMeasurementAreaEnabled': true,
+            'minimalRegeneration': false,
 
             'theme': '',
             'enable': true
@@ -495,6 +496,13 @@ Ext.define('Writer.ClientConfigForm', {
                                 xtype: 'textareafield',
                                 resizable: {transparent: true}, resizeHandles: 's',
                                 height: 100
+                            }, {
+                                margin: '0 0 15 0',
+                                boxLabel: 'Minimal regeneration.',
+                                qtipHtml: 'If this box is checked, the client regeneration will only overwrite the client configuration and the index.html file. ' +
+                                    'Use this option if you want to manually alter the AtlasMapper client app.',
+                                xtype: 'checkboxfield',
+                                name: 'minimalRegeneration'
                             }, {
                                 fieldLabel: 'Configuration Standard Version',
                                 qtipHtml: 'Version of the configuration used by the client, for backward compatibilities.<br/>'+
@@ -1150,11 +1158,13 @@ Ext.define('Writer.ClientConfigGrid', {
         var isGenerated = false;
         var clientId = "UNKNOWN";
         var clientName = "UNKNOWN";
+        var minimalRegeneration = false;
         if (rec) {
             id = rec.get('id');
             isGenerated = !!rec.get('clientUrl');
             clientId = rec.get('clientId');
             clientName = rec.get('clientName') + ' (' + clientId + ')';
+            minimalRegeneration = rec.get('minimalRegeneration');
         }
 
         var that = this;
@@ -1168,11 +1178,7 @@ Ext.define('Writer.ClientConfigGrid', {
             border: false,
             items: {
                 bodyPadding: 5,
-                html: 'Regenerate the client <b>'+clientName+'</b>.\n'+
-                    '<ul class="bullet-list">\n'+
-                        '<li><b>Minimal:</b> Regenerate the config and index files only. It\'s fast and it\'s usually enough.</li>\n'+
-                        '<li><b>Complete:</b> Recopy all client files and regenerate the configs. This operation is needed for clients that has never been generated, after an update of the AtlasMapper or when one or more files are corrupted.</li>\n'+
-                    '</ul>'
+                html: minimalRegeneration ? "This will overwrite the configuration files and index.html file only." : "This will overwrite all the client's files and configuration."
             },
             dockedItems: [{
                 xtype: 'toolbar',
@@ -1183,19 +1189,10 @@ Ext.define('Writer.ClientConfigGrid', {
                     '->', // Pseudo item to move the following items to the right (available with ui:footer)
                     {
                         xtype: 'button',
-                        text: 'Minimal',
-                        disabled: !isGenerated,
+                        text: 'Generate',
                         padding: '2 10',
                         handler: function() {
-                            that.onRegenerate(id, clientId, clientName, false);
-                            this.ownerCt.ownerCt.close();
-                        }
-                    }, {
-                        xtype: 'button',
-                        text: 'Complete',
-                        padding: '2 10',
-                        handler: function() {
-                            that.onRegenerate(id, clientId, clientName, true);
+                            that.onRegenerate(id, clientId, clientName);
                             this.ownerCt.ownerCt.close();
                         }
                     }, {
@@ -1215,14 +1212,10 @@ Ext.define('Writer.ClientConfigGrid', {
      * id: Numerical is of the client (used in the Grid)
      * clientId: Client string ID
      * clientName: Display name of the client, for user friendly messages
-     * complete: boolean value. True to recopy every client files, false to copy only the config and the index pages.
      */
-    onRegenerate: function(id, clientId, clientName, complete) {
+    onRegenerate: function(id, clientId, clientName) {
         var that = this;
-        frameset.setSavingMessage(
-                complete ?
-                    'Complete regeneration of <i>'+clientName+'</i>...' :
-                    'Regenerating <i>'+clientName+'</i> configuration files and index pages...');
+        frameset.setSavingMessage('Regenerating <i>'+clientName+'</i> configuration files and index pages...');
 
         // Request the data and update the window when we receive it
         Ext.Ajax.request({
@@ -1230,7 +1223,6 @@ Ext.define('Writer.ClientConfigGrid', {
             timeout: timeoutPerClient,
             params: {
                 'action': 'GENERATE',
-                'complete': !!complete, // Ensure "complete" is boolean
                 'id': id,
                 'jsonResponse': true
             },
@@ -1452,6 +1444,7 @@ Ext.define('Writer.ClientConfig', {
         'listLayerImageHeight',
 
         'extraAllowedHosts',
+        {name: 'minimalRegeneration', type: 'boolean', defaultValue: false},
 
         'downloadLoggerServiceUrl',
 

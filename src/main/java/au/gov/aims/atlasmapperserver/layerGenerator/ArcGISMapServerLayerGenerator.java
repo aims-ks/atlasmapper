@@ -526,6 +526,8 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                         urlCache.getHttpDocument(jsonCacheEntry, dataSource.getDataSourceId(), reDownload);
                         File jsonFile = jsonCacheEntry.getDocumentFile();
                         if (jsonFile != null) {
+                            logger.log(Level.INFO, String.format("Parsing [JSON URL](%s) for %s",
+                                    urlStr, path));
                             jsonResponse = URLCache.parseJSONObjectFile(jsonFile, logger, urlStr);
                             if (jsonResponse != null) {
                                 urlCache.save(jsonCacheEntry, true);

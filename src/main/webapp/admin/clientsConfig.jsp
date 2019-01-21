@@ -243,10 +243,8 @@
                         jsonObj.put("success", false);
                         jsonObj.put("errors", new JSONArray().put("Missing parameter [id]."));
                     } else {
-                        boolean complete = false;
                         Integer id = null;
                         try {
-                            complete = Boolean.parseBoolean(completeStr);
                             id = Integer.valueOf(idStr);
                         } catch(Exception e) {
                             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -262,7 +260,7 @@
                                     jsonObj.put("success", false);
                                     jsonObj.put("errors", new JSONArray().put("Client number ["+id+"] not found."));
                                 } else {
-                                    foundClientConfig.process(complete);
+                                    foundClientConfig.process();
                                     response.setStatus(HttpServletResponse.SC_OK);
                                     jsonObj.put("message", "Generating Config");
                                     jsonObj.put("clientName", foundClientConfig.getClientName());

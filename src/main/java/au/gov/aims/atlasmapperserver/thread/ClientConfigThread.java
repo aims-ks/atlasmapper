@@ -34,22 +34,12 @@ public class ClientConfigThread extends AbstractConfigThread {
 
     private ClientConfig clientConfig;
 
-    private boolean completeGeneration;
-
     public ClientConfig getClientConfig() {
         return this.clientConfig;
     }
 
     public void setClientConfig(ClientConfig clientConfig) {
         this.clientConfig = clientConfig;
-    }
-
-    public boolean isCompleteGeneration() {
-        return this.completeGeneration;
-    }
-
-    public void setCompleteGeneration(boolean completeGeneration) {
-        this.completeGeneration = completeGeneration;
     }
 
     @Override
@@ -120,7 +110,7 @@ public class ClientConfigThread extends AbstractConfigThread {
                 }
 
                 try {
-                    this.copyClientFilesIfNeeded(this.completeGeneration);
+                    this.copyClientFilesIfNeeded();
                 } catch (IOException ex) {
                     // Those error are very unlikely to happen since we already checked the folder write access.
                     if (clientFolder.exists()) {
@@ -237,16 +227,16 @@ public class ClientConfigThread extends AbstractConfigThread {
 
     /**
      * Copy the client files from clientResources/amc to the client location.
-     * @param force Force file copy even if they are already there (used with complete regeneration)
      * @throws IOException
      */
-    private void copyClientFilesIfNeeded(boolean force) throws IOException {
+    private void copyClientFilesIfNeeded() throws IOException {
         File atlasMapperClientFolder =
                 FileFinder.getAtlasMapperClientFolder(this.clientConfig.getConfigManager().getApplicationFolder(), this.clientConfig);
         if (atlasMapperClientFolder == null) { return; }
 
         // Return if the folder is not empty
         String[] folderContent = atlasMapperClientFolder.list();
+        boolean force = !this.clientConfig.isMinimalRegeneration();
         if (!force && folderContent != null && folderContent.length > 0) {
             return;
         }
