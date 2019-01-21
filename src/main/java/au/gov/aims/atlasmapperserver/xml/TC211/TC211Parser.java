@@ -174,6 +174,8 @@ public class TC211Parser {
                         urlCache.getHttpDocument(mestCacheEntry, dataSourceId, reDownload);
                         File mestFile = mestCacheEntry.getDocumentFile();
                         if (mestFile != null) {
+                            logger.log(Level.INFO, String.format("Parsing [TC211 MEST record](%s) for layer %s",
+                                    urlStr, layerId));
                             tc211Document = this.parseFile(mestFile, urlStr);
                             if (tc211Document != null) {
                                 if (craftedUrl) {

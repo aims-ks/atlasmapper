@@ -113,8 +113,8 @@ page contentType="application/json" pageEncoding="UTF-8"%><%
                                 // Invalid client ID
                                 logger.log(Level.SEVERE, String.format("Invalid client ID: %s", clientId));
                             } else {
-                                // Regenerate client and merging error messages
-                                client.process(false);
+                                // Regenerate client
+                                client.process();
                                 AbstractConfigThread thread = client.getThread();
                                 thread.join();
                                 logger.addAll(thread.getLogger());

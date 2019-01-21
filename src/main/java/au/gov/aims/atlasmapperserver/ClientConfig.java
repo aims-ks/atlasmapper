@@ -244,6 +244,9 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
     @ConfigField
     private String[] extraAllowedHosts;
 
+    @ConfigField
+    private Boolean minimalRegeneration; // Set to true to prevent the client from overwriting files. Default: false
+
 
     // Read only values also need to be disabled in the form (clientsConfigPage.js)
     @ConfigField(demoReadOnly = true)
@@ -358,10 +361,9 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
         return null;
     }
 
-    public void process(boolean complete) {
+    public void process() {
         if (this.isIdle()) {
             this.configThread.setClientConfig(this);
-            this.configThread.setCompleteGeneration(complete);
 
             this.start();
         }
@@ -1014,6 +1016,13 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
         }
     }
 
+    public boolean isMinimalRegeneration() {
+        return this.minimalRegeneration == null ? false : this.minimalRegeneration;
+    }
+
+    public void setMinimalRegeneration(Boolean minimalRegeneration) {
+        this.minimalRegeneration = minimalRegeneration;
+    }
 
     public String getGeneratedFileLocation() {
         return this.generatedFileLocation;
