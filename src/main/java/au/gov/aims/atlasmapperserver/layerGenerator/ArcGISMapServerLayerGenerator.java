@@ -166,19 +166,31 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
     protected String getJSONUrl(String baseUrlStr, String arcGISPath, String type, String layerId) throws UnsupportedEncodingException {
         StringBuilder url = new StringBuilder();
 
-        String layerPath = this.getLayerPath(arcGISPath, type, layerId);
-        if (Utils.isNotBlank(layerPath)) {
-            // Add trailing slash, if missing
-            String fixedBaseUrlStr = baseUrlStr;
-            if (fixedBaseUrlStr.charAt(fixedBaseUrlStr.length() -1) != '/') {
-                fixedBaseUrlStr += "/";
-            }
-            // Remove part of the URL that comes after "/services/". That parts is included in the layerPath
-            int servicesIndex = fixedBaseUrlStr.lastIndexOf("/services/");
-            if (servicesIndex >= 0) {
-                fixedBaseUrlStr = fixedBaseUrlStr.substring(0, servicesIndex + "/services/".length());
+        // Add trailing slash, if missing
+        String fixedBaseUrlStr = baseUrlStr;
+        if (fixedBaseUrlStr.charAt(fixedBaseUrlStr.length() -1) != '/') {
+            fixedBaseUrlStr += "/";
+        }
+        // Remove part of the URL that comes after "/services/". That parts is included in the layerPath
+        int servicesIndex = fixedBaseUrlStr.lastIndexOf("/services/");
+        if (servicesIndex >= 0) {
+            int endOfServicesIndex = servicesIndex + "/services/".length();
+            if (Utils.isBlank(arcGISPath)) {
+                arcGISPath = fixedBaseUrlStr.substring(endOfServicesIndex);
+                if (Utils.isNotBlank(arcGISPath)) {
+                    // Remove "type" if already there
+                    int typeIndex = arcGISPath.lastIndexOf(type + "/");
+                    if (typeIndex >= 0 ) {
+                        arcGISPath = arcGISPath.substring(0, typeIndex);
+                    }
+                }
             }
 
+            fixedBaseUrlStr = fixedBaseUrlStr.substring(0, endOfServicesIndex);
+        }
+
+        String layerPath = this.getLayerPath(arcGISPath, type, layerId);
+        if (Utils.isNotBlank(layerPath)) {
             url.append(fixedBaseUrlStr);
 
             url.append(layerPath);

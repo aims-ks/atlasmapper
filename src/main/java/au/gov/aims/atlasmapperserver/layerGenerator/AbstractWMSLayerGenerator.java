@@ -825,7 +825,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 
         String layerName = layer.getName();
         if (Utils.isBlank(layerName)) {
-            logger.log(Level.WARNING, String.format("The Capabilities Document of the data source [%s] contains layers without name (other than the root layer).", dataSourceClone.getDataSourceName()));
+            logger.log(Level.WARNING, String.format("The Capabilities Document of the data source *%s* contains layers without name (other than the root layer).", dataSourceClone.getDataSourceName()));
             return null;
         }
 

@@ -49,8 +49,13 @@ Atlas.Layer.ArcGISMapServer = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
             url += this.json['arcGISPath'];
         }
         // Add a slash if the URL do not already ends with a slash
-        if (url.charAt(url.length - 1) !== '/') { url += '/'; }
-        url += 'MapServer/';
+        if (url.charAt(url.length - 1) !== '/') {
+            url += '/';
+        }
+        // Add "MapServer" if not already there
+        if (!url.endsWith('MapServer/')) {
+            url += 'MapServer/';
+        }
 
         this.exportUrl = url + 'export';
         this.identifyUrl = url + 'identify';
@@ -69,7 +74,7 @@ Atlas.Layer.ArcGISMapServer = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 
     getServiceLayer: function() {
         var serviceLayer = this;
-        while (serviceLayer != null && serviceLayer.json['layerType'] != 'SERVICE') {
+        while (serviceLayer != null && serviceLayer.json['layerType'] !== 'SERVICE') {
             serviceLayer = serviceLayer.parent;
         }
         return serviceLayer;
@@ -154,7 +159,7 @@ Atlas.Layer.ArcGISMapServer = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
         var reprojectedMapExtent = this.mapPanel.map.getExtent();
 
         // The reprojectedPoint and reprojectedMapExtent are not reprojected yet.
-        if (this.mapPanel.map.getProjectionObject() != layerProjection) {
+        if (this.mapPanel.map.getProjectionObject() !== layerProjection) {
             reprojectedPoint.transform(this.mapPanel.map.getProjectionObject(), layerProjection);
             reprojectedMapExtent.transform(this.mapPanel.map.getProjectionObject(), layerProjection);
         }
@@ -205,8 +210,7 @@ Atlas.Layer.ArcGISMapServer = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 
     /**
      * Return the HTML chunk that will be displayed in the balloon.
-     * @param xmlResponse RAW XML response
-     * @param textResponse RAW text response
+     * @param responseEvent response event object
      * @return {String} The HTML content of the feature info balloon, or null if the layer info should not be shown.
      */
     // Override
