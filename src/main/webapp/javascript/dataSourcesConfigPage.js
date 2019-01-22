@@ -202,7 +202,15 @@ Ext.define('Writer.LayerServerConfigForm', {
             }
         ];
 
-        var advancedItems = [];
+        var advancedItems = [
+            {
+                fieldLabel: 'Tree root',
+                qtipHtml: 'The root element in which the layers of this data source will appear in the client. This can be used to group multiple data sources together.<br/>' +
+                    'Default: value of <em>Data source name</em>',
+                name: 'treeRoot',
+                allowBlank: false
+            }
+        ];
 
 
         /** Define the KML file URLs grid **/
@@ -1602,6 +1610,7 @@ Ext.define('Writer.LayerServerConfig', {
         {name: 'dataSourceName', sortType: 'asUCString'},
         {name: 'layerType', type: 'string'},
         {name: 'lastHarvested', type: 'string'},
+        'treeRoot',
         'status',
         {name: 'modified', type: 'boolean', defaultValue: false},
         'serviceUrl',

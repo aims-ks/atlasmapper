@@ -21,7 +21,6 @@
 
 package au.gov.aims.atlasmapperserver.layerGenerator;
 
-import au.gov.aims.atlasmapperserver.cache.CacheEntry;
 import au.gov.aims.atlasmapperserver.cache.URLCache;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.jsonWrappers.client.DataSourceWrapper;
@@ -38,8 +37,6 @@ import java.sql.SQLException;
 import java.util.logging.Level;
 
 public abstract class AbstractLayerGenerator<L extends AbstractLayerConfig, D extends AbstractDataSourceConfig> {
-    protected long instanceTimestamp = -1;
-
     protected abstract String getUniqueLayerId(L layer, D dataSourceConfig) throws RevivableThreadInterruptedException;
 
     public DataSourceWrapper generateLayerCatalog(
