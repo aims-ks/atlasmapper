@@ -39,7 +39,7 @@ editAreaLoader.load_syntax["atlasmapperconfig"] = {
 		// Layers can override any data source entry
 		'dataSources': [
 			'featureRequestsUrl', 'serviceUrl', 'serviceUrls', 'webCacheUrl', 'legendUrl',
-			'dataSourceName', 'webCacheSupportedParameters', 'layerType',
+			'dataSourceName', 'treeRoot', 'webCacheSupportedParameters', 'layerType',
 			'legendParameters', 'wmsVersion'
 		],
 		'modules': [

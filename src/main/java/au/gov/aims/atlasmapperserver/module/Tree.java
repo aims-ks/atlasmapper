@@ -104,12 +104,28 @@ public class Tree extends AbstractModule {
             currentBranch = this.getTreeBranch(currentBranch, BASE_LAYERS_TAB_LABEL);
         } else {
             currentBranch = this.getTreeBranch(currentBranch, OVERLAY_LAYERS_TAB_LABEL);
-            String dataSourceName = layer.getDataSourceName(); // First check if the data source name has been overriden.
-            if (Utils.isBlank(dataSourceName) && dataSourceWrapper != null) {
-                dataSourceName = dataSourceWrapper.getDataSourceName();
+
+            // Find the tree root
+            // First check if the tree root has been overwritten in the layer config.
+            String manualTreeRoot = layer.getTreeRoot();
+            if (Utils.isBlank(manualTreeRoot) && dataSourceWrapper != null) {
+                // Get the tree root from the data source config.
+                manualTreeRoot = dataSourceWrapper.getTreeRoot();
             }
-            if (Utils.isNotBlank(dataSourceName)) {
-                currentBranch = this.getTreeBranch(currentBranch, dataSourceName);
+
+            if (Utils.isNotBlank(manualTreeRoot)) {
+                currentBranch = this.getTreeBranch(currentBranch, manualTreeRoot);
+            } else {
+                // There is no tree root defined. Use the data source name.
+                // First check if the data source name has been overwritten in the layer config.
+                String dataSourceName = layer.getDataSourceName();
+                if (Utils.isBlank(dataSourceName) && dataSourceWrapper != null) {
+                    // Get the data source name from the data source config.
+                    dataSourceName = dataSourceWrapper.getDataSourceName();
+                }
+                if (Utils.isNotBlank(dataSourceName)) {
+                    currentBranch = this.getTreeBranch(currentBranch, dataSourceName);
+                }
             }
         }
 

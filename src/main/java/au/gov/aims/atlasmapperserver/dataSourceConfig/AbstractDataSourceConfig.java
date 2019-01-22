@@ -69,6 +69,11 @@ public abstract class AbstractDataSourceConfig extends AbstractRunnableConfig<Ab
     @ConfigField
     private String dataSourceName;
 
+    // Label used in the layer tree. Can be used to put multiple datasources into the same tree.
+    // Default: dataSourceName
+    @ConfigField
+    private String treeRoot;
+
     @ConfigField(alias="dataSourceType")
     private String layerType;
 
@@ -392,11 +397,19 @@ public abstract class AbstractDataSourceConfig extends AbstractRunnableConfig<Ab
     }
 
     public String getDataSourceName() {
-        return dataSourceName;
+        return this.dataSourceName;
     }
 
     public void setDataSourceName(String dataSourceName) {
         this.dataSourceName = dataSourceName;
+    }
+
+    public String getTreeRoot() {
+        return this.treeRoot;
+    }
+
+    public void setTreeRoot(String treeRoot) {
+        this.treeRoot = treeRoot;
     }
 
     public Boolean isActiveDownload() {
@@ -408,7 +421,7 @@ public abstract class AbstractDataSourceConfig extends AbstractRunnableConfig<Ab
     }
 
     public Boolean isShowInLegend() {
-        return showInLegend;
+        return this.showInLegend;
     }
 
     public void setShowInLegend(Boolean showInLegend) {
@@ -539,17 +552,18 @@ public abstract class AbstractDataSourceConfig extends AbstractRunnableConfig<Ab
     @Override
     public String toString() {
         return "AbstractDataSourceConfig {\n" +
-                (id==null ? "" :                                   "	id=" + id + "\n") +
-                (Utils.isBlank(dataSourceId) ? "" :                "	dataSourceId=" + dataSourceId + "\n") +
-                (Utils.isBlank(dataSourceName) ? "" :              "	dataSourceName=" + dataSourceName + "\n") +
-                (Utils.isBlank(layerType) ? "" :                   "	layerType=" + layerType + "\n") +
-                (Utils.isBlank(serviceUrl) ? "" :                  "	serviceUrl=" + serviceUrl + "\n") +
-                (Utils.isBlank(featureRequestsUrl) ? "" :          "	featureRequestsUrl=" + featureRequestsUrl + "\n") +
-                (Utils.isBlank(legendUrl) ? "" :                   "	legendUrl=" + legendUrl + "\n") +
-                (legendParameters==null ? "" :                     "	legendParameters=" + legendParameters + "\n") +
-                (Utils.isBlank(blackAndWhiteListedLayers) ? "" :   "	blackAndWhiteListedLayers=" + blackAndWhiteListedLayers + "\n") +
-                (showInLegend==null ? "" :                         "	showInLegend=" + showInLegend + "\n") +
-                (Utils.isBlank(comment) ? "" :                     "	comment=" + comment + "\n") +
+                (this.id==null ? "" :                                  "	id=" + this.id + "\n") +
+                (Utils.isBlank(this.dataSourceId) ? "" :               "	dataSourceId=" + this.dataSourceId + "\n") +
+                (Utils.isBlank(this.dataSourceName) ? "" :             "	dataSourceName=" + this.dataSourceName + "\n") +
+                (Utils.isBlank(this.treeRoot) ? "" :                   "	treeRoot=" + this.treeRoot + "\n") +
+                (Utils.isBlank(this.layerType) ? "" :                  "	layerType=" + this.layerType + "\n") +
+                (Utils.isBlank(this.serviceUrl) ? "" :                 "	serviceUrl=" + this.serviceUrl + "\n") +
+                (Utils.isBlank(this.featureRequestsUrl) ? "" :         "	featureRequestsUrl=" + this.featureRequestsUrl + "\n") +
+                (Utils.isBlank(this.legendUrl) ? "" :                  "	legendUrl=" + this.legendUrl + "\n") +
+                (this.legendParameters==null ? "" :                    "	legendParameters=" + this.legendParameters + "\n") +
+                (Utils.isBlank(this.blackAndWhiteListedLayers) ? "" :  "	blackAndWhiteListedLayers=" + this.blackAndWhiteListedLayers + "\n") +
+                (this.showInLegend==null ? "" :                        "	showInLegend=" + this.showInLegend + "\n") +
+                (Utils.isBlank(this.comment) ? "" :                    "	comment=" + this.comment + "\n") +
             '}';
     }
 }

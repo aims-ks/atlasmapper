@@ -63,6 +63,13 @@ public class DataSourceWrapper extends AbstractWrapper {
         this.json.put("dataSourceName", dataSourceName);
     }
 
+    public String getTreeRoot() {
+        return this.json.optString("treeRoot", null);
+    }
+    public void setTreeRoot(String treeRoot) throws JSONException {
+        this.json.put("treeRoot", treeRoot);
+    }
+
     public String getLayerType() {
         return this.json.optString("layerType",
             // Backward compatibility
