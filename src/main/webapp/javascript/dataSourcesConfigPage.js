@@ -207,8 +207,7 @@ Ext.define('Writer.LayerServerConfigForm', {
                 fieldLabel: 'Tree root',
                 qtipHtml: 'The root element in which the layers of this data source will appear in the client. This can be used to group multiple data sources together.<br/>' +
                     'Default: value of <em>Data source name</em>',
-                name: 'treeRoot',
-                allowBlank: false
+                name: 'treeRoot'
             }
         ];
 
