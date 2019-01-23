@@ -86,6 +86,9 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
     private int layerCount;
 
     @ConfigField
+    private Boolean modified;
+
+    @ConfigField
     private String welcomeMsg;
 
     @ConfigField
@@ -278,31 +281,45 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
             JSONArray currentDataSources = this.getDataSources();
             JSONArray newDataSources = new JSONArray();
 
+            boolean modified = false;
             if (currentDataSources != null) {
                 for (int i=0; i < currentDataSources.length(); i++) {
                     String clientDataSourceId = currentDataSources.optString(i, null);
-                    if (Utils.isNotBlank(clientDataSourceId) && !dataSourceId.equals(clientDataSourceId)) {
-                        newDataSources.put(clientDataSourceId);
+                    if (Utils.isNotBlank(clientDataSourceId)) {
+                        if (dataSourceId.equals(clientDataSourceId)) {
+                            modified = true;
+                        } else {
+                            newDataSources.put(clientDataSourceId);
+                        }
                     }
                 }
             }
 
-            this.setDataSources(newDataSources);
+            if (modified) {
+                this.setModified(true);
+                this.setDataSources(newDataSources);
+            }
         }
+    }
+
+    public boolean hasDataSource(String dataSourceId) {
+        if (Utils.isNotBlank(dataSourceId)) {
+            for (int i=0; i < this.dataSources.length(); i++) {
+                String clientDataSourceId = this.dataSources.optString(i, null);
+                if (dataSourceId.equals(clientDataSourceId)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     public void addDataSource(String dataSourceId) {
         if (Utils.isNotBlank(dataSourceId)) {
-            boolean alreadyThere = false;
-            for (int i=0; i < this.dataSources.length() && !alreadyThere; i++) {
-                String clientDataSourceId = this.dataSources.optString(i, null);
-                if (dataSourceId.equals(clientDataSourceId)) {
-                    alreadyThere = true;
-                }
-            }
-
-            if (!alreadyThere) {
+            if (!this.hasDataSource(dataSourceId)) {
                 this.dataSources.put(dataSourceId);
+                this.setModified(true);
             }
         }
     }
@@ -318,18 +335,23 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
             JSONArray currentDataSources = this.getDataSources();
             JSONArray newDataSources = new JSONArray();
 
+            boolean modified = false;
             if (currentDataSources != null) {
                 for (int i=0; i < currentDataSources.length(); i++) {
                     String clientDataSourceId = currentDataSources.optString(i, null);
                     if (oldDataSourceId.equals(clientDataSourceId)) {
                         newDataSources.put(newDataSourceId);
+                        modified = true;
                     } else {
                         newDataSources.put(clientDataSourceId);
                     }
                 }
             }
 
-            this.setDataSources(newDataSources);
+            if (modified) {
+                this.setModified(true);
+                this.setDataSources(newDataSources);
+            }
         }
     }
 
@@ -625,6 +647,14 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
 
     public void setLayerCount(int layerCount) {
         this.layerCount = layerCount;
+    }
+
+    public boolean isModified() {
+        return this.modified == null ? false : this.modified;
+    }
+
+    public void setModified(Boolean modified) {
+        this.modified = modified;
     }
 
     public String getWelcomeMsg() {

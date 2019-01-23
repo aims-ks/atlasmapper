@@ -180,6 +180,7 @@ public class ClientConfigThread extends AbstractConfigThread {
 
                     this.clientConfig.setLayerCount(nbLayers);
                     this.clientConfig.setLastGeneratedDate(new Date());
+                    this.clientConfig.setModified(false); // Remove the yellow star (modified flag)
                     // Write the changes to disk
                     this.clientConfig.getConfigManager().saveServerConfig();
                 } catch (TemplateException ex) {

@@ -21,6 +21,8 @@
 
 package au.gov.aims.atlasmapperserver.dataSourceConfig;
 
+import au.gov.aims.atlasmapperserver.ClientConfig;
+import au.gov.aims.atlasmapperserver.collection.MultiKeyHashMap;
 import au.gov.aims.atlasmapperserver.thread.AbstractRunnableConfig;
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.Utils;
@@ -247,6 +249,23 @@ public abstract class AbstractDataSourceConfig extends AbstractRunnableConfig<Ab
             this.configThread.setClearMetadataCache(clearMetadataCache);
 
             this.start();
+        }
+    }
+
+    /**
+     * Set the modify flag for clients that are using this data source.
+     * @param modified The modified flag. True to show the yellow star, false to hide the yellow star.
+     * @throws IOException
+     * @throws JSONException
+     */
+    public void setModifiedForClients(boolean modified) throws IOException, JSONException {
+        MultiKeyHashMap<Integer, String, ClientConfig> clientConfigs = this.getConfigManager().getClientConfigs();
+        if (clientConfigs != null && !clientConfigs.isEmpty()) {
+            for (ClientConfig clientConfig : clientConfigs.values()) {
+                if (clientConfig.hasDataSource(this.dataSourceId)) {
+                    clientConfig.setModified(modified);
+                }
+            }
         }
     }
 

@@ -822,6 +822,7 @@ public class ConfigManager {
                     ClientConfig clientConfig = clientConfigs.get1(clientId);
                     if (clientConfig != null) {
                         clientConfig.update(dataSourceWrapper.getJSON(), true);
+                        clientConfig.setModified(true); // Set the yellow star (modified flag)
                         this.ensureUniqueness(clientConfig);
                     }
                 }

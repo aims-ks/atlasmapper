@@ -89,6 +89,7 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
                         nbLayers = layers.length();
                     }
                     this.dataSourceConfig.setLayerCount(nbLayers);
+                    this.dataSourceConfig.setModifiedForClients(true);
                     this.dataSourceConfig.getConfigManager().saveServerConfig();
                 }
             } catch(Exception ex) {
@@ -103,6 +104,7 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
 
                     // Save the data source state into the server.json config file
                     this.dataSourceConfig.setLayerCount(0);
+                    this.dataSourceConfig.setModifiedForClients(true);
                     this.dataSourceConfig.getConfigManager().saveServerConfig();
                 } catch(Exception ex) {
                     logger.log(Level.SEVERE, "An error occurred while saving the data source state: " + Utils.getExceptionMessage(ex), ex);
