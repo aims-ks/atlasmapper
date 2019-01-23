@@ -73,7 +73,7 @@ public class LayerCatalog {
     public static AbstractLayerConfig createLayer(String layerType, LayerWrapper layerConfigJSON, ConfigManager configManager) throws JSONException {
         if (layerType == null) {
             // Unsupported
-            throw new IllegalArgumentException("No data source type provided:\n" + layerConfigJSON.getJSON().toString(4));
+            throw new IllegalArgumentException("Layer not found:\n" + layerConfigJSON.getJSON().toString(4));
         }
 
         AbstractLayerConfig layerConfig = null;
