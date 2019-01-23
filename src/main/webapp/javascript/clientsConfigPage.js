@@ -978,6 +978,16 @@ Ext.define('Writer.ClientConfigGrid', {
                     sortable: true,
                     dataIndex: 'lastGenerated'
                 }, {
+                    header: 'Modified',
+                    width: 55,
+                    align: 'center',
+                    sortable: true,
+                    xtype: 'booleancolumn',
+                    // The icon is placed using CSS and the text is hidden with CSS.
+                    trueText: '<span class="modified-true"><span class="text">True</span></span>',
+                    falseText: '<span class="modified-false"><span class="text">False</span></span>',
+                    dataIndex: 'modified'
+                }, {
                     // http://docs.sencha.com/ext-js/4-0/#/api/Ext.grid.column.Action
                     header: 'Actions',
                     xtype: 'actioncolumn',
@@ -1393,6 +1403,7 @@ Ext.define('Writer.ClientConfig', {
         {name: 'clientId', sortType: 'asUCString'},
         {name: 'clientName', sortType: 'asUCString'},
         {name: 'layerCount', type: 'int'},
+        {name: 'modified', type: 'boolean', defaultValue: false},
 
         'attributions',
         'welcomeMsg',
