@@ -69,6 +69,9 @@ public abstract class AbstractDataSourceConfig extends AbstractRunnableConfig<Ab
     @ConfigField
     private String dataSourceName;
 
+    @ConfigField
+    private int layerCount;
+
     // Label used in the layer tree. Can be used to put multiple datasources into the same tree.
     // Default: dataSourceName
     @ConfigField
@@ -147,6 +150,7 @@ public abstract class AbstractDataSourceConfig extends AbstractRunnableConfig<Ab
             status = "INVALID";
         }
 
+        dataSourceWrapper.setLayerCount(nbLayers);
         dataSourceWrapper.setStatus(status);
 
         AbstractDataSourceConfig.write(applicationFolder, this.dataSourceId, dataSourceWrapper);
@@ -404,6 +408,14 @@ public abstract class AbstractDataSourceConfig extends AbstractRunnableConfig<Ab
         this.dataSourceName = dataSourceName;
     }
 
+    public int getLayerCount() {
+        return this.layerCount;
+    }
+
+    public void setLayerCount(int layerCount) {
+        this.layerCount = layerCount;
+    }
+
     public String getTreeRoot() {
         return this.treeRoot;
     }
@@ -528,6 +540,8 @@ public abstract class AbstractDataSourceConfig extends AbstractRunnableConfig<Ab
                     if (dataSourceSavedState != null) {
                         status = dataSourceSavedState.getStatus();
                         modified = dataSourceSavedState.isModified();
+
+                        dataSourceWrapper.setLayerCount(dataSourceSavedState.getLayerCount());
 
                         // lastModified() returns 0L if the file do not exists of an exception occurred.
                         long timestamp = dataSourceCatalogFile.lastModified();

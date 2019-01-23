@@ -178,6 +178,7 @@ public class ClientConfigThread extends AbstractConfigThread {
                     // Flush the proxy cache
                     Proxy.reloadConfig(generatedMainConfig, generatedLayers, this.clientConfig);
 
+                    this.clientConfig.setLayerCount(nbLayers);
                     this.clientConfig.setLastGeneratedDate(new Date());
                     // Write the changes to disk
                     this.clientConfig.getConfigManager().saveServerConfig();

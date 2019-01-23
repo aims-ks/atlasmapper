@@ -78,9 +78,18 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
                 // Set the layers and capabilities overrides into the clone
                 layerCatalog = this.getLayerCatalog(logger, urlcache, dataSourceConfigClone, this.clearCapabilitiesCache, this.clearMetadataCache);
 
-                // Save the data source state into a file
                 if (layerCatalog != null) {
+                    // Save the data source state into the generated datasource file (example: datasources/ea.json)
                     dataSourceConfigClone.save(logger, layerCatalog);
+
+                    // Save the data source state into the server.json config file
+                    int nbLayers = 0;
+                    JSONObject layers = layerCatalog.getLayers();
+                    if (layers != null) {
+                        nbLayers = layers.length();
+                    }
+                    this.dataSourceConfig.setLayerCount(nbLayers);
+                    this.dataSourceConfig.getConfigManager().saveServerConfig();
                 }
             } catch(Exception ex) {
                 logger.log(Level.SEVERE, "An error occurred while generating the layer catalogue: " + Utils.getExceptionMessage(ex), ex);
@@ -89,7 +98,12 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
             if (layerCatalog == null) {
                 // Save the data source error state into a file
                 try {
+                    // Save the data source state into the generated datasource file (example: datasources/ea.json)
                     this.dataSourceConfig.save(logger, null);
+
+                    // Save the data source state into the server.json config file
+                    this.dataSourceConfig.setLayerCount(0);
+                    this.dataSourceConfig.getConfigManager().saveServerConfig();
                 } catch(Exception ex) {
                     logger.log(Level.SEVERE, "An error occurred while saving the data source state: " + Utils.getExceptionMessage(ex), ex);
                 }

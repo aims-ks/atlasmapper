@@ -29,48 +29,50 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class AbstractWrapper implements Cloneable {
-	private static final Logger LOGGER = Logger.getLogger(AbstractWrapper.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(AbstractWrapper.class.getName());
 
-	protected JSONObject json;
+    protected JSONObject json;
 
-	public AbstractWrapper() {
-		this.json = new JSONObject();
-	}
+    public AbstractWrapper() {
+        this.json = new JSONObject();
+    }
 
-	public AbstractWrapper(JSONObject json) {
-		this.json = json;
-	}
+    public AbstractWrapper(JSONObject json) {
+        this.json = json;
+    }
 
-	public JSONObject getJSON() {
-		return this.json;
-	}
+    public JSONObject getJSON() {
+        return this.json;
+    }
 
-	protected void setValue(String key, Object value) throws JSONException {
-		if (value == null) {
-			this.json.remove(key);
-		} else {
-			this.json.put(key, value);
-		}
-	}
+    protected void setValue(String key, Object value) throws JSONException {
+        if (value == null) {
+            this.json.remove(key);
+        } else {
+            this.json.put(key, value);
+        }
+    }
 
-	public Object clone() {
-		JSONObject jsonClone = new JSONObject();
+    public Object clone() {
+        JSONObject jsonClone = new JSONObject();
 
-		try {
-			Iterator<String> keys = this.json.keys();
-			if (keys != null) {
-				while (keys.hasNext()) {
-					String key = keys.next();
-					jsonClone.put(key, this.json.opt(key));
-				}
-			}
+        try {
+            if (this.json != null) {
+                Iterator<String> keys = this.json.keys();
+                if (keys != null) {
+                    while (keys.hasNext()) {
+                        String key = keys.next();
+                        jsonClone.put(key, this.json.opt(key));
+                    }
+                }
+            }
 
-			return this.getClass().getConstructor(JSONObject.class).newInstance(jsonClone);
-		} catch (Exception e) {
-			LOGGER.log(Level.SEVERE, "Can not clone Object of class {0}: {1}",
-					new String[] { this.getClass().getName(), Utils.getExceptionMessage(e) });
-			LOGGER.log(Level.FINE, "Stack trace: ", e);
-		}
-		return null;
-	}
+            return this.getClass().getConstructor(JSONObject.class).newInstance(jsonClone);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Can not clone Object of class {0}: {1}",
+                    new String[] { this.getClass().getName(), Utils.getExceptionMessage(e) });
+            LOGGER.log(Level.FINE, "Stack trace: ", e);
+        }
+        return null;
+    }
 }
