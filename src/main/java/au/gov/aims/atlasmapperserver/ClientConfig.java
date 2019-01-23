@@ -83,6 +83,9 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
     private String clientName;
 
     @ConfigField
+    private int layerCount;
+
+    @ConfigField
     private String welcomeMsg;
 
     @ConfigField
@@ -614,6 +617,14 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
 
     public void setClientName(String clientName) {
         this.clientName = clientName;
+    }
+
+    public int getLayerCount() {
+        return this.layerCount;
+    }
+
+    public void setLayerCount(int layerCount) {
+        this.layerCount = layerCount;
     }
 
     public String getWelcomeMsg() {

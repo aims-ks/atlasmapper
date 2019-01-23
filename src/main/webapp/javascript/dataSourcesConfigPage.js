@@ -199,17 +199,15 @@ Ext.define('Writer.LayerServerConfigForm', {
                 qtipHtml: 'A human readable name for this data source. Must be short and descriptive. This field is used as a title for the tab in the <em>Add layer</em> window',
                 name: 'dataSourceName',
                 allowBlank: false
-            }
-        ];
-
-        var advancedItems = [
-            {
+            }, {
                 fieldLabel: 'Tree root',
                 qtipHtml: 'The root element in which the layers of this data source will appear in the client. This can be used to group multiple data sources together.<br/>' +
                     'Default: value of <em>Data source name</em>',
                 name: 'treeRoot'
             }
         ];
+
+        var advancedItems = [];
 
 
         /** Define the KML file URLs grid **/
@@ -959,6 +957,10 @@ Ext.define('Writer.LayerServerConfigGrid', {
         return htmlStatus;
     },
 
+    renderLayerCount: function(layerCount) {
+        return layerCount <= 0 ? '<span class="grid-error">0</span>' : '<span class="grid-success">' + layerCount + '</span>';
+    },
+
     initComponent: function(){
         var that = this;
 
@@ -1007,6 +1009,12 @@ Ext.define('Writer.LayerServerConfigGrid', {
                     flex: 1,
                     sortable: true,
                     dataIndex: 'dataSourceName'
+                }, {
+                    header: 'Layers',
+                    width: 70,
+                    sortable: true,
+                    dataIndex: 'layerCount',
+                    renderer: that.renderLayerCount
                 }, {
                     header: 'Last build',
                     width: 130,
@@ -1609,6 +1617,7 @@ Ext.define('Writer.LayerServerConfig', {
         {name: 'dataSourceName', sortType: 'asUCString'},
         {name: 'layerType', type: 'string'},
         {name: 'lastHarvested', type: 'string'},
+        {name: 'layerCount', type: 'int'},
         'treeRoot',
         'status',
         {name: 'modified', type: 'boolean', defaultValue: false},

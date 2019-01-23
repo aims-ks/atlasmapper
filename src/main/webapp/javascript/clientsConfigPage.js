@@ -897,6 +897,10 @@ Ext.define('Writer.ClientConfigGrid', {
         'Ext.toolbar.TextItem'
     ],
 
+    renderLayerCount: function(layerCount) {
+        return layerCount <= 0 ? '<span class="grid-error">0</span>' : '<span class="grid-success">' + layerCount + '</span>';
+    },
+
     initComponent: function(){
         Ext.apply(this, {
             iconCls: 'icon-grid',
@@ -962,6 +966,12 @@ Ext.define('Writer.ClientConfigGrid', {
                     renderer: function(val) {
                         return val ? '<a href="'+val+'" target="_blank">Preview layers</a>' : '';
                     }
+                }, {
+                    header: 'Layers',
+                    width: 70,
+                    sortable: true,
+                    dataIndex: 'layerCount',
+                    renderer: this.renderLayerCount
                 }, {
                     header: 'Last generated',
                     width: 130,
@@ -1382,6 +1392,7 @@ Ext.define('Writer.ClientConfig', {
         // asUCString: As UpperCase String -> Ignore case sorting
         {name: 'clientId', sortType: 'asUCString'},
         {name: 'clientName', sortType: 'asUCString'},
+        {name: 'layerCount', type: 'int'},
 
         'attributions',
         'welcomeMsg',

@@ -811,7 +811,7 @@ public class ConfigManager {
             return;
         }
 
-        MultiKeyHashMap<Integer, String, ClientConfig> configs = this.getClientConfigs();
+        MultiKeyHashMap<Integer, String, ClientConfig> clientConfigs = this.getClientConfigs();
         JSONArray dataJSonArr = this.getPostedData(request);
         if (dataJSonArr != null) {
             for (int i=0; i<dataJSonArr.length(); i++) {
@@ -819,20 +819,10 @@ public class ConfigManager {
                 if (jsonDataSource != null) {
                     DataSourceWrapper dataSourceWrapper = new DataSourceWrapper(jsonDataSource);
                     Integer clientId = dataSourceWrapper.getId();
-                    ClientConfig clientConfig = configs.get1(clientId);
+                    ClientConfig clientConfig = clientConfigs.get1(clientId);
                     if (clientConfig != null) {
-                        //File oldClientFolder = FileFinder.getAtlasMapperClientFolder(this.applicationFolder, clientConfig, false);
-                        //File oldConfigFolder = FileFinder.getAtlasMapperClientConfigFolder(this.applicationFolder, clientConfig, false);
-
                         clientConfig.update(dataSourceWrapper.getJSON(), true);
                         this.ensureUniqueness(clientConfig);
-
-                        //File newClientFolder = FileFinder.getAtlasMapperClientFolder(this.applicationFolder, clientConfig, false);
-                        //File newConfigFolder = FileFinder.getAtlasMapperClientConfigFolder(this.applicationFolder, clientConfig, false);
-
-                        // Move the client folder. This feature works, but it's an unexpected behaviour.
-                        // The function may be re-added later, with a confirmation window asking the admin if that's what he want to do.
-                        //this.moveClientFolder(oldClientFolder, newClientFolder, oldConfigFolder, newConfigFolder);
                     }
                 }
             }

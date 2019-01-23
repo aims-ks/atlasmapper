@@ -226,6 +226,13 @@ label .grid-warning {
     display: none;
 }
 
+.grid-error {
+    color: #CC0000;
+}
+.grid-success {
+    color: #009900;
+}
+
 .grid-ds-id {
     font-size: 0.9em;
     color: #999999;

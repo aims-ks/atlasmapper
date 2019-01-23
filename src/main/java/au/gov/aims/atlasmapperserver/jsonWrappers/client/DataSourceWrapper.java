@@ -260,6 +260,13 @@ public class DataSourceWrapper extends AbstractWrapper {
         this.setValue("status", status);
     }
 
+    public int getLayerCount() {
+        return this.json.optInt("layerCount", 0);
+    }
+    public void setLayerCount(int layerCount) throws JSONException {
+        this.setValue("layerCount", layerCount);
+    }
+
     public boolean isModified() {
         return this.json.optBoolean("modified", false);
     }
