@@ -224,12 +224,18 @@
                         }
 
                         if (welcomeMsg) {
+                            // Destroy this window on close, to stop video playback (if any)
+                            // (i.e. the video needs to stop when the button [OK] or the [X] is clicked)
+                            //     https://docs.sencha.com/extjs/3.4.0/#!/api/Ext.MessageBox
                             welcomeWindow = Ext.Msg.show({
                                 title:'Welcome',
                                 msg: welcomeMsg,
                                 cls: 'welcomeCls',
                                 minWidth: 500,
-                                buttons: Ext.Msg.OK
+                                buttons: Ext.Msg.OK,
+                                fn: function(buttonId, text, opt) {
+                                    welcomeWindow.getDialog().destroy();
+                                }
                             });
                         }
                     };
