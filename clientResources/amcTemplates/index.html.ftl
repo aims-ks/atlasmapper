@@ -226,17 +226,48 @@
                         if (welcomeMsg) {
                             // Destroy this window on close, to stop video playback (if any)
                             // (i.e. the video needs to stop when the button [OK] or the [X] is clicked)
-                            //     https://docs.sencha.com/extjs/3.4.0/#!/api/Ext.MessageBox
-                            welcomeWindow = Ext.Msg.show({
-                                title:'Welcome',
-                                msg: welcomeMsg,
-                                cls: 'welcomeCls',
+                            // NOTE: The Ext.Msg.show window can't be used here, because the default close
+                            //     action for that window is "hide" and destroying that window would make it
+                            //     unusable elsewhere in the system.
+
+                            welcomeWindow = new Ext.Window({
+                                layout: 'fit',
+                                title: 'Welcome',
+                                closable: true,
+                                resizable: false,
+                                plain: true,
+                                border: false,
                                 minWidth: 500,
-                                buttons: Ext.Msg.OK,
-                                fn: function(buttonId, text, opt) {
-                                    welcomeWindow.getDialog().destroy();
-                                }
+                                minHeight: 80,
+
+                                constrain: true,
+                                constrainHeader: true,
+                                minimizable : false,
+                                maximizable : false,
+                                stateful: false,
+                                modal: true,
+                                shim: true,
+                                buttonAlign: "center",
+                                footer: true,
+
+                                cls: 'x-window-dlg',
+                                padding: 0,
+
+                                items: [{
+                                    xtype: 'panel',
+                                    cls: 'ext-mb-text',
+                                    autoScroll: true,
+                                    padding: "5px 10px",
+                                    html: '<div style="max-width:700px;">' + welcomeMsg + '</div>'
+                                }],
+                                buttons: [{
+                                    text: 'OK',
+                                    handler: function(button, evt) {
+                                        welcomeWindow.close();
+                                    }
+                                }]
                             });
+                            welcomeWindow.show();
                         }
                     };
 
@@ -321,8 +352,8 @@
                         listeners: {
                             // OpenLayers steal the focus of the welcome window, preventing the user from closing it using ESC or Enter.
                             'afterrender': function() {
-                                if (welcomeWindow && welcomeWindow.getDialog()) {
-                                    welcomeWindow.getDialog().focus.defer(1, welcomeWindow.getDialog());
+                                if (welcomeWindow) {
+                                    welcomeWindow.focus.defer(1, welcomeWindow);
                                 }
                             }
                         }
