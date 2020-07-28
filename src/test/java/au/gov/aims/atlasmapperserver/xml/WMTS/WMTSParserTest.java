@@ -39,7 +39,7 @@ public class WMTSParserTest {
         WMTSDocument doc = null;
         try {
             inputStream = url.openStream();
-            doc = WMTSParser.parseInputStream(inputStream, "tc211_full.xml");
+            doc = WMTSParser.parseInputStream(inputStream, "geoWebCache1-4_wmts.xml");
         } finally {
             if (inputStream != null) {
                 inputStream.close();

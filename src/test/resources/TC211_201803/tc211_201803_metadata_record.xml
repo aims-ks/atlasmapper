@@ -1,0 +1,896 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdb:MD_Metadata xmlns:mdb="http://standards.iso.org/iso/19115/-3/mdb/2.0"
+                 xmlns:cat="http://standards.iso.org/iso/19115/-3/cat/1.0"
+                 xmlns:cit="http://standards.iso.org/iso/19115/-3/cit/2.0"
+                 xmlns:gco="http://standards.iso.org/iso/19115/-3/gco/1.0"
+                 xmlns:gcx="http://standards.iso.org/iso/19115/-3/gcx/1.0"
+                 xmlns:gex="http://standards.iso.org/iso/19115/-3/gex/1.0"
+                 xmlns:gml="http://www.opengis.net/gml/3.2"
+                 xmlns:lan="http://standards.iso.org/iso/19115/-3/lan/1.0"
+                 xmlns:mac="http://standards.iso.org/iso/19115/-3/mac/2.0"
+                 xmlns:mas="http://standards.iso.org/iso/19115/-3/mas/1.0"
+                 xmlns:mcc="http://standards.iso.org/iso/19115/-3/mcc/1.0"
+                 xmlns:mco="http://standards.iso.org/iso/19115/-3/mco/1.0"
+                 xmlns:mda="http://standards.iso.org/iso/19115/-3/mda/1.0"
+                 xmlns:mdq="http://standards.iso.org/iso/19157/-2/mdq/1.0"
+                 xmlns:mds="http://standards.iso.org/iso/19115/-3/mds/1.0"
+                 xmlns:mdt="http://standards.iso.org/iso/19115/-3/mdt/1.0"
+                 xmlns:mex="http://standards.iso.org/iso/19115/-3/mex/1.0"
+                 xmlns:mmi="http://standards.iso.org/iso/19115/-3/mmi/1.0"
+                 xmlns:mpc="http://standards.iso.org/iso/19115/-3/mpc/1.0"
+                 xmlns:mrc="http://standards.iso.org/iso/19115/-3/mrc/2.0"
+                 xmlns:mrd="http://standards.iso.org/iso/19115/-3/mrd/1.0"
+                 xmlns:mri="http://standards.iso.org/iso/19115/-3/mri/1.0"
+                 xmlns:mrl="http://standards.iso.org/iso/19115/-3/mrl/2.0"
+                 xmlns:mrs="http://standards.iso.org/iso/19115/-3/mrs/1.0"
+                 xmlns:msr="http://standards.iso.org/iso/19115/-3/msr/2.0"
+                 xmlns:srv="http://standards.iso.org/iso/19115/-3/srv/2.0"
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xsi:schemaLocation="http://standards.iso.org/iso/19115/-3/cat/1.0 http://standards.iso.org/iso/19115/-3/cat/1.0/cat.xsd http://standards.iso.org/iso/19115/-3/cit/2.0 http://standards.iso.org/iso/19115/-3/cit/2.0/cit.xsd http://standards.iso.org/iso/19115/-3/gcx/1.0 http://standards.iso.org/iso/19115/-3/gcx/1.0/gcx.xsd http://standards.iso.org/iso/19115/-3/gex/1.0 http://standards.iso.org/iso/19115/-3/gex/1.0/gex.xsd http://standards.iso.org/iso/19115/-3/lan/1.0 http://standards.iso.org/iso/19115/-3/lan/1.0/lan.xsd http://standards.iso.org/iso/19115/-3/srv/2.0 http://standards.iso.org/iso/19115/-3/srv/2.0/srv.xsd http://standards.iso.org/iso/19115/-3/mas/1.0 http://standards.iso.org/iso/19115/-3/mas/1.0/mas.xsd http://standards.iso.org/iso/19115/-3/mcc/1.0 http://standards.iso.org/iso/19115/-3/mcc/1.0/mcc.xsd http://standards.iso.org/iso/19115/-3/mco/1.0 http://standards.iso.org/iso/19115/-3/mco/1.0/mco.xsd http://standards.iso.org/iso/19115/-3/mda/2.0 http://standards.iso.org/iso/19115/-3/mda/2.0/mda.xsd http://standards.iso.org/iso/19115/-3/mdb/2.0 http://standards.iso.org/iso/19115/-3/mdb/2.0/mdb.xsd http://standards.iso.org/iso/19115/-3/mds/2.0 http://standards.iso.org/iso/19115/-3/mds/2.0/mds.xsd http://standards.iso.org/iso/19115/-3/mdt/2.0 http://standards.iso.org/iso/19115/-3/mdt/2.0/mdt.xsd http://standards.iso.org/iso/19115/-3/mex/1.0 http://standards.iso.org/iso/19115/-3/mex/1.0/mex.xsd http://standards.iso.org/iso/19115/-3/mmi/1.0 http://standards.iso.org/iso/19115/-3/mmi/1.0/mmi.xsd http://standards.iso.org/iso/19115/-3/mpc/1.0 http://standards.iso.org/iso/19115/-3/mpc/1.0/mpc.xsd http://standards.iso.org/iso/19115/-3/mrc/2.0 http://standards.iso.org/iso/19115/-3/mrc/2.0/mrc.xsd http://standards.iso.org/iso/19115/-3/mrd/1.0 http://standards.iso.org/iso/19115/-3/mrd/1.0/mrd.xsd http://standards.iso.org/iso/19115/-3/mri/1.0 http://standards.iso.org/iso/19115/-3/mri/1.0/mri.xsd http://standards.iso.org/iso/19115/-3/mrl/2.0 http://standards.iso.org/iso/19115/-3/mrl/2.0/mrl.xsd http://standards.iso.org/iso/19115/-3/mrs/1.0 http://standards.iso.org/iso/19115/-3/mrs/1.0/mrs.xsd http://standards.iso.org/iso/19115/-3/msr/2.0 http://standards.iso.org/iso/19115/-3/msr/2.0/msr.xsd http://standards.iso.org/iso/19157/-2/mdq/1.0 http://standards.iso.org/iso/19157/-2/mdq/1.0/mdq.xsd http://standards.iso.org/iso/19115/-3/mac/2.0 http://standards.iso.org/iso/19115/-3/mac/2.0/mac.xsd http://standards.iso.org/iso/19115/-3/gco/1.0 http://standards.iso.org/iso/19115/-3/gco/1.0/gco.xsd http://standards.iso.org/iso/19115/-3/gmw/1.0 http://standards.iso.org/iso/19115/-3/gmw/1.0/gmw.xsd http://www.opengis.net/gml/3.2 http://schemas.opengis.net/gml/3.2.1/gml.xsd http://www.w3.org/1999/xlink http://www.w3.org/1999/xlink.xsd">
+  <mdb:metadataIdentifier>
+      <mcc:MD_Identifier>
+         <mcc:code>
+            <gco:CharacterString>0e5ca52f-5525-44da-b0ca-df758850963e</gco:CharacterString>
+         </mcc:code>
+      </mcc:MD_Identifier>
+  </mdb:metadataIdentifier>
+  <mdb:defaultLocale>
+      <lan:PT_Locale>
+         <lan:language>
+            <lan:LanguageCode codeList="http://www.loc.gov/standards/iso639-2/" codeListValue="eng"/>
+         </lan:language>
+         <lan:characterEncoding>
+            <lan:MD_CharacterSetCode codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#MD_CharacterSetCode"
+                                     codeListValue="utf8"/>
+         </lan:characterEncoding>
+      </lan:PT_Locale>
+  </mdb:defaultLocale>
+  <mdb:parentMetadata uuidref=""/>
+  <mdb:metadataScope>
+      <mdb:MD_MetadataScope>
+         <mdb:resourceScope>
+            <mcc:MD_ScopeCode codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#MD_ScopeCode"
+                              codeListValue="dataset"/>
+         </mdb:resourceScope>
+         <mdb:name gco:nilReason="missing">
+            <gco:CharacterString/>
+         </mdb:name>
+      </mdb:MD_MetadataScope>
+  </mdb:metadataScope>
+  <mdb:contact>
+      <cit:CI_Responsibility>
+         <cit:role>
+            <cit:CI_RoleCode codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#CI_RoleCode"
+                             codeListValue="pointOfContact"/>
+         </cit:role>
+         <cit:party>
+            <cit:CI_Organisation>
+               <cit:name>
+                  <gco:CharacterString>Australian Institute of Marine Science (AIMS)</gco:CharacterString>
+               </cit:name>
+               <cit:contactInfo>
+                  <cit:CI_Contact>
+                     <cit:phone>
+                        <cit:CI_Telephone>
+                           <cit:number>
+                              <gco:CharacterString>+61 7 4753 4444</gco:CharacterString>
+                           </cit:number>
+                           <cit:numberType>
+                              <cit:CI_TelephoneTypeCode codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#CI_TelephoneTypeCode"
+                                                        codeListValue="voice"/>
+                           </cit:numberType>
+                        </cit:CI_Telephone>
+                     </cit:phone>
+                     <cit:phone>
+                        <cit:CI_Telephone>
+                           <cit:number>
+                              <gco:CharacterString>+61 7 4772 5852</gco:CharacterString>
+                           </cit:number>
+                           <cit:numberType>
+                              <cit:CI_TelephoneTypeCode codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#CI_TelephoneTypeCode"
+                                                        codeListValue="facsimile"/>
+                           </cit:numberType>
+                        </cit:CI_Telephone>
+                     </cit:phone>
+                     <cit:address>
+                        <cit:CI_Address>
+                           <cit:deliveryPoint>
+                              <gco:CharacterString>PRIVATE MAIL BAG 3</gco:CharacterString>
+                           </cit:deliveryPoint>
+                           <cit:city>
+                              <gco:CharacterString>TOWNSVILLE MAIL CENTRE</gco:CharacterString>
+                           </cit:city>
+                           <cit:administrativeArea>
+                              <gco:CharacterString>Queensland</gco:CharacterString>
+                           </cit:administrativeArea>
+                           <cit:postalCode>
+                              <gco:CharacterString>4810</gco:CharacterString>
+                           </cit:postalCode>
+                           <cit:country>
+                              <gco:CharacterString>Australia</gco:CharacterString>
+                           </cit:country>
+                           <cit:electronicMailAddress>
+                              <gco:CharacterString>adc@aims.gov.au</gco:CharacterString>
+                           </cit:electronicMailAddress>
+                        </cit:CI_Address>
+                     </cit:address>
+                     <cit:onlineResource>
+                        <cit:CI_OnlineResource>
+                           <cit:linkage>
+                              <gco:CharacterString>http://www.aims.gov.au/adc</gco:CharacterString>
+                           </cit:linkage>
+                           <cit:protocol>
+                              <gco:CharacterString>WWW:LINK-1.0-http--link</gco:CharacterString>
+                           </cit:protocol>
+                        </cit:CI_OnlineResource>
+                     </cit:onlineResource>
+                     <cit:hoursOfService>
+                        <gco:CharacterString>0800 to 1640 UTC+10: Monday to Friday</gco:CharacterString>
+                     </cit:hoursOfService>
+                  </cit:CI_Contact>
+               </cit:contactInfo>
+               <cit:individual>
+                  <cit:CI_Individual>
+                     <cit:positionName>
+                        <gco:CharacterString>AIMS Data Centre</gco:CharacterString>
+                     </cit:positionName>
+                  </cit:CI_Individual>
+               </cit:individual>
+            </cit:CI_Organisation>
+         </cit:party>
+      </cit:CI_Responsibility>
+  </mdb:contact>
+  <mdb:dateInfo>
+      <cit:CI_Date>
+         <cit:date>
+            <gco:DateTime>2019-12-05T00:00:00</gco:DateTime>
+         </cit:date>
+         <cit:dateType>
+            <cit:CI_DateTypeCode codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#CI_DateTypeCode"
+                                 codeListValue="creation"/>
+         </cit:dateType>
+      </cit:CI_Date>
+  </mdb:dateInfo>
+  <mdb:dateInfo>
+      <cit:CI_Date>
+         <cit:date>
+            <gco:DateTime>2020-07-27T13:40:42</gco:DateTime>
+         </cit:date>
+         <cit:dateType>
+            <cit:CI_DateTypeCode codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#CI_DateTypeCode"
+                                 codeListValue="revision"/>
+         </cit:dateType>
+      </cit:CI_Date>
+  </mdb:dateInfo>
+  <mdb:metadataStandard>
+      <cit:CI_Citation>
+         <cit:title>
+            <gco:CharacterString>ISO 19115-3:2018</gco:CharacterString>
+         </cit:title>
+      </cit:CI_Citation>
+  </mdb:metadataStandard>
+  <mdb:metadataLinkage>
+      <cit:CI_OnlineResource>
+         <cit:linkage>
+            <gco:CharacterString>http://apps.aims.gov.au/metadata/view/0e5ca52f-5525-44da-b0ca-df758850963e</gco:CharacterString>
+         </cit:linkage>
+         <cit:protocol>
+            <gco:CharacterString>WWW:LINK-1.0-http--metadata-URL</gco:CharacterString>
+         </cit:protocol>
+         <cit:name gco:nilReason="missing">
+            <gco:CharacterString/>
+         </cit:name>
+         <cit:description>
+            <gco:CharacterString>Point of truth URL of this metadata record</gco:CharacterString>
+         </cit:description>
+         <cit:function>
+            <cit:CI_OnLineFunctionCode codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#CI_OnLineFunctionCode"
+                                       codeListValue=""/>
+         </cit:function>
+      </cit:CI_OnlineResource>
+  </mdb:metadataLinkage>
+  <mdb:identificationInfo>
+      <mri:MD_DataIdentification>
+         <mri:citation>
+            <cit:CI_Citation>
+               <cit:title>
+                  <gco:CharacterString>NWSSRP Theme 2 - Project 2b: Seabed Habitats And Biodiversity (Oysters)</gco:CharacterString>
+               </cit:title>
+               <cit:date>
+                  <cit:CI_Date>
+                     <cit:date>
+                        <gco:DateTime>2020-07-27T00:00:00</gco:DateTime>
+                     </cit:date>
+                     <cit:dateType>
+                        <cit:CI_DateTypeCode codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#CI_DateTypeCode"
+                                             codeListValue="revision"/>
+                     </cit:dateType>
+                  </cit:CI_Date>
+               </cit:date>
+               <cit:citedResponsibleParty>
+                  <cit:CI_Responsibility>
+                     <cit:role>
+                        <cit:CI_RoleCode codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#CI_RoleCode"
+                                         codeListValue="publisher"/>
+                     </cit:role>
+                     <cit:party>
+                        <cit:CI_Organisation>
+                           <cit:name>
+                              <gco:CharacterString>Australian Institute of Marine Science (AIMS)</gco:CharacterString>
+                           </cit:name>
+                           <cit:contactInfo>
+                              <cit:CI_Contact>
+                                 <cit:phone>
+                                    <cit:CI_Telephone>
+                                       <cit:number>
+                                          <gco:CharacterString>+61 7 4753 4444</gco:CharacterString>
+                                       </cit:number>
+                                       <cit:numberType>
+                                          <cit:CI_TelephoneTypeCode codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#CI_TelephoneTypeCode"
+                                                                    codeListValue="voice"/>
+                                       </cit:numberType>
+                                    </cit:CI_Telephone>
+                                 </cit:phone>
+                                 <cit:phone>
+                                    <cit:CI_Telephone>
+                                       <cit:number gco:nilReason="missing">
+                                          <gco:CharacterString/>
+                                       </cit:number>
+                                       <cit:numberType>
+                                          <cit:CI_TelephoneTypeCode codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#CI_TelephoneTypeCode"
+                                                                    codeListValue="facsimile"/>
+                                       </cit:numberType>
+                                    </cit:CI_Telephone>
+                                 </cit:phone>
+                                 <cit:address>
+                                    <cit:CI_Address>
+                                       <cit:deliveryPoint>
+                                          <gco:CharacterString>PRIVATE MAIL BAG 3, TOWNSVILLE MAIL CENTRE</gco:CharacterString>
+                                       </cit:deliveryPoint>
+                                       <cit:city>
+                                          <gco:CharacterString>TOWNSVILLE</gco:CharacterString>
+                                       </cit:city>
+                                       <cit:administrativeArea>
+                                          <gco:CharacterString>Queensland</gco:CharacterString>
+                                       </cit:administrativeArea>
+                                       <cit:postalCode>
+                                          <gco:CharacterString>4810</gco:CharacterString>
+                                       </cit:postalCode>
+                                       <cit:country>
+                                          <gco:CharacterString>Australia</gco:CharacterString>
+                                       </cit:country>
+                                       <cit:electronicMailAddress>
+                                          <gco:CharacterString>reception@aims.gov.au</gco:CharacterString>
+                                       </cit:electronicMailAddress>
+                                    </cit:CI_Address>
+                                 </cit:address>
+                                 <cit:onlineResource>
+                                    <cit:CI_OnlineResource>
+                                       <cit:linkage>
+                                          <gco:CharacterString>http://www.aims.gov.au</gco:CharacterString>
+                                       </cit:linkage>
+                                       <cit:protocol>
+                                          <gco:CharacterString>WWW:LINK-1.0-http--link</gco:CharacterString>
+                                       </cit:protocol>
+                                       <cit:name>
+                                          <gco:CharacterString>AIMS Web Site</gco:CharacterString>
+                                       </cit:name>
+                                    </cit:CI_OnlineResource>
+                                 </cit:onlineResource>
+                                 <cit:hoursOfService gco:nilReason="missing">
+                                    <gco:CharacterString/>
+                                 </cit:hoursOfService>
+                              </cit:CI_Contact>
+                           </cit:contactInfo>
+                           <cit:individual>
+                              <cit:CI_Individual>
+                                 <cit:name gco:nilReason="missing">
+                                    <gco:CharacterString/>
+                                 </cit:name>
+                                 <cit:positionName gco:nilReason="missing">
+                                    <gco:CharacterString/>
+                                 </cit:positionName>
+                              </cit:CI_Individual>
+                           </cit:individual>
+                        </cit:CI_Organisation>
+                     </cit:party>
+                  </cit:CI_Responsibility>
+               </cit:citedResponsibleParty>
+               <cit:citedResponsibleParty>
+                  <cit:CI_Responsibility>
+                     <cit:role>
+                        <cit:CI_RoleCode codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#CI_RoleCode"
+                                         codeListValue="owner"/>
+                     </cit:role>
+                     <cit:party>
+                        <cit:CI_Organisation>
+                           <cit:name>
+                              <gco:CharacterString>Australian Institute of Marine Science (AIMS)</gco:CharacterString>
+                           </cit:name>
+                           <cit:contactInfo>
+                              <cit:CI_Contact>
+                                 <cit:phone>
+                                    <cit:CI_Telephone>
+                                       <cit:number>
+                                          <gco:CharacterString>+61 7 4753 4444</gco:CharacterString>
+                                       </cit:number>
+                                       <cit:numberType>
+                                          <cit:CI_TelephoneTypeCode codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#CI_TelephoneTypeCode"
+                                                                    codeListValue="voice"/>
+                                       </cit:numberType>
+                                    </cit:CI_Telephone>
+                                 </cit:phone>
+                                 <cit:phone>
+                                    <cit:CI_Telephone>
+                                       <cit:number gco:nilReason="missing">
+                                          <gco:CharacterString/>
+                                       </cit:number>
+                                       <cit:numberType>
+                                          <cit:CI_TelephoneTypeCode codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#CI_TelephoneTypeCode"
+                                                                    codeListValue="facsimile"/>
+                                       </cit:numberType>
+                                    </cit:CI_Telephone>
+                                 </cit:phone>
+                                 <cit:address>
+                                    <cit:CI_Address>
+                                       <cit:deliveryPoint>
+                                          <gco:CharacterString>PRIVATE MAIL BAG 3, TOWNSVILLE MAIL CENTRE</gco:CharacterString>
+                                       </cit:deliveryPoint>
+                                       <cit:city>
+                                          <gco:CharacterString>TOWNSVILLE</gco:CharacterString>
+                                       </cit:city>
+                                       <cit:administrativeArea>
+                                          <gco:CharacterString>Queensland</gco:CharacterString>
+                                       </cit:administrativeArea>
+                                       <cit:postalCode>
+                                          <gco:CharacterString>4810</gco:CharacterString>
+                                       </cit:postalCode>
+                                       <cit:country>
+                                          <gco:CharacterString>Australia</gco:CharacterString>
+                                       </cit:country>
+                                       <cit:electronicMailAddress>
+                                          <gco:CharacterString>reception@aims.gov.au</gco:CharacterString>
+                                       </cit:electronicMailAddress>
+                                    </cit:CI_Address>
+                                 </cit:address>
+                                 <cit:onlineResource>
+                                    <cit:CI_OnlineResource>
+                                       <cit:linkage>
+                                          <gco:CharacterString>http://www.aims.gov.au</gco:CharacterString>
+                                       </cit:linkage>
+                                       <cit:protocol>
+                                          <gco:CharacterString>WWW:LINK-1.0-http--link</gco:CharacterString>
+                                       </cit:protocol>
+                                       <cit:name>
+                                          <gco:CharacterString>AIMS Web Site</gco:CharacterString>
+                                       </cit:name>
+                                    </cit:CI_OnlineResource>
+                                 </cit:onlineResource>
+                                 <cit:hoursOfService gco:nilReason="missing">
+                                    <gco:CharacterString/>
+                                 </cit:hoursOfService>
+                              </cit:CI_Contact>
+                           </cit:contactInfo>
+                           <cit:individual>
+                              <cit:CI_Individual>
+                                 <cit:name gco:nilReason="missing">
+                                    <gco:CharacterString/>
+                                 </cit:name>
+                                 <cit:positionName gco:nilReason="missing">
+                                    <gco:CharacterString/>
+                                 </cit:positionName>
+                              </cit:CI_Individual>
+                           </cit:individual>
+                        </cit:CI_Organisation>
+                     </cit:party>
+                  </cit:CI_Responsibility>
+               </cit:citedResponsibleParty>
+               <cit:onlineResource>
+                  <cit:CI_OnlineResource>
+                     <cit:linkage>
+                        <gco:CharacterString>http://www.aims.gov.au</gco:CharacterString>
+                     </cit:linkage>
+                     <cit:protocol>
+                        <gco:CharacterString>WWW:LINK-1.0-http--link</gco:CharacterString>
+                     </cit:protocol>
+                     <cit:name>
+                        <gco:CharacterString>AIMS Web Site</gco:CharacterString>
+                     </cit:name>
+                  </cit:CI_OnlineResource>
+               </cit:onlineResource>
+               <cit:onlineResource>
+                  <cit:CI_OnlineResource>
+                     <cit:linkage>
+                        <gco:CharacterString>http://www.aims.gov.au</gco:CharacterString>
+                     </cit:linkage>
+                     <cit:protocol>
+                        <gco:CharacterString>WWW:LINK-1.0-http--link</gco:CharacterString>
+                     </cit:protocol>
+                     <cit:name>
+                        <gco:CharacterString>AIMS Web Site</gco:CharacterString>
+                     </cit:name>
+                  </cit:CI_OnlineResource>
+               </cit:onlineResource>
+            </cit:CI_Citation>
+         </mri:citation>
+         <mri:abstract>
+            <gco:CharacterString>Building knowledge of pearl oyster distribution, particularly their abundance in deep water adjacent to Eighty Mile Beach and connectivity between these deep water populations and populations within fished areas in shallow inshore areas.\n</gco:CharacterString>
+         </mri:abstract>
+         <mri:credit>
+            <gco:CharacterString>Funding Body: Santos Ltd</gco:CharacterString>
+         </mri:credit>
+         <mri:status>
+            <mcc:MD_ProgressCode codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#MD_ProgressCode"
+                                 codeListValue="completed"/>
+         </mri:status>
+         <mri:pointOfContact>
+            <cit:CI_Responsibility>
+               <cit:role>
+                  <cit:CI_RoleCode codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#CI_RoleCode"
+                                   codeListValue="principalInvestigator"/>
+               </cit:role>
+               <cit:party>
+                  <cit:CI_Organisation>
+                     <cit:name>
+                        <gco:CharacterString>Australian Institute of Marine Science (AIMS)</gco:CharacterString>
+                     </cit:name>
+                     <cit:contactInfo>
+                        <cit:CI_Contact>
+                           <cit:phone>
+                              <cit:CI_Telephone>
+                                 <cit:number>
+                                    <gco:CharacterString>+61 7 4753 4444</gco:CharacterString>
+                                 </cit:number>
+                                 <cit:numberType>
+                                    <cit:CI_TelephoneTypeCode codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#CI_TelephoneTypeCode"
+                                                              codeListValue="voice"/>
+                                 </cit:numberType>
+                              </cit:CI_Telephone>
+                           </cit:phone>
+                           <cit:phone>
+                              <cit:CI_Telephone>
+                                 <cit:number gco:nilReason="missing">
+                                    <gco:CharacterString/>
+                                 </cit:number>
+                                 <cit:numberType>
+                                    <cit:CI_TelephoneTypeCode codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#CI_TelephoneTypeCode"
+                                                              codeListValue="facsimile"/>
+                                 </cit:numberType>
+                              </cit:CI_Telephone>
+                           </cit:phone>
+                           <cit:address>
+                              <cit:CI_Address>
+                                 <cit:deliveryPoint>
+                                    <gco:CharacterString>PRIVATE MAIL BAG 3, TOWNSVILLE MAIL CENTRE</gco:CharacterString>
+                                 </cit:deliveryPoint>
+                                 <cit:city>
+                                    <gco:CharacterString>TOWNSVILLE</gco:CharacterString>
+                                 </cit:city>
+                                 <cit:administrativeArea>
+                                    <gco:CharacterString>Queensland</gco:CharacterString>
+                                 </cit:administrativeArea>
+                                 <cit:postalCode>
+                                    <gco:CharacterString>4810</gco:CharacterString>
+                                 </cit:postalCode>
+                                 <cit:country>
+                                    <gco:CharacterString>Australia</gco:CharacterString>
+                                 </cit:country>
+                                 <cit:electronicMailAddress>
+                                    <gco:CharacterString>reception@aims.gov.au</gco:CharacterString>
+                                 </cit:electronicMailAddress>
+                              </cit:CI_Address>
+                           </cit:address>
+                           <cit:onlineResource>
+                              <cit:CI_OnlineResource>
+                                 <cit:linkage>
+                                    <gco:CharacterString>http://www.aims.gov.au</gco:CharacterString>
+                                 </cit:linkage>
+                                 <cit:protocol>
+                                    <gco:CharacterString>WWW:LINK-1.0-http--link</gco:CharacterString>
+                                 </cit:protocol>
+                                 <cit:name>
+                                    <gco:CharacterString>AIMS Web Site</gco:CharacterString>
+                                 </cit:name>
+                              </cit:CI_OnlineResource>
+                           </cit:onlineResource>
+                           <cit:hoursOfService gco:nilReason="missing">
+                              <gco:CharacterString/>
+                           </cit:hoursOfService>
+                        </cit:CI_Contact>
+                     </cit:contactInfo>
+                     <cit:individual>
+                        <cit:CI_Individual>
+                           <cit:name>
+                              <gco:CharacterString>Dr Karen Miller</gco:CharacterString>
+                           </cit:name>
+                           <cit:positionName gco:nilReason="missing">
+                              <gco:CharacterString/>
+                           </cit:positionName>
+                        </cit:CI_Individual>
+                     </cit:individual>
+                  </cit:CI_Organisation>
+               </cit:party>
+            </cit:CI_Responsibility>
+         </mri:pointOfContact>
+         <mri:pointOfContact>
+            <cit:CI_Responsibility>
+               <cit:role>
+                  <cit:CI_RoleCode codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#CI_RoleCode"
+                                   codeListValue="pointOfContact"/>
+               </cit:role>
+               <cit:party>
+                  <cit:CI_Organisation>
+                     <cit:name>
+                        <gco:CharacterString>Australian Institute of Marine Science (AIMS)</gco:CharacterString>
+                     </cit:name>
+                     <cit:contactInfo>
+                        <cit:CI_Contact>
+                           <cit:phone>
+                              <cit:CI_Telephone>
+                                 <cit:number>
+                                    <gco:CharacterString>+61 7 4753 4444</gco:CharacterString>
+                                 </cit:number>
+                                 <cit:numberType>
+                                    <cit:CI_TelephoneTypeCode codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#CI_TelephoneTypeCode"
+                                                              codeListValue="voice"/>
+                                 </cit:numberType>
+                              </cit:CI_Telephone>
+                           </cit:phone>
+                           <cit:phone>
+                              <cit:CI_Telephone>
+                                 <cit:number gco:nilReason="missing">
+                                    <gco:CharacterString/>
+                                 </cit:number>
+                                 <cit:numberType>
+                                    <cit:CI_TelephoneTypeCode codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#CI_TelephoneTypeCode"
+                                                              codeListValue="facsimile"/>
+                                 </cit:numberType>
+                              </cit:CI_Telephone>
+                           </cit:phone>
+                           <cit:address>
+                              <cit:CI_Address>
+                                 <cit:deliveryPoint>
+                                    <gco:CharacterString>PRIVATE MAIL BAG 3, TOWNSVILLE MAIL CENTRE</gco:CharacterString>
+                                 </cit:deliveryPoint>
+                                 <cit:city>
+                                    <gco:CharacterString>TOWNSVILLE</gco:CharacterString>
+                                 </cit:city>
+                                 <cit:administrativeArea>
+                                    <gco:CharacterString>Queensland</gco:CharacterString>
+                                 </cit:administrativeArea>
+                                 <cit:postalCode>
+                                    <gco:CharacterString>4810</gco:CharacterString>
+                                 </cit:postalCode>
+                                 <cit:country>
+                                    <gco:CharacterString>Australia</gco:CharacterString>
+                                 </cit:country>
+                                 <cit:electronicMailAddress>
+                                    <gco:CharacterString>adc@aims.gov.au</gco:CharacterString>
+                                 </cit:electronicMailAddress>
+                              </cit:CI_Address>
+                           </cit:address>
+                           <cit:onlineResource>
+                              <cit:CI_OnlineResource>
+                                 <cit:linkage>
+                                    <gco:CharacterString>http://www.aims.gov.au</gco:CharacterString>
+                                 </cit:linkage>
+                                 <cit:protocol>
+                                    <gco:CharacterString>WWW:LINK-1.0-http--link</gco:CharacterString>
+                                 </cit:protocol>
+                                 <cit:name>
+                                    <gco:CharacterString>AIMS Web Site</gco:CharacterString>
+                                 </cit:name>
+                              </cit:CI_OnlineResource>
+                           </cit:onlineResource>
+                           <cit:hoursOfService gco:nilReason="missing">
+                              <gco:CharacterString/>
+                           </cit:hoursOfService>
+                        </cit:CI_Contact>
+                     </cit:contactInfo>
+                     <cit:individual>
+                        <cit:CI_Individual>
+                           <cit:name>
+                              <gco:CharacterString>AIMS Data Centre</gco:CharacterString>
+                           </cit:name>
+                           <cit:positionName gco:nilReason="missing">
+                              <gco:CharacterString/>
+                           </cit:positionName>
+                        </cit:CI_Individual>
+                     </cit:individual>
+                  </cit:CI_Organisation>
+               </cit:party>
+            </cit:CI_Responsibility>
+         </mri:pointOfContact>
+         <mri:temporalResolution>
+            <gco:TM_PeriodDuration>P1Y0M0DT0H0M0S</gco:TM_PeriodDuration>
+         </mri:temporalResolution>
+         <mri:topicCategory>
+            <mri:MD_TopicCategoryCode>oceans</mri:MD_TopicCategoryCode>
+         </mri:topicCategory>
+         <mri:extent>
+            <gex:EX_Extent>
+               <gex:description>
+                  <gco:CharacterString>Region 1</gco:CharacterString>
+               </gex:description>
+               <gex:geographicElement>
+                  <gex:EX_GeographicBoundingBox>
+                     <gex:westBoundLongitude>
+                        <gco:Decimal>119.55322265625001</gco:Decimal>
+                     </gex:westBoundLongitude>
+                     <gex:eastBoundLongitude>
+                        <gco:Decimal>121.60766601562501</gco:Decimal>
+                     </gex:eastBoundLongitude>
+                     <gex:southBoundLatitude>
+                        <gco:Decimal>-19.3992492786023</gco:Decimal>
+                     </gex:southBoundLatitude>
+                     <gex:northBoundLatitude>
+                        <gco:Decimal>-17.712060974461494</gco:Decimal>
+                     </gex:northBoundLatitude>
+                  </gex:EX_GeographicBoundingBox>
+               </gex:geographicElement>
+            </gex:EX_Extent>
+         </mri:extent>
+
+         <mri:extent>
+            <gex:EX_Extent>
+               <gex:description>
+                  <gco:CharacterString>Davies Reef Transect Sites</gco:CharacterString>
+               </gex:description>
+               <gex:geographicElement>
+                  <gex:EX_GeographicBoundingBox>
+                     <gex:westBoundLongitude>
+                        <gco:Decimal>147.652213</gco:Decimal>
+                     </gex:westBoundLongitude>
+                     <gex:eastBoundLongitude>
+                        <gco:Decimal>147.652213</gco:Decimal>
+                     </gex:eastBoundLongitude>
+                     <gex:southBoundLatitude>
+                        <gco:Decimal>-18.831821</gco:Decimal>
+                     </gex:southBoundLatitude>
+                     <gex:northBoundLatitude>
+                        <gco:Decimal>-18.831821</gco:Decimal>
+                     </gex:northBoundLatitude>
+                  </gex:EX_GeographicBoundingBox>
+               </gex:geographicElement>
+            </gex:EX_Extent>
+         </mri:extent>
+         <mri:extent>
+            <gex:EX_Extent>
+               <gex:description>
+                  <gco:CharacterString>Myrmidon Reef Transect Sites</gco:CharacterString>
+               </gex:description>
+               <gex:geographicElement>
+                  <gex:EX_GeographicBoundingBox>
+                     <gex:westBoundLongitude>
+                        <gco:Decimal>147.388955</gco:Decimal>
+                     </gex:westBoundLongitude>
+                     <gex:eastBoundLongitude>
+                        <gco:Decimal>147.388955</gco:Decimal>
+                     </gex:eastBoundLongitude>
+                     <gex:southBoundLatitude>
+                        <gco:Decimal>-18.255452</gco:Decimal>
+                     </gex:southBoundLatitude>
+                     <gex:northBoundLatitude>
+                        <gco:Decimal>-18.255452</gco:Decimal>
+                     </gex:northBoundLatitude>
+                  </gex:EX_GeographicBoundingBox>
+               </gex:geographicElement>
+            </gex:EX_Extent>
+         </mri:extent>
+
+         <mri:extent>
+            <gex:EX_Extent>
+               <gex:description>
+                  <gco:CharacterString>Collective resources start and end dates</gco:CharacterString>
+               </gex:description>
+               <gex:temporalElement>
+                  <gex:EX_TemporalExtent>
+                     <gex:extent>
+                        <gml:TimePeriod gml:id="d1e770a5243936">
+                           <gml:begin>
+                              <gml:TimeInstant gml:id="d1e774a5243936">
+                                 <gml:timePosition>2018-04-23</gml:timePosition>
+                              </gml:TimeInstant>
+                           </gml:begin>
+                           <gml:end>
+                              <gml:TimeInstant gml:id="d1e782a5243936">
+                                 <gml:timePosition>2019-05-27</gml:timePosition>
+                              </gml:TimeInstant>
+                           </gml:end>
+                        </gml:TimePeriod>
+                     </gex:extent>
+                  </gex:EX_TemporalExtent>
+               </gex:temporalElement>
+            </gex:EX_Extent>
+         </mri:extent>
+         <mri:resourceMaintenance>
+            <mmi:MD_MaintenanceInformation>
+               <mmi:maintenanceAndUpdateFrequency>
+                  <mmi:MD_MaintenanceFrequencyCode codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#MD_MaintenanceFrequencyCode"
+                                                   codeListValue="asNeeded"/>
+               </mmi:maintenanceAndUpdateFrequency>
+            </mmi:MD_MaintenanceInformation>
+         </mri:resourceMaintenance>
+         <mri:resourceConstraints>
+            <mco:MD_LegalConstraints>
+               <mco:useLimitation>
+                  <gco:CharacterString>All AIMS data, products and services are provided "as is" and AIMS does not warrant their fitness for a particular purpose or non-infringement. While AIMS has made every reasonable effort to ensure high quality of the data, products and services, to the extent permitted by law the data, products and services are provided without any warranties of any kind, either expressed or implied, including without limitation any implied warranties of title, merchantability, and fitness for a particular purpose or non-infringement. AIMS make no representation or warranty that the data, products and services are accurate, complete, reliable or current. To the extent permitted by law, AIMS exclude all liability to any person arising directly or indirectly from the use of the data, products and services.</gco:CharacterString>
+               </mco:useLimitation>
+               <mco:accessConstraints>
+                  <mco:MD_RestrictionCode codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#MD_RestrictionCode"
+                                          codeListValue="restricted"/>
+               </mco:accessConstraints>
+               <mco:otherConstraints>
+                  <gco:CharacterString>The data was collected under contract between AIMS and another party(s). Specific agreements for access and use of the data shall be negotiated separately. Contact the AIMS Data Centre (adc@aims.gov.au) for further information</gco:CharacterString>
+               </mco:otherConstraints>
+            </mco:MD_LegalConstraints>
+         </mri:resourceConstraints>
+         <mri:resourceConstraints>
+            <mco:MD_SecurityConstraints>
+               <mco:classification>
+                  <mco:MD_ClassificationCode codeListValue="unclassified"
+                                             codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#MD_ClassificationCode"/>
+               </mco:classification>
+            </mco:MD_SecurityConstraints>
+         </mri:resourceConstraints>
+         <mri:defaultLocale>
+            <lan:PT_Locale>
+               <lan:language>
+                  <lan:LanguageCode codeList="http://www.loc.gov/standards/iso639-2/" codeListValue="eng"/>
+               </lan:language>
+               <lan:characterEncoding>
+                  <lan:MD_CharacterSetCode codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#MD_CharacterSetCode"
+                                           codeListValue="utf8"/>
+               </lan:characterEncoding>
+            </lan:PT_Locale>
+         </mri:defaultLocale>
+      </mri:MD_DataIdentification>
+  </mdb:identificationInfo>
+  <mdb:contentInfo>
+      <mrc:MD_CoverageDescription>
+         <mrc:attributeDescription gco:nilReason="inapplicable"/>
+         <mrc:attributeGroup>
+            <mrc:MD_AttributeGroup>
+               <mrc:contentType>
+                  <mrc:MD_CoverageContentTypeCode codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#MD_CoverageContentTypeCode"
+                                                  codeListValue="physicalMeasurement"/>
+               </mrc:contentType>
+            </mrc:MD_AttributeGroup>
+         </mrc:attributeGroup>
+      </mrc:MD_CoverageDescription>
+  </mdb:contentInfo>
+  <mdb:distributionInfo>
+      <mrd:MD_Distribution>
+         <mrd:distributor>
+            <mrd:MD_Distributor>
+               <mrd:distributorContact>
+                  <cit:CI_Responsibility>
+                     <cit:role>
+                        <cit:CI_RoleCode codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#CI_RoleCode"
+                                         codeListValue="distributor"/>
+                     </cit:role>
+                     <cit:party>
+                        <cit:CI_Organisation>
+                           <cit:name>
+                              <gco:CharacterString>Australian Institute of Marine Science (AIMS)</gco:CharacterString>
+                           </cit:name>
+                           <cit:contactInfo>
+                              <cit:CI_Contact>
+                                 <cit:phone>
+                                    <cit:CI_Telephone>
+                                       <cit:number>
+                                          <gco:CharacterString>+61 7 4753 4444</gco:CharacterString>
+                                       </cit:number>
+                                       <cit:numberType>
+                                          <cit:CI_TelephoneTypeCode codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#CI_TelephoneTypeCode"
+                                                                    codeListValue="voice"/>
+                                       </cit:numberType>
+                                    </cit:CI_Telephone>
+                                 </cit:phone>
+                                 <cit:address>
+                                    <cit:CI_Address>
+                                       <cit:deliveryPoint>
+                                          <gco:CharacterString>PRIVATE MAIL BAG 3, TOWNSVILLE MAIL CENTRE</gco:CharacterString>
+                                       </cit:deliveryPoint>
+                                       <cit:city>
+                                          <gco:CharacterString>TOWNSVILLE</gco:CharacterString>
+                                       </cit:city>
+                                       <cit:administrativeArea>
+                                          <gco:CharacterString>Queensland</gco:CharacterString>
+                                       </cit:administrativeArea>
+                                       <cit:postalCode>
+                                          <gco:CharacterString>4810</gco:CharacterString>
+                                       </cit:postalCode>
+                                       <cit:country>
+                                          <gco:CharacterString>Australia</gco:CharacterString>
+                                       </cit:country>
+                                       <cit:electronicMailAddress>
+                                          <gco:CharacterString>reception@aims.gov.au</gco:CharacterString>
+                                       </cit:electronicMailAddress>
+                                    </cit:CI_Address>
+                                 </cit:address>
+                                 <cit:onlineResource>
+                                    <cit:CI_OnlineResource>
+                                       <cit:linkage>
+                                          <gco:CharacterString>http://www.aims.gov.au</gco:CharacterString>
+                                       </cit:linkage>
+                                       <cit:protocol>
+                                          <gco:CharacterString>WWW:LINK-1.0-http--link</gco:CharacterString>
+                                       </cit:protocol>
+                                       <cit:name>
+                                          <gco:CharacterString>AIMS Home Page</gco:CharacterString>
+                                       </cit:name>
+                                       <cit:description gco:nilReason="missing">
+                                          <gco:CharacterString/>
+                                       </cit:description>
+                                    </cit:CI_OnlineResource>
+                                 </cit:onlineResource>
+                              </cit:CI_Contact>
+                           </cit:contactInfo>
+                           <cit:individual>
+                              <cit:CI_Individual>
+                                 <cit:name>
+                                    <gco:CharacterString>AIMS Data Centre</gco:CharacterString>
+                                 </cit:name>
+                                 <cit:positionName gco:nilReason="missing">
+                                    <gco:CharacterString/>
+                                 </cit:positionName>
+                              </cit:CI_Individual>
+                           </cit:individual>
+                        </cit:CI_Organisation>
+                     </cit:party>
+                  </cit:CI_Responsibility>
+               </mrd:distributorContact>
+            </mrd:MD_Distributor>
+         </mrd:distributor>
+         <mrd:transferOptions>
+            <mrd:MD_DigitalTransferOptions>
+               <mrd:onLine>
+                  <cit:CI_OnlineResource>
+                     <cit:linkage>
+                        <gco:CharacterString>https://domain.com/path/service.xml</gco:CharacterString>
+                     </cit:linkage>
+                     <cit:protocol>
+                        <gco:CharacterString>WWW:LINK-1.0-http--downloaddata</gco:CharacterString>
+                     </cit:protocol>
+                     <cit:name>
+                        <gco:CharacterString>Download service</gco:CharacterString>
+                     </cit:name>
+                     <cit:description>
+                        <gco:CharacterString>Download data service.</gco:CharacterString>
+                     </cit:description>
+                     <cit:function>
+                        <cit:CI_OnLineFunctionCode codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#CI_OnLineFunctionCode"
+                                                   codeListValue="information"/>
+                     </cit:function>
+                  </cit:CI_OnlineResource>
+               </mrd:onLine>
+            </mrd:MD_DigitalTransferOptions>
+         </mrd:transferOptions>
+      </mrd:MD_Distribution>
+  </mdb:distributionInfo>
+  <mdb:resourceLineage>
+      <mrl:LI_Lineage>
+         <mrl:statement>
+            <gco:CharacterString>Trip6920\n Multibeam Towed Video Smith MacIntyre Grab Sled Trip 7083\n Multibeam Towed Video Smith MacIntyre Grab Sled Trip 7152\n Multibeam Towed Video Sled Trip 7251\n Pearl oysters collected and sampled for genetic analysis</gco:CharacterString>
+         </mrl:statement>
+         <mrl:scope>
+            <mcc:MD_Scope>
+               <mcc:level>
+                  <mcc:MD_ScopeCode codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#MD_ScopeCode"
+                                    codeListValue="dataset"/>
+               </mcc:level>
+            </mcc:MD_Scope>
+         </mrl:scope>
+      </mrl:LI_Lineage>
+  </mdb:resourceLineage>
+  <mdb:metadataConstraints/>
+  <mdb:metadataMaintenance>
+      <mmi:MD_MaintenanceInformation>
+         <mmi:maintenanceAndUpdateFrequency>
+            <mmi:MD_MaintenanceFrequencyCode codeList="http://standards.iso.org/iso/19115/resources/Codelists/cat/codelists.xml#MD_MaintenanceFrequencyCode"
+                                             codeListValue="asNeeded"/>
+         </mmi:maintenanceAndUpdateFrequency>
+      </mmi:MD_MaintenanceInformation>
+  </mdb:metadataMaintenance>
+</mdb:MD_Metadata>
