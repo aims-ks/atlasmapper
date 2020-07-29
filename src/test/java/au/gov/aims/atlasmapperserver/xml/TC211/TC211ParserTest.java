@@ -32,13 +32,13 @@ public class TC211ParserTest {
 
     @Test
     public void testParseURIFullDocument() throws Exception {
-        URL url = TC211ParserTest.class.getClassLoader().getResource("tc211_iso19139_full.xml"); // "http://mest.aodn.org.au/geonetwork/srv/en/iso19139.xml?uuid=87263960-92f0-4836-b8c5-8486660ddfe0";
+        URL url = TC211ParserTest.class.getClassLoader().getResource("TC211/tc211_iso19139_full.xml"); // "http://mest.aodn.org.au/geonetwork/srv/en/iso19139.xml?uuid=87263960-92f0-4836-b8c5-8486660ddfe0";
 
         InputStream inputStream = null;
         TC211Document doc = null;
         try {
             inputStream = url.openStream();
-            doc = TC211Parser.parseInputStream(inputStream, "tc211_iso19139_full.xml");
+            doc = TC211Parser.parseInputStream(inputStream, "TC211/tc211_iso19139_full.xml");
         } finally {
             if (inputStream != null) {
                 inputStream.close();
@@ -84,13 +84,13 @@ public class TC211ParserTest {
 
     @Test
     public void testParseURIFullMcpDocument() throws Exception {
-        URL url = TC211ParserTest.class.getClassLoader().getResource("tc211_iso19139-mcp_full.xml"); // "http://mest.aodn.org.au/geonetwork/srv/en/iso19139.xml?uuid=87263960-92f0-4836-b8c5-8486660ddfe0";
+        URL url = TC211ParserTest.class.getClassLoader().getResource("TC211/tc211_iso19139-mcp_full.xml"); // "http://mest.aodn.org.au/geonetwork/srv/en/iso19139.xml?uuid=87263960-92f0-4836-b8c5-8486660ddfe0";
 
         InputStream inputStream = null;
         TC211Document doc = null;
         try {
             inputStream = url.openStream();
-            doc = TC211Parser.parseInputStream(inputStream, "tc211_iso19139-mcp_full.xml");
+            doc = TC211Parser.parseInputStream(inputStream, "TC211/tc211_iso19139-mcp_full.xml");
         } finally {
             if (inputStream != null) {
                 inputStream.close();
@@ -145,13 +145,13 @@ public class TC211ParserTest {
 
     @Test
     public void testParseURIMinimalMcpDocument() throws Exception {
-        URL url = TC211ParserTest.class.getClassLoader().getResource("tc211_iso19139-mcp_minimal.xml");
+        URL url = TC211ParserTest.class.getClassLoader().getResource("TC211/tc211_iso19139-mcp_minimal.xml");
 
         InputStream inputStream = null;
         TC211Document doc = null;
         try {
             inputStream = url.openStream();
-            doc = TC211Parser.parseInputStream(inputStream, "tc211_iso19139-mcp_minimal.xml");
+            doc = TC211Parser.parseInputStream(inputStream, "TC211/tc211_iso19139-mcp_minimal.xml");
         } finally {
             if (inputStream != null) {
                 inputStream.close();
@@ -185,13 +185,13 @@ public class TC211ParserTest {
 
     @Test
     public void testParseURIAODNMcpExample() throws Exception {
-        URL url = TC211ParserTest.class.getClassLoader().getResource("tc211_iso19139-mcp_AODN-example.xml");
+        URL url = TC211ParserTest.class.getClassLoader().getResource("TC211/tc211_iso19139-mcp_AODN-example.xml");
 
         InputStream inputStream = null;
         TC211Document doc = null;
         try {
             inputStream = url.openStream();
-            doc = TC211Parser.parseInputStream(inputStream, "tc211_iso19139-mcp_AODN-example.xml");
+            doc = TC211Parser.parseInputStream(inputStream, "TC211/tc211_iso19139-mcp_AODN-example.xml");
         } finally {
             if (inputStream != null) {
                 inputStream.close();
@@ -225,14 +225,14 @@ public class TC211ParserTest {
 
     @Test
     public void testParseURIUnbalancedMcpDocument() throws Exception {
-        URL url = TC211ParserTest.class.getClassLoader().getResource("tc211_iso19139-mcp_unbalanced.xml");
+        URL url = TC211ParserTest.class.getClassLoader().getResource("TC211/tc211_iso19139-mcp_unbalanced.xml");
         SAXParseException expectedException = null;
         try {
             InputStream inputStream = null;
             TC211Document doc = null;
             try {
                 inputStream = url.openStream();
-                doc = TC211Parser.parseInputStream(inputStream, "tc211_iso19139-mcp_unbalanced.xml");
+                doc = TC211Parser.parseInputStream(inputStream, "TC211/tc211_iso19139-mcp_unbalanced.xml");
             } finally {
                 if (inputStream != null) {
                     inputStream.close();
@@ -243,5 +243,121 @@ public class TC211ParserTest {
         }
 
         Assert.assertNotNull("The SAX Parser didn't throw an exception from an unbalanced XML document.", expectedException);
+    }
+
+    @Test
+    public void testParseURITC211_201803Document() throws Exception {
+        // https://geonetwork.data.aims.gov.au/geonetwork/srv/api/records/0e5ca52f-5525-44da-b0ca-df758850963e/formatters/xml
+        URL url = TC211ParserTest.class.getClassLoader().getResource("TC211_201803/tc211_201803_metadata_record.xml");
+
+        InputStream inputStream = null;
+        TC211Document doc = null;
+        try {
+            inputStream = url.openStream();
+            doc = TC211Parser.parseInputStream(inputStream, "TC211_201803/tc211_201803_metadata_record.xml");
+        } finally {
+            if (inputStream != null) {
+                inputStream.close();
+            }
+        }
+
+        Assert.assertFalse("The TC211 201803 XML document is empty", doc.isEmpty());
+
+        // TODO Test when it will stop been empty
+
+        Assert.assertEquals("Abstract do not match",
+                "Building knowledge of pearl oyster distribution, particularly their abundance in deep water adjacent to Eighty Mile Beach and connectivity between these deep water populations and populations within fished areas in shallow inshore areas.\\n",
+                doc.getAbstract());
+
+        List<TC211Document.Link> links = doc.getLinks();
+        Assert.assertEquals("Number of read links do not match", 1, links.size());
+
+        for (TC211Document.Link link : links) {
+            String linkUrl = link.getUrl();
+
+            if (linkUrl.equals("https://domain.com/path/service.xml")) {
+                Assert.assertEquals("Link protocol miss match for link URL: " + linkUrl,
+                        TC211Document.Protocol.WWW_LINK_1_0_HTTP_DOWNLOADDATA, link.getProtocol());
+
+                Assert.assertEquals("Link name miss match",
+                        "Download service", link.getName());
+
+                Assert.assertEquals("Link description miss match",
+                        "Download data service.", link.getDescription());
+
+            } else {
+                Assert.fail("Unexpected link URL: " + linkUrl);
+            }
+        }
+
+        double delta = 0.00000000001;
+
+        List<TC211Document.Point> points = doc.getPoints();
+        Assert.assertNotNull("Points is null", points);
+        Assert.assertEquals("Wrong points size", 2, points.size());
+        for (TC211Document.Point point : points) {
+            double lon = point.getLon();
+            double lat = point.getLat();
+            double z = point.getElevation();
+
+            // Point name / description is ignored.
+            // Use "lon" to identify which point we are at
+            if (lon > 147.65 && lon < 147.66) {
+                Assert.assertEquals("Wrong lon", 147.652213, lon, delta);
+                Assert.assertEquals("Wrong lat", -18.831821, lat, delta);
+                Assert.assertEquals("Wrong elevation", 0, z, delta);
+
+            } else if (lon > 147.38 && lon < 147.39) {
+                Assert.assertEquals("Wrong lon", 147.388955, lon, delta);
+                Assert.assertEquals("Wrong lat", -18.255452, lat, delta);
+                Assert.assertEquals("Wrong elevation", 0, z, delta);
+
+            } else {
+                Assert.fail(String.format("Unexpected point: [%.3f, %.3f] elevation: %.2f", lon, lat, z));
+            }
+        }
+
+        List<TC211Document.Polygon> polygons = doc.getPolygons();
+        Assert.assertNotNull("Polygons is null", polygons);
+        Assert.assertEquals("Wrong polygons size", 1, polygons.size());
+        for (TC211Document.Polygon polygon : polygons) {
+            List<TC211Document.Point> polyPoints = polygon.getPoints();
+            Assert.assertNotNull("Polygon points is null", polyPoints);
+            Assert.assertEquals("Wrong polygon points size", 4, polyPoints.size());
+
+            for (TC211Document.Point point : polyPoints) {
+                double lon = point.getLon();
+                double lat = point.getLat();
+                double z = point.getElevation();
+
+                if (lon > 119.55 && lon < 119.56 &&
+                        lat > -17.72 && lat < -17.71) {
+                    Assert.assertEquals("Wrong lon", 119.55322265625001, lon, delta);
+                    Assert.assertEquals("Wrong lat", -17.712060974461494, lat, delta);
+                    Assert.assertEquals("Wrong elevation", 0, z, delta);
+
+                } else if (lon > 121.6 && lon < 121.61 &&
+                        lat > -17.72 && lat < -17.71) {
+                    Assert.assertEquals("Wrong lon", 121.60766601562501, lon, delta);
+                    Assert.assertEquals("Wrong lat", -17.712060974461494, lat, delta);
+                    Assert.assertEquals("Wrong elevation", 0, z, delta);
+
+                } else if (lon > 121.6 && lon < 121.61 &&
+                        lat > -19.4 && lat < -19.39) {
+                    Assert.assertEquals("Wrong lon", 121.60766601562501, lon, delta);
+                    Assert.assertEquals("Wrong lat", -19.3992492786023, lat, delta);
+                    Assert.assertEquals("Wrong elevation", 0, z, delta);
+
+                } else if (lon > 119.55 && lon < 119.56 &&
+                        lat > -19.4 && lat < -19.39) {
+                    Assert.assertEquals("Wrong lon", 119.55322265625001, lon, delta);
+                    Assert.assertEquals("Wrong lat", -19.3992492786023, lat, delta);
+                    Assert.assertEquals("Wrong elevation", 0, z, delta);
+
+                } else {
+                    Assert.fail(String.format("Unexpected polygon point: [%.3f, %.3f] elevation: %.2f", lon, lat, z));
+                }
+            }
+        }
     }
 }

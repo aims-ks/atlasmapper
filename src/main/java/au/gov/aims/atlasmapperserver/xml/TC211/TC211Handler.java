@@ -33,29 +33,51 @@ import java.util.logging.Logger;
 public class TC211Handler extends DefaultHandler {
 	private static final Logger LOGGER = Logger.getLogger(TC211Handler.class.getName());
 
-	private static String BBOX_CONTAINER = "gmd:EX_GeographicBoundingBox";
-	private static String BBOX_WEST_CONTAINER = "gmd:westBoundLongitude";
-	private static String BBOX_EAST_CONTAINER = "gmd:eastBoundLongitude";
-	private static String BBOX_SOUTH_CONTAINER = "gmd:southBoundLatitude";
-	private static String BBOX_NORTH_CONTAINER = "gmd:northBoundLatitude";
-	private static String BBOX_DECIMAL = "gco:Decimal";
+	private static final String GMD_BBOX_CONTAINER = "gmd:EX_GeographicBoundingBox";
+	private static final String GMD_BBOX_WEST_CONTAINER = "gmd:westBoundLongitude";
+	private static final String GMD_BBOX_EAST_CONTAINER = "gmd:eastBoundLongitude";
+	private static final String GMD_BBOX_SOUTH_CONTAINER = "gmd:southBoundLatitude";
+	private static final String GMD_BBOX_NORTH_CONTAINER = "gmd:northBoundLatitude";
+	private static final String GCO_BBOX_DECIMAL = "gco:Decimal";
 
-	private static String LINK_CONTAINER = "gmd:CI_OnlineResource";
+	private static final String GMD_LINK_CONTAINER = "gmd:CI_OnlineResource";
 
-	private static String LINK_URL_CONTAINER = "gmd:linkage";
-	private static String LINK_URL_STRING = "gmd:URL";
+	private static final String GMD_LINK_URL_CONTAINER = "gmd:linkage";
+	private static final String GMD_LINK_URL_STRING = "gmd:URL";
+	private static final String GCO_LINK_URL_STRING = "gco:CharacterString";
 
-	private static String LINK_PROTOCOL_CONTAINER = "gmd:protocol";
-	private static String LINK_PROTOCOL_STRING = "gco:CharacterString";
+	private static final String GMD_LINK_PROTOCOL_CONTAINER = "gmd:protocol";
+	private static final String GCO_LINK_PROTOCOL_STRING = "gco:CharacterString";
 
-	private static String LINK_NAME_CONTAINER = "gmd:name";
-	private static String LINK_NAME_STRING = "gco:CharacterString";
+	private static final String GMD_LINK_NAME_CONTAINER = "gmd:name";
+	private static final String GCO_LINK_NAME_STRING = "gco:CharacterString";
 
-	private static String LINK_DESCRIPTION_CONTAINER = "gmd:description";
-	private static String LINK_DESCRIPTION_STRING = "gco:CharacterString";
+	private static final String GMD_LINK_DESCRIPTION_CONTAINER = "gmd:description";
+	private static final String GCO_LINK_DESCRIPTION_STRING = "gco:CharacterString";
 
-	private static String LINK_APPLICATION_PROFILE_CONTAINER = "gmd:applicationProfile";
-	private static String LINK_APPLICATION_PROFILE_STRING = "gco:CharacterString";
+	private static final String GMD_LINK_APPLICATION_PROFILE_CONTAINER = "gmd:applicationProfile";
+	private static final String GCO_LINK_APPLICATION_PROFILE_STRING = "gco:CharacterString";
+
+	// New to TC211 201803
+	private static final String GEX_BBOX_CONTAINER = "gex:EX_GeographicBoundingBox";
+	private static final String GEX_BBOX_WEST_CONTAINER = "gex:westBoundLongitude";
+	private static final String GEX_BBOX_EAST_CONTAINER = "gex:eastBoundLongitude";
+	private static final String GEX_BBOX_SOUTH_CONTAINER = "gex:southBoundLatitude";
+	private static final String GEX_BBOX_NORTH_CONTAINER = "gex:northBoundLatitude";
+
+	private static final String CIT_LINK_CONTAINER = "cit:CI_OnlineResource";
+
+	private static final String CIT_LINK_URL_CONTAINER = "cit:linkage";
+	private static final String MRI_LINK_URL_STRING = "mri:URL";
+
+	private static final String CIT_LINK_PROTOCOL_CONTAINER = "cit:protocol";
+
+	private static final String CIT_LINK_NAME_CONTAINER = "cit:name";
+
+	private static final String CIT_LINK_DESCRIPTION_CONTAINER = "cit:description";
+
+	private static final String CIT_LINK_APPLICATION_PROFILE_CONTAINER = "cit:applicationProfile";
+
 
 	private TC211Document doc;
 	private StringBuilder collectedChars;
@@ -87,13 +109,19 @@ public class TC211Handler extends DefaultHandler {
 		if (this.xmlPathMarker != null) {
 			this.collectedChars = new StringBuilder();
 
-			if (XMLPathMarker.BBOXES.equals(this.xmlPathMarker) || XMLPathMarker.BBOXES_MCP.equals(this.xmlPathMarker)) {
-				if (BBOX_CONTAINER.equalsIgnoreCase(qName)) {
+			if (XMLPathMarker.BBOXES_GMD.equals(this.xmlPathMarker) ||
+					XMLPathMarker.BBOXES_MCP.equals(this.xmlPathMarker) ||
+					XMLPathMarker.BBOXES_MDB.equals(this.xmlPathMarker)) {
+
+				if (GMD_BBOX_CONTAINER.equalsIgnoreCase(qName) || GEX_BBOX_CONTAINER.equalsIgnoreCase(qName)) {
 					this.west = null; this.east = null; this.south = null; this.north = null;
 				}
 
-			} else if (XMLPathMarker.LINKS.equals(this.xmlPathMarker) || XMLPathMarker.LINKS_MCP.equals(this.xmlPathMarker)) {
-				if (LINK_CONTAINER.equalsIgnoreCase(qName)) {
+			} else if (XMLPathMarker.LINKS_GMD.equals(this.xmlPathMarker) ||
+					XMLPathMarker.LINKS_MCP.equals(this.xmlPathMarker) ||
+					XMLPathMarker.LINKS_MDB.equals(this.xmlPathMarker)) {
+
+				if (GMD_LINK_CONTAINER.equalsIgnoreCase(qName) || CIT_LINK_CONTAINER.equalsIgnoreCase(qName)) {
 					this.currentLink = new TC211Document.Link();
 				}
 			}
@@ -109,10 +137,14 @@ public class TC211Handler extends DefaultHandler {
 		if (this.xmlPathMarker != null) {
 			String previousQName = (this.xmlPath.size() < 2 ? null : this.xmlPath.get(this.xmlPath.size() - 2));
 
-			if (XMLPathMarker.ABSTRACT.equals(this.xmlPathMarker) || XMLPathMarker.ABSTRACT_MCP.equals(this.xmlPathMarker)) {
+			if (XMLPathMarker.ABSTRACT_GMD.equals(this.xmlPathMarker) ||
+					XMLPathMarker.ABSTRACT_MCP.equals(this.xmlPathMarker) ||
+					XMLPathMarker.ABSTRACT_MDB.equals(this.xmlPathMarker)) {
 				this.doc.setAbstract(this.collectedChars.toString());
 
-			} else if (XMLPathMarker.BBOXES.equals(this.xmlPathMarker) || XMLPathMarker.BBOXES_MCP.equals(this.xmlPathMarker)) {
+			} else if (XMLPathMarker.BBOXES_GMD.equals(this.xmlPathMarker) ||
+					XMLPathMarker.BBOXES_MCP.equals(this.xmlPathMarker) ||
+					XMLPathMarker.BBOXES_MDB.equals(this.xmlPathMarker)) {
 				/*
 				<gmd:EX_GeographicBoundingBox>
 					<gmd:westBoundLongitude>
@@ -130,19 +162,27 @@ public class TC211Handler extends DefaultHandler {
 				</gmd:EX_GeographicBoundingBox>
 				*/
 
-				if (BBOX_WEST_CONTAINER.equalsIgnoreCase(previousQName) && BBOX_DECIMAL.equalsIgnoreCase(qName)) {
+				if ((GMD_BBOX_WEST_CONTAINER.equalsIgnoreCase(previousQName) || GEX_BBOX_WEST_CONTAINER.equalsIgnoreCase(previousQName))
+						&& GCO_BBOX_DECIMAL.equalsIgnoreCase(qName)) {
+
 					this.west = this.collectedChars.toString();
 
-				} else if (BBOX_EAST_CONTAINER.equalsIgnoreCase(previousQName) && BBOX_DECIMAL.equalsIgnoreCase(qName)) {
+				} else if ((GMD_BBOX_EAST_CONTAINER.equalsIgnoreCase(previousQName) || GEX_BBOX_EAST_CONTAINER.equalsIgnoreCase(previousQName))
+						&& GCO_BBOX_DECIMAL.equalsIgnoreCase(qName)) {
+
 					this.east = this.collectedChars.toString();
 
-				} else if (BBOX_SOUTH_CONTAINER.equalsIgnoreCase(previousQName) && BBOX_DECIMAL.equalsIgnoreCase(qName)) {
+				} else if ((GMD_BBOX_SOUTH_CONTAINER.equalsIgnoreCase(previousQName) || GEX_BBOX_SOUTH_CONTAINER.equalsIgnoreCase(previousQName))
+						&& GCO_BBOX_DECIMAL.equalsIgnoreCase(qName)) {
+
 					this.south = this.collectedChars.toString();
 
-				} else if (BBOX_NORTH_CONTAINER.equalsIgnoreCase(previousQName) && BBOX_DECIMAL.equalsIgnoreCase(qName)) {
+				} else if ((GMD_BBOX_NORTH_CONTAINER.equalsIgnoreCase(previousQName) || GEX_BBOX_NORTH_CONTAINER.equalsIgnoreCase(previousQName))
+						&& GCO_BBOX_DECIMAL.equalsIgnoreCase(qName)) {
+
 					this.north = this.collectedChars.toString();
 
-				} else if (BBOX_CONTAINER.equalsIgnoreCase(qName)) {
+				} else if (GMD_BBOX_CONTAINER.equalsIgnoreCase(qName) || GEX_BBOX_CONTAINER.equalsIgnoreCase(qName)) {
 					if (this.west != null && this.east != null && this.south != null && this.north != null) {
 						try {
 							Double west = Double.valueOf(this.west);
@@ -174,7 +214,9 @@ public class TC211Handler extends DefaultHandler {
 					this.west = null; this.east = null; this.south = null; this.north = null;
 				}
 
-			} else if (XMLPathMarker.POLYGONS.equals(this.xmlPathMarker) || XMLPathMarker.POLYGONS_MCP.equals(this.xmlPathMarker)) {
+			} else if (XMLPathMarker.POLYGONS_GMD.equals(this.xmlPathMarker) ||
+					XMLPathMarker.POLYGONS_MCP.equals(this.xmlPathMarker) ||
+					XMLPathMarker.POLYGONS_MDB.equals(this.xmlPathMarker)) {
 				/*
 				lon,lat,elevation lon,lat,elevation etc.
 				<gml:coordinates>
@@ -211,7 +253,9 @@ public class TC211Handler extends DefaultHandler {
 					}
 				}
 
-			} else if (XMLPathMarker.LINKS.equals(this.xmlPathMarker) || XMLPathMarker.LINKS_MCP.equals(this.xmlPathMarker)) {
+			} else if (XMLPathMarker.LINKS_GMD.equals(this.xmlPathMarker) ||
+					XMLPathMarker.LINKS_MCP.equals(this.xmlPathMarker) ||
+					XMLPathMarker.LINKS_MDB.equals(this.xmlPathMarker)) {
 				/*
 				<gmd:CI_OnlineResource>
 					<gmd:linkage>
@@ -229,22 +273,40 @@ public class TC211Handler extends DefaultHandler {
 				</gmd:CI_OnlineResource>
 				*/
 
-				if (LINK_URL_CONTAINER.equalsIgnoreCase(previousQName) && LINK_URL_STRING.equalsIgnoreCase(qName)) {
+				if (
+					// <gmd:linkage><gmd:URL>
+					(GMD_LINK_URL_CONTAINER.equalsIgnoreCase(previousQName) && GMD_LINK_URL_STRING.equalsIgnoreCase(qName)) ||
+					// <gmd:linkage><gco:CharacterString>
+					(GMD_LINK_URL_CONTAINER.equalsIgnoreCase(previousQName) && GCO_LINK_URL_STRING.equalsIgnoreCase(qName)) ||
+					// <cit:linkage><mri:URL>
+					(CIT_LINK_URL_CONTAINER.equalsIgnoreCase(previousQName) && MRI_LINK_URL_STRING.equalsIgnoreCase(qName)) ||
+					// <cit:linkage><gco:CharacterString>
+					(CIT_LINK_URL_CONTAINER.equalsIgnoreCase(previousQName) && GCO_LINK_URL_STRING.equalsIgnoreCase(qName))
+				) {
+
 					this.currentLink.setUrl(this.collectedChars.toString());
 
-				} else if (LINK_PROTOCOL_CONTAINER.equalsIgnoreCase(previousQName) && LINK_PROTOCOL_STRING.equalsIgnoreCase(qName)) {
+				} else if ((GMD_LINK_PROTOCOL_CONTAINER.equalsIgnoreCase(previousQName) || CIT_LINK_PROTOCOL_CONTAINER.equalsIgnoreCase(previousQName))
+						&& GCO_LINK_PROTOCOL_STRING.equalsIgnoreCase(qName)) {
+
 					this.currentLink.setProtocolStr(this.collectedChars.toString());
 
-				} else if (LINK_NAME_CONTAINER.equalsIgnoreCase(previousQName) && LINK_NAME_STRING.equalsIgnoreCase(qName)) {
+				} else if ((GMD_LINK_NAME_CONTAINER.equalsIgnoreCase(previousQName) || CIT_LINK_NAME_CONTAINER.equalsIgnoreCase(previousQName))
+						&& GCO_LINK_NAME_STRING.equalsIgnoreCase(qName)) {
+
 					this.currentLink.setName(this.collectedChars.toString());
 
-				} else if (LINK_DESCRIPTION_CONTAINER.equalsIgnoreCase(previousQName) && LINK_DESCRIPTION_STRING.equalsIgnoreCase(qName)) {
+				} else if ((GMD_LINK_DESCRIPTION_CONTAINER.equalsIgnoreCase(previousQName) || CIT_LINK_DESCRIPTION_CONTAINER.equalsIgnoreCase(previousQName))
+						&& GCO_LINK_DESCRIPTION_STRING.equalsIgnoreCase(qName)) {
+
 					this.currentLink.setDescription(this.collectedChars.toString());
 
-				} else if (LINK_APPLICATION_PROFILE_CONTAINER.equalsIgnoreCase(previousQName) && LINK_APPLICATION_PROFILE_STRING.equalsIgnoreCase(qName)) {
+				} else if ((GMD_LINK_APPLICATION_PROFILE_CONTAINER.equalsIgnoreCase(previousQName) || CIT_LINK_APPLICATION_PROFILE_CONTAINER.equalsIgnoreCase(previousQName))
+						&& GCO_LINK_APPLICATION_PROFILE_STRING.equalsIgnoreCase(qName)) {
+
 					this.currentLink.setApplicationProfile(this.collectedChars.toString());
 
-				} else if (LINK_CONTAINER.equalsIgnoreCase(qName)) {
+				} else if (GMD_LINK_CONTAINER.equalsIgnoreCase(qName) || CIT_LINK_CONTAINER.equalsIgnoreCase(qName)) {
 					this.doc.addLink(this.currentLink);
 					this.currentLink = null;
 				}
@@ -278,17 +340,21 @@ public class TC211Handler extends DefaultHandler {
 
 
 	private static enum XMLPathMarker {
-		ABSTRACT (new String[]{"gmd:MD_Metadata", "gmd:identificationInfo", "gmd:MD_DataIdentification", "gmd:abstract", "gco:CharacterString"}),
+		ABSTRACT_GMD (new String[]{"gmd:MD_Metadata", "gmd:identificationInfo", "gmd:MD_DataIdentification", "gmd:abstract", "gco:CharacterString"}),
 		ABSTRACT_MCP (new String[]{"mcp:MD_Metadata", "gmd:identificationInfo", "mcp:MD_DataIdentification", "gmd:abstract", "gco:CharacterString"}),
+		ABSTRACT_MDB (new String[]{"mdb:MD_Metadata", "mdb:identificationInfo", "mri:MD_DataIdentification", "mri:abstract", "gco:CharacterString"}),
 
-		BBOXES (new String[]{"gmd:MD_Metadata", "gmd:identificationInfo", "gmd:MD_DataIdentification", "gmd:extent", "gmd:EX_Extent", "gmd:geographicElement", "gmd:EX_GeographicBoundingBox"}),
+		BBOXES_GMD (new String[]{"gmd:MD_Metadata", "gmd:identificationInfo", "gmd:MD_DataIdentification", "gmd:extent", "gmd:EX_Extent", "gmd:geographicElement", "gmd:EX_GeographicBoundingBox"}),
 		BBOXES_MCP (new String[]{"mcp:MD_Metadata", "gmd:identificationInfo", "mcp:MD_DataIdentification", "gmd:extent", "gmd:EX_Extent", "gmd:geographicElement", "gmd:EX_GeographicBoundingBox"}),
+		BBOXES_MDB (new String[]{"mdb:MD_Metadata", "mdb:identificationInfo", "mri:MD_DataIdentification", "mri:extent", "gex:EX_Extent", "gex:geographicElement", "gex:EX_GeographicBoundingBox"}),
 
-		POLYGONS (new String[]{"gmd:MD_Metadata", "gmd:identificationInfo", "gmd:MD_DataIdentification", "gmd:extent", "gmd:EX_Extent", "gmd:geographicElement", "gmd:EX_BoundingPolygon", "gmd:polygon", "gml:Polygon", "gml:exterior", "gml:LinearRing", "gml:coordinates"}),
+		POLYGONS_GMD (new String[]{"gmd:MD_Metadata", "gmd:identificationInfo", "gmd:MD_DataIdentification", "gmd:extent", "gmd:EX_Extent", "gmd:geographicElement", "gmd:EX_BoundingPolygon", "gmd:polygon", "gml:Polygon", "gml:exterior", "gml:LinearRing", "gml:coordinates"}),
 		POLYGONS_MCP (new String[]{"mcp:MD_Metadata", "gmd:identificationInfo", "mcp:MD_DataIdentification", "gmd:extent", "gmd:EX_Extent", "gmd:geographicElement", "gmd:EX_BoundingPolygon", "gmd:polygon", "gml:Polygon", "gml:exterior", "gml:LinearRing", "gml:coordinates"}),
+		POLYGONS_MDB (new String[]{"mdb:MD_Metadata", "mdb:identificationInfo", "mri:MD_DataIdentification", "mri:extent", "gex:EX_Extent", "gex:geographicElement", "gex:EX_BoundingPolygon", "gex:polygon", "gml:Polygon", "gml:exterior", "gml:LinearRing", "gml:coordinates"}),
 
-		LINKS (new String[]{"gmd:MD_Metadata", "gmd:distributionInfo", "gmd:MD_Distribution", "gmd:transferOptions", "gmd:MD_DigitalTransferOptions", "gmd:onLine", "gmd:CI_OnlineResource"}),
-		LINKS_MCP (new String[]{"mcp:MD_Metadata", "gmd:distributionInfo", "gmd:MD_Distribution", "gmd:transferOptions", "gmd:MD_DigitalTransferOptions", "gmd:onLine", "gmd:CI_OnlineResource"});
+		LINKS_GMD (new String[]{"gmd:MD_Metadata", "gmd:distributionInfo", "gmd:MD_Distribution", "gmd:transferOptions", "gmd:MD_DigitalTransferOptions", "gmd:onLine", "gmd:CI_OnlineResource"}),
+		LINKS_MCP (new String[]{"mcp:MD_Metadata", "gmd:distributionInfo", "gmd:MD_Distribution", "gmd:transferOptions", "gmd:MD_DigitalTransferOptions", "gmd:onLine", "gmd:CI_OnlineResource"}),
+		LINKS_MDB (new String[]{"mdb:MD_Metadata", "mdb:distributionInfo", "mrd:MD_Distribution", "mrd:transferOptions", "mrd:MD_DigitalTransferOptions", "mrd:onLine", "cit:CI_OnlineResource"});
 
 		private final String[] path;
 
