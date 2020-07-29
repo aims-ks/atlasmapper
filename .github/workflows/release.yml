@@ -28,7 +28,18 @@ jobs:
         run: mvn -B -e --settings settings.xml package
 
       # Upload
-      - uses: actions/upload-artifact@v2
+      - name: Upload Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: atlasmapper.war
-          path: target/*.war
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./target/*.war
+          asset_name: atlasmapper.war
+          asset_content_type: application/zip
+
+      #- uses: actions/upload-artifact@v2
+      #  with:
+      #    name: atlasmapper.war
+      #    path: target/*.war
