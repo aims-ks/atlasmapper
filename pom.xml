@@ -254,7 +254,7 @@ It contains:\n\
                         <phase>package</phase>
                         <configuration>
                             <target>
-                                <zip destfile="${project.build.directory}/${project.build.finalName}-${project.version}.zip">
+                                <zip destfile="${project.build.directory}/${project.build.finalName}.zip">
                                     <filelist dir="${project.build.directory}">
                                         <file name="${project.build.finalName}.${project.packaging}"/>
                                     </filelist>
