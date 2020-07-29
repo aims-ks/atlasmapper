@@ -1,0 +1,27 @@
+# Workflow executed on "release" events.
+name: release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+
+  # Deploy to Github Packages.
+  deploy:
+    name: Deploy to Github Packages
+
+    runs-on: ubuntu-latest
+
+    container:
+      image: maven:3.6-alpine
+
+    steps:
+
+      # Retrieve the code from Github.
+      - uses: actions/checkout@v2
+
+      - name: Publish to GitHub Packages.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: mvn -B -e --settings settings.xml deploy
