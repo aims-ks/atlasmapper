@@ -30,16 +30,14 @@ jobs:
       # Upload
       - name: Upload Release Asset
         id: upload-release-asset
+        # https://github.com/actions/upload-release-asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
+          # NOTE: actions/upload-release-asset@v1 do not support metacharacters in asset_path
+          #   https://github.com/actions/upload-release-asset/issues/47
           asset_path: target/atlasmapper.zip
           asset_name: atlasmapper_${{ github.event.release.tag_name }}.zip
           asset_content_type: application/zip
-
-      #- uses: actions/upload-artifact@v2
-      #  with:
-      #    name: atlasmapper.war
-      #    path: target/*.war

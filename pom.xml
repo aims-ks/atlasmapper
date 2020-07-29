@@ -254,6 +254,7 @@ It contains:\n\
                         <phase>package</phase>
                         <configuration>
                             <target>
+                                <!-- NOTE: No version number in filename to help GitHub release to find it -->
                                 <zip destfile="${project.build.directory}/${project.build.finalName}.zip">
                                     <filelist dir="${project.build.directory}">
                                         <file name="${project.build.finalName}.${project.packaging}"/>
