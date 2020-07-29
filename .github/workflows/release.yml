@@ -21,7 +21,14 @@ jobs:
       # Retrieve the code from Github.
       - uses: actions/checkout@v2
 
-      - name: Publish to GitHub Packages.
+      # Compile
+      - name: Compile the WAR archive.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: mvn -B -e --settings settings.xml deploy
+        run: mvn -B -e --settings settings.xml package
+
+      # Upload
+      - uses: actions/upload-artifact@v2
+        with:
+          name: atlasmapper.war
+          path: target/*.war
