@@ -25,7 +25,7 @@
     <groupId>au.gov.aims</groupId>
     <artifactId>atlasmapper</artifactId>
     <packaging>war</packaging>
-    <version>2.0.21</version>
+    <version>2.1.0</version>
     <name>AtlasMapper server and clients</name>
     <description>This application compiled as a single War, that can be deployed in Tomcat, without any other dependency.\n\
 It contains:\n\
@@ -48,6 +48,10 @@ It contains:\n\
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+
+        <netcdfversion>5.0.0-alpha3</netcdfversion>
         <netbeans.hint.deploy.server>Tomcat60</netbeans.hint.deploy.server>
     </properties>
 
@@ -56,6 +60,13 @@ It contains:\n\
             <id>osgeo</id>
             <name>Open Source Geospatial Foundation Repository</name>
             <url>https://repo.osgeo.org/repository/release/</url>
+        </repository>
+
+        <!-- AIMS ks maven repository on GitHub -->
+        <repository>
+            <id>aims-ks.mvn-mirror-repo</id>
+            <name>AIMS Knowledge System Maven Mirror repository</name>
+            <url>https://raw.githubusercontent.com/aims-ks/mvn-mirror-repo/master/</url>
         </repository>
     </repositories>
 
@@ -117,6 +128,13 @@ It contains:\n\
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
             <version>4.5.6</version>
+        </dependency>
+
+        <!-- To parse THREDDS catalog.xml -->
+        <dependency>
+            <groupId>edu.ucar</groupId>
+            <artifactId>cdm</artifactId>
+            <version>${netcdfversion}</version>
         </dependency>
 
         <!-- H2 Database used with CacheDatabase -->
@@ -208,8 +226,8 @@ It contains:\n\
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.1</version>
                 <configuration>
-                    <source>1.6</source>
-                    <target>1.6</target>
+                    <source>1.8</source>
+                    <target>1.8</target>
                 </configuration>
             </plugin>
             <plugin>

@@ -41,6 +41,8 @@ public class DataSourceConfigHelper {
 			dataSourceConfig = new KMLDataSourceConfig(configManager);
 		} else if (dataSourceWrapper.isNCWMS()) {
 			dataSourceConfig = new NcWMSDataSourceConfig(configManager);
+		} else if (dataSourceWrapper.isTHREDDS()) {
+			dataSourceConfig = new ThreddsDataSourceConfig(configManager);
 		} else if (dataSourceWrapper.isTiles()) {
 			dataSourceConfig = new TilesDataSourceConfig(configManager);
 		} else if (dataSourceWrapper.isXYZ()) {

@@ -35,6 +35,10 @@ var dataSourceLayerTypes = {
         display: 'ncWMS',
         qtipHtml: 'ncWMS is a Web Map Service for geospatial data that are stored in <strong>CF-compliant NetCDF</strong> files. This type of data source is not very common. You will be asked to provide a GetCapabilities document URL.'
     },
+    'THREDDS': {
+        display: 'THREDDS',
+        qtipHtml: 'THREDDS is a Web Service for <strong>CF-compliant NetCDF</strong> data file. This type of data source is not very common. You will be asked to provide the URL of the THREDDS server.'
+    },
     'ARCGIS_MAPSERVER': {
         display: 'ArcGIS MapServer',
         qtipHtml: 'ArcGIS Map servers, which provide ESRI layers. It use the ArcGIS cache feature when available.'
@@ -400,6 +404,11 @@ Ext.define('Writer.LayerServerConfigForm', {
             qtipHtml: 'URL to the layer service. This URL is used by a java library to download the WMS capabilities document. Setting this field alone with <em>Data source ID</em> and <em>Data source name</em> is usually enough. Note that a full URL to the capabilities document can also be provided, including additional parameters.<br/>NOTE: WMS services may use the file protocol here.<br/>Example: file:///somepath/capabilities.xml',
             name: 'serviceUrl'
         };
+        var threddsServiceUrl = {
+            fieldLabel: 'THREDDS service URL',
+            qtipHtml: 'URL to the root of the THREDDS service. The AtlasMapper will harvest every layers available from that URL. Setting this field alone with <em>Data source ID</em> and <em>Data source name</em> is usually enough. Note that a full URL to a <em>catalog.xml</em> document can also be provided.<br/>Example: https://domain.com/thredds/',
+            name: 'serviceUrl'
+        };
         var arcGISServiceUrl = {
             fieldLabel: 'ArcGIS service URL',
             qtipHtml: 'URL to the layer service. This URL is used to download the JSON files describing the layers. Setting this field alone with <em>Data source ID</em> and <em>Data source name</em> is usually enough.<br/>Example: http://ao.com/ArcGIS/rest/services',
@@ -550,6 +559,13 @@ Ext.define('Writer.LayerServerConfigForm', {
                 //advancedItems.push(extraWmsServiceUrls);
                 advancedItems.push(getMapUrl);
                 advancedItems.push(featureRequestsUrl);
+                break;
+
+            case 'THREDDS':
+                items.push(threddsServiceUrl);
+
+                advancedItems.push(globalManualOverride);
+                advancedItems.push(blackAndWhiteListedLayers);
                 break;
 
             case 'WMTS':
@@ -1034,7 +1050,7 @@ Ext.define('Writer.LayerServerConfigGrid', {
                     // http://docs.sencha.com/ext-js/4-0/#/api/Ext.grid.column.Action
                     header: 'Actions',
                     xtype: 'actioncolumn',
-                    width: 80, // padding of 8px between icons
+                    width: 85, // padding of 8px between icons
                     defaults: {
                         iconCls: 'grid-icon'
                     },
@@ -1188,6 +1204,21 @@ Ext.define('Writer.LayerServerConfigGrid', {
                         xtype: 'checkboxfield',
                         qtipHtml: 'Redownload the capabilities document.',
                         boxLabel: 'Redownload the capabilities document',
+                        checked: true,
+                        name: 'clearCapCache'
+                    }
+                ];
+                break;
+
+            case 'THREDDS':
+                windowContent = [
+                    {
+                        xtype: 'displayfield',
+                        value: 'Rebuild the data source information with the latest settings and re-harvest the catalogue.'
+                    }, {
+                        xtype: 'checkboxfield',
+                        qtipHtml: 'Redownload the catalogue.',
+                        boxLabel: 'Redownload the catalogue',
                         checked: true,
                         name: 'clearCapCache'
                     }

@@ -330,6 +330,9 @@ public class DataSourceWrapper extends AbstractWrapper {
     public boolean isNCWMS() {
         return "NCWMS".equals(this.getLayerType());
     }
+    public boolean isTHREDDS() {
+        return "THREDDS".equals(this.getLayerType());
+    }
     public boolean isTiles() {
         return "TILES".equals(this.getLayerType());
     }

@@ -87,6 +87,8 @@ public class LayerCatalog {
             layerConfig = new KMLLayerConfig(configManager);
         } else if ("NCWMS".equals(layerType)) {
             layerConfig = new NcWMSLayerConfig(configManager);
+        } else if ("THREDDS".equals(layerType)) {
+            layerConfig = new ThreddsLayerConfig(configManager);
         } else if ("TILES".equals(layerType)) {
             layerConfig = new TilesLayerConfig(configManager);
         } else if ("XYZ".equals(layerType)) {

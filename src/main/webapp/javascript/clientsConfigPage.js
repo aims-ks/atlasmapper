@@ -991,7 +991,7 @@ Ext.define('Writer.ClientConfigGrid', {
                     // http://docs.sencha.com/ext-js/4-0/#/api/Ext.grid.column.Action
                     header: 'Actions',
                     xtype: 'actioncolumn',
-                    width: 80, // padding of 8px between icons
+                    width: 85, // padding of 8px between icons
                     defaults: {
                         iconCls: 'grid-icon'
                     },
