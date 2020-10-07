@@ -113,6 +113,7 @@ public class Utils {
                     .put("resolutions", new JSONArray("[156543.033928, 78271.5169639999, 39135.7584820001, 19567.8792409999, 9783.93962049996, 4891.96981024998, 2445.98490512499, 1222.99245256249, 611.49622628138, 305.748113140558, 152.874056570411, 76.4370282850732, 38.2185141425366, 19.1092570712683, 9.55462853563415, 4.77731426794937, 2.38865713397468, 1.19432856685505, 0.597164283559817, 0.298582141647617]")));
 
             /*
+            // TODO Try with 3857
             // OpenLayers is not able to do the re-projection of EPSG:3785.
             SUPPORTED_PROJECTIONS.put("EPSG:3785", new JSONObject()
                     .put("projectionName", "Mercator (EPSG:3785)")
@@ -128,6 +129,10 @@ public class Utils {
             LOGGER.log(Level.SEVERE, "Can not create the JSON map of supported projections: {0}", Utils.getExceptionMessage(ex));
             LOGGER.log(Level.FINE, "Stack trace:", ex);
         }
+    }
+
+    public static String getRedirectUrl(URL url) throws IOException {
+        return Utils.getRedirectUrl(url.toString());
     }
 
     public static String getRedirectUrl(String urlStr) throws IOException {
@@ -155,13 +160,11 @@ public class Utils {
     // Inspired from:
     //   https://stackoverflow.com/questions/2659000/java-how-to-find-the-redirected-url-of-a-url#2659022
     private static String _getRedirectUrl(String urlStr) throws IOException {
-        URL url = null;
         String location = null;
         HttpURLConnection connection = null;
 
         try {
-            url = new URL(urlStr);
-
+            URL url = new URL(urlStr);
             connection = (HttpURLConnection) url.openConnection();
             connection.setInstanceFollowRedirects(false);
             int responseCode = connection.getResponseCode();
@@ -393,7 +396,7 @@ public class Utils {
         }
 
         // Add the default "http" protocol if we have one of the 2 cases:
-        // 1. Obvious case, no "://" found so there is not protocol.
+        // 1. Obvious case, no "://" found so there is no protocol.
         //     Example: www.google.com
         // 2. There is a "://", but it is after the first none ASCII char.
         //     Example: www.google.com?search=://

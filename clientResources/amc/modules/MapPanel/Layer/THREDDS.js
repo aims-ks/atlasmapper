@@ -1,0 +1,317 @@
+/*
+ *  This file is part of AtlasMapper server and clients.
+ *
+ *  Copyright (C) 2020 Australian Institute of Marine Science
+ *
+ *  Contact: Gael Lafond <g.lafond@aims.gov.au>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+// Namespace declaration (equivalent to Ext.namespace("Atlas.Layer");)
+window["Atlas"] = window["Atlas"] || {};
+window["Atlas"]["Layer"] = window["Atlas"]["Layer"] || {};
+
+Atlas.Layer.THREDDS = OpenLayers.Class(Atlas.Layer.WMS, {
+	featureInfoFormat: 'text/xml',
+
+	/**
+	 * Constructor: Atlas.Layer.THREDDS
+	 *
+	 * Parameters:
+	 * jsonLayer - {Object} Hashtable of layer attributes
+	 * mapPanel - {Object} Instance of the MapPanel in which the layer is used
+	 */
+	initialize: function(mapPanel, jsonLayer, parent) {
+		// Do not call initialize from WMS because it would create a useless WMS layer.
+		Atlas.Layer.AbstractLayer.prototype.initialize.apply(this, arguments);
+
+		// THREDDS do not support cache
+		this.useCache = false;
+
+		// TODO Support Multiple URLS => this._getWMSExtraServiceUrls(),
+		var layerParams = this.getWMSLayerParams();
+		this.setLayer(new OpenLayers.Layer.ux.NCWMS(
+			this.getTitle(),
+			this.getServiceUrl(layerParams),
+			layerParams,
+			this.getTHREDDSLayerOptions()
+		));
+	},
+
+	getTHREDDSLayerOptions: function() {
+		var layerOptions = this.getWMSLayerOptions();
+
+		if (layerOptions != null && typeof(layerOptions.projection) !== 'undefined') {
+			var projectionCode = null;
+			if (typeof(layerOptions.projection) === 'string') {
+				projectionCode = layerOptions.projection;
+			} else if (typeof(layerOptions.projection) === 'object') {
+				projectionCode = layerOptions.projection.projCode;
+			}
+
+			if (projectionCode !== null && projectionCode === 'EPSG:900913') {
+				// THREDDS do not support EPSG:900913, but it support EPSG:3857 which is the same thing.
+				layerOptions.projection = 'EPSG:3857';
+			}
+		}
+
+		return layerOptions;
+	},
+
+	// Override
+	setOptions: function(optionsPanel) {
+		var serviceUrl = this.json['serviceUrl'];
+
+		// TODO Remove ExtJS dependency!!
+		var url = serviceUrl + '?' + Ext.urlEncode({
+			item: 'layerDetails',
+			layerName: this.json['layerName'],
+			request: 'GetMetadata'
+		});
+
+		var that = this;
+		OpenLayers.Request.GET({
+			url: url,
+			scope: this,
+			success: function (result, request) {
+				this._setOptions(result, request, optionsPanel);
+			},
+			failure: function (result, request) {
+				var resultMessage = 'Unknown error';
+				try {
+					var jsonData = Ext.util.JSON.decode(result.responseText);
+					resultMessage = jsonData.data.result;
+				} catch (err) {
+					resultMessage = result.responseText;
+				}
+				// TODO Error on the page
+				alert('Error while loading THREDDS options: ' + resultMessage);
+			}
+		});
+	},
+
+	/**
+	 * Inspired on godiva2.js
+	 * http://maps.eatlas.org.au/thredds/godiva2/js/godiva2.js
+	 */
+	_setOptions: function(result, request, optionsPanel) {
+		if (this.layer == (optionsPanel.currentNode ? optionsPanel.currentNode.layer : null)) {
+			var layerDetails = null;
+			try {
+				// TODO Remove ExtJS dependency!!
+				layerDetails = Ext.util.JSON.decode(result.responseText);
+			} catch (err) {
+				var resultMessage = result.responseText;
+				// TODO Error on the page
+				alert('Error while loading THREDDS options: ' + resultMessage);
+				return;
+			}
+
+			if (layerDetails == null) {
+				return;
+			}
+
+			if (layerDetails.exception) {
+				// TODO Error on the page
+				alert('Error while loading THREDDS options: ' +
+					(layerDetails.exception.message ? layerDetails.exception.message : layerDetails.exception));
+				return;
+			}
+
+			// TODO Do something with those
+			var units = layerDetails.units;
+			var copyright = layerDetails.copyright;
+			var palettes = layerDetails.palettes;
+
+			// Z Axis (Elevation/Depth) option
+			var zAxis = layerDetails.zaxis;
+			if (zAxis != null) {
+				var zAxisParam = 'ELEVATION';
+
+				// Currently selected value.
+				var zValue = this.getParameter(zAxisParam, 0);
+
+				var zAxisOptions = [];
+				var zAxisLabel = (zAxis.positive ? 'Elevation' : 'Depth') + ' (' + zAxis.units + ')';
+				// Populate the drop-down list of z values
+				// Make z range selector invisible if there are no z values
+				var zValues = zAxis.values;
+				var zDiff = 1e10; // Set to some ridiculously-high value
+				var defaultValue = 0;
+				for (var j = 0; j < zValues.length; j++) {
+					// Create an item in the drop-down list for this z level
+					var zLabel = zAxis.positive ? zValues[j] : -zValues[j];
+					zAxisOptions[j] = [zValues[j], zLabel];
+					// Find the nearest value to the currently-selected
+					// depth level
+					var diff = Math.abs(parseFloat(zValues[j]) - zValue);
+					if (diff < zDiff) {
+						zDiff = diff;
+						defaultValue = zValues[j];
+					}
+				}
+
+				if (zAxisOptions.length > 1) {
+					var zAxisSelect = {
+						xtype: "combo",
+						name: zAxisParam,
+						editable: false,
+						fieldLabel: zAxisLabel,
+						value: defaultValue,
+						typeAhead: false,
+						triggerAction: 'all',
+						lazyRender: true,
+						mode: 'local',
+						store: new Ext.data.ArrayStore({
+							id: 0,
+							fields: [
+								'name',
+								'title'
+							],
+							data: zAxisOptions
+						}),
+						valueField: 'name',
+						displayField: 'title',
+						allowBlank: false,
+						listeners: {
+							scope: this,
+							select: this.onZAxisChange
+						}
+					};
+					optionsPanel.addOption(this, zAxisSelect);
+				}
+			}
+
+			// Set the scale value if this is present in the metadata
+			if (typeof(layerDetails.scaleRange) !== 'undefined' &&
+					layerDetails.scaleRange != null &&
+					layerDetails.scaleRange.length > 1 &&
+					layerDetails.scaleRange[0] != layerDetails.scaleRange[1]) {
+				var scaleParam = 'COLORSCALERANGE';
+
+				var scaleMinVal = null;
+				var scaleMaxVal = null;
+
+				var minmaxField = new Ext.ux.form.MinMaxField({
+					fieldLabel: 'Colour range',
+					name: scaleParam,
+					decimalPrecision: 4,
+					listeners: {
+						scope: this,
+						change: this.onMinMaxChange,
+						specialkey: function(field, event) {
+							if (event.getKey() == event.ENTER) {
+								this.onMinMaxChange(event);
+							}
+						}
+					}
+				});
+
+				var actualValue = this.getParameter(scaleParam, null);
+
+				if (actualValue != null) {
+					var values = actualValue.split(minmaxField.spacer);
+					scaleMinVal = values[0];
+					scaleMaxVal = values[1];
+				}
+
+				if (scaleMinVal == null) {
+					scaleMinVal = parseFloat(layerDetails.scaleRange[0]);
+				}
+				if (scaleMaxVal == null) {
+					scaleMaxVal = parseFloat(layerDetails.scaleRange[1]);
+				}
+
+				minmaxField.setValue(scaleMinVal, scaleMaxVal);
+
+				optionsPanel.addOption(this, minmaxField);
+			}
+		}
+	},
+
+	onZAxisChange: function(evt) {
+		this._onOptionChange(evt, evt.value, evt.startValue);
+	},
+	onMinMaxChange: function(evt) {
+		var field = evt[0];
+		if (field) {
+			// Workaround - Listeners of minMaxField are sent to their children.
+			if (field.minMaxField) {
+				field = field.minMaxField;
+			}
+			this._onOptionChange(field, evt[1], evt[2]);
+		}
+	},
+
+	_onOptionChange: function(field, newValue, oldValue) {
+		var newParams = {};
+
+		var fieldName = field.getName();
+		if (fieldName) {
+			var fieldValue = field.getValue();
+
+			// Set the new parameter, or unset it if it has a null value (don't remove STYLES - it's mandatory).
+			if (typeof(fieldValue) == 'undefined' || fieldValue == null || fieldValue == '') {
+				// Remove the param from the URL - Some server don't like to have en empty parameter
+				// NOTE: OpenLayers filter null values
+				newParams[fieldName] = null;
+			} else {
+				newParams[fieldName] = fieldValue;
+			}
+		}
+
+		this.setParameters(newParams);
+	},
+
+
+	/**
+	 * Return the HTML chunk that will be displayed in the balloon.
+	 * @param xmlResponse RAW XML response
+	 * @param textResponse RAW text response
+	 * @return {String} The HTML content of the feature info balloon, or null if the layer info should not be shown.
+	 */
+	// Override
+	processFeatureInfoResponse: function(responseEvent) {
+		if (!responseEvent || !responseEvent.request || !responseEvent.request.responseXML) {
+			return null;
+		}
+
+		var xmlResponse = responseEvent.request.responseXML;
+		if (!this._containsData(xmlResponse)) {
+			return null;
+		}
+
+		return '<h3>' + this.getTitle() + '</h3>' + this.xmlToHtml(xmlResponse);
+	},
+
+	_containsData: function(xmlResponse) {
+		var values = xmlResponse.getElementsByTagName('value');
+		if (!values || !values[0]) {
+			return false;
+		}
+
+		var childNodes = values[0].childNodes;
+		if (!childNodes || !childNodes[0]) {
+			return false;
+		}
+
+		var value = childNodes[0].nodeValue;
+		if (typeof(value) === 'undefined' || value === '' || value === 'none') {
+			return false;
+		}
+
+		return true;
+	}
+});

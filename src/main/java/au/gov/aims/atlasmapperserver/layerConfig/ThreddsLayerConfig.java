@@ -22,9 +22,32 @@
 package au.gov.aims.atlasmapperserver.layerConfig;
 
 import au.gov.aims.atlasmapperserver.ConfigManager;
+import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 
 public class ThreddsLayerConfig extends WMSLayerConfig {
+    @ConfigField
+    private String serviceUrl;
+
+    @ConfigField
+    private String datasetId;
+
     public ThreddsLayerConfig(ConfigManager configManager) {
         super(configManager);
+    }
+
+    public String getServiceUrl() {
+        return this.serviceUrl;
+    }
+
+    public void setServiceUrl(String serviceUrl) {
+        this.serviceUrl = serviceUrl;
+    }
+
+    public String getDatasetId() {
+        return this.datasetId;
+    }
+
+    public void setDatasetId(String datasetId) {
+        this.datasetId = datasetId;
     }
 }
