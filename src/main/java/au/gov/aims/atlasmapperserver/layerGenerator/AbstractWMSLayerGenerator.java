@@ -28,8 +28,12 @@ import au.gov.aims.atlasmapperserver.cache.URLCache;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.AbstractDataSourceConfig;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.WMSDataSourceConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
+import au.gov.aims.atlasmapperserver.layerConfig.LayerOptionConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.LayerStyleConfig;
+import au.gov.aims.atlasmapperserver.layerConfig.NcWMSLayerConfig;
+import au.gov.aims.atlasmapperserver.layerConfig.ThreddsLayerConfig;
 import au.gov.aims.atlasmapperserver.layerConfig.WMSLayerConfig;
+import au.gov.aims.atlasmapperserver.layerConfig.WMSLayerDimensionConfig;
 import au.gov.aims.atlasmapperserver.thread.RevivableThread;
 import au.gov.aims.atlasmapperserver.thread.RevivableThreadInterruptedException;
 import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
@@ -43,6 +47,7 @@ import org.geotools.data.ows.OperationType;
 import org.geotools.data.ows.StyleImpl;
 import org.geotools.data.ows.WMSCapabilities;
 import org.geotools.data.ows.WMSRequest;
+import org.geotools.data.wms.xml.Dimension;
 import org.geotools.data.wms.xml.MetadataURL;
 import org.geotools.data.wms.xml.WMSSchema;
 import org.geotools.ows.ServiceException;
@@ -822,6 +827,30 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
         RevivableThread.checkForInterruption();
 
         L layerConfig = this.createLayerConfig(dataSourceClone.getConfigManager());
+
+        // Add layer dimensions to the layer config
+        List<Dimension> layerDimensions = layer.getLayerDimensions();
+        if (layerDimensions != null) {
+            for (Dimension layerDimension : layerDimensions) {
+                // NOTE: This is unnecessary, but could be useful in the future
+                WMSLayerDimensionConfig layerDimensionConfig = new WMSLayerDimensionConfig(dataSourceClone.getConfigManager());
+                layerDimensionConfig.setName(layerDimension.getName());
+                layerDimensionConfig.setUnits(layerDimension.getUnits());
+                layerDimensionConfig.setUnitSymbol(layerDimension.getUnitSymbol());
+                layerConfig.addDimension(layerDimensionConfig);
+
+                // Add datetime option to NcWMS and THREDDS layers
+                if ((layerConfig instanceof NcWMSLayerConfig) || (layerConfig instanceof ThreddsLayerConfig)) {
+                    if (layerDimensionConfig.isTimeDimension()) {
+                        LayerOptionConfig timeOption = new LayerOptionConfig(dataSourceClone.getConfigManager());
+                        timeOption.setName(layerDimensionConfig.getName());
+                        timeOption.setTitle("Date");
+                        timeOption.setType("ux-ncdatetimefield");
+                        layerConfig.addOption(timeOption);
+                    }
+                }
+            }
+        }
 
         String layerName = layer.getName();
         if (Utils.isBlank(layerName)) {

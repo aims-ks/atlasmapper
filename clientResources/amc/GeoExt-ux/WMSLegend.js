@@ -47,7 +47,7 @@ GeoExt.ux.WMSLegend = Ext.extend(GeoExt.WMSLegend, {
 		}
 
 		var that = this;
-		var deleteButon = new Ext.form.Field({
+		var deleteButton = new Ext.form.Field({
 			cls: 'x-legend-delete',
 			autoCreate: {
 				tag: 'input',
@@ -57,7 +57,7 @@ GeoExt.ux.WMSLegend = Ext.extend(GeoExt.WMSLegend, {
 			},
 			listeners: {
 				render: function(evt) {
-					deleteButon.getEl().on('click', function(evt) {
+					deleteButton.getEl().on('click', function(evt) {
 						var layer = that.layerRecord.getLayer();
 						layer.atlasLayer.setHideInLegend(true);
 					});
@@ -65,8 +65,8 @@ GeoExt.ux.WMSLegend = Ext.extend(GeoExt.WMSLegend, {
 			}
 		});
 		// Something somewhere call setText on this button...
-		deleteButon.setText = function(val) {};
-		this.items.insert(0, deleteButon);
+		deleteButton.setText = function(val) {};
+		this.items.insert(0, deleteButton);
 
 		// Synchronised the legend graphic DPI with the map DPI
 		// The listener is removed when the legend is removed

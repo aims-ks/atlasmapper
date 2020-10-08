@@ -26,6 +26,7 @@ import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -320,6 +321,13 @@ public abstract class AbstractLayerConfig extends AbstractConfig {
 
     public void setOptions(List<LayerOptionConfig> options) {
         this.options = options;
+    }
+
+    public void addOption(LayerOptionConfig option) {
+        if (this.options == null) {
+            this.options = new ArrayList<>();
+        }
+        this.options.add(option);
     }
 
     public JSONObject getOlParams() {

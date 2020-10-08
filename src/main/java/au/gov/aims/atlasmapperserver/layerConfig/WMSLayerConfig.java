@@ -25,7 +25,9 @@ import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class WMSLayerConfig extends AbstractLayerConfig {
     @ConfigField
@@ -33,6 +35,9 @@ public class WMSLayerConfig extends AbstractLayerConfig {
 
     @ConfigField
     private String[] wmsFeatureRequestLayers;
+
+    @ConfigField
+    private List<WMSLayerDimensionConfig> dimensions;
 
     public WMSLayerConfig(ConfigManager configManager) {
         super(configManager);
@@ -52,6 +57,21 @@ public class WMSLayerConfig extends AbstractLayerConfig {
 
     public void setWmsFeatureRequestLayers(String[] wmsFeatureRequestLayers) {
         this.wmsFeatureRequestLayers = wmsFeatureRequestLayers;
+    }
+
+    public List<WMSLayerDimensionConfig> getDimensions() {
+        return this.dimensions;
+    }
+
+    public void setDimensions(List<WMSLayerDimensionConfig> dimensions) {
+        this.dimensions = dimensions;
+    }
+
+    public void addDimension(WMSLayerDimensionConfig dimension) {
+        if (this.dimensions == null) {
+            this.dimensions = new ArrayList<WMSLayerDimensionConfig>();
+        }
+        this.dimensions.add(dimension);
     }
 
     @Override

@@ -108,14 +108,17 @@ public class ThreddsLayerGenerator extends AbstractWMSLayerGenerator<ThreddsLaye
             public void getDataset(Dataset dataset, Object context) {
                 ThreddsLayerGenerator.this.layerIdPrefix = dataset.getId();
                 try {
-
-// TODO TREE PATH!!
-                    logger.log(Level.FINEST, String.format("Processing dataset: %s", dataset.getId()));
-
                     URI wmsUri = ThreddsLayerGenerator.getDatasetWmsUri(dataset);
                     if (wmsUri != null) {
                         String wmsURLStr = wmsUri.toString();
+                        // Prepare the datasource before harvesting
+                        // NOTE: Reset some values to be sure we get the ones
+                        //   from the current GetCapabilities doc and not values
+                        //   from the previous harvest.
                         dataSourceClone.setServiceUrl(wmsURLStr);
+                        dataSourceClone.setFeatureRequestsUrl((String)null);
+                        dataSourceClone.setLegendUrl((String)null);
+                        dataSourceClone.setWmsVersion(null);
 
                         LayerCatalog childLayerCatalog = ThreddsLayerGenerator.super.generateRawLayerCatalog(
                                 logger,
@@ -129,17 +132,19 @@ public class ThreddsLayerGenerator extends AbstractWMSLayerGenerator<ThreddsLaye
                             for (AbstractLayerConfig layerConfig : childLayerCatalog.getLayers()) {
                                 if (layerConfig instanceof ThreddsLayerConfig) {
                                     ThreddsLayerConfig threddsLayerConfig = (ThreddsLayerConfig)layerConfig;
-                                    threddsLayerConfig.setServiceUrl(wmsURLStr);
                                     threddsLayerConfig.setDatasetId(dataset.getId());
+
+                                    // Copy some the datasource settings to the layers since not
+                                    // all layers from a THREDDS server share the same values.
+                                    threddsLayerConfig.setServiceUrl(dataSourceClone.getServiceUrl());
+                                    threddsLayerConfig.setFeatureRequestsUrl(dataSourceClone.getFeatureRequestsUrl());
+                                    threddsLayerConfig.setLegendUrl(dataSourceClone.getLegendUrl());
+                                    threddsLayerConfig.setWmsVersion(dataSourceClone.getWmsVersion());
                                 }
                                 logger.log(Level.INFO, String.format("Adding layer: %s", layerConfig.getLayerId()));
                                 layerCatalog.addLayer(layerConfig);
                             }
-                        } else {
-                            logger.log(Level.FINEST, String.format("Dataset contains no WMS layer: %s", dataset.getId()));
                         }
-                    } else {
-                        logger.log(Level.FINEST, String.format("Dataset contains no WMS service: %s", dataset.getId()));
                     }
                 } catch(RevivableThreadInterruptedException ex) {
                     cancelTask.cancel();
@@ -200,7 +205,16 @@ public class ThreddsLayerGenerator extends AbstractWMSLayerGenerator<ThreddsLaye
 
         RevivableThread.checkForInterruption();
 
-        CatalogCrawler crawler = new CatalogCrawler(CatalogCrawler.Type.all, 0, null, listener, cancelTask, printWriter, null);
+        // NOTE: The CatalogCrawler do not support S3Datasource
+        //   I will need to extend it to add support for it.
+        CatalogCrawler crawler = new CatalogCrawler(
+                CatalogCrawler.Type.all, // Type of Crawler (Default: all).
+                0, // Max dataset to parse: 0 to parse every dataset.
+                null, // Dataset filter: Null for no filter.
+                listener, // Listener: Callback function to call when new dataset is found.
+                cancelTask, // CancelTask: Used to cancel the crawl at any point.
+                printWriter, // PrintWriter: Used to output logs.
+                null); // Context: Arbitrary object to send to the listener with every dataset found.
         try {
             int found = crawler.crawl(catalog);
             logger.log(Level.INFO, "Catalogues found: " + found);

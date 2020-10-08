@@ -26,13 +26,30 @@ import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 
 public class ThreddsLayerConfig extends WMSLayerConfig {
     @ConfigField
+    private String datasetId;
+
+    @ConfigField
     private String serviceUrl;
 
     @ConfigField
-    private String datasetId;
+    private String featureRequestsUrl;
+
+    @ConfigField
+    private String legendUrl;
+
+    @ConfigField
+    private String wmsVersion;
 
     public ThreddsLayerConfig(ConfigManager configManager) {
         super(configManager);
+    }
+
+    public String getDatasetId() {
+        return this.datasetId;
+    }
+
+    public void setDatasetId(String datasetId) {
+        this.datasetId = datasetId;
     }
 
     public String getServiceUrl() {
@@ -43,11 +60,27 @@ public class ThreddsLayerConfig extends WMSLayerConfig {
         this.serviceUrl = serviceUrl;
     }
 
-    public String getDatasetId() {
-        return this.datasetId;
+    public String getFeatureRequestsUrl() {
+        return featureRequestsUrl;
     }
 
-    public void setDatasetId(String datasetId) {
-        this.datasetId = datasetId;
+    public void setFeatureRequestsUrl(String featureRequestsUrl) {
+        this.featureRequestsUrl = featureRequestsUrl;
+    }
+
+    public String getLegendUrl() {
+        return legendUrl;
+    }
+
+    public void setLegendUrl(String legendUrl) {
+        this.legendUrl = legendUrl;
+    }
+
+    public String getWmsVersion() {
+        return wmsVersion;
+    }
+
+    public void setWmsVersion(String wmsVersion) {
+        this.wmsVersion = wmsVersion;
     }
 }

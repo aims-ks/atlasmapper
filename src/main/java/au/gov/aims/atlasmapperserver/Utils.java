@@ -160,7 +160,7 @@ public class Utils {
     // Inspired from:
     //   https://stackoverflow.com/questions/2659000/java-how-to-find-the-redirected-url-of-a-url#2659022
     private static String _getRedirectUrl(String urlStr) throws IOException {
-        String location = null;
+        String redirectUrlStr = null;
         HttpURLConnection connection = null;
 
         try {
@@ -171,7 +171,10 @@ public class Utils {
 
             // https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#3xx_redirection
             if (responseCode >= 300 && responseCode < 400) {
-                location = connection.getHeaderField("Location");
+                String location = connection.getHeaderField("Location");
+                if (location != null) {
+                    redirectUrlStr = new URL(url, location).toString();
+                }
             }
         } finally {
             if (connection != null) {
@@ -179,7 +182,7 @@ public class Utils {
             }
         }
 
-        return location;
+        return redirectUrlStr;
     }
 
     // Create a HTTP Client used by URLCache and Proxy
