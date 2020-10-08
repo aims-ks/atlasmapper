@@ -50,6 +50,9 @@ Atlas.Layer.LayerHelper = {
                 case 'NCWMS':
                     atlasLayer = new Atlas.Layer.NCWMS(mapPanel, layerJSon, parent);
                     break;
+                case 'THREDDS':
+                    atlasLayer = new Atlas.Layer.THREDDS(mapPanel, layerJSon, parent);
+                    break;
                 case 'ARCGIS_MAPSERVER':
                     atlasLayer = new Atlas.Layer.ArcGISMapServer(mapPanel, layerJSon, parent);
                     break;

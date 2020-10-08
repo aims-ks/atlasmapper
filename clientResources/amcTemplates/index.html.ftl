@@ -160,6 +160,7 @@
         <script type="text/javascript" src="modules/MapPanel/Layer/SearchResults.js?atlasmapperVer=${version}"></script>
         <script type="text/javascript" src="modules/MapPanel/Layer/WMS.js?atlasmapperVer=${version}"></script>
             <script type="text/javascript" src="modules/MapPanel/Layer/NCWMS.js?atlasmapperVer=${version}"></script>
+            <script type="text/javascript" src="modules/MapPanel/Layer/THREDDS.js?atlasmapperVer=${version}"></script>
             <script type="text/javascript" src="modules/MapPanel/Layer/WMTS.js?atlasmapperVer=${version}"></script>
         <script type="text/javascript" src="modules/MapPanel/Layer/XYZ.js?atlasmapperVer=${version}"></script>
     <script type="text/javascript" src="modules/MapPanel/Layer/LayerHelper.js?atlasmapperVer=${version}"></script>

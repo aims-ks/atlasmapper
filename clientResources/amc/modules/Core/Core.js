@@ -993,7 +993,7 @@ Atlas.Core = OpenLayers.Class({
 					dataSourceData['layerType'] = dataSourceData['layerType'].toUpperCase();
 				}
 
-				if (dataSourceData['layerType'] == 'WMS' || dataSourceData['layerType'] == 'NCWMS') {
+				if (dataSourceData['layerType'] == 'WMS' || dataSourceData['layerType'] == 'NCWMS' || dataSourceData['layerType'] == 'THREDDS') {
 					if (!dataSourceData['featureRequestsUrl'] && dataSourceData['serviceUrl']) {
 						dataSourceData['featureRequestsUrl'] = dataSourceData['serviceUrl'];
 					}
@@ -1069,14 +1069,22 @@ Atlas.Core = OpenLayers.Class({
 		// Normalise "wmsFeatureRequestLayers"
 		// Ensure they all looks like this:
 		// [{layerId: featureRequestsUrl}, ...]
+		var featureRequestsUrl = null;
 		if (layerDataSource) {
+			featureRequestsUrl = layerDataSource['featureRequestsUrl'];
+		}
+		// Check if the feature request URL was overwritten for that layer
+		if (layerJSon['featureRequestsUrl']) {
+			featureRequestsUrl = layerJSon['featureRequestsUrl'];
+		}
+
+		if (featureRequestsUrl) {
 			if (!layerJSon['wmsFeatureRequestLayers']) {
 				var layerId = layerJSon['layerName'] || layerJSon['layerId'];
 				// Create 'wmsFeatureRequestLayers': [{layerId: featureRequestsUrl}]
 				// for layer without wmsFeatureRequestLayers field.
 				layerJSon['wmsFeatureRequestLayers'] = [{}];
-				layerJSon['wmsFeatureRequestLayers'][0][layerId] =
-					layerDataSource['featureRequestsUrl'];
+				layerJSon['wmsFeatureRequestLayers'][0][layerId] = featureRequestsUrl;
 			} else {
 				// Replace 'wmsFeatureRequestLayers': [layerId, layerId, ...]
 				// by 'wmsFeatureRequestLayers': [{layerId: featureRequestsUrl}, ...]
@@ -1085,8 +1093,7 @@ Atlas.Core = OpenLayers.Class({
 					if (typeof(requestLayers[i]) === 'string') {
 						var layerId = requestLayers[i];
 						requestLayers[i] = {};
-						requestLayers[i][layerId] =
-							layerDataSource['featureRequestsUrl'];
+						requestLayers[i][layerId] = featureRequestsUrl;
 					}
 				}
 			}

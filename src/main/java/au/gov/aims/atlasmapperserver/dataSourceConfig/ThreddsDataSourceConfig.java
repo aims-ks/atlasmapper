@@ -1,7 +1,7 @@
 /*
  *  This file is part of AtlasMapper server and clients.
  *
- *  Copyright (C) 2018 Australian Institute of Marine Science
+ *  Copyright (C) 2020 Australian Institute of Marine Science
  *
  *  Contact: Gael Lafond <g.lafond@aims.gov.au>
  *
@@ -18,28 +18,20 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package au.gov.aims.atlasmapperserver.thread;
 
-import java.text.DecimalFormat;
+package au.gov.aims.atlasmapperserver.dataSourceConfig;
 
-public abstract class AbstractConfigThread extends RevivableThread {
-    // Used to format the elapse time (always put at lease 1 digit before the dot, with maximum 2 digits after)
-    public static final DecimalFormat ELAPSE_TIME_FORMAT = new DecimalFormat("0.##");
+import au.gov.aims.atlasmapperserver.ConfigManager;
+import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
+import au.gov.aims.atlasmapperserver.layerGenerator.ThreddsLayerGenerator;
 
-    private ThreadLogger logger;
-
-    public AbstractConfigThread() {
-        this.logger = new ThreadLogger();
+public class ThreddsDataSourceConfig extends WMSDataSourceConfig {
+    public ThreddsDataSourceConfig(ConfigManager configManager) {
+        super(configManager);
     }
 
     @Override
-    public void reset() {
-        this.logger.reset();
-    }
-
-    // Status
-
-    public ThreadLogger getLogger() {
-        return this.logger;
+    public AbstractLayerGenerator createLayerGenerator() throws Exception {
+        return new ThreddsLayerGenerator();
     }
 }

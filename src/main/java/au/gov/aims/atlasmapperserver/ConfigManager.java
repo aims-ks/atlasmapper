@@ -1293,8 +1293,8 @@ public class ConfigManager {
         DataSourceWrapper layerCatalog = null;
         Map<String, DataSourceWrapper> dataSources = null;
         if (generate) {
-            layerCatalog = clientConfig.getLayerCatalog(logger, clientConfig.loadDataSources());
             dataSources = clientConfig.loadDataSources();
+            layerCatalog = clientConfig.getLayerCatalog(logger, dataSources);
         }
         return this.getClientConfigFileJSon(layerCatalog, dataSources, clientConfig, configType, generate);
     }

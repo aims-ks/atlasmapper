@@ -35,6 +35,10 @@ var dataSourceLayerTypes = {
         display: 'ncWMS',
         qtipHtml: 'ncWMS is a Web Map Service for geospatial data that are stored in <strong>CF-compliant NetCDF</strong> files. This type of data source is not very common. You will be asked to provide a GetCapabilities document URL.'
     },
+    'THREDDS': {
+        display: 'THREDDS',
+        qtipHtml: 'THREDDS is a Web Service for <strong>CF-compliant NetCDF</strong> data file. This type of data source is not very common. You will be asked to provide the URL of the THREDDS server.'
+    },
     'ARCGIS_MAPSERVER': {
         display: 'ArcGIS MapServer',
         qtipHtml: 'ArcGIS Map servers, which provide ESRI layers. It use the ArcGIS cache feature when available.'
@@ -374,7 +378,8 @@ Ext.define('Writer.LayerServerConfigForm', {
             xtype: 'checkboxfield'
         };
         var showInLegend = {
-            qtipHtml: 'Uncheck this box to disable the legend for all layers provided by this data source. This mean that the layers will not have its legend displayed in the AtlasMapper clients, and they will not have a check box in the layer <em>Options</em> to show its legend.',
+            qtipHtml: 'Uncheck this box to disable the legend for all layers provided by this data source. This mean that the layers will not have its legend displayed in the AtlasMapper clients, and they will not have a check box in the layer <em>Options</em> to show its legend.<br/><br/>' +
+                    '<b>Not yet implemented.</b>',
             boxLabel: 'Show layers in legend',
             name: 'showInLegend',
             xtype: 'checkboxfield'
@@ -398,6 +403,11 @@ Ext.define('Writer.LayerServerConfigForm', {
         var wmsServiceUrl = {
             fieldLabel: 'WMS service URL',
             qtipHtml: 'URL to the layer service. This URL is used by a java library to download the WMS capabilities document. Setting this field alone with <em>Data source ID</em> and <em>Data source name</em> is usually enough. Note that a full URL to the capabilities document can also be provided, including additional parameters.<br/>NOTE: WMS services may use the file protocol here.<br/>Example: file:///somepath/capabilities.xml',
+            name: 'serviceUrl'
+        };
+        var threddsServiceUrl = {
+            fieldLabel: 'THREDDS service URL',
+            qtipHtml: 'URL to the root of the THREDDS service. The AtlasMapper will harvest every layers available from that URL. Setting this field alone with <em>Data source ID</em> and <em>Data source name</em> is usually enough. Note that a full URL to a <em>catalog.xml</em> document can also be provided.<br/>Example: https://domain.com/thredds/',
             name: 'serviceUrl'
         };
         var arcGISServiceUrl = {
@@ -550,6 +560,26 @@ Ext.define('Writer.LayerServerConfigForm', {
                 //advancedItems.push(extraWmsServiceUrls);
                 advancedItems.push(getMapUrl);
                 advancedItems.push(featureRequestsUrl);
+
+                // Overwrite legendParameters default value
+                //   https://reading-escience-centre.gitbooks.io/ncwms-user-guide/content/04-usage.html#getlegendgraphic
+                this.defaultValues.set('legendParameters', 'TRANSPARENT=FALSE');
+                break;
+
+            case 'THREDDS':
+                items.push(threddsServiceUrl);
+                items.push(baseLayers);
+                items.push(activeDownload);
+                items.push(comment);
+
+                advancedItems.push(globalManualOverride);
+                advancedItems.push(blackAndWhiteListedLayers);
+                advancedItems.push(showInLegend);
+                advancedItems.push(legendParameters);
+
+                // Overwrite legendParameters default value
+                //   https://reading-escience-centre.gitbooks.io/ncwms-user-guide/content/04-usage.html#getlegendgraphic
+                this.defaultValues.set('legendParameters', 'TRANSPARENT=FALSE');
                 break;
 
             case 'WMTS':
@@ -1034,7 +1064,7 @@ Ext.define('Writer.LayerServerConfigGrid', {
                     // http://docs.sencha.com/ext-js/4-0/#/api/Ext.grid.column.Action
                     header: 'Actions',
                     xtype: 'actioncolumn',
-                    width: 80, // padding of 8px between icons
+                    width: 85, // padding of 8px between icons
                     defaults: {
                         iconCls: 'grid-icon'
                     },
@@ -1166,7 +1196,7 @@ Ext.define('Writer.LayerServerConfigGrid', {
                         value: 'Rebuild the data source information with the latest settings and re-harvest documents.'
                     }, {
                         xtype: 'checkboxfield',
-                        qtipHtml: 'Redownload the capabilities document.',
+                        qtipHtml: 'Redownload the GetCapabilities document.',
                         boxLabel: 'Redownload the capabilities document',
                         checked: true,
                         name: 'clearCapCache'
@@ -1186,8 +1216,23 @@ Ext.define('Writer.LayerServerConfigGrid', {
                         value: 'Rebuild the data source information with the latest settings and re-harvest capabilities documents.'
                     }, {
                         xtype: 'checkboxfield',
-                        qtipHtml: 'Redownload the capabilities document.',
+                        qtipHtml: 'Redownload the GetCapabilities document.',
                         boxLabel: 'Redownload the capabilities document',
+                        checked: true,
+                        name: 'clearCapCache'
+                    }
+                ];
+                break;
+
+            case 'THREDDS':
+                windowContent = [
+                    {
+                        xtype: 'displayfield',
+                        value: 'Rebuild the data source information with the latest settings and re-harvest the catalogue.'
+                    }, {
+                        xtype: 'checkboxfield',
+                        qtipHtml: 'Redownload all the GetCapabilities documents the CatalogCrawler finds.',
+                        boxLabel: 'Redownload the capabilities documents',
                         checked: true,
                         name: 'clearCapCache'
                     }

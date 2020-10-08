@@ -35,6 +35,7 @@ import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -57,6 +58,7 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -83,6 +85,7 @@ import org.xml.sax.SAXParseException;
  */
 public class Utils {
     private static final Logger LOGGER = Logger.getLogger(Utils.class.getName());
+    private static final int HTTP_CLIENT_TIMEOUT = 5 * 60 * 1000; // 5 minutes, in milliseconds
     private static final int INDENT = 4;
     // Copied from org.geotools.referencing.operation.projection.MapProjection
     private static final double ANGLE_TOLERANCE = 1E-4;
@@ -110,6 +113,7 @@ public class Utils {
                     .put("resolutions", new JSONArray("[156543.033928, 78271.5169639999, 39135.7584820001, 19567.8792409999, 9783.93962049996, 4891.96981024998, 2445.98490512499, 1222.99245256249, 611.49622628138, 305.748113140558, 152.874056570411, 76.4370282850732, 38.2185141425366, 19.1092570712683, 9.55462853563415, 4.77731426794937, 2.38865713397468, 1.19432856685505, 0.597164283559817, 0.298582141647617]")));
 
             /*
+            // TODO Try with 3857
             // OpenLayers is not able to do the re-projection of EPSG:3785.
             SUPPORTED_PROJECTIONS.put("EPSG:3785", new JSONObject()
                     .put("projectionName", "Mercator (EPSG:3785)")
@@ -127,6 +131,60 @@ public class Utils {
         }
     }
 
+    public static String getRedirectUrl(URL url) throws IOException {
+        return Utils.getRedirectUrl(url.toString());
+    }
+
+    public static String getRedirectUrl(String urlStr) throws IOException {
+        // http://www.ietf.org/rfc/rfc2616.txt
+        int maxFollow = 5;
+
+        String redirectUrl = urlStr;
+        String newRedirectUrl;
+        for (int i=1; i<=maxFollow; i++) {
+            newRedirectUrl = Utils._getRedirectUrl(redirectUrl);
+            if (newRedirectUrl == null || newRedirectUrl.equals(redirectUrl)) {
+                break;
+            }
+
+            if (i == maxFollow) {
+                throw new IOException(
+                        String.format("Too many redirects occurred trying to load URL: %s", urlStr));
+            }
+            redirectUrl = newRedirectUrl;
+        }
+
+        return redirectUrl;
+    }
+
+    // Inspired from:
+    //   https://stackoverflow.com/questions/2659000/java-how-to-find-the-redirected-url-of-a-url#2659022
+    private static String _getRedirectUrl(String urlStr) throws IOException {
+        String redirectUrlStr = null;
+        HttpURLConnection connection = null;
+
+        try {
+            URL url = new URL(urlStr);
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setInstanceFollowRedirects(false);
+            int responseCode = connection.getResponseCode();
+
+            // https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#3xx_redirection
+            if (responseCode >= 300 && responseCode < 400) {
+                String location = connection.getHeaderField("Location");
+                if (location != null) {
+                    redirectUrlStr = new URL(url, location).toString();
+                }
+            }
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
+
+        return redirectUrlStr;
+    }
+
     // Create a HTTP Client used by URLCache and Proxy
     // Java DOC:
     //     http://hc.apache.org/httpcomponents-core-ga/httpcore/apidocs/index.html
@@ -137,6 +195,13 @@ public class Utils {
 
         // Try to add support for Self Signed SSL certificates
         try {
+            // Set HTTP Client timeout
+            RequestConfig requestConfig = RequestConfig.custom()
+                    .setConnectTimeout(HTTP_CLIENT_TIMEOUT)
+                    .setConnectionRequestTimeout(HTTP_CLIENT_TIMEOUT)
+                    .setSocketTimeout(HTTP_CLIENT_TIMEOUT).build();
+            httpClientBuilder.setDefaultRequestConfig(requestConfig);
+
             SSLContextBuilder selfSignedSSLCertContextBuilder = new SSLContextBuilder();
             selfSignedSSLCertContextBuilder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
             SSLConnectionSocketFactory selfSignedSSLCertSocketFactory = new SSLConnectionSocketFactory(
@@ -334,7 +399,7 @@ public class Utils {
         }
 
         // Add the default "http" protocol if we have one of the 2 cases:
-        // 1. Obvious case, no "://" found so there is not protocol.
+        // 1. Obvious case, no "://" found so there is no protocol.
         //     Example: www.google.com
         // 2. There is a "://", but it is after the first none ASCII char.
         //     Example: www.google.com?search=://
