@@ -110,6 +110,7 @@ public class ThreddsLayerGenerator extends AbstractWMSLayerGenerator<ThreddsLaye
                 try {
 
 // TODO TREE PATH!!
+                    logger.log(Level.FINEST, String.format("Processing dataset: %s", dataset.getId()));
 
                     URI wmsUri = ThreddsLayerGenerator.getDatasetWmsUri(dataset);
                     if (wmsUri != null) {
@@ -124,18 +125,21 @@ public class ThreddsLayerGenerator extends AbstractWMSLayerGenerator<ThreddsLaye
                                 redownloadMestRecordFiles
                         );
 
-                        if (childLayerCatalog != null) {
-                            logger.log(Level.INFO, String.format("Adding layers for: %s", dataset.getId()));
+                        if (childLayerCatalog != null && !childLayerCatalog.isEmpty()) {
                             for (AbstractLayerConfig layerConfig : childLayerCatalog.getLayers()) {
                                 if (layerConfig instanceof ThreddsLayerConfig) {
                                     ThreddsLayerConfig threddsLayerConfig = (ThreddsLayerConfig)layerConfig;
                                     threddsLayerConfig.setServiceUrl(wmsURLStr);
                                     threddsLayerConfig.setDatasetId(dataset.getId());
                                 }
-                                logger.log(Level.INFO, String.format("-- Adding layer: %s", layerConfig.getLayerId()));
+                                logger.log(Level.INFO, String.format("Adding layer: %s", layerConfig.getLayerId()));
                                 layerCatalog.addLayer(layerConfig);
                             }
+                        } else {
+                            logger.log(Level.FINEST, String.format("Dataset contains no WMS layer: %s", dataset.getId()));
                         }
+                    } else {
+                        logger.log(Level.FINEST, String.format("Dataset contains no WMS service: %s", dataset.getId()));
                     }
                 } catch(RevivableThreadInterruptedException ex) {
                     cancelTask.cancel();
@@ -199,8 +203,8 @@ public class ThreddsLayerGenerator extends AbstractWMSLayerGenerator<ThreddsLaye
         CatalogCrawler crawler = new CatalogCrawler(CatalogCrawler.Type.all, 0, null, listener, cancelTask, printWriter, null);
         try {
             int found = crawler.crawl(catalog);
-            logger.log(Level.INFO, "FOUND: " + found);
-            logger.log(Level.INFO, "FAILURES: " + crawler.getNumReadFailures());
+            logger.log(Level.INFO, "Catalogues found: " + found);
+            logger.log(Level.INFO, "Invalid catalogues: " + crawler.getNumReadFailures());
         } catch (Exception ex) {
             logger.log(Level.SEVERE, String.format("Error occurred while downloading the THREDDS catalogue URL (%s): %s",
                     dataSourceServiceUrlStr, Utils.getExceptionMessage(ex)), ex);
