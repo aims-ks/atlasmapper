@@ -280,6 +280,8 @@ public class CacheDatabase implements Closeable {
             throw new IllegalArgumentException("URL is null.");
         }
 
+        this.deleteCacheUsage(url.toString());
+
         String deleteQuery = "DELETE FROM cache WHERE url = ?";
 
         PreparedStatement deletePreparedStatement = null;
@@ -308,13 +310,34 @@ public class CacheDatabase implements Closeable {
             throw new IllegalStateException("Database connection is closed.");
         }
 
+        long now = CacheEntry.getCurrentTimestamp();
+
+        String deleteCacheUsageQuery = "DELETE FROM cacheUsage WHERE url IN " +
+            "(SELECT DISTINCT c.url FROM cache c WHERE expiryTimestamp < ?)";
+
+        PreparedStatement deleteCacheUsageStmt = null;
+        try {
+            deleteCacheUsageStmt = this.connection.prepareStatement(deleteCacheUsageQuery);
+            deleteCacheUsageStmt.setLong(1, now);
+            deleteCacheUsageStmt.executeUpdate();
+        } finally {
+            if (deleteCacheUsageStmt != null) {
+                try {
+                    deleteCacheUsageStmt.close();
+                } catch(SQLException ex) {
+                    LOGGER.log(Level.SEVERE, String.format("Can not close the delete expired cache usage statement: %s",
+                            Utils.getExceptionMessage(ex)), ex);
+                }
+            }
+        }
+
         String deleteQuery = "DELETE FROM cache " +
             "WHERE expiryTimestamp < ?";
 
         PreparedStatement deletePreparedStatement = null;
         try {
             deletePreparedStatement = this.connection.prepareStatement(deleteQuery);
-            deletePreparedStatement.setLong(1, CacheEntry.getCurrentTimestamp());
+            deletePreparedStatement.setLong(1, now);
 
             deletePreparedStatement.executeUpdate();
         } finally {
@@ -497,6 +520,26 @@ public class CacheDatabase implements Closeable {
             for (String newId : usage) {
                 if (!oldUsage.contains(newId)) {
                     this.insertCacheUsage(url, newId);
+                }
+            }
+        }
+    }
+
+    private void deleteCacheUsage(String urlStr) throws SQLException {
+        String deleteCacheUsageQuery = "DELETE FROM cacheUsage WHERE url = ?";
+
+        PreparedStatement deleteCacheUsageStmt = null;
+        try {
+            deleteCacheUsageStmt = this.connection.prepareStatement(deleteCacheUsageQuery);
+            deleteCacheUsageStmt.setString(1, urlStr);
+            deleteCacheUsageStmt.executeUpdate();
+        } finally {
+            if (deleteCacheUsageStmt != null) {
+                try {
+                    deleteCacheUsageStmt.close();
+                } catch(SQLException ex) {
+                    LOGGER.log(Level.SEVERE, String.format("Can not close the delete cache usage statement: %s",
+                            Utils.getExceptionMessage(ex)), ex);
                 }
             }
         }
