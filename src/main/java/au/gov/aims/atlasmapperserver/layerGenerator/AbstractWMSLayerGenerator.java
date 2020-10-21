@@ -54,6 +54,7 @@ import org.geotools.ows.ServiceException;
 import org.geotools.xml.DocumentFactory;
 import org.geotools.xml.handlers.DocumentHandler;
 import org.json.JSONException;
+import org.json.JSONObject;
 import org.json.JSONSortedObject;
 import org.opengis.util.InternationalString;
 import org.xml.sax.SAXException;
@@ -852,15 +853,60 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
             }
         }
 
-        String layerName = layer.getName();
-        if (Utils.isBlank(layerName)) {
+        String rawLayerName = layer.getName();
+        if (Utils.isBlank(rawLayerName)) {
             logger.log(Level.WARNING, String.format("The Capabilities Document of the data source *%s* contains layers without name (other than the root layer).", dataSourceClone.getDataSourceName()));
             return null;
         }
 
+        layerConfig.setLayerId(rawLayerName);
+        this.ensureUniqueLayerId(layerConfig, dataSourceClone);
+        String layerName = layerConfig.getLayerName();
+
+        // Parse Metadata record(s) (MEST records)
         TC211Document tc211Document = null;
         TC211Parser tc211Parser = new TC211Parser();
-        List<MetadataURL> metadataUrls = layer.getMetadataURL();
+
+        List<MetadataURL> metadataUrls = null;
+
+        // Get metadataUrl from layer overwrites, if specified.
+        // NOTE: Specifying an empty string for metadataUrl overwrites
+        //     metadata URL found in the GetCapabilities document.
+        JSONSortedObject globalOverrides = dataSourceClone.getGlobalManualOverride();
+        if (globalOverrides != null) {
+            JSONObject layerOverride = globalOverrides.optJSONObject(layerConfig.getLayerId());
+            if (layerOverride != null && layerOverride.length() > 0) {
+                if (layerOverride.has("metadataUrl")) {
+                    // The layer overwrite attribute metadataUrl is specified for the current layer.
+                    // Initialise metadataUrls to prevent URL from the GetCapabilities document
+                    //     from been loaded.
+                    metadataUrls = new ArrayList<MetadataURL>();
+                    String metadataUrlOverwriteStr = layerOverride.optString("metadataUrl", null);
+                    if (metadataUrlOverwriteStr != null && !metadataUrlOverwriteStr.isEmpty()) {
+                        try {
+                            // Try to create a MetadataURL object from what was found in the layer overwrites.
+                            URL metadataUrl = new URL(metadataUrlOverwriteStr);
+                            // Lets assume the layer overwrites provide a proper URL to a TC211 XML document.
+                            MetadataURL metadataUrlOverwrite = new MetadataURL(
+                                metadataUrl, "TC211", "text/xml");
+                            metadataUrls.add(metadataUrlOverwrite);
+                        } catch(Exception ex) {
+                            logger.log(Level.WARNING, String.format(
+                                    "Error occurred while parsing the [metadata document URL](%s). " +
+                                    "The layer overwrite for layer ID %s specify an invalid URL: %s",
+                                    metadataUrlOverwriteStr, layerConfig.getLayerId(), Utils.getExceptionMessage(ex)), ex);
+                        }
+                    }
+                }
+            }
+        }
+
+        // If no metadataUrl is specified in the layer overwrites (for the current layer),
+        //     use the one found in the GetCapabilities document.
+        if (metadataUrls == null) {
+            metadataUrls = layer.getMetadataURL();
+        }
+
         if (metadataUrls != null && !metadataUrls.isEmpty()) {
             // Keep track or URLs that has been tried to avoid trying the same URL multiple times for the same record.
             Set<String> triedUrls = new HashSet<String>();
@@ -872,7 +918,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                         if (!triedUrls.contains(urlStr)) {
                             triedUrls.add(urlStr);
                             try {
-                                tc211Document = tc211Parser.parseURL(logger, urlCache, dataSourceClone, layerName, url, forceMestDownload);
+                                tc211Document = tc211Parser.parseURL(logger, urlCache, dataSourceClone, rawLayerName, url, forceMestDownload);
                                 if (tc211Document == null || tc211Document.isEmpty()) { tc211Document = null; }
                             } catch (Exception e) {
                                 logger.log(Level.WARNING, String.format("Unexpected exception while parsing the [metadata document URL](%s). " +
@@ -902,7 +948,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                             if (!triedUrls.contains(urlStr)) {
                                 triedUrls.add(urlStr);
                                 try {
-                                    tc211Document = tc211Parser.parseURL(logger, urlCache, dataSourceClone, layerName, url, forceMestDownload);
+                                    tc211Document = tc211Parser.parseURL(logger, urlCache, dataSourceClone, rawLayerName, url, forceMestDownload);
                                     if (tc211Document != null && !tc211Document.isEmpty()) {
                                         validMetadataUrl = metadataUrl;
                                     } else {
@@ -942,10 +988,6 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                 }
             }
         }
-
-        layerConfig.setLayerId(layerName);
-        this.ensureUniqueLayerId(layerConfig, dataSourceClone);
-        layerName = layerConfig.getLayerName();
 
         String title = layer.getTitle();
 

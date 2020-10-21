@@ -118,6 +118,7 @@
                         <li>If the TC211 document do not have a <em>CI_OnlineResource</em> link with a name that match the layer name,
                             than only the metadata description and the links are append to the layer description.</li>
                     </ul>
+                    NOTE: The metadata document URL can be overwritten using the layer attribute <em>metadataUrl</em>.
                 </li>
                 <li>The layer overrides described in the AtlasMapper data source's advanced tab are applied.</li>
                 <li>The layers information and the data source information are saved on the disk in a <em>Data source saved state</em> file.</li>
@@ -965,6 +966,22 @@ http://www.google.com/
                     <td class="type">String</td>
                     <td class="desc">The WMS version send in the request, when requesting tiles through the web cache; "1.1.1", "1.3.0"</td>
                 </tr>
+                <tr>
+                    <td class="attr">metadataUrl</td>
+                    <td class="type">String</td>
+                    <td class="desc">
+                        The URL to the TC211 XML metadata document.
+                        If specified, it will overwrite any metadata document URL found in the GetCapabilities document for that layer.
+                        An empty string can be used to prevent the AtlasMapper from parsing the metadata URLs provided by the GetCapabilities document.<br/>
+                        Example:
+<pre>
+"ea_ea:bluemarble" : {
+    "metadataUrl": "https://eatlas.org.au/geonetwork/srv/eng/xml_iso19139.mcp-1.4?uuid=ac57aa5a-233b-4c2c-bd52-1fb40a31f639&styleSheet=xml_iso19139.mcp-1.4.xsl"
+}
+</pre>
+                    </td>
+                </tr>
+
                 <tr>
                     <td class="attr">wmsRequestMimeType</td>
                     <td class="type">Mime type</td>
