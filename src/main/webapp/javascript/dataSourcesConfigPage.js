@@ -1220,6 +1220,11 @@ Ext.define('Writer.LayerServerConfigGrid', {
                         boxLabel: 'Redownload the capabilities document',
                         checked: true,
                         name: 'clearCapCache'
+                    }, {
+                        xtype: 'checkboxfield',
+                        qtipHtml: 'Redownload the MEST records. This operation may take several minutes.',
+                        boxLabel: 'Redownload the MEST records.',
+                        name: 'clearMestCache'
                     }
                 ];
                 break;
@@ -1235,6 +1240,11 @@ Ext.define('Writer.LayerServerConfigGrid', {
                         boxLabel: 'Redownload the capabilities documents',
                         checked: true,
                         name: 'clearCapCache'
+                    }, {
+                        xtype: 'checkboxfield',
+                        qtipHtml: 'Redownload the MEST records. This operation may take several minutes.',
+                        boxLabel: 'Redownload the MEST records.',
+                        name: 'clearMestCache'
                     }
                 ];
                 break;
