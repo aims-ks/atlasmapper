@@ -77,8 +77,11 @@ public class LocationSearch {
         String googleSearchUrl = "https://maps.googleapis.com/maps/api/geocode/json?" +
                 "address={QUERY}" +
                 "&sensor=false" +
-                "&key={APIKEY}" +
-                "&bounds={SOUTH},{WEST}%7C{NORTH},{EAST}";
+                "&key={APIKEY}";
+
+        if (mapBounds != null) {
+            googleSearchUrl += "&bounds={SOUTH},{WEST}%7C{NORTH},{EAST}";
+        }
 
         String encodedGoogleSearchAPIKey = URLEncoder.encode(googleSearchAPIKey.trim(), "UTF-8");
         String queryURLStr = googleSearchUrl
