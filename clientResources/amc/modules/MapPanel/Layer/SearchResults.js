@@ -66,6 +66,10 @@ Atlas.Layer.SearchResults = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 			return;
 		}
 
+		this.mapPanel = mapPanel;
+		this.json = jsonLayer;
+		this.parent = parent;
+
 		this.searchCount = Atlas.Layer.SearchResults.count;
 		Atlas.Layer.SearchResults.count++;
 
@@ -161,11 +165,25 @@ Atlas.Layer.SearchResults = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 			var params = {
 				client: Atlas.conf['clientId'],
 				query: this.query,
-				bounds: null,
 				offset: this.page * this.NB_RESULTS_PER_PAGE,
 				qty: this.NB_RESULTS_PER_PAGE,
 				noCache: (new Date()).getTime() // Anti-caching
 			};
+
+			// Add map bounds to the request
+			if (this.mapPanel && this.mapPanel.map) {
+				var mapBounds = this.mapPanel.map.calculateBounds();
+				if (mapBounds) {
+					var reprojectedBounds = mapBounds.transform(this.mapPanel.map.getProjectionObject(), this.mapPanel.defaultLonLatProjection);
+
+					if (reprojectedBounds) {
+						params["north"] = reprojectedBounds.top;
+						params["east"] = reprojectedBounds.right;
+						params["south"] = reprojectedBounds.bottom;
+						params["west"] = reprojectedBounds.left;
+					}
+				}
+			}
 
 			OpenLayers.Request.GET({
 				url: this.searchServiceUrl,

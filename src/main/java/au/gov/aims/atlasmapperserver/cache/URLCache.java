@@ -355,12 +355,6 @@ public class URLCache {
                 cacheEntry.setDocumentFile(tmpFile);
             }
         } finally {
-            if (httpGet != null) {
-                // Cancel the connection, if it's still alive
-                httpGet.abort();
-                // Close connections
-                httpGet.reset();
-            }
             if (in != null) {
                 try { in.close(); } catch (Exception e) {
                     LOGGER.log(Level.WARNING, String.format("Error occur while closing the URL %s: %s", url, Utils.getExceptionMessage(e)), e);
@@ -375,6 +369,12 @@ public class URLCache {
                 try { response.close(); } catch (Exception e) {
                     LOGGER.log(Level.WARNING, String.format("Error occur while closing the HttpResponse: %s", Utils.getExceptionMessage(e)), e);
                 }
+            }
+            if (httpGet != null) {
+                // Cancel the connection, if it's still alive
+                httpGet.abort();
+                // Close connections
+                httpGet.reset();
             }
             if (httpClient != null) {
                 try { httpClient.close(); } catch (Exception e) {

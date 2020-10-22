@@ -62,15 +62,36 @@ public class LocationSearch {
     // Google
     // API: https://developers.google.com/maps/documentation/geocoding/
     // URL: http://maps.googleapis.com/maps/api/geocode/json?address={QUERY}&sensor=false
-    public static List<JSONObject> googleSearch(URLCache urlCache, String googleSearchAPIKey, String referer, String encodedQuery, String mapBounds)
-            throws JSONException, IOException, URISyntaxException, SQLException, RevivableThreadInterruptedException, ClassNotFoundException {
+    public static List<JSONObject> googleSearch(
+            URLCache urlCache,
+            String googleSearchAPIKey,
+            String referer,
+            String encodedQuery,
+            LocationSearch.LocationSearchBoundingBox mapBounds
+    ) throws JSONException, IOException, URISyntaxException, SQLException, RevivableThreadInterruptedException, ClassNotFoundException {
 
-        String googleSearchUrl = "https://maps.googleapis.com/maps/api/geocode/json?address={QUERY}&sensor=false&key={APIKEY}";
+        // The bounds parameter defines the latitude/longitude coordinates of
+        // the southwest and northeast corners of this bounding box
+        // using a pipe (|) character to separate the coordinates.
+        // NOTE: The pipe needs to be URL encoded: | = %7C
+        String googleSearchUrl = "https://maps.googleapis.com/maps/api/geocode/json?" +
+                "address={QUERY}" +
+                "&sensor=false" +
+                "&key={APIKEY}" +
+                "&bounds={SOUTH},{WEST}%7C{NORTH},{EAST}";
 
         String encodedGoogleSearchAPIKey = URLEncoder.encode(googleSearchAPIKey.trim(), "UTF-8");
         String queryURLStr = googleSearchUrl
                 .replace("{QUERY}", encodedQuery)
                 .replace("{APIKEY}", encodedGoogleSearchAPIKey);
+
+        if (mapBounds != null) {
+            queryURLStr = queryURLStr
+                .replace("{SOUTH}", "" + mapBounds.getSouth())
+                .replace("{WEST}", "" + mapBounds.getWest())
+                .replace("{NORTH}", "" + mapBounds.getNorth())
+                .replace("{EAST}", "" + mapBounds.getEast());
+        }
 
         JSONObject json = LocationSearch.getSearchJSONObjectResponse(urlCache, queryURLStr, referer);
         if (json == null) {
@@ -256,8 +277,13 @@ public class LocationSearch {
     // OSM Nominatim
     // API: https://developer.mapquest.com/documentation/open/nominatim-search/
     // URL: http://open.mapquestapi.com/nominatim/v1/search?format=json&q={QUERY}
-    public static List<JSONObject> osmNominatimSearch(URLCache urlCache, String osmSearchAPIKey, String referer, String encodedQuery, String mapBounds)
-            throws JSONException, IOException, URISyntaxException, SQLException, RevivableThreadInterruptedException, ClassNotFoundException {
+    public static List<JSONObject> osmNominatimSearch(
+            URLCache urlCache,
+            String osmSearchAPIKey,
+            String referer,
+            String encodedQuery,
+            LocationSearch.LocationSearchBoundingBox mapBounds
+    ) throws JSONException, IOException, URISyntaxException, SQLException, RevivableThreadInterruptedException, ClassNotFoundException {
 
         String osmSearchUrl = "http://open.mapquestapi.com/nominatim/v1/search?format=json&q={QUERY}&key={APIKEY}";
 
@@ -324,8 +350,13 @@ public class LocationSearch {
     // ArcGIS
     // API: http://resources.arcgis.com/en/help/rest/apiref/index.html?find.html
     // URL example: http://www.gbrmpa.gov.au/spatial_services/gbrmpaBounds/MapServer/find?f=json&contains=true&returnGeometry=true&layers=6%2C0&searchFields=LOC_NAME_L%2CNAME&searchText={QUERY}
-    public static List<JSONObject> arcGISSearch(URLCache urlCache, String referer, String arcGISSearchUrl, String encodedQuery, String mapBounds)
-            throws JSONException, IOException, TransformException, FactoryException, URISyntaxException, SQLException, RevivableThreadInterruptedException, ClassNotFoundException {
+    public static List<JSONObject> arcGISSearch(
+            URLCache urlCache,
+            String referer,
+            String arcGISSearchUrl,
+            String encodedQuery,
+            LocationSearch.LocationSearchBoundingBox mapBounds
+    ) throws JSONException, IOException, TransformException, FactoryException, URISyntaxException, SQLException, RevivableThreadInterruptedException, ClassNotFoundException {
 
         if (Utils.isBlank(arcGISSearchUrl)) {
             return null;
@@ -473,5 +504,50 @@ public class LocationSearch {
         result.put("center", new JSONArray().put(center[0]).put(center[1]));
 
         return result;
+    }
+
+    public static class LocationSearchBoundingBox {
+        private final float north;
+        private final float east;
+        private final float south;
+        private final float west;
+
+        public LocationSearchBoundingBox(String northStr, String eastStr, String southStr, String westStr) {
+            this(
+                Float.parseFloat(northStr),
+                Float.parseFloat(eastStr),
+                Float.parseFloat(southStr),
+                Float.parseFloat(westStr)
+            );
+        }
+
+        public LocationSearchBoundingBox(float north, float east, float south, float west) {
+            this.north = north;
+            this.east = east;
+            this.south = south;
+            this.west = west;
+        }
+
+        public float getNorth() {
+            return this.north;
+        }
+
+        public float getEast() {
+            return this.east;
+        }
+
+        public float getSouth() {
+            return this.south;
+        }
+
+        public float getWest() {
+            return this.west;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("[N:%.3f, E:%.3f, S:%.3f, W:%.3f]",
+                    this.north, this.east, this.south, this.west);
+        }
     }
 }

@@ -45,6 +45,7 @@
 <%@page import="org.json.JSONArray"%>
 <%@page import="org.json.JSONObject"%>
 <%@page import="au.gov.aims.atlasmapperserver.cache.URLCache" %>
+<%@page import="au.gov.aims.atlasmapperserver.LocationSearch" %>
 <%
 	// Needed by StripTagProxy:
 	//     http://docs.sencha.com/extjs/3.4.0/#!/api/Ext.data.ScriptTagProxy
@@ -66,8 +67,22 @@
 
 	// The query string, as entered by the user in the search field.
 	String query = request.getParameter("query");
+
 	// Map bounds, to help the server to order the results.
-	String bounds = request.getParameter("bounds");
+	LocationSearch.LocationSearchBoundingBox bounds = null;
+	String northStr = request.getParameter("north");
+	String eastStr = request.getParameter("east");
+	String southStr = request.getParameter("south");
+	String westStr = request.getParameter("west");
+	if (
+		northStr != null && !northStr.isEmpty() &&
+		eastStr != null && !eastStr.isEmpty() &&
+		southStr != null && !southStr.isEmpty() &&
+		westStr != null && !westStr.isEmpty()
+	) {
+		bounds = new LocationSearch.LocationSearchBoundingBox(
+			northStr, eastStr, southStr, westStr);
+	}
 
 	// Start from result (default: 0 => Start from the first result).
 	int offset = (request.getParameter("offset") != null ? Integer.parseInt(request.getParameter("offset")) :

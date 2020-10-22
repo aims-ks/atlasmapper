@@ -1260,8 +1260,13 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
     }
 
 
-    public JSONObject locationSearch(URLCache urlCache, String query, String referer, String mapBounds, int offset, int qty)
-            throws JSONException, IOException, RevivableThreadInterruptedException {
+    public JSONObject locationSearch(
+            URLCache urlCache,
+            String query,
+            String referer,
+            LocationSearch.LocationSearchBoundingBox mapBounds,
+            int offset, int qty
+    ) throws JSONException, IOException, RevivableThreadInterruptedException {
 
         if (Utils.isBlank(query) || qty <= 0) {
             return null;
@@ -1293,10 +1298,16 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
 
         try {
             String googleSearchAPIKey = this.getGoogleSearchAPIKey();
-            if (this.isShowGoogleResults() && Utils.isNotBlank(googleSearchAPIKey)) {
-                List<JSONObject> googleResults = LocationSearch.googleSearch(urlCache, googleSearchAPIKey, referer, encodedQuery, mapBounds);
-                if (googleResults != null && !googleResults.isEmpty()) {
-                    resultsSet.addAll(googleResults);
+            if (this.isShowGoogleResults()) {
+                if (Utils.isBlank(googleSearchAPIKey)) {
+                    LOGGER.warning(String.format("Client %s can't use Google Search. The Google search API key is blank.",
+                            this.getClientId()));
+                } else {
+                    List<JSONObject> googleResults = LocationSearch.googleSearch(
+                            urlCache, googleSearchAPIKey, referer, encodedQuery, mapBounds);
+                    if (googleResults != null && !googleResults.isEmpty()) {
+                        resultsSet.addAll(googleResults);
+                    }
                 }
             }
         } catch(Exception ex) {
@@ -1306,10 +1317,16 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
 
         try {
             String osmSearchAPIKey = this.getOsmSearchAPIKey();
-            if (this.isShowOSMResults() && Utils.isNotBlank(osmSearchAPIKey)) {
-                List<JSONObject> osmNominatimResults = LocationSearch.osmNominatimSearch(urlCache, osmSearchAPIKey, referer, encodedQuery, mapBounds);
-                if (osmNominatimResults != null && !osmNominatimResults.isEmpty()) {
-                    resultsSet.addAll(osmNominatimResults);
+            if (this.isShowOSMResults()) {
+                if (Utils.isBlank(osmSearchAPIKey)) {
+                    LOGGER.warning(String.format("Client %s can't use OSM Search. The OSM search API key is blank.",
+                            this.getClientId()));
+                } else {
+                    List<JSONObject> osmNominatimResults = LocationSearch.osmNominatimSearch(
+                            urlCache, osmSearchAPIKey, referer, encodedQuery, mapBounds);
+                    if (osmNominatimResults != null && !osmNominatimResults.isEmpty()) {
+                        resultsSet.addAll(osmNominatimResults);
+                    }
                 }
             }
         } catch(Exception ex) {
@@ -1319,10 +1336,16 @@ public class ClientConfig extends AbstractRunnableConfig<ClientConfigThread> {
 
         try {
             String arcGISSearchUrl = this.getArcGISSearchUrl();
-            if (this.isShowArcGISResults() && Utils.isNotBlank(arcGISSearchUrl)) {
-                List<JSONObject> arcGISResults = LocationSearch.arcGISSearch(urlCache, referer, arcGISSearchUrl, encodedQuery, mapBounds);
-                if (arcGISResults != null && !arcGISResults.isEmpty()) {
-                    resultsSet.addAll(arcGISResults);
+            if (this.isShowArcGISResults()) {
+                if (Utils.isBlank(arcGISSearchUrl)) {
+                    LOGGER.warning(String.format("Client %s can't use ArcGIS Search. The ArcGIS search URL is blank.",
+                            this.getClientId()));
+                } else {
+                    List<JSONObject> arcGISResults = LocationSearch.arcGISSearch(
+                            urlCache, referer, arcGISSearchUrl, encodedQuery, mapBounds);
+                    if (arcGISResults != null && !arcGISResults.isEmpty()) {
+                        resultsSet.addAll(arcGISResults);
+                    }
                 }
             }
         } catch(Exception ex) {
