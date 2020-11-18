@@ -50,7 +50,7 @@ public class TC211ParserTest {
                 doc.getAbstract());
 
         List<TC211Document.Link> links = doc.getLinks();
-        Assert.assertEquals("Number of read links do not match", 2, links.size());
+        Assert.assertEquals("Number of read links do not match", 3, links.size());
 
         for (TC211Document.Link link : links) {
             String linkUrl = link.getUrl();
@@ -74,6 +74,15 @@ public class TC211ParserTest {
 
                 Assert.assertEquals("Link description miss match for link URL: " + linkUrl,
                         "Downloadable Data", link.getDescription());
+
+            } else if (linkUrl.equals("TC211/tc211_iso19139_full.xml")) {
+                Assert.assertEquals("Link protocol miss match for link URL: " + linkUrl,
+                        TC211Document.Protocol.WWW_LINK_1_0_HTTP_METADATA_URL, link.getProtocol());
+
+                Assert.assertEquals("Link name miss match",
+                        "Original XML metadata record", link.getName());
+
+                Assert.assertNull("Link description miss match", link.getDescription());
 
             } else {
                 Assert.fail("Unexpected link URL: " + linkUrl);
@@ -203,22 +212,33 @@ public class TC211ParserTest {
                 doc.getAbstract());
 
         List<TC211Document.Link> links = doc.getLinks();
-        Assert.assertEquals("Number of read links do not match", 1, links.size());
+        Assert.assertEquals("Number of read links do not match", 2, links.size());
 
         for (TC211Document.Link link : links) {
             String linkUrl = link.getUrl();
 
-            Assert.assertEquals("Link URL miss match",
-                    "http://imos2.ersa.edu.au/geo2/imos/wms", linkUrl);
+            if (linkUrl.equals("http://imos2.ersa.edu.au/geo2/imos/wms")) {
+                Assert.assertEquals("Link protocol miss match",
+                        TC211Document.Protocol.OGC_WMS_1_1_1_HTTP_GET_MAP, link.getProtocol());
 
-            Assert.assertEquals("Link protocol miss match",
-                    TC211Document.Protocol.OGC_WMS_1_1_1_HTTP_GET_MAP, link.getProtocol());
+                Assert.assertEquals("Link name miss match",
+                        "imos:ctd_profile_vw", link.getName());
 
-            Assert.assertEquals("Link name miss match",
-                    "imos:ctd_profile_vw", link.getName());
+                Assert.assertEquals("Link description miss match",
+                        "AATAMS Realtime Satellite Animal Tracks", link.getDescription());
 
-            Assert.assertEquals("Link description miss match",
-                    "AATAMS Realtime Satellite Animal Tracks", link.getDescription());
+            } else if (linkUrl.equals("TC211/tc211_iso19139-mcp_AODN-example.xml")) {
+                Assert.assertEquals("Link protocol miss match for link URL: " + linkUrl,
+                        TC211Document.Protocol.WWW_LINK_1_0_HTTP_METADATA_URL, link.getProtocol());
+
+                Assert.assertEquals("Link name miss match",
+                        "Original XML metadata record", link.getName());
+
+                Assert.assertNull("Link description miss match", link.getDescription());
+
+            } else {
+                Assert.fail("Unexpected link URL: " + linkUrl);
+            }
         }
     }
 
@@ -270,7 +290,7 @@ public class TC211ParserTest {
                 doc.getAbstract());
 
         List<TC211Document.Link> links = doc.getLinks();
-        Assert.assertEquals("Number of read links do not match", 1, links.size());
+        Assert.assertEquals("Number of read links do not match", 2, links.size());
 
         for (TC211Document.Link link : links) {
             String linkUrl = link.getUrl();
@@ -284,6 +304,15 @@ public class TC211ParserTest {
 
                 Assert.assertEquals("Link description miss match",
                         "Download data service.", link.getDescription());
+
+            } else if (linkUrl.equals("TC211_201803/tc211_201803_metadata_record.xml")) {
+                Assert.assertEquals("Link protocol miss match for link URL: " + linkUrl,
+                        TC211Document.Protocol.WWW_LINK_1_0_HTTP_METADATA_URL, link.getProtocol());
+
+                Assert.assertEquals("Link name miss match",
+                        "Original XML metadata record", link.getName());
+
+                Assert.assertNull("Link description miss match", link.getDescription());
 
             } else {
                 Assert.fail("Unexpected link URL: " + linkUrl);
