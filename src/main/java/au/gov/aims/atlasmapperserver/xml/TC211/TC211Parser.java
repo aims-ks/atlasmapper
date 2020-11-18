@@ -288,6 +288,7 @@ public class TC211Parser {
             TC211Handler handler = new TC211Handler(doc);
 
             saxParser.parse(file, handler);
+            doc.afterParse();
         } catch (Exception ex) {
             // Could not parse the document.
             // Check if GeoNetwork returned an access denied (we can't rely on response HTTP code, GeoNetwork does not follow standards)
@@ -326,6 +327,7 @@ public class TC211Parser {
         TC211Handler handler = new TC211Handler(doc);
 
         saxParser.parse(inputStream, handler);
+        doc.afterParse();
 
         return doc;
     }

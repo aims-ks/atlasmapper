@@ -90,6 +90,36 @@ public class TC211Document {
 		this.polygons.add(polygon);
 	}
 
+	/**
+	 * Call after parsing a document.
+	 * Used to fix up things, like adding a link to the original XML metadata record
+	 * when there is no point of truth URL.
+	 */
+	public void afterParse() {
+		if (!this.hasPointOfTruth()) {
+			Link linkToXMLDocument = new Link();
+			linkToXMLDocument.setName("Original XML metadata record");
+			linkToXMLDocument.setUrl(this.getUri());
+			linkToXMLDocument.setProtocolStr(Protocol.WWW_LINK_1_0_HTTP_METADATA_URL.identifier);
+			this.addLink(linkToXMLDocument);
+		}
+	}
+
+	public boolean hasPointOfTruth() {
+		if (this.links == null || this.links.isEmpty()) {
+			return false;
+		}
+
+		for (Link link : this.links) {
+			Protocol linkProtocol = link == null ? null : link.getProtocol();
+			if (linkProtocol != null && linkProtocol.isPointOfTruth()) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	@Override
 	public String toString() {
 		String linksStr = "";
@@ -295,6 +325,10 @@ public class TC211Document {
 
 		public boolean isKML() {
 			return this.identifier != null && this.identifier.startsWith("GLG:KML");
+		}
+
+		public boolean isPointOfTruth() {
+			return this.equals(WWW_LINK_1_0_HTTP_METADATA_URL);
 		}
 	}
 
