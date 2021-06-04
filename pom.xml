@@ -127,7 +127,7 @@ It contains:\n\
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
-            <version>4.5.6</version>
+            <version>4.5.13</version>
         </dependency>
 
         <!-- To parse THREDDS catalog.xml -->
