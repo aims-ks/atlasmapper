@@ -55,6 +55,7 @@ window["Atlas"]["Utils"] = window["Atlas"]["Utils"] || {};
  *         [[http://google.com/]]
  *         [[page2.html|*Page /2/*]]
  */
+// TODO Fix typo: Atlas.Utils.WikiFormatter with 2 "t"
 Atlas.Utils.WikiFormater = OpenLayers.Class({
 	MAX_URL_LENGTH: 40,
 
@@ -203,6 +204,7 @@ Atlas.Utils.WikiFormater = OpenLayers.Class({
 						urlStr = wikiURL;
 					}
 
+					// TODO Remove - probably unnecessary
 					if (urlStr.indexOf('://') !== -1) {
 						target = '_blank';
 					}
@@ -407,12 +409,12 @@ Atlas.Utils.WikiFormater = OpenLayers.Class({
 			index: index
 		};
 
-		// Delimiter: Allow caracter before the style char, to be considered as a style char.
+		// Delimiter: Allow character before the style char, to be considered as a style char.
 		//     Example: "This is *important* " => "important" is considered as bold because it's surrounded by spaces.
-		//         "end of -sentence-." => "sentence" is striked out because has a space before and a period after.
+		//         "end of -sentence-." => "sentence" is struck out because has a space before and a period after.
 		//         "value1|*value2*" => "value2" is bold because it has a pipe before and a end of string at the end.
-		//             The pipe and brakets chars are mostly used to detect style inside element, like in a link label,
-		//             to not accidently consider the label style end with the current style end.
+		//             The pipe and brackets chars are mostly used to detect style inside element, like in a link label,
+		//             to not accidentally consider the label style end with the current style end.
 		var styleDelimiterInRegex = /[\w:\.,\[\]\(\){}]/;
 		var styleDelimiterOutRegex = /[^\w:]/;
 

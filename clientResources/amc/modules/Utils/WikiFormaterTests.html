@@ -19,6 +19,8 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+TODO Fix typo: WikiFormatterTests with 2 "t"
 -->
 
 <html>
@@ -442,7 +444,7 @@
 					// Replace multiple whitespaces by 1 single space and remove spaces before and after HTML tags.
 					// Example: <b> A   B</b > returns <b>A B</b>
 					// NOTE: This function is not optimised and should not be used anywhere else than in Unit tests
-					//     (it process every '<' and '>' even if they are not surrending by spaces).
+					//     (it process every '<' and '>' even if they are not surrounding by spaces).
 					function equaliseSpaces(str) {
 						return str.replace(/\s\s*/g, ' ').replace(/\s*>\s*/g, '>').replace(/\s*<\s*/g, '<');
 					}

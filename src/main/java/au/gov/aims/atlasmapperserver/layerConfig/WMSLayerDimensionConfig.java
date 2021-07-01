@@ -26,6 +26,13 @@ import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 
 public class WMSLayerDimensionConfig extends AbstractConfig {
+    // NOTE: Some NetCDF files returns "unknown" as "timeAxisUnits".
+    //     Godiva2 and other software seems ok with it.
+    //     It's unclear what is the expected behaviour when the
+    //     "timeAxisUnits" is "unknown".
+    //     The AtlasMapper fallback to "ISO8601" when the unit is
+    //     unrecognised but not empty.
+    public static final String DEFAULT_DIMENSION_UNIT = "ISO8601";
     public static final String[] TIME_DIMENSION_UNITS = new String[]{
         "ISO8601"
     };
@@ -38,6 +45,9 @@ public class WMSLayerDimensionConfig extends AbstractConfig {
 
     @ConfigField
     private String unitSymbol;
+
+    @ConfigField
+    private String timeDimensionUnit;
 
     @ConfigField
     private Boolean timeDimension;
@@ -73,6 +83,7 @@ public class WMSLayerDimensionConfig extends AbstractConfig {
     public void setUnits(String units) {
         this.units = units;
         this.timeDimension = null;
+        this.timeDimensionUnit = null;
     }
 
     public String getUnitSymbol() {
@@ -85,16 +96,26 @@ public class WMSLayerDimensionConfig extends AbstractConfig {
 
     public boolean isTimeDimension() {
         if (this.timeDimension == null) {
-            this.timeDimension = false;
-            if (this.units != null) {
+            String timeDimensionUnit = this.getTimeDimensionUnit();
+            this.timeDimension = timeDimensionUnit != null;
+        }
+        return this.timeDimension;
+    }
+
+    public String getTimeDimensionUnit() {
+        if (this.timeDimensionUnit == null) {
+            if (this.units != null && !this.units.isEmpty()) {
                 for (String timeUnit : TIME_DIMENSION_UNITS) {
                     if (this.units.equalsIgnoreCase(timeUnit)) {
-                        this.timeDimension = true;
+                        this.timeDimensionUnit = timeUnit;
                         break;
                     }
                 }
+                if (this.timeDimensionUnit == null) {
+                    this.timeDimensionUnit = DEFAULT_DIMENSION_UNIT;
+                }
             }
         }
-        return this.timeDimension;
+        return this.timeDimensionUnit;
     }
 }
