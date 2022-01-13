@@ -24,6 +24,7 @@
 package au.gov.aims.atlasmapperserver.servlet.compression;
 
 import javax.servlet.ServletOutputStream;
+import javax.servlet.WriteListener;
 import javax.servlet.http.HttpServletResponse;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -67,6 +68,16 @@ public class GZIPResponseStream extends ServletOutputStream {
 		this.output = response.getOutputStream();
 		this.baos = new ByteArrayOutputStream();
 		this.gzipstream = new GZIPOutputStream(this.baos);
+	}
+
+	@Override
+	public boolean isReady() {
+		return true;
+	}
+
+	@Override
+	public void setWriteListener(WriteListener writeListener) {
+		// TODO Implement
 	}
 
 	/**

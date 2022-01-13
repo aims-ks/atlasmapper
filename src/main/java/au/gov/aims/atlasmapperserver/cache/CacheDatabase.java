@@ -685,8 +685,7 @@ public class CacheDatabase implements Closeable {
             boolean found = resultSet.next();
 
             if (found) {
-                Short statusCode = (Short)resultSet.getObject("httpStatusCode");
-                Integer intStatusCode = statusCode == null ? null : statusCode.intValue();
+                Integer statusCode = (Integer)resultSet.getObject("httpStatusCode");
 
                 String requestMethodStr = resultSet.getString("requestMethod");
                 RequestMethod requestMethod = requestMethodStr == null ? null : RequestMethod.valueOf(requestMethodStr);
@@ -696,7 +695,7 @@ public class CacheDatabase implements Closeable {
                 cacheEntry.setRequestTimestamp((Long)resultSet.getObject("requestTimestamp"));
                 cacheEntry.setLastAccessTimestamp((Long)resultSet.getObject("lastAccessTimestamp"));
                 cacheEntry.setExpiryTimestamp((Long)resultSet.getObject("expiryTimestamp"));
-                cacheEntry.setHttpStatusCode(intStatusCode);
+                cacheEntry.setHttpStatusCode(statusCode);
                 cacheEntry.setValid((Boolean)resultSet.getObject("valid"));
 
                 cacheEntry.setDocumentFile(null);
