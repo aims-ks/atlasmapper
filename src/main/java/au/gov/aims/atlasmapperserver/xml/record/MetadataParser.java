@@ -131,6 +131,10 @@ public class MetadataParser {
             } else {
                 // Try to get it from cache
                 metadataDocument = this.parseCachedURL(logger, urlCache, dataSource, layerId, url);
+                if (metadataDocument != null) {
+                    logger.log(Level.WARNING, String.format("Deprecated metadata record URL. Using cached record: %s",
+                            url.toString()));
+                }
             }
         } finally {
             if (mestCacheEntry != null) {
@@ -158,7 +162,7 @@ public class MetadataParser {
             RevivableThread.checkForInterruption();
 
             // 2. Determine if it's valid
-            if (mestCacheEntry.getValid()) {
+            if (mestCacheEntry != null && mestCacheEntry.isValid(true)) {
                 metadataRecordFile = mestCacheEntry.getDocumentFile();
             }
 
@@ -168,18 +172,22 @@ public class MetadataParser {
                     GeoNetwork2UrlBuilder geoNetwork2UrlBuilder = new GeoNetwork2UrlBuilder(url);
                     if (geoNetwork2UrlBuilder.isValidGeoNetworkUrl()) {
                         // Try GeoNetwork 2.10 URL
-                        mestCacheEntry.close();
+                        if (mestCacheEntry != null) {
+                            mestCacheEntry.close();
+                        }
                         URL geoNetwork2_10Url = geoNetwork2UrlBuilder.craftGeoNetwork2_10MestUrl();
                         mestCacheEntry = this.getCacheEntry(logger, urlCache, layerId, geoNetwork2_10Url, false);
-                        if (mestCacheEntry.getValid()) {
+                        if (mestCacheEntry != null && mestCacheEntry.isValid(true)) {
                             metadataRecordFile = mestCacheEntry.getDocumentFile();
                         }
 
                         if (metadataRecordFile == null) {
-                            mestCacheEntry.close();
+                            if (mestCacheEntry != null) {
+                                mestCacheEntry.close();
+                            }
                             URL geoNetworkLegacyUrl = geoNetwork2UrlBuilder.craftGeoNetworkLegacyMestUrl();
                             mestCacheEntry = this.getCacheEntry(logger, urlCache, layerId, geoNetworkLegacyUrl, false);
-                            if (mestCacheEntry.getValid()) {
+                            if (mestCacheEntry != null && mestCacheEntry.isValid(true)) {
                                 metadataRecordFile = mestCacheEntry.getDocumentFile();
                             }
                             RevivableThread.checkForInterruption();
@@ -222,7 +230,7 @@ public class MetadataParser {
     ) throws Exception {
         MetadataSchema schema = this.getMetadataSchema(metadataRecordFile);
         if (MetadataSchema.UNPUBLISHED.equals(schema)) {
-            logger.log(Level.WARNING, String.format("Unauthorised access to %s. Check if the document is published.", location));
+            logger.log(Level.WARNING, String.format("Unauthorised access to %s. Check if the metadata record is published.", location));
         }
 
         return this.parseFile(logger, metadataRecordFile, location, schema);
@@ -292,10 +300,7 @@ public class MetadataParser {
         // Avoid parsing document that are known to be unparsable
         boolean parsable = true;
         if (!downloadRequired) {
-            Boolean valid = mestCacheEntry.getValid();
-            if (valid != null && !valid) {
-                parsable = false;
-            }
+            parsable = mestCacheEntry.isValid(true);
         }
 
         if (parsable) {

@@ -516,10 +516,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                     // Avoid parsing document that are known to be unparsable
                     boolean parsingRequired = true;
                     if (!downloadRequired) {
-                        Boolean valid = jsonCacheEntry.getValid();
-                        if (valid != null && !valid) {
-                            parsingRequired = false;
-                        }
+                        parsingRequired = jsonCacheEntry.isValid(true);
                     }
 
                     if (parsingRequired) {
@@ -547,11 +544,7 @@ public class ArcGISMapServerLayerGenerator extends AbstractLayerGenerator<Abstra
                     rollbackJsonCacheEntry = urlCache.getCacheEntry(url);
                     if (rollbackJsonCacheEntry != null) {
                         // Avoid parsing document that are known to be unparsable
-                        boolean parsingRequired = true;
-                        Boolean valid = rollbackJsonCacheEntry.getValid();
-                        if (valid != null && !valid) {
-                            parsingRequired = false;
-                        }
+                        boolean parsingRequired = rollbackJsonCacheEntry.isValid(true);
 
                         if (parsingRequired) {
                             urlCache.getHttpDocument(rollbackJsonCacheEntry, dataSource.getDataSourceId(), false);

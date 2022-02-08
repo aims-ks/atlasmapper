@@ -116,6 +116,10 @@ public class CacheEntry implements Closeable {
         return this.valid;
     }
 
+    public boolean isValid(boolean defaultValue) {
+        return this.valid == null ? defaultValue : this.valid;
+    }
+
     public void setValid(Boolean valid) {
         this.valid = valid;
     }

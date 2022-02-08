@@ -318,10 +318,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                         // Avoid parsing document that are known to be unparsable
                         boolean parsingRequired = true;
                         if (!downloadRequired) {
-                            Boolean valid = capabilitiesCacheEntry.getValid();
-                            if (valid != null && !valid) {
-                                parsingRequired = false;
-                            }
+                            parsingRequired = capabilitiesCacheEntry.isValid(true);
                         }
 
                         if (parsingRequired) {
@@ -349,11 +346,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                         rollbackCacheEntry = urlCache.getCacheEntry(url);
                         if (rollbackCacheEntry != null) {
                             // Avoid parsing document that are known to be unparsable
-                            boolean parsingRequired = true;
-                            Boolean valid = rollbackCacheEntry.getValid();
-                            if (valid != null && !valid) {
-                                parsingRequired = false;
-                            }
+                            boolean parsingRequired = rollbackCacheEntry.isValid(true);
 
                             if (parsingRequired) {
                                 urlCache.getHttpDocument(rollbackCacheEntry, dataSource.getDataSourceId(), false);
