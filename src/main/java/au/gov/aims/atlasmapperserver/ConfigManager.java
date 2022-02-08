@@ -34,8 +34,8 @@ import au.gov.aims.atlasmapperserver.servlet.FileFinder;
 import au.gov.aims.atlasmapperserver.thread.RevivableThread;
 import au.gov.aims.atlasmapperserver.thread.RevivableThreadInterruptedException;
 import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
-import au.gov.aims.atlasmapperserver.xml.TC211.TC211Document;
-import au.gov.aims.atlasmapperserver.xml.TC211.TC211Parser;
+import au.gov.aims.atlasmapperserver.xml.record.MetadataDocument;
+import au.gov.aims.atlasmapperserver.xml.record.MetadataParser;
 import freemarker.template.TemplateException;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -917,6 +917,17 @@ public class ConfigManager {
     }
 
 
+    /**
+     * Create a map for a metadata record.
+     * @param logger
+     * @param urlCache
+     * @param clientConfig
+     * @param iso19115_19139url
+     * @param forceMestDownload
+     * @return
+     * @throws Exception
+     * @throws RevivableThreadInterruptedException
+     */
     public URLSaveState getMapStateForDataset(ThreadLogger logger, URLCache urlCache, ClientConfig clientConfig, String iso19115_19139url, boolean forceMestDownload)
             throws Exception, RevivableThreadInterruptedException {
 
@@ -924,20 +935,21 @@ public class ConfigManager {
 
         JSONArray jsonLayers = new JSONArray();
 
-        TC211Parser tc211Parser = new TC211Parser();
-        TC211Document tc211Document = tc211Parser.parseURL(logger, urlCache, null, "N/A", Utils.toURL(iso19115_19139url), forceMestDownload);
+        MetadataParser metadataParser = MetadataParser.getInstance();
+
+        MetadataDocument metadataDocument = metadataParser.parseURL(logger, urlCache, null, "N/A", Utils.toURL(iso19115_19139url), forceMestDownload);
         RevivableThread.checkForInterruption();
-        if (tc211Document == null) {
+        if (metadataDocument == null) {
             return null;
         }
 
         // *** Layers ***
 
-        List<TC211Document.Link> links = tc211Document.getLinks();
-        for (TC211Document.Link link : links) {
+        List<MetadataDocument.Link> links = metadataDocument.getLinks();
+        for (MetadataDocument.Link link : links) {
             RevivableThread.checkForInterruption();
 
-            TC211Document.Protocol linkProtocol = link.getProtocol();
+            MetadataDocument.Protocol linkProtocol = link.getProtocol();
             if (linkProtocol != null) {
                 LayerWrapper foundLayer = null;
                 String foundLayerId = null;
@@ -1012,7 +1024,7 @@ public class ConfigManager {
                     }
 
                     if (foundLayer == null) {
-                        foundLayer = TC211Parser.createLayer(this, tc211Document, link);
+                        foundLayer = MetadataParser.createLayer(link);
                     }
 
                     if (foundLayer != null) {
@@ -1032,9 +1044,9 @@ public class ConfigManager {
         // min lon, min lat, max lon, max lat
         double[] bounds = null;
 
-        List<TC211Document.Point> points = tc211Document.getPoints();
+        List<MetadataDocument.Point> points = metadataDocument.getPoints();
         if (points != null) {
-            for (TC211Document.Point point : points) {
+            for (MetadataDocument.Point point : points) {
                 if (bounds == null) {
                     bounds = new double[]{ point.getLon(), point.getLat(), point.getLon(), point.getLat() };
                 } else {
@@ -1050,10 +1062,10 @@ public class ConfigManager {
 
         RevivableThread.checkForInterruption();
 
-        List<TC211Document.Polygon> polygons = tc211Document.getPolygons();
+        List<MetadataDocument.Polygon> polygons = metadataDocument.getPolygons();
         if (polygons != null) {
-            for (TC211Document.Polygon polygon : polygons) {
-                for (TC211Document.Point point : polygon.getPoints()) {
+            for (MetadataDocument.Polygon polygon : polygons) {
+                for (MetadataDocument.Point point : polygon.getPoints()) {
                     if (bounds == null) {
                         bounds = new double[]{ point.getLon(), point.getLat(), point.getLon(), point.getLat() };
                     } else {

@@ -1,0 +1,2 @@
+This is a text file.
+It is used to test parsers, when given invalid input file.

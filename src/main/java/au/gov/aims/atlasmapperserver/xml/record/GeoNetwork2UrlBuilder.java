@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package au.gov.aims.atlasmapperserver.xml.TC211;
+package au.gov.aims.atlasmapperserver.xml.record;
 
 import au.gov.aims.atlasmapperserver.Utils;
 
@@ -33,7 +33,7 @@ import java.util.Map;
 /**
  * Take a broken / deprecated GeoNetwork MEST URL and attempt to craft a working URL with it.
  */
-public class GeoNetworkUrlBuilder {
+public class GeoNetwork2UrlBuilder {
     private URL originalUrl;        // https://www.domain.com/records/metadata/geonetwork/srv/eng/xml_iso19139.mcp?uuid=1a46774e-a3ac-4982-b08b-94ce1ad8d45c&styleSheet=xml_iso19139.mcp.xsl
     private String protocol;        // https
     private Integer port;           // null (using default)
@@ -49,7 +49,7 @@ public class GeoNetworkUrlBuilder {
     private String queryString;     // uuid=1a46774e-a3ac-4982-b08b-94ce1ad8d45c&styleSheet=xml_iso19139.mcp.xsl
     private Map<String, String> queryParameters; // { "uuid": "1a46774e-a3ac-4982-b08b-94ce1ad8d45c", "styleSheet": "xml_iso19139.mcp.xsl" }
 
-    public GeoNetworkUrlBuilder(URL brokenUrl) throws UnsupportedEncodingException {
+    public GeoNetwork2UrlBuilder(URL brokenUrl) throws UnsupportedEncodingException {
         this.originalUrl = brokenUrl;
         this.parse();
     }

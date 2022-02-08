@@ -37,10 +37,10 @@ import au.gov.aims.atlasmapperserver.layerConfig.WMSLayerDimensionConfig;
 import au.gov.aims.atlasmapperserver.thread.RevivableThread;
 import au.gov.aims.atlasmapperserver.thread.RevivableThreadInterruptedException;
 import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
-import au.gov.aims.atlasmapperserver.xml.TC211.TC211Document;
-import au.gov.aims.atlasmapperserver.xml.TC211.TC211Parser;
+import au.gov.aims.atlasmapperserver.xml.record.MetadataDocument;
 import au.gov.aims.atlasmapperserver.xml.WMTS.WMTSDocument;
 import au.gov.aims.atlasmapperserver.xml.WMTS.WMTSParser;
+import au.gov.aims.atlasmapperserver.xml.record.MetadataParser;
 import org.geotools.data.ows.CRSEnvelope;
 import org.geotools.data.ows.Layer;
 import org.geotools.data.ows.OperationType;
@@ -864,8 +864,8 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
         String layerName = layerConfig.getLayerName();
 
         // Parse Metadata record(s) (MEST records)
-        TC211Document tc211Document = null;
-        TC211Parser tc211Parser = new TC211Parser();
+        MetadataDocument metadataDocument = null;
+        MetadataParser metadataParser = MetadataParser.getInstance();
 
         List<MetadataURL> metadataUrls = null;
 
@@ -911,15 +911,15 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
             // Keep track or URLs that has been tried to avoid trying the same URL multiple times for the same record.
             Set<String> triedUrls = new HashSet<String>();
             for (MetadataURL metadataUrl : metadataUrls) {
-                if (tc211Document == null && "TC211".equalsIgnoreCase(metadataUrl.getType()) && "text/xml".equalsIgnoreCase(metadataUrl.getFormat())) {
+                if (metadataDocument == null && "TC211".equalsIgnoreCase(metadataUrl.getType()) && "text/xml".equalsIgnoreCase(metadataUrl.getFormat())) {
                     URL url = metadataUrl.getUrl();
                     if (url != null) {
                         String urlStr = url.toString();
                         if (!triedUrls.contains(urlStr)) {
                             triedUrls.add(urlStr);
                             try {
-                                tc211Document = tc211Parser.parseURL(logger, urlCache, dataSourceClone, rawLayerName, url, forceMestDownload);
-                                if (tc211Document == null || tc211Document.isEmpty()) { tc211Document = null; }
+                                metadataDocument = metadataParser.parseURL(logger, urlCache, dataSourceClone, rawLayerName, url, forceMestDownload);
+                                if (metadataDocument == null || metadataDocument.isEmpty()) { metadataDocument = null; }
                             } catch (Exception e) {
                                 logger.log(Level.WARNING, String.format("Unexpected exception while parsing the [metadata document URL](%s). " +
                                         "The information provided by the GetCapabilities document indicate that the file is a " +
@@ -935,24 +935,24 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
             // There is metadata URL, but none of the one set with TC211 text/xml format are suitable.
             // Sometime, there is valid metadata URL but they have been entered incorrectly.
             // Brute force through all metadata URL and cross fingers to find one that will provide some usable info.
-            if (tc211Document == null) {
+            if (metadataDocument == null) {
                 //logger.log(Level.WARNING, String.format("Could not find a valid TC211 text/xml metadata document for layer %s. " +
                 //        "Trying all metadata URL whatever their specified mime type.",
                 //        layerName));
                 MetadataURL validMetadataUrl = null;
                 for (MetadataURL metadataUrl : metadataUrls) {
-                    if (tc211Document == null) {
+                    if (metadataDocument == null) {
                         URL url = metadataUrl.getUrl();
                         if (url != null) {
                             String urlStr = url.toString();
                             if (!triedUrls.contains(urlStr)) {
                                 triedUrls.add(urlStr);
                                 try {
-                                    tc211Document = tc211Parser.parseURL(logger, urlCache, dataSourceClone, rawLayerName, url, forceMestDownload);
-                                    if (tc211Document != null && !tc211Document.isEmpty()) {
+                                    metadataDocument = metadataParser.parseURL(logger, urlCache, dataSourceClone, rawLayerName, url, forceMestDownload);
+                                    if (metadataDocument != null && !metadataDocument.isEmpty()) {
                                         validMetadataUrl = metadataUrl;
                                     } else {
-                                        tc211Document = null;
+                                        metadataDocument = null;
                                     }
                                 } catch (Exception ex) {
                                     LOGGER.log(Level.FINE, String.format("Invalid [metadata document](%s) identified as \"%s - %s\". Exception message: %s",
@@ -968,7 +968,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
                 }
                 RevivableThread.checkForInterruption();
 
-                if (tc211Document != null) {
+                if (metadataDocument != null) {
                     if (validMetadataUrl != null) {
                         logger.log(Level.INFO, String.format("Valid [TC211 metadata document](%s) found for layer %s identified as \"%s - %s\".",
                                 validMetadataUrl.getUrl().toString(),
@@ -994,13 +994,13 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
         // Build the description using info found in the Capabilities document and the MEST document.
         StringBuilder descriptionSb = new StringBuilder();
 
-        TC211Document.Link layerLink = this.getMetadataLayerLink(tc211Document, layerName);
+        MetadataDocument.Link layerLink = this.getMetadataLayerLink(metadataDocument, layerName);
 
         String layerDescription = layer.get_abstract();
-        String metadataDescription = tc211Document == null ? null : tc211Document.getAbstract();
+        String metadataDescription = metadataDocument == null ? null : metadataDocument.getAbstract();
         String metadataLayerDescription = layerLink == null ? null : layerLink.getDescription();
-        String metadataLinksWikiFormat = this.getMetadataLinksWikiFormat(tc211Document);
-        JSONSortedObject metadataDownloadLinks = this.getDownloadLinks(logger, tc211Document);
+        String metadataLinksWikiFormat = this.getMetadataLinksWikiFormat(metadataDocument);
+        JSONSortedObject metadataDownloadLinks = this.getDownloadLinks(logger, metadataDocument);
 
         // Clean-up
         if (layerDescription != null) { layerDescription = layerDescription.trim(); }
@@ -1085,14 +1085,14 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
         return layerConfig;
     }
 
-    private TC211Document.Link getMetadataLayerLink(TC211Document tc211Document, String layerName) {
-        if (tc211Document != null) {
-            List<TC211Document.Link> links = tc211Document.getLinks();
+    private MetadataDocument.Link getMetadataLayerLink(MetadataDocument metadataDocument, String layerName) {
+        if (metadataDocument != null) {
+            List<MetadataDocument.Link> links = metadataDocument.getLinks();
             if (links != null && !links.isEmpty()) {
-                for (TC211Document.Link link : links) {
+                for (MetadataDocument.Link link : links) {
                     // Only display links with none null URL.
                     if (Utils.isNotBlank(link.getUrl())) {
-                        TC211Document.Protocol linkProtocol = link.getProtocol();
+                        MetadataDocument.Protocol linkProtocol = link.getProtocol();
                         if (linkProtocol != null) {
                             if (linkProtocol.isOGC()) {
                                 // If the link is a OGC url (most likely WMS GetMap) and the url match the layer url, parse its description.
@@ -1110,21 +1110,21 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
 
     /**
      * Return download links, in wiki format
-     * @param tc211Document
+     * @param metadataDocument
      * @return
      */
-    private String getMetadataLinksWikiFormat(TC211Document tc211Document) {
+    private String getMetadataLinksWikiFormat(MetadataDocument metadataDocument) {
         StringBuilder onlineResources = new StringBuilder();
 
-        if (tc211Document != null) {
+        if (metadataDocument != null) {
             // Add links found in the metadata document and layer description (if any)
-            List<TC211Document.Link> links = tc211Document.getLinks();
+            List<MetadataDocument.Link> links = metadataDocument.getLinks();
             if (links != null && !links.isEmpty()) {
                 // Set the Online Resources, using wiki format
-                for (TC211Document.Link link : links) {
+                for (MetadataDocument.Link link : links) {
                     // Only display links with none null URL.
                     if (Utils.isNotBlank(link.getUrl())) {
-                        TC211Document.Protocol linkProtocol = link.getProtocol();
+                        MetadataDocument.Protocol linkProtocol = link.getProtocol();
                         if (linkProtocol != null) {
                             if (linkProtocol.isWWW() && !linkProtocol.isDownloadable()) {
                                 // Dataset links such as point of truth, data download, etc.
@@ -1183,18 +1183,18 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
         return onlineResources.length() > 0 ? onlineResources.toString() : null;
     }
 
-    private JSONSortedObject getDownloadLinks(ThreadLogger logger, TC211Document tc211Document) {
+    private JSONSortedObject getDownloadLinks(ThreadLogger logger, MetadataDocument metadataDocument) {
         JSONSortedObject downloadLinks = new JSONSortedObject();
 
-        if (tc211Document != null) {
+        if (metadataDocument != null) {
             // Add links found in the metadata document and layer description (if any)
-            List<TC211Document.Link> links = tc211Document.getLinks();
+            List<MetadataDocument.Link> links = metadataDocument.getLinks();
             if (links != null && !links.isEmpty()) {
                 // Set the Online Resources, using wiki format
-                for (TC211Document.Link link : links) {
+                for (MetadataDocument.Link link : links) {
                     // Only display links with none null URL.
                     if (Utils.isNotBlank(link.getUrl())) {
-                        TC211Document.Protocol linkProtocol = link.getProtocol();
+                        MetadataDocument.Protocol linkProtocol = link.getProtocol();
                         if (linkProtocol != null) {
                             if (linkProtocol.isDownloadable()) {
 

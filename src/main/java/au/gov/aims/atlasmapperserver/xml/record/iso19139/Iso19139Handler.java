@@ -18,9 +18,10 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package au.gov.aims.atlasmapperserver.xml.TC211;
+package au.gov.aims.atlasmapperserver.xml.record.iso19139;
 
 import au.gov.aims.atlasmapperserver.Utils;
+import au.gov.aims.atlasmapperserver.xml.record.MetadataDocument;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
@@ -30,8 +31,8 @@ import java.util.Stack;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class TC211Handler extends DefaultHandler {
-	private static final Logger LOGGER = Logger.getLogger(TC211Handler.class.getName());
+public class Iso19139Handler extends DefaultHandler {
+	private static final Logger LOGGER = Logger.getLogger(Iso19139Handler.class.getName());
 
 	private static final String GMD_BBOX_CONTAINER = "gmd:EX_GeographicBoundingBox";
 	private static final String GMD_BBOX_WEST_CONTAINER = "gmd:westBoundLongitude";
@@ -58,37 +59,17 @@ public class TC211Handler extends DefaultHandler {
 	private static final String GMD_LINK_APPLICATION_PROFILE_CONTAINER = "gmd:applicationProfile";
 	private static final String GCO_LINK_APPLICATION_PROFILE_STRING = "gco:CharacterString";
 
-	// New to TC211 201803
-	private static final String GEX_BBOX_CONTAINER = "gex:EX_GeographicBoundingBox";
-	private static final String GEX_BBOX_WEST_CONTAINER = "gex:westBoundLongitude";
-	private static final String GEX_BBOX_EAST_CONTAINER = "gex:eastBoundLongitude";
-	private static final String GEX_BBOX_SOUTH_CONTAINER = "gex:southBoundLatitude";
-	private static final String GEX_BBOX_NORTH_CONTAINER = "gex:northBoundLatitude";
 
-	private static final String CIT_LINK_CONTAINER = "cit:CI_OnlineResource";
-
-	private static final String CIT_LINK_URL_CONTAINER = "cit:linkage";
-	private static final String MRI_LINK_URL_STRING = "mri:URL";
-
-	private static final String CIT_LINK_PROTOCOL_CONTAINER = "cit:protocol";
-
-	private static final String CIT_LINK_NAME_CONTAINER = "cit:name";
-
-	private static final String CIT_LINK_DESCRIPTION_CONTAINER = "cit:description";
-
-	private static final String CIT_LINK_APPLICATION_PROFILE_CONTAINER = "cit:applicationProfile";
-
-
-	private TC211Document doc;
+	private Iso19139Document doc;
 	private StringBuilder collectedChars;
 	private String west, east, south, north;
 
-	private TC211Document.Link currentLink;
+	private MetadataDocument.Link currentLink;
 	private Stack<String> xmlPath;
 	// Marker to highlight important paths, without having to check the current path every time.
 	private XMLPathMarker xmlPathMarker;
 
-	public TC211Handler(TC211Document doc) {
+	public Iso19139Handler(Iso19139Document doc) {
 		super();
 		this.doc = doc;
 		this.xmlPath = new Stack<String>();
@@ -110,19 +91,17 @@ public class TC211Handler extends DefaultHandler {
 			this.collectedChars = new StringBuilder();
 
 			if (XMLPathMarker.BBOXES_GMD.equals(this.xmlPathMarker) ||
-					XMLPathMarker.BBOXES_MCP.equals(this.xmlPathMarker) ||
-					XMLPathMarker.BBOXES_MDB.equals(this.xmlPathMarker)) {
+					XMLPathMarker.BBOXES_MCP.equals(this.xmlPathMarker)) {
 
-				if (GMD_BBOX_CONTAINER.equalsIgnoreCase(qName) || GEX_BBOX_CONTAINER.equalsIgnoreCase(qName)) {
+				if (GMD_BBOX_CONTAINER.equalsIgnoreCase(qName)) {
 					this.west = null; this.east = null; this.south = null; this.north = null;
 				}
 
 			} else if (XMLPathMarker.LINKS_GMD.equals(this.xmlPathMarker) ||
-					XMLPathMarker.LINKS_MCP.equals(this.xmlPathMarker) ||
-					XMLPathMarker.LINKS_MDB.equals(this.xmlPathMarker)) {
+					XMLPathMarker.LINKS_MCP.equals(this.xmlPathMarker)) {
 
-				if (GMD_LINK_CONTAINER.equalsIgnoreCase(qName) || CIT_LINK_CONTAINER.equalsIgnoreCase(qName)) {
-					this.currentLink = new TC211Document.Link();
+				if (GMD_LINK_CONTAINER.equalsIgnoreCase(qName)) {
+					this.currentLink = new MetadataDocument.Link();
 				}
 			}
 		}
@@ -138,13 +117,11 @@ public class TC211Handler extends DefaultHandler {
 			String previousQName = (this.xmlPath.size() < 2 ? null : this.xmlPath.get(this.xmlPath.size() - 2));
 
 			if (XMLPathMarker.ABSTRACT_GMD.equals(this.xmlPathMarker) ||
-					XMLPathMarker.ABSTRACT_MCP.equals(this.xmlPathMarker) ||
-					XMLPathMarker.ABSTRACT_MDB.equals(this.xmlPathMarker)) {
+					XMLPathMarker.ABSTRACT_MCP.equals(this.xmlPathMarker)) {
 				this.doc.setAbstract(this.collectedChars.toString());
 
 			} else if (XMLPathMarker.BBOXES_GMD.equals(this.xmlPathMarker) ||
-					XMLPathMarker.BBOXES_MCP.equals(this.xmlPathMarker) ||
-					XMLPathMarker.BBOXES_MDB.equals(this.xmlPathMarker)) {
+					XMLPathMarker.BBOXES_MCP.equals(this.xmlPathMarker)) {
 				/*
 				<gmd:EX_GeographicBoundingBox>
 					<gmd:westBoundLongitude>
@@ -162,27 +139,27 @@ public class TC211Handler extends DefaultHandler {
 				</gmd:EX_GeographicBoundingBox>
 				*/
 
-				if ((GMD_BBOX_WEST_CONTAINER.equalsIgnoreCase(previousQName) || GEX_BBOX_WEST_CONTAINER.equalsIgnoreCase(previousQName))
+				if (GMD_BBOX_WEST_CONTAINER.equalsIgnoreCase(previousQName)
 						&& GCO_BBOX_DECIMAL.equalsIgnoreCase(qName)) {
 
 					this.west = this.collectedChars.toString();
 
-				} else if ((GMD_BBOX_EAST_CONTAINER.equalsIgnoreCase(previousQName) || GEX_BBOX_EAST_CONTAINER.equalsIgnoreCase(previousQName))
+				} else if (GMD_BBOX_EAST_CONTAINER.equalsIgnoreCase(previousQName)
 						&& GCO_BBOX_DECIMAL.equalsIgnoreCase(qName)) {
 
 					this.east = this.collectedChars.toString();
 
-				} else if ((GMD_BBOX_SOUTH_CONTAINER.equalsIgnoreCase(previousQName) || GEX_BBOX_SOUTH_CONTAINER.equalsIgnoreCase(previousQName))
+				} else if (GMD_BBOX_SOUTH_CONTAINER.equalsIgnoreCase(previousQName)
 						&& GCO_BBOX_DECIMAL.equalsIgnoreCase(qName)) {
 
 					this.south = this.collectedChars.toString();
 
-				} else if ((GMD_BBOX_NORTH_CONTAINER.equalsIgnoreCase(previousQName) || GEX_BBOX_NORTH_CONTAINER.equalsIgnoreCase(previousQName))
+				} else if (GMD_BBOX_NORTH_CONTAINER.equalsIgnoreCase(previousQName)
 						&& GCO_BBOX_DECIMAL.equalsIgnoreCase(qName)) {
 
 					this.north = this.collectedChars.toString();
 
-				} else if (GMD_BBOX_CONTAINER.equalsIgnoreCase(qName) || GEX_BBOX_CONTAINER.equalsIgnoreCase(qName)) {
+				} else if (GMD_BBOX_CONTAINER.equalsIgnoreCase(qName)) {
 					if (this.west != null && this.east != null && this.south != null && this.north != null) {
 						try {
 							Double west = Double.valueOf(this.west);
@@ -192,14 +169,14 @@ public class TC211Handler extends DefaultHandler {
 
 							if (west.equals(east) && south.equals(north)) {
 								// It's a point
-								this.doc.addPoint(new TC211Document.Point(west, north));
+								this.doc.addPoint(new MetadataDocument.Point(west, north));
 							} else {
 								// It's a bbox
-								TC211Document.Polygon polygon = new TC211Document.Polygon();
-								polygon.addPoint(new TC211Document.Point(west, north));
-								polygon.addPoint(new TC211Document.Point(east, north));
-								polygon.addPoint(new TC211Document.Point(east, south));
-								polygon.addPoint(new TC211Document.Point(west, south));
+								MetadataDocument.Polygon polygon = new MetadataDocument.Polygon();
+								polygon.addPoint(new MetadataDocument.Point(west, north));
+								polygon.addPoint(new MetadataDocument.Point(east, north));
+								polygon.addPoint(new MetadataDocument.Point(east, south));
+								polygon.addPoint(new MetadataDocument.Point(west, south));
 
 								this.doc.addPolygon(polygon);
 							}
@@ -215,8 +192,7 @@ public class TC211Handler extends DefaultHandler {
 				}
 
 			} else if (XMLPathMarker.POLYGONS_GMD.equals(this.xmlPathMarker) ||
-					XMLPathMarker.POLYGONS_MCP.equals(this.xmlPathMarker) ||
-					XMLPathMarker.POLYGONS_MDB.equals(this.xmlPathMarker)) {
+					XMLPathMarker.POLYGONS_MCP.equals(this.xmlPathMarker)) {
 				/*
 				lon,lat,elevation lon,lat,elevation etc.
 				<gml:coordinates>
@@ -228,10 +204,10 @@ public class TC211Handler extends DefaultHandler {
 					String[] coordArray = coords.split("\\s+");
 					if (coordArray != null && coordArray.length > 0) {
 						try {
-							TC211Document.Polygon polygon = new TC211Document.Polygon();
+							MetadataDocument.Polygon polygon = new MetadataDocument.Polygon();
 							for (String coord : coordArray) {
 								String[] coordParts = coord.split(",");
-								if (coordParts != null) {
+								if (coordParts != null && coordParts.length > 0) {
 									Double[] parsedCoords = new Double[coordParts.length];
 									for (int i=0; i<coordParts.length; i++) {
 										parsedCoords[i] = Double.valueOf(coordParts[i]);
@@ -239,7 +215,7 @@ public class TC211Handler extends DefaultHandler {
 
 									if (parsedCoords.length == 3) {
 										polygon.addPoint(parsedCoords[0], parsedCoords[1], parsedCoords[2]);
-									} else if (coordParts.length == 2) {
+									} else if (parsedCoords.length == 2) {
 										polygon.addPoint(parsedCoords[0], parsedCoords[1]);
 									}
 								}
@@ -254,8 +230,7 @@ public class TC211Handler extends DefaultHandler {
 				}
 
 			} else if (XMLPathMarker.LINKS_GMD.equals(this.xmlPathMarker) ||
-					XMLPathMarker.LINKS_MCP.equals(this.xmlPathMarker) ||
-					XMLPathMarker.LINKS_MDB.equals(this.xmlPathMarker)) {
+					XMLPathMarker.LINKS_MCP.equals(this.xmlPathMarker)) {
 				/*
 				<gmd:CI_OnlineResource>
 					<gmd:linkage>
@@ -277,36 +252,32 @@ public class TC211Handler extends DefaultHandler {
 					// <gmd:linkage><gmd:URL>
 					(GMD_LINK_URL_CONTAINER.equalsIgnoreCase(previousQName) && GMD_LINK_URL_STRING.equalsIgnoreCase(qName)) ||
 					// <gmd:linkage><gco:CharacterString>
-					(GMD_LINK_URL_CONTAINER.equalsIgnoreCase(previousQName) && GCO_LINK_URL_STRING.equalsIgnoreCase(qName)) ||
-					// <cit:linkage><mri:URL>
-					(CIT_LINK_URL_CONTAINER.equalsIgnoreCase(previousQName) && MRI_LINK_URL_STRING.equalsIgnoreCase(qName)) ||
-					// <cit:linkage><gco:CharacterString>
-					(CIT_LINK_URL_CONTAINER.equalsIgnoreCase(previousQName) && GCO_LINK_URL_STRING.equalsIgnoreCase(qName))
+					(GMD_LINK_URL_CONTAINER.equalsIgnoreCase(previousQName) && GCO_LINK_URL_STRING.equalsIgnoreCase(qName))
 				) {
 
 					this.currentLink.setUrl(this.collectedChars.toString());
 
-				} else if ((GMD_LINK_PROTOCOL_CONTAINER.equalsIgnoreCase(previousQName) || CIT_LINK_PROTOCOL_CONTAINER.equalsIgnoreCase(previousQName))
+				} else if (GMD_LINK_PROTOCOL_CONTAINER.equalsIgnoreCase(previousQName)
 						&& GCO_LINK_PROTOCOL_STRING.equalsIgnoreCase(qName)) {
 
 					this.currentLink.setProtocolStr(this.collectedChars.toString());
 
-				} else if ((GMD_LINK_NAME_CONTAINER.equalsIgnoreCase(previousQName) || CIT_LINK_NAME_CONTAINER.equalsIgnoreCase(previousQName))
+				} else if (GMD_LINK_NAME_CONTAINER.equalsIgnoreCase(previousQName)
 						&& GCO_LINK_NAME_STRING.equalsIgnoreCase(qName)) {
 
 					this.currentLink.setName(this.collectedChars.toString());
 
-				} else if ((GMD_LINK_DESCRIPTION_CONTAINER.equalsIgnoreCase(previousQName) || CIT_LINK_DESCRIPTION_CONTAINER.equalsIgnoreCase(previousQName))
+				} else if (GMD_LINK_DESCRIPTION_CONTAINER.equalsIgnoreCase(previousQName)
 						&& GCO_LINK_DESCRIPTION_STRING.equalsIgnoreCase(qName)) {
 
 					this.currentLink.setDescription(this.collectedChars.toString());
 
-				} else if ((GMD_LINK_APPLICATION_PROFILE_CONTAINER.equalsIgnoreCase(previousQName) || CIT_LINK_APPLICATION_PROFILE_CONTAINER.equalsIgnoreCase(previousQName))
+				} else if (GMD_LINK_APPLICATION_PROFILE_CONTAINER.equalsIgnoreCase(previousQName)
 						&& GCO_LINK_APPLICATION_PROFILE_STRING.equalsIgnoreCase(qName)) {
 
 					this.currentLink.setApplicationProfile(this.collectedChars.toString());
 
-				} else if (GMD_LINK_CONTAINER.equalsIgnoreCase(qName) || CIT_LINK_CONTAINER.equalsIgnoreCase(qName)) {
+				} else if (GMD_LINK_CONTAINER.equalsIgnoreCase(qName)) {
 					this.doc.addLink(this.currentLink);
 					this.currentLink = null;
 				}
@@ -319,7 +290,7 @@ public class TC211Handler extends DefaultHandler {
 
 		/*
 		// Log any anomaly in the balance of the document.
-		// NOTE: This never happen since a unbalanced document trigger an exception.
+		// NOTE: This never happen since an unbalanced document trigger an exception.
 		if (!currentQName.equalsIgnoreCase(qName)) {
 			LOGGER.log(Level.WARNING, "The document [{0}] has a unbalanced tag:\n# Path: {1}\n# Opening tag: {2}\n# Closing tag: {3}",
 					new String[]{this.doc.getUri(), this.xmlPath.toString(), qName, currentQName});
@@ -339,22 +310,18 @@ public class TC211Handler extends DefaultHandler {
 	}
 
 
-	private static enum XMLPathMarker {
+	private enum XMLPathMarker {
 		ABSTRACT_GMD (new String[]{"gmd:MD_Metadata", "gmd:identificationInfo", "gmd:MD_DataIdentification", "gmd:abstract", "gco:CharacterString"}),
 		ABSTRACT_MCP (new String[]{"mcp:MD_Metadata", "gmd:identificationInfo", "mcp:MD_DataIdentification", "gmd:abstract", "gco:CharacterString"}),
-		ABSTRACT_MDB (new String[]{"mdb:MD_Metadata", "mdb:identificationInfo", "mri:MD_DataIdentification", "mri:abstract", "gco:CharacterString"}),
 
 		BBOXES_GMD (new String[]{"gmd:MD_Metadata", "gmd:identificationInfo", "gmd:MD_DataIdentification", "gmd:extent", "gmd:EX_Extent", "gmd:geographicElement", "gmd:EX_GeographicBoundingBox"}),
 		BBOXES_MCP (new String[]{"mcp:MD_Metadata", "gmd:identificationInfo", "mcp:MD_DataIdentification", "gmd:extent", "gmd:EX_Extent", "gmd:geographicElement", "gmd:EX_GeographicBoundingBox"}),
-		BBOXES_MDB (new String[]{"mdb:MD_Metadata", "mdb:identificationInfo", "mri:MD_DataIdentification", "mri:extent", "gex:EX_Extent", "gex:geographicElement", "gex:EX_GeographicBoundingBox"}),
 
 		POLYGONS_GMD (new String[]{"gmd:MD_Metadata", "gmd:identificationInfo", "gmd:MD_DataIdentification", "gmd:extent", "gmd:EX_Extent", "gmd:geographicElement", "gmd:EX_BoundingPolygon", "gmd:polygon", "gml:Polygon", "gml:exterior", "gml:LinearRing", "gml:coordinates"}),
 		POLYGONS_MCP (new String[]{"mcp:MD_Metadata", "gmd:identificationInfo", "mcp:MD_DataIdentification", "gmd:extent", "gmd:EX_Extent", "gmd:geographicElement", "gmd:EX_BoundingPolygon", "gmd:polygon", "gml:Polygon", "gml:exterior", "gml:LinearRing", "gml:coordinates"}),
-		POLYGONS_MDB (new String[]{"mdb:MD_Metadata", "mdb:identificationInfo", "mri:MD_DataIdentification", "mri:extent", "gex:EX_Extent", "gex:geographicElement", "gex:EX_BoundingPolygon", "gex:polygon", "gml:Polygon", "gml:exterior", "gml:LinearRing", "gml:coordinates"}),
 
 		LINKS_GMD (new String[]{"gmd:MD_Metadata", "gmd:distributionInfo", "gmd:MD_Distribution", "gmd:transferOptions", "gmd:MD_DigitalTransferOptions", "gmd:onLine", "gmd:CI_OnlineResource"}),
-		LINKS_MCP (new String[]{"mcp:MD_Metadata", "gmd:distributionInfo", "gmd:MD_Distribution", "gmd:transferOptions", "gmd:MD_DigitalTransferOptions", "gmd:onLine", "gmd:CI_OnlineResource"}),
-		LINKS_MDB (new String[]{"mdb:MD_Metadata", "mdb:distributionInfo", "mrd:MD_Distribution", "mrd:transferOptions", "mrd:MD_DigitalTransferOptions", "mrd:onLine", "cit:CI_OnlineResource"});
+		LINKS_MCP (new String[]{"mcp:MD_Metadata", "gmd:distributionInfo", "gmd:MD_Distribution", "gmd:transferOptions", "gmd:MD_DigitalTransferOptions", "gmd:onLine", "gmd:CI_OnlineResource"});
 
 		private final String[] path;
 

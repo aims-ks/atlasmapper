@@ -647,22 +647,30 @@ public class Utils {
             return false;
         }
 
+        boolean found = false;
+        try(FileInputStream in = new FileInputStream(file)) {
+            found = Utils.findInInputStream(needle, in);
+        } catch(Exception ex) {
+            LOGGER.log(Level.SEVERE, String.format("Error occurred while reading the file: %s", Utils.getExceptionMessage(ex)), ex);
+        }
+
+        return found;
+    }
+
+    public static boolean findInInputStream(String needle, InputStream inputStream) {
         int bufferSize = 32 * 1024;
         if (needle.length() > bufferSize) {
             bufferSize = needle.length();
         }
 
         boolean found = false;
-        FileInputStream in = null;
         try {
-            in = new FileInputStream(file);
-
             // The file is read by chunk. The needle could be found between chunk.
             // Therefore, we search using previous chunk and current chunk.
             String previous = "", current = "";
             byte[] buf = new byte[bufferSize];  // 32K buffer
             int bytesRead;
-            while (!found && (bytesRead = in.read(buf)) != -1) {
+            while (!found && (bytesRead = inputStream.read(buf)) != -1) {
                 previous = current;
                 current = new String(buf, 0, bytesRead);
 
@@ -671,13 +679,7 @@ public class Utils {
                 }
             }
         } catch(Exception ex) {
-            LOGGER.log(Level.SEVERE, String.format("Error occur while reading the file: %s", Utils.getExceptionMessage(ex)), ex);
-        } finally {
-            if (in != null) {
-                try { in.close(); } catch (Exception ex) {
-                    LOGGER.log(Level.SEVERE, String.format("Error occur while closing the file: %s", Utils.getExceptionMessage(ex)), ex);
-                }
-            }
+            LOGGER.log(Level.SEVERE, String.format("Error occurred while reading the input stream: %s", Utils.getExceptionMessage(ex)), ex);
         }
 
         return found;

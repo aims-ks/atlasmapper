@@ -210,7 +210,7 @@ public class WMSDataSourceConfig extends AbstractDataSourceConfig {
 	public String toString() {
 		return "WMSDataSourceConfig {\n" +
 				(this.getId()==null ? "" :                             "	id=" + this.getId() + "\n") +
-				(extraWmsServiceUrls.length <= 0 ? "" :                "	extraWmsServiceUrls=" + extraWmsServiceUrls + "\n") +
+				(extraWmsServiceUrls==null || extraWmsServiceUrls.length <= 0 ? "" :                "	extraWmsServiceUrls=" + extraWmsServiceUrls + "\n") +
 				(Utils.isBlank(webCacheUrl) ? "" :                     "	webCacheUrl=" + webCacheUrl + "\n") +
 				(webCacheSupportedParameters==null ? "" :              "	webCacheSupportedParameters=" + webCacheSupportedParameters + "\n") +
 				(Utils.isBlank(wmsRequestMimeType) ? "" :              "	wmsRequestMimeType=" + wmsRequestMimeType + "\n") +
