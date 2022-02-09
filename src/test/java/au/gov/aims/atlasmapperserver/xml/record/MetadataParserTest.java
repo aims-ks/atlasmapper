@@ -83,7 +83,8 @@ public class MetadataParserTest {
         ThreadLogger logger = new ThreadLogger();
 
         MetadataParser parser = MetadataParser.getInstance();
-        MetadataDocument doc = parser.parseFile(logger, xmlFile, xmlFilepath);
+        MetadataParser.MetadataSchema schema = parser.getMetadataSchema(xmlFile);
+        MetadataDocument doc = parser.parseFile(logger, xmlFile, xmlFilepath, schema);
 
         Assert.assertNotNull(String.format("The XML document is null: %s", xmlFilepath), doc);
         Assert.assertFalse(String.format("The XML document is empty: %s", xmlFilepath), doc.isEmpty());
@@ -145,7 +146,8 @@ public class MetadataParserTest {
         ThreadLogger logger = new ThreadLogger();
 
         MetadataParser parser = MetadataParser.getInstance();
-        MetadataDocument doc = parser.parseFile(logger, xmlFile, xmlFilepath);
+        MetadataParser.MetadataSchema schema = parser.getMetadataSchema(xmlFile);
+        MetadataDocument doc = parser.parseFile(logger, xmlFile, xmlFilepath, schema);
 
         Assert.assertNotNull(String.format("The XML document is null: %s", xmlFilepath), doc);
         Assert.assertFalse(String.format("The XML document is empty: %s", xmlFilepath), doc.isEmpty());
@@ -206,7 +208,8 @@ public class MetadataParserTest {
         ThreadLogger logger = new ThreadLogger();
 
         MetadataParser parser = MetadataParser.getInstance();
-        MetadataDocument doc = parser.parseFile(logger, xmlFile, xmlFilepath);
+        MetadataParser.MetadataSchema schema = parser.getMetadataSchema(xmlFile);
+        MetadataDocument doc = parser.parseFile(logger, xmlFile, xmlFilepath, schema);
 
         Assert.assertNotNull(String.format("The XML document is null: %s", xmlFilepath), doc);
         Assert.assertFalse(String.format("The XML document is empty: %s", xmlFilepath), doc.isEmpty());
@@ -246,7 +249,8 @@ public class MetadataParserTest {
         ThreadLogger logger = new ThreadLogger();
 
         MetadataParser parser = MetadataParser.getInstance();
-        MetadataDocument doc = parser.parseFile(logger, xmlFile, xmlFilepath);
+        MetadataParser.MetadataSchema schema = parser.getMetadataSchema(xmlFile);
+        MetadataDocument doc = parser.parseFile(logger, xmlFile, xmlFilepath, schema);
 
         Assert.assertNotNull(String.format("The XML document is null: %s", xmlFilepath), doc);
         Assert.assertFalse(String.format("The XML document is empty: %s", xmlFilepath), doc.isEmpty());
@@ -297,9 +301,10 @@ public class MetadataParserTest {
         ThreadLogger logger = new ThreadLogger();
 
         MetadataParser parser = MetadataParser.getInstance();
+        MetadataParser.MetadataSchema schema = parser.getMetadataSchema(xmlFile);
         SAXParseException expectedException = null;
         try {
-            parser.parseFile(logger, xmlFile, xmlFilepath);
+            parser.parseFile(logger, xmlFile, xmlFilepath, schema);
         } catch (SAXParseException ex) {
             expectedException = ex;
         }
@@ -318,7 +323,8 @@ public class MetadataParserTest {
         ThreadLogger logger = new ThreadLogger();
 
         MetadataParser parser = MetadataParser.getInstance();
-        MetadataDocument doc = parser.parseFile(logger, xmlFile, xmlFilepath);
+        MetadataParser.MetadataSchema schema = parser.getMetadataSchema(xmlFile);
+        MetadataDocument doc = parser.parseFile(logger, xmlFile, xmlFilepath, schema);
 
         Assert.assertNotNull(String.format("The XML document is null: %s", xmlFilepath), doc);
         Assert.assertFalse(String.format("The XML document is empty: %s", xmlFilepath), doc.isEmpty());

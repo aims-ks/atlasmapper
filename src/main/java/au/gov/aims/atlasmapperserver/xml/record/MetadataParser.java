@@ -76,35 +76,51 @@ public class MetadataParser {
             File metadataRecordFile = getMetadataRecordFile(logger, urlCache, dataSource, layerId, mestCacheEntry, forceDownload);
             MetadataSchema schema = this.getMetadataSchema(metadataRecordFile);
             if (MetadataSchema.UNPUBLISHED.equals(schema)) {
-                logger.log(Level.WARNING, String.format("Unauthorised access to %s. Check if the document is published.", url.toString()));
+                logger.log(Level.WARNING, String.format(
+                    "Unauthorised access to [TC211 MEST record](%s) for layer %s. Check if the metadata record is published.",
+                    url.toString(), layerId));
+                urlCache.save(mestCacheEntry, false);
             }
             RevivableThread.checkForInterruption();
 
             // 3. If the schema could not be determined, try to "fix" the URL.
             if (schema == null) {
                 try {
+                    if (mestCacheEntry != null) {
+                        mestCacheEntry.close();
+                        urlCache.save(mestCacheEntry, false);
+                    }
+
                     GeoNetwork2UrlBuilder geoNetwork2UrlBuilder = new GeoNetwork2UrlBuilder(url);
                     if (geoNetwork2UrlBuilder.isValidGeoNetworkUrl()) {
                         // Try GeoNetwork 2.10 URL
-                        mestCacheEntry.close();
                         URL geoNetwork2_10Url = geoNetwork2UrlBuilder.craftGeoNetwork2_10MestUrl();
                         mestCacheEntry = this.getCacheEntry(logger, urlCache, layerId, geoNetwork2_10Url, false);
                         metadataRecordFile = getMetadataRecordFile(logger, urlCache, dataSource, layerId, mestCacheEntry, forceDownload);
                         schema = this.getMetadataSchema(metadataRecordFile);
                         if (MetadataSchema.UNPUBLISHED.equals(schema)) {
-                            logger.log(Level.WARNING, String.format("Unauthorised access to %s. Check if the document is published.", geoNetwork2_10Url.toString()));
+                            logger.log(Level.WARNING, String.format(
+                                "Unauthorised access to [TC211 MEST record](%s) for layer %s. Check if the metadata record is published.",
+                                geoNetwork2_10Url.toString(), layerId));
+                            urlCache.save(mestCacheEntry, false);
                         }
 
                         RevivableThread.checkForInterruption();
 
                         if (schema == null) {
-                            mestCacheEntry.close();
+                            if (mestCacheEntry != null) {
+                                mestCacheEntry.close();
+                                urlCache.save(mestCacheEntry, false);
+                            }
                             URL geoNetworkLegacyUrl = geoNetwork2UrlBuilder.craftGeoNetworkLegacyMestUrl();
                             mestCacheEntry = this.getCacheEntry(logger, urlCache, layerId, geoNetworkLegacyUrl, false);
                             metadataRecordFile = getMetadataRecordFile(logger, urlCache, dataSource, layerId, mestCacheEntry, forceDownload);
                             schema = this.getMetadataSchema(metadataRecordFile);
                             if (MetadataSchema.UNPUBLISHED.equals(schema)) {
-                                logger.log(Level.WARNING, String.format("Unauthorised access to %s. Check if the document is published.", geoNetworkLegacyUrl.toString()));
+                                logger.log(Level.WARNING, String.format(
+                                    "Unauthorised access to [TC211 MEST record](%s) for layer %s. Check if the metadata record is published.",
+                                    geoNetworkLegacyUrl.toString(), layerId));
+                                urlCache.save(mestCacheEntry, false);
                             }
 
                             RevivableThread.checkForInterruption();
@@ -118,9 +134,13 @@ public class MetadataParser {
             }
 
             // 4. Parse the record
-            if (metadataRecordFile != null) {
+            if (metadataRecordFile != null && schema != null && !MetadataSchema.UNPUBLISHED.equals(schema)) {
                 URL recordUrl = mestCacheEntry.getUrl();
                 String urlStr = recordUrl == null ? metadataRecordFile.getAbsolutePath() : recordUrl.toString();
+
+                logger.log(Level.INFO, String.format("Parsing [TC211 MEST record](%s) for layer %s",
+                        urlStr, layerId));
+
                 metadataDocument = this.parseFile(logger, metadataRecordFile, urlStr, schema);
                 RevivableThread.checkForInterruption();
             }
@@ -131,10 +151,6 @@ public class MetadataParser {
             } else {
                 // Try to get it from cache
                 metadataDocument = this.parseCachedURL(logger, urlCache, dataSource, layerId, url);
-                if (metadataDocument != null) {
-                    logger.log(Level.WARNING, String.format("Deprecated metadata record URL. Using cached record: %s",
-                            url.toString()));
-                }
             }
         } finally {
             if (mestCacheEntry != null) {
@@ -202,18 +218,20 @@ public class MetadataParser {
 
             // 4. Parse the record
             if (metadataRecordFile != null) {
-                URL recordUrl = mestCacheEntry.getUrl();
-                String urlStr = recordUrl == null ? metadataRecordFile.getAbsolutePath() : recordUrl.toString();
-                metadataDocument = this.parseFile(logger, metadataRecordFile, urlStr);
-                RevivableThread.checkForInterruption();
+                MetadataSchema schema = this.getMetadataSchema(metadataRecordFile);
+                if (schema != null && !MetadataSchema.UNPUBLISHED.equals(schema)) {
+
+                    URL recordUrl = mestCacheEntry.getUrl();
+                    String urlStr = recordUrl == null ? metadataRecordFile.getAbsolutePath() : recordUrl.toString();
+
+                    logger.log(Level.WARNING, String.format("Deprecated [TC211 MEST record URL](%s). Parsing cached record for layer %s",
+                            urlStr, layerId));
+
+                    metadataDocument = this.parseFile(logger, metadataRecordFile, urlStr, schema);
+                    RevivableThread.checkForInterruption();
+                }
             }
 
-            // 5. Register that the file is valid
-            if (metadataDocument != null) {
-                urlCache.save(mestCacheEntry, true);
-            } else {
-                urlCache.save(mestCacheEntry, false);
-            }
         } finally {
             if (mestCacheEntry != null) {
                 mestCacheEntry.close();
@@ -221,19 +239,6 @@ public class MetadataParser {
         }
 
         return metadataDocument;
-    }
-
-    public MetadataDocument parseFile(
-        ThreadLogger logger,
-        File metadataRecordFile,
-        String location
-    ) throws Exception {
-        MetadataSchema schema = this.getMetadataSchema(metadataRecordFile);
-        if (MetadataSchema.UNPUBLISHED.equals(schema)) {
-            logger.log(Level.WARNING, String.format("Unauthorised access to %s. Check if the metadata record is published.", location));
-        }
-
-        return this.parseFile(logger, metadataRecordFile, location, schema);
     }
 
     public MetadataDocument parseFile(
@@ -333,9 +338,8 @@ public class MetadataParser {
         try {
             cacheEntry = urlCache.getCacheEntry(url);
         } catch (Exception ex) {
-            // The MEST record was not good. Use the previous version if possible
             if (logError) {
-                logger.log(Level.WARNING, String.format("Error occurred while parsing the [TC211 MEST record](%s) for layer %s: %s",
+                logger.log(Level.WARNING, String.format("Error occurred while getting document from the cache for the [TC211 MEST record](%s) for layer %s: %s",
                         url.toString(), layerId, Utils.getExceptionMessage(ex)), ex);
             }
         }
