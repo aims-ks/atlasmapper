@@ -31,8 +31,8 @@ public class WMSLayerDimensionConfig extends AbstractConfig {
     //     It's unclear what is the expected behaviour when the
     //     "timeAxisUnits" is "unknown".
     //     The AtlasMapper fallback to "ISO8601" when the unit is
-    //     unrecognised but not empty.
-    public static final String DEFAULT_DIMENSION_UNIT = "ISO8601";
+    //     "unknown" and the dimension name is "time" or "date".
+    public static final String DEFAULT_TIME_DIMENSION_UNIT = "ISO8601";
     public static final String[] TIME_DIMENSION_UNITS = new String[]{
         "ISO8601"
     };
@@ -48,6 +48,7 @@ public class WMSLayerDimensionConfig extends AbstractConfig {
 
     @ConfigField
     private String timeDimensionUnit;
+    private boolean timeDimensionUnitIsSet = false;
 
     @ConfigField
     private Boolean timeDimension;
@@ -103,19 +104,27 @@ public class WMSLayerDimensionConfig extends AbstractConfig {
     }
 
     public String getTimeDimensionUnit() {
-        if (this.timeDimensionUnit == null) {
+        this.setTimeDimensionUnit();
+        return this.timeDimensionUnit;
+    }
+
+    private void setTimeDimensionUnit() {
+        if (!this.timeDimensionUnitIsSet) {
             if (this.units != null && !this.units.isEmpty()) {
-                for (String timeUnit : TIME_DIMENSION_UNITS) {
-                    if (this.units.equalsIgnoreCase(timeUnit)) {
-                        this.timeDimensionUnit = timeUnit;
-                        break;
+                if (this.units.equalsIgnoreCase("unknown")) {
+                    if (this.name.equalsIgnoreCase("time") || this.name.equalsIgnoreCase("date")) {
+                        this.timeDimensionUnit = DEFAULT_TIME_DIMENSION_UNIT;
+                    }
+                } else {
+                    for (String timeUnit : TIME_DIMENSION_UNITS) {
+                        if (this.units.equalsIgnoreCase(timeUnit)) {
+                            this.timeDimensionUnit = timeUnit;
+                            break;
+                        }
                     }
                 }
-                if (this.timeDimensionUnit == null) {
-                    this.timeDimensionUnit = DEFAULT_DIMENSION_UNIT;
-                }
             }
+            this.timeDimensionUnitIsSet = true;
         }
-        return this.timeDimensionUnit;
     }
 }
