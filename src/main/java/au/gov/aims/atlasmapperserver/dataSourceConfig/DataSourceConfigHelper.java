@@ -47,6 +47,8 @@ public class DataSourceConfigHelper {
 			dataSourceConfig = new TilesDataSourceConfig(configManager);
 		} else if (dataSourceWrapper.isXYZ()) {
 			dataSourceConfig = new XYZDataSourceConfig(configManager);
+		} else if (dataSourceWrapper.isWMTS()) {
+			dataSourceConfig = new WMTSDataSourceConfig(configManager);
 		} else if (dataSourceWrapper.isWMS()) {
 			dataSourceConfig = new WMSDataSourceConfig(configManager);
 		} else {

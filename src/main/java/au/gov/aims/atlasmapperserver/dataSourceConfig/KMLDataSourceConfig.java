@@ -25,6 +25,7 @@ import au.gov.aims.atlasmapperserver.AbstractConfig;
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
+import au.gov.aims.atlasmapperserver.layerConfig.KMLLayerConfig;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
 import au.gov.aims.atlasmapperserver.layerGenerator.KMLLayerGenerator;
 import org.json.JSONArray;
@@ -107,7 +108,7 @@ public class KMLDataSourceConfig extends AbstractDataSourceConfig {
 	}
 
 	@Override
-	public AbstractLayerGenerator createLayerGenerator() {
+	public AbstractLayerGenerator<KMLLayerConfig, KMLDataSourceConfig> createLayerGenerator() {
 		return new KMLLayerGenerator();
 	}
 

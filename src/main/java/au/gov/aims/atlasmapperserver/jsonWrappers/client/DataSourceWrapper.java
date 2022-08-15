@@ -339,6 +339,9 @@ public class DataSourceWrapper extends AbstractWrapper {
     public boolean isXYZ() {
         return "XYZ".equals(this.getLayerType());
     }
+    public boolean isWMTS() {
+        return "WMTS".equals(this.getLayerType());
+    }
     public boolean isWMS() {
         return "WMS".equals(this.getLayerType());
     }

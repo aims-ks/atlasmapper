@@ -22,6 +22,7 @@
 package au.gov.aims.atlasmapperserver.dataSourceConfig;
 
 import au.gov.aims.atlasmapperserver.ConfigManager;
+import au.gov.aims.atlasmapperserver.layerConfig.ThreddsLayerConfig;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
 import au.gov.aims.atlasmapperserver.layerGenerator.ThreddsLayerGenerator;
 
@@ -31,7 +32,7 @@ public class ThreddsDataSourceConfig extends WMSDataSourceConfig {
     }
 
     @Override
-    public AbstractLayerGenerator createLayerGenerator() throws Exception {
+    public AbstractLayerGenerator<ThreddsLayerConfig, ThreddsDataSourceConfig> createLayerGenerator() throws Exception {
         return new ThreddsLayerGenerator();
     }
 }

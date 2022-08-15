@@ -22,13 +22,102 @@
 package au.gov.aims.atlasmapperserver.layerGenerator;
 
 import au.gov.aims.atlasmapperserver.ConfigManager;
+import au.gov.aims.atlasmapperserver.Utils;
+import au.gov.aims.atlasmapperserver.cache.URLCache;
 import au.gov.aims.atlasmapperserver.dataSourceConfig.WMTSDataSourceConfig;
+import au.gov.aims.atlasmapperserver.layerConfig.LayerCatalog;
 import au.gov.aims.atlasmapperserver.layerConfig.WMTSLayerConfig;
+import au.gov.aims.atlasmapperserver.thread.RevivableThread;
+import au.gov.aims.atlasmapperserver.thread.RevivableThreadInterruptedException;
+import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
+import org.geotools.ows.wmts.model.WMTSCapabilities;
+import org.geotools.ows.wmts.model.WMTSRequest;
 
-// TODO Remove - This class is probably unused since the WMTS layers are only used to discover which WMS layers are cached.
+import java.net.URL;
+import java.util.Collection;
+import java.util.Map;
+import java.util.logging.Level;
+
 public class WMTSLayerGenerator extends AbstractWMSLayerGenerator<WMTSLayerConfig, WMTSDataSourceConfig> {
-	@Override
-	protected WMTSLayerConfig createLayerConfig(ConfigManager configManager) {
-		return new WMTSLayerConfig(configManager);
-	}
+    @Override
+    protected WMTSLayerConfig createLayerConfig(ConfigManager configManager) {
+        return new WMTSLayerConfig(configManager);
+    }
+
+    @Override
+    public LayerCatalog generateRawLayerCatalog(
+            ThreadLogger logger,
+            URLCache urlCache,
+            WMTSDataSourceConfig dataSourceClone,
+            boolean redownloadGetCapabilitiesFiles,
+            boolean redownloadMestRecordFiles
+    ) throws RevivableThreadInterruptedException {
+        RevivableThread.checkForInterruption();
+
+        LayerCatalog layerCatalog = new LayerCatalog();
+        Map<String, WMTSLayerConfig> layersMap = null;
+        URL wmtsServiceUrl = null;
+        String dataSourceServiceUrlStr = dataSourceClone.getServiceUrl();
+        ConfigManager configManager = dataSourceClone.getConfigManager();
+
+        WMTSCapabilities wmtsCapabilities = null;
+        try {
+            wmtsCapabilities = this.getWMTSCapabilitiesResponse(
+                    logger,
+                    urlCache,
+                    this.wmsVersion,
+                    dataSourceClone,
+                    dataSourceServiceUrlStr,
+                    redownloadGetCapabilitiesFiles);
+        } catch (Exception ex) {
+            logger.log(Level.SEVERE, String.format("Error occurred while parsing the [WMTS GetCapabilities document](%s): %s",
+                    dataSourceServiceUrlStr, Utils.getExceptionMessage(ex)), ex);
+            return null;
+        }
+
+        if (wmtsCapabilities == null) {
+            logger.log(Level.SEVERE, String.format("Could not parse the [WMTS GetCapabilities document](%s).",
+                    dataSourceServiceUrlStr));
+            return null;
+        }
+
+        WMTSRequest wmtsRequestCapabilities = wmtsCapabilities.getRequest();
+        if (wmtsRequestCapabilities != null) {
+            if (Utils.isNotBlank(dataSourceClone.getGetMapUrl())) {
+                try {
+                    wmtsServiceUrl = Utils.toURL(dataSourceClone.getGetMapUrl());
+                } catch (Exception ex) {
+                    logger.log(Level.WARNING, String.format("Can not create a URL object from the string %s: %s",
+                            dataSourceClone.getGetMapUrl(), Utils.getExceptionMessage(ex)), ex);
+                }
+            } else {
+                wmtsServiceUrl = this.getOperationUrl(wmtsRequestCapabilities.getGetTile());
+            }
+            dataSourceClone.setServiceUrl(wmtsServiceUrl);
+
+            if (Utils.isBlank(dataSourceClone.getFeatureRequestsUrl())) {
+                dataSourceClone.setFeatureRequestsUrl(this.getOperationUrl(wmtsRequestCapabilities.getGetFeatureInfo()));
+            }
+
+            dataSourceClone.setWmsVersion(wmtsCapabilities.getVersion());
+
+            // NOTE: Legend - WMTS does NOT define a getLegend operation.
+        }
+
+        layersMap = this.getLayersInfoFromCaps(logger, urlCache, wmtsCapabilities, dataSourceClone, redownloadMestRecordFiles);
+
+        // Set default style of each layer
+        if (layersMap != null && !layersMap.isEmpty()) {
+            for (WMTSLayerConfig layer : layersMap.values()) {
+                this.setDefaultLayerStyle(configManager, layer);
+            }
+
+            Collection<WMTSLayerConfig> layers = layersMap.values();
+            layerCatalog.addLayers(layers);
+        }
+
+        RevivableThread.checkForInterruption();
+
+        return layerCatalog;
+    }
 }

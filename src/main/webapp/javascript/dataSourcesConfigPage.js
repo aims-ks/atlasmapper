@@ -31,6 +31,10 @@ var dataSourceLayerTypes = {
             fontWeight: 'bold'
         }
     },
+    'WMTS': {
+        display: 'WMTS',
+        qtipHtml: 'Web Map Tile Service (WMTS). This is used with map services which doesn\'t offer WMS service. You will be asked to provide a WMTS GetCapabilities document URL.'
+    },
     'NCWMS': {
         display: 'ncWMS',
         qtipHtml: 'ncWMS is a Web Map Service for geospatial data that are stored in <strong>CF-compliant NetCDF</strong> files. This type of data source is not very common. You will be asked to provide a GetCapabilities document URL.'
@@ -50,11 +54,6 @@ var dataSourceLayerTypes = {
     'BING': {
         display: 'Bing',
         qtipHtml: 'Bing base layers:<ul><li>Bing Road</li><li>Bing Hybrid</li><li>Bing Aerial</li></ul>'
-    },
-    'WMTS': {
-        display: 'WMTS',
-        disabled: true,
-        qtipHtml: 'Sorry, not supported yet'
     },
     'KML': {
         display: 'KML',
@@ -200,7 +199,7 @@ Ext.define('Writer.LayerServerConfigForm', {
                 allowBlank: false
             }, {
                 fieldLabel: 'Data source name',
-                qtipHtml: 'A human readable name for this data source. Must be short and descriptive. This field is used as a title for the tab in the <em>Add layer</em> window',
+                qtipHtml: 'A human-readable name for this data source. Must be short and descriptive. This field is used as a title for the tab in the <em>Add layer</em> window',
                 name: 'dataSourceName',
                 allowBlank: false
             }, {
@@ -546,6 +545,25 @@ Ext.define('Writer.LayerServerConfigForm', {
                 advancedItems.push(featureRequestsUrl);
                 break;
 
+            case 'WMTS':
+                items.push(Ext.apply(wmsServiceUrl, {
+                    fieldLabel: 'WMTS service URL',
+                    qtipHtml: 'URL to the layer service. This URL is used by a java library to download the WMTS capabilities document. Setting this field alone with <em>Data source ID</em> and <em>Data source name</em> is usually enough. Note that a full URL to the capabilities document can also be provided, including additional parameters.<br/>NOTE: WMTS services may use the file protocol here.<br/>Example: file:///somepath/wmts_capabilities.xml',
+                }));
+                items.push(baseLayers);
+                items.push(activeDownload);
+                items.push(comment);
+
+                advancedItems.push(globalManualOverride);
+                advancedItems.push(blackAndWhiteListedLayers);
+                advancedItems.push(showInLegend);
+                advancedItems.push(legendParameters);
+                advancedItems.push(legendUrl);
+                //advancedItems.push(extraWmsServiceUrls);
+                advancedItems.push(getMapUrl);
+                advancedItems.push(featureRequestsUrl);
+                break;
+
             case 'NCWMS':
                 items.push(Ext.apply(wmsServiceUrl, { fieldLabel: 'ncWMS service URL' }));
                 items.push(baseLayers);
@@ -580,22 +598,6 @@ Ext.define('Writer.LayerServerConfigForm', {
                 // Overwrite legendParameters default value
                 //   https://reading-escience-centre.gitbooks.io/ncwms-user-guide/content/04-usage.html#getlegendgraphic
                 this.defaultValues.set('legendParameters', 'TRANSPARENT=FALSE');
-                break;
-
-            case 'WMTS':
-                items.push(Ext.apply(wmsServiceUrl, { fieldLabel: 'WMTS service URL' }));
-                items.push(baseLayers);
-                items.push(activeDownload);
-                items.push(comment);
-
-                advancedItems.push(globalManualOverride);
-                advancedItems.push(blackAndWhiteListedLayers);
-                advancedItems.push(showInLegend);
-                advancedItems.push(legendParameters);
-                advancedItems.push(legendUrl);
-                //advancedItems.push(extraWmsServiceUrls);
-                advancedItems.push(getMapUrl);
-                advancedItems.push(featureRequestsUrl);
                 break;
 
             case 'KML':
@@ -1205,6 +1207,21 @@ Ext.define('Writer.LayerServerConfigGrid', {
                         qtipHtml: 'Redownload the MEST records. This operation may take several minutes.',
                         boxLabel: 'Redownload the MEST records.',
                         name: 'clearMestCache'
+                    }
+                ];
+                break;
+
+            case 'WMTS':
+                windowContent = [
+                    {
+                        xtype: 'displayfield',
+                        value: 'Rebuild the data source information with the latest settings and re-harvest documents.'
+                    }, {
+                        xtype: 'checkboxfield',
+                        qtipHtml: 'Redownload the WMTS GetCapabilities document.',
+                        boxLabel: 'Redownload the WMTS capabilities document',
+                        checked: true,
+                        name: 'clearCapCache'
                     }
                 ];
                 break;

@@ -20,8 +20,8 @@
  */
 package au.gov.aims.atlasmapperserver.xml.WMTS;
 
-import org.geotools.data.ows.Layer;
-import org.geotools.data.ows.StyleImpl;
+import org.geotools.ows.wms.Layer;
+import org.geotools.ows.wms.StyleImpl;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;

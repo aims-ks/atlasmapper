@@ -24,6 +24,7 @@ package au.gov.aims.atlasmapperserver.dataSourceConfig;
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
+import au.gov.aims.atlasmapperserver.layerConfig.AbstractLayerConfig;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
 import au.gov.aims.atlasmapperserver.layerGenerator.ArcGISMapServerLayerGenerator;
 
@@ -56,7 +57,7 @@ public class ArcGISMapServerDataSourceConfig extends AbstractDataSourceConfig {
 	}
 
 	@Override
-	public AbstractLayerGenerator createLayerGenerator() {
+	public AbstractLayerGenerator<AbstractLayerConfig, ArcGISMapServerDataSourceConfig> createLayerGenerator() {
 		return new ArcGISMapServerLayerGenerator();
 	}
 

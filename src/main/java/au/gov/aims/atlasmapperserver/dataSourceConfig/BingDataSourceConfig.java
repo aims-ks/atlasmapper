@@ -23,6 +23,7 @@ package au.gov.aims.atlasmapperserver.dataSourceConfig;
 
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
+import au.gov.aims.atlasmapperserver.layerConfig.BingLayerConfig;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
 import au.gov.aims.atlasmapperserver.layerGenerator.BingLayerGenerator;
 
@@ -35,7 +36,7 @@ public class BingDataSourceConfig extends AbstractDataSourceConfig {
     }
 
     @Override
-    public AbstractLayerGenerator createLayerGenerator() {
+    public AbstractLayerGenerator<BingLayerConfig, BingDataSourceConfig> createLayerGenerator() {
         return new BingLayerGenerator();
     }
 

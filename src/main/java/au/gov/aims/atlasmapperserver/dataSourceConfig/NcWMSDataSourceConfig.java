@@ -22,6 +22,7 @@
 package au.gov.aims.atlasmapperserver.dataSourceConfig;
 
 import au.gov.aims.atlasmapperserver.ConfigManager;
+import au.gov.aims.atlasmapperserver.layerConfig.NcWMSLayerConfig;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
 import au.gov.aims.atlasmapperserver.layerGenerator.NcWMSLayerGenerator;
 
@@ -31,7 +32,7 @@ public class NcWMSDataSourceConfig extends WMSDataSourceConfig {
 	}
 
 	@Override
-	public AbstractLayerGenerator createLayerGenerator() throws Exception {
+	public AbstractLayerGenerator<NcWMSLayerConfig, NcWMSDataSourceConfig> createLayerGenerator() throws Exception {
 		return new NcWMSLayerGenerator();
 	}
 }

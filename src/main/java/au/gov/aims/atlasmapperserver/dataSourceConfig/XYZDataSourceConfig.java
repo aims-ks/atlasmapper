@@ -23,6 +23,7 @@ package au.gov.aims.atlasmapperserver.dataSourceConfig;
 
 import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
+import au.gov.aims.atlasmapperserver.layerConfig.XYZLayerConfig;
 import au.gov.aims.atlasmapperserver.layerGenerator.AbstractLayerGenerator;
 import au.gov.aims.atlasmapperserver.layerGenerator.XYZLayerGenerator;
 
@@ -92,7 +93,7 @@ public class XYZDataSourceConfig extends AbstractDataSourceConfig {
 	}
 
 	@Override
-	public AbstractLayerGenerator createLayerGenerator() {
+	public AbstractLayerGenerator<XYZLayerConfig, XYZDataSourceConfig> createLayerGenerator() {
 		return new XYZLayerGenerator();
 	}
 }

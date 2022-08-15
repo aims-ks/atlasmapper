@@ -144,7 +144,7 @@ public abstract class AbstractDataSourceConfig extends AbstractRunnableConfig<Ab
 
         String status = "OKAY";
         if (nbLayers <= 0) {
-            // It do not contains any layers, there is nothing to do with it.
+            // It does not contain any layers, there is nothing to do with it.
             status = "INVALID";
         } else if (nbErrors > 0) {
             // It contains error, but it also contains some layers.
@@ -253,8 +253,8 @@ public abstract class AbstractDataSourceConfig extends AbstractRunnableConfig<Ab
     }
 
     /**
-     * Set the modify flag for clients that are using this data source.
-     * @param modified The modified flag. True to show the yellow star, false to hide the yellow star.
+     * Set the "modified flag" for clients that are using this data source.
+     * @param modified The "modified flag". True to show the yellow star, false to hide the yellow star.
      * @throws IOException
      * @throws JSONException
      */
