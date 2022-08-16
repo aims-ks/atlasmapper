@@ -28,16 +28,87 @@ Atlas.Layer.WMTS = OpenLayers.Class(Atlas.Layer.WMS, {
 	 * Constructor: Atlas.Layer.WMTS
 	 *
 	 * Parameters:
+	 * mapPanel - {Object} The MapPanel instance
 	 * jsonLayer - {Object} Hashtable of layer attributes
 	 * mapPanel - {Object} Instance of the MapPanel in which the layer is used
 	 */
 	initialize: function(mapPanel, jsonLayer, parent) {
-		Atlas.Layer.WMS.prototype.initialize.apply(this, arguments);
-
-		// WMTS do not support cache (as long as I know)
+		// WMTS can't use cache
 		this.useCache = false;
 
-		// TODO Do not call initialize from WMS, create a real WMTS layer.
-		//Atlas.Layer.AbstractLayer.prototype.initialize.apply(this, arguments);
+		if (mapPanel && mapPanel.dpi !== mapPanel.DEFAULT_DPI) {
+			// Set the initial layer DPI
+			// Clone jsonLayer
+			jsonLayer = OpenLayers.Util.extend({}, jsonLayer);
+
+			// Clone jsonLayer['olParams'] object or create a new one
+			jsonLayer['olParams'] = OpenLayers.Util.extend({}, jsonLayer['olParams'] || {});
+			jsonLayer['olParams']['format_options'] = 'dpi:' + mapPanel.dpi;
+
+			// Set the initial layer tile size
+			this.mapPanel = mapPanel; // This is done automatically later, but it's needed now...
+			var newTileSize = this._getTileSizeForDPI(mapPanel.dpi, jsonLayer);
+			if (newTileSize !== this.DEFAULT_TILE_SIZE) {
+				var newTileSizeObj = new OpenLayers.Size(newTileSize, newTileSize);
+
+				// Clone jsonLayer
+				jsonLayer = OpenLayers.Util.extend({}, jsonLayer);
+
+				// Double tiles
+				// Clone jsonLayer['olOptions'] object or create a new one
+				jsonLayer['olOptions'] = OpenLayers.Util.extend({}, jsonLayer['olOptions'] || {});
+				jsonLayer['olOptions']['tileSize'] = newTileSizeObj;
+			}
+		}
+
+		Atlas.Layer.AbstractLayer.prototype.initialize.apply(this, arguments);
+
+		// Find the default style
+		var defaultStyle = "";
+		if (this.json['styles']) {
+			for (var i=0, len=this.json['styles'].length; i<len; i++) {
+				var jsonStyle = this.json['styles'][i];
+				if (jsonStyle["selected"]) {
+					defaultStyle = jsonStyle["name"];
+					break;
+				}
+			}
+		}
+
+		// URL Example:
+		// http://localhost:8080/geoserver/gwc/service/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=nurc%3AArc_Sample&STYLE=&TILEMATRIXSET=EPSG%3A4326&TILEMATRIX=EPSG%3A4326%3A7&TILEROW=34&TILECOL=58&FORMAT=image%2Fjpeg
+
+		// Fix suggestions:
+		// https://gis.stackexchange.com/questions/331836/wmts-from-geoserver-to-openlayers-is-unknown-tilematrix-x
+
+		// MatrixSet: get the one which has a SupportedCRS which matches the map projection
+		/*
+		<TileMatrixSet>
+			<ows:Identifier>WebMercatorQuad</ows:Identifier>
+			<ows:SupportedCRS>EPSG:3857</ows:SupportedCRS>
+			<TileMatrix>...</TileMatrix>
+		</TileMatrixSet>
+		*/
+
+		this.setLayer(new OpenLayers.Layer.WMTS({
+			name: this.getTitle(),
+			url: this.json['serviceUrl'],
+			layer: this.json['layerName'] || this.json['layerId'],
+			style: defaultStyle,
+			matrixSet: "EPSG:4326", // TODO Find out how to figure that out
+			matrix: "EPSG:4326:7", // TODO Find out how to figure that out (7 seems to be the zoom level)
+			wrapX: true
+		}));
+
+		if (mapPanel) {
+			var that = this;
+			mapPanel.ol_on("dpiChange", function(evt) {
+				that._dpiChange(evt.dpi);
+			});
+			mapPanel.ol_on("gutterChange", function(evt) {
+				that._gutterChange(evt.gutter);
+			});
+		}
 	}
+
 });

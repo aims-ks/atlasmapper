@@ -19,3 +19,30 @@ Building the AtlasMapper from Source
 ------------------------------------
 
 This section will eventually describe the building of the source to produce an executable WAR file.
+
+Compiling OpenLayers
+--------------------
+
+To compile OpenLayers:
+
+1. Modify the OpenLayers configuration file
+    ```
+    $ vim atlasmapper/clientResources/amc/OpenLayers/OpenLayers-2.12/build/atlasmapper.cfg
+    ```
+
+2. Install Python 2
+    ```
+    $ sudo apt-get install python2
+    ```
+
+3. Compile OpenLayers
+    ```
+    $ cd atlasmapper/clientResources/amc/OpenLayers/OpenLayers-2.12/build
+    $ python2 build.py atlasmapper.cfg
+    ```
+
+4. Deploy
+    ```
+    $ cd atlasmapper/clientResources/amc/OpenLayers/OpenLayers-2.12/build
+    $ cp OpenLayers.js ..
+    ```

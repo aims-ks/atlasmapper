@@ -53,7 +53,6 @@ import org.geotools.ows.wms.xml.Dimension;
 import org.geotools.ows.wms.xml.MetadataURL;
 import org.geotools.ows.wms.xml.WMSSchema;
 import org.geotools.ows.wmts.model.WMTSCapabilities;
-import org.geotools.ows.wmts.model.WMTSLayer;
 import org.geotools.wmts.WMTSConfiguration;
 import org.geotools.xml.DocumentFactory;
 import org.geotools.xml.handlers.DocumentHandler;
@@ -863,45 +862,6 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
     }
 
     /**
-     * @param wmtsCapabilities
-     * @param dataSourceClone
-     * @return
-     */
-    protected Map<String, L> getLayersInfoFromCaps(
-            ThreadLogger logger,
-            URLCache urlCache,
-            WMTSCapabilities wmtsCapabilities,
-            D dataSourceClone, // Data source of layers (to link the layer to its data source)
-            boolean forceMestDownload
-    ) throws RevivableThreadInterruptedException {
-
-        RevivableThread.checkForInterruption();
-
-        if (wmtsCapabilities == null) {
-            return null;
-        }
-
-        // http://docs.geotools.org/stable/javadocs/org/geotools/data/wms/WebMapServer.html
-        List<WMTSLayer> layerList = wmtsCapabilities.getLayerList();
-
-        Map<String, L> layerConfigs = new HashMap<String, L>();
-        // The boolean at the end is used to ignore the root from the capabilities document.
-        // It can be added (change to false) if some users think it's useful to see the root...
-        if (layerList != null && !layerList.isEmpty()) {
-            for (WMTSLayer layer : layerList) {
-                // WMTSLayer extends Layer, therefore the layer map can be propagated
-                // using the same method as for WMS layers.
-                this._propagateLayersInfoMapFromGeoToolLayer(
-                        logger, urlCache, layerConfigs, layer, new LinkedList<String>(), dataSourceClone, true, forceMestDownload);
-            }
-        }
-
-        RevivableThread.checkForInterruption();
-
-        return layerConfigs;
-    }
-
-    /**
      * Set default layer style - This method is overriden in some sub-classes.
      *     See: WMSLayerGenerator.java
      * When the default style is selected by the user, the attribute it is removed from the requests.
@@ -988,7 +948,7 @@ public abstract class AbstractWMSLayerGenerator<L extends WMSLayerConfig, D exte
      * @param dataSourceClone
      * @return
      */
-    private L layerToLayerConfig(
+    protected L layerToLayerConfig(
             ThreadLogger logger,
             URLCache urlCache,
             Layer layer,

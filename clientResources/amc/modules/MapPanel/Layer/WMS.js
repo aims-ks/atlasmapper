@@ -42,7 +42,7 @@ Atlas.Layer.WMS = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 		// WMS use cache when possible (by default)
 		this.useCache = true;
 
-		if (mapPanel && mapPanel.dpi != mapPanel.DEFAULT_DPI) {
+		if (mapPanel && mapPanel.dpi !== mapPanel.DEFAULT_DPI) {
 			// Set the initial layer DPI
 			// Clone jsonLayer
 			jsonLayer = OpenLayers.Util.extend({}, jsonLayer);
@@ -54,7 +54,7 @@ Atlas.Layer.WMS = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 			// Set the initial layer tile size
 			this.mapPanel = mapPanel; // This is done automatically later, but it's needed now...
 			var newTileSize = this._getTileSizeForDPI(mapPanel.dpi, jsonLayer);
-			if (newTileSize != this.DEFAULT_TILE_SIZE) {
+			if (newTileSize !== this.DEFAULT_TILE_SIZE) {
 				var newTileSizeObj = new OpenLayers.Size(newTileSize, newTileSize);
 
 				// Clone jsonLayer
@@ -124,7 +124,7 @@ Atlas.Layer.WMS = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 				// The checkbox is destroyed and recreated every time the panel is redrawn,
 				// so we can not keep a reference to the component.
 				var useCacheCheckboxObj = Ext.ComponentMgr.get(useCacheCheckboxId);
-				if (useCacheCheckboxObj && useCacheCheckboxObj.layer == this.layer) {
+				if (useCacheCheckboxObj && useCacheCheckboxObj.layer === this.layer) {
 					cacheAvailable = this.canUseWebCache(this.layer.params);
 					useCacheCheckboxObj.setValue(cacheAvailable && this.useCache);
 					if (cacheAvailable) {
@@ -149,7 +149,7 @@ Atlas.Layer.WMS = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 	_dpiChange: function(dpi) {
 		var defaultDPI = this.mapPanel ? this.mapPanel.DEFAULT_DPI : 90;
 		this._setTileSizeForDPI(dpi);
-		if (dpi == defaultDPI) {
+		if (dpi === defaultDPI) {
 			this.setParameters({'format_options': null});
 		} else {
 			this.setParameters({'format_options': 'dpi:' + dpi});
@@ -265,8 +265,8 @@ Atlas.Layer.WMS = OpenLayers.Class(Atlas.Layer.AbstractLayer, {
 		if (this.json.CQL_FILTER) {
 			layerParams.CQL_FILTER = this.json.CQL_FILTER;
 		}
-
 //GREGNEW
+
 		return layerParams;
 	},
 
