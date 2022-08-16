@@ -46,3 +46,11 @@ To compile OpenLayers:
     $ cd atlasmapper/clientResources/amc/OpenLayers/OpenLayers-2.12/build
     $ cp OpenLayers.js ..
     ```
+
+OpenLayers 2.12 API doc
+-----------------------
+
+OpenLayers have stopped supporting OpenLayers 2.
+
+The API docs is only accessible using the Web Archive:
+https://web.archive.org/web/20160215075209/http://dev.openlayers.org/apidocs/files/OpenLayers-js.html

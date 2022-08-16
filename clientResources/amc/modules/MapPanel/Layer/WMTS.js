@@ -36,6 +36,9 @@ Atlas.Layer.WMTS = OpenLayers.Class(Atlas.Layer.WMS, {
 		// WMTS can't use cache
 		this.useCache = false;
 
+		// OpenLayers do not trigger the loading events with WMTS layers
+		this.supportLoadEvents = false;
+
 		if (mapPanel && mapPanel.dpi !== mapPanel.DEFAULT_DPI) {
 			// Set the initial layer DPI
 			// Clone jsonLayer
@@ -75,11 +78,11 @@ Atlas.Layer.WMTS = OpenLayers.Class(Atlas.Layer.WMS, {
 			}
 		}
 
-		// URL Example:
-		// http://localhost:8080/geoserver/gwc/service/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=nurc%3AArc_Sample&STYLE=&TILEMATRIXSET=EPSG%3A4326&TILEMATRIX=EPSG%3A4326%3A7&TILEROW=34&TILECOL=58&FORMAT=image%2Fjpeg
+		// OpenLayers code example for WMTS:
+		//   https://gis.stackexchange.com/questions/331836/wmts-from-geoserver-to-openlayers-is-unknown-tilematrix-x
 
-		// Fix suggestions:
-		// https://gis.stackexchange.com/questions/331836/wmts-from-geoserver-to-openlayers-is-unknown-tilematrix-x
+		// Example of a URL to a WMTS tile:
+		//   http://localhost:8080/geoserver/gwc/service/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=nurc%3AArc_Sample&STYLE=&TILEMATRIXSET=EPSG%3A4326&TILEMATRIX=EPSG%3A4326%3A7&TILEROW=34&TILECOL=58&FORMAT=image%2Fjpeg
 
 		// MatrixSet: get the one which has a SupportedCRS which matches the map projection
 		/*
@@ -90,17 +93,60 @@ Atlas.Layer.WMTS = OpenLayers.Class(Atlas.Layer.WMS, {
 		</TileMatrixSet>
 		*/
 
-		this.setLayer(new OpenLayers.Layer.WMTS({
-			name: this.getTitle(),
-			url: this.json['serviceUrl'],
-			layer: this.json['layerName'] || this.json['layerId'],
-			style: defaultStyle,
-			matrixSet: "EPSG:4326", // TODO Find out how to figure that out
-			matrix: "EPSG:4326:7", // TODO Find out how to figure that out (7 seems to be the zoom level)
-			wrapX: true
-		}));
+		if (!mapPanel) {
+			// Dummy layer, used for the description panel of the "Add layer" window
+			this.setLayer(new OpenLayers.Layer.WMTS({
+				name: this.getTitle(),
+				url: this.json['serviceUrl'],
+				layer: this.json['layerName'],
+				style: defaultStyle,
+				matrixSet: ""
+			}));
 
-		if (mapPanel) {
+		} else {
+			var mapProjection = mapPanel.map.getProjectionObject().getCode();
+			if (mapProjection === "EPSG:900913") {
+				mapProjection = "EPSG:3857";
+			}
+
+			var matrixSets = this.json['matrixSets'];
+			var matrixSetId = "";
+			var matrixIds = [];
+			if (matrixSets) {
+				// Find the appropriate matrixSet for the map projection
+				var matrixSet = matrixSets[mapProjection];
+				if (matrixSet) {
+					matrixSetId = matrixSet['id'];
+					var matrixMap = matrixSet['matrixMap'];
+					if (matrixMap) {
+						for (var scaleDenominator in matrixMap) {
+							if (matrixMap.hasOwnProperty(scaleDenominator)) {
+								//matrixIds[zoomLevel] = matrixMap[zoomLevel];
+								matrixIds.push({
+									'identifier': matrixMap[scaleDenominator],
+									'scaleDenominator': scaleDenominator
+								});
+							}
+						}
+					}
+				}
+			}
+
+			this.setLayer(new OpenLayers.Layer.WMTS({
+				'name': this.getTitle(),
+				'url': this.json['serviceUrl'],
+				'layer': this.json['layerName'],
+				'style': defaultStyle,
+				'format': 'image/png',
+				'matrixSet': matrixSetId,
+				'matrixIds': matrixIds,
+				'isBaseLayer': false,
+				'wrapX': true,
+				'tileFullExtent': this.getExtent(this.json, mapPanel)
+			}));
+
+			// https://github.com/openlayers/ol2/blob/master/notes/2.12.md
+
 			var that = this;
 			mapPanel.ol_on("dpiChange", function(evt) {
 				that._dpiChange(evt.dpi);

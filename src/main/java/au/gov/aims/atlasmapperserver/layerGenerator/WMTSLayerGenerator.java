@@ -181,6 +181,7 @@ public class WMTSLayerGenerator extends AbstractWMSLayerGenerator<WMTSLayerConfi
      *
      * Matrices in WMTS capabilities document:
      *   <Capabilities>
+     *     ...
      *     <Contents>
      *       <Layer>
      *         ...
@@ -218,22 +219,26 @@ public class WMTSLayerGenerator extends AbstractWMSLayerGenerator<WMTSLayerConfi
      *         <TileMatrix>
      *           <ows:Identifier>firstMatrixSetId:0</ows:Identifier>
      *           <ows:SupportedCRS>EPSG:3857</ows:SupportedCRS>
+     *           <ScaleDenominator>7.951392199519542E8</ScaleDenominator>
      *           ...
      *         </TileMatrix>
      *         <TileMatrix>
      *           <ows:Identifier>firstMatrixSetId:1</ows:Identifier>
      *           <ows:SupportedCRS>EPSG:3857</ows:SupportedCRS>
+     *           <ScaleDenominator>3.975696099759771E8</ScaleDenominator>
      *           ...
      *         </TileMatrix>
      *         ...
      *         <TileMatrix>
      *           <ows:Identifier>secondMatrixSetId:0</ows:Identifier>
      *           <ows:SupportedCRS>EPSG:4326</ows:SupportedCRS>
+     *           <ScaleDenominator>7.951392199519542E8</ScaleDenominator>
      *           ...
      *         </TileMatrix>
      *         <TileMatrix>
      *           <ows:Identifier>secondMatrixSetId:1</ows:Identifier>
      *           <ows:SupportedCRS>EPSG:4326</ows:SupportedCRS>
+     *           <ScaleDenominator>3.975696099759771E8</ScaleDenominator>
      *           ...
      *         </TileMatrix>
      *         ...
@@ -246,16 +251,16 @@ public class WMTSLayerGenerator extends AbstractWMSLayerGenerator<WMTSLayerConfi
      *     "EPSG:3857": {
      *       "id": "firstMatrixSetId",
      *       "matrixMap": {
-     *         0: "firstMatrixSetId:0",
-     *         1: "firstMatrixSetId:1",
+     *         7.951392199519542E8: "firstMatrixSetId:0",
+     *         3.975696099759771E8: "firstMatrixSetId:1",
      *         ...
      *       }
      *     },
      *     "EPSG:4326": {
      *       "id": "secondMatrixSetId",
      *       "matrixMap": {
-     *         0: "secondMatrixSetId:0",
-     *         1: "secondMatrixSetId:1",
+     *         7.951392199519542E8: "secondMatrixSetId:0",
+     *         3.975696099759771E8: "secondMatrixSetId:1",
      *         ...
      *       }
      *     }
@@ -286,18 +291,10 @@ public class WMTSLayerGenerator extends AbstractWMSLayerGenerator<WMTSLayerConfi
                     if (tileMatrixList != null && !tileMatrixList.isEmpty()) {
                         WMTSLayerConfig.MatrixSet configMatrixSet = new WMTSLayerConfig.MatrixSet(matrixSetId);
                         for (TileMatrix tileMatrix : tileMatrixList) {
-                            // The matrixId is composed of the matrixSetId and the zoom level (GeoServer)
-                            // matrixId = matrixSetId:zoomLevel
-                            //     - EPSG:4326:4
-                            //     - WebMercatorQuad:8
-                            // Sometimes, it's only the zoom level (that seems to be the standard judging on how OpenLayers handles it)
-                            //     - 4
-                            //     - 8
                             String matrixId = tileMatrix.getIdentifier();
-                            String zoomLevelStr = matrixId.substring(matrixId.lastIndexOf(":") + 1);
-                            int zoomLevel = Integer.parseInt(zoomLevelStr);
+                            double scaleDenominator = tileMatrix.getDenominator();
 
-                            configMatrixSet.addMatrix(zoomLevel, matrixId);
+                            configMatrixSet.addMatrix(scaleDenominator, matrixId);
                         }
                         layerConfig.addMatrixSet(crs, configMatrixSet);
                     }

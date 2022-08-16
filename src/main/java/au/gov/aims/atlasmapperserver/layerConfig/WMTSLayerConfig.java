@@ -66,7 +66,7 @@ public class WMTSLayerConfig extends WMSLayerConfig {
                 MatrixSet matrixSet = matrixSetEntry.getValue();
                 matrixSetsStr += "			id=" + matrixSet.getId() + "," + "\n";
                 matrixSetsStr += "			matrices={" + "\n";
-                for (Map.Entry<Integer, String> matrixMapEntry : matrixSet.getMatrixMap().entrySet()) {
+                for (Map.Entry<Double, String> matrixMapEntry : matrixSet.getMatrixMap().entrySet()) {
                     matrixSetsStr += "				" + matrixMapEntry.getKey() + "=" + matrixMapEntry.getValue() + "\n";
                 }
                 matrixSetsStr += "			}" + "\n";
@@ -102,22 +102,23 @@ public class WMTSLayerConfig extends WMSLayerConfig {
         private final String id;
 
         @ConfigField
-        private final Map<Integer, String> matrixMap;
+        // Key = scaleDenominator
+        private final Map<Double, String> matrixMap;
 
         public MatrixSet(String id) {
             this.id = id;
-            this.matrixMap = new HashMap<Integer, String>();
+            this.matrixMap = new HashMap<Double, String>();
         }
 
-        public void addMatrix(int zoomLevel, String matrixId) {
-            this.matrixMap.put(zoomLevel, matrixId);
+        public void addMatrix(double scaleDenominator, String matrixId) {
+            this.matrixMap.put(scaleDenominator, matrixId);
         }
 
         public String getId() {
             return this.id;
         }
 
-        public Map<Integer, String> getMatrixMap() {
+        public Map<Double, String> getMatrixMap() {
             return this.matrixMap;
         }
     }

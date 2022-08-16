@@ -535,8 +535,22 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 	computeExtent: function() {
 		var bounds = null;
 		if (this.layer && this.layer.atlasLayer && this.layer.atlasLayer.json && this.layer.atlasLayer.json['layerBoundingBox']) {
+			bounds = this.getExtent(this.layer.atlasLayer.json, this.mapPanel);
+		}
+
+		if (bounds == null && typeof(this.layer.getDataExtent) === 'function') {
+			// getDataExtent() return already reprojected bounds
+			bounds = this.layer.getDataExtent();
+		}
+
+		return bounds;
+	},
+
+	getExtent: function(json, mapPanel) {
+		var bounds = null;
+		if (json && json['layerBoundingBox']) {
 			// Bounds order in JSon: left, bottom, right, top
-			var boundsArray = this.layer.atlasLayer.json['layerBoundingBox'];
+			var boundsArray = json['layerBoundingBox'];
 
 			// Bounds order as requested by OpenLayers: left, bottom, right, top
 			// NOTE: Re-projection can not work properly if the top or bottom overpass 85
@@ -547,14 +561,9 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 				(boundsArray[3] < -85 ? -85 : (boundsArray[3] > 85 ? 85 : boundsArray[3]))
 			);
 
-			if (bounds != null && this.mapPanel != null) {
-				bounds = bounds.transform(this.mapPanel.defaultLonLatProjection, this.mapPanel.map.getProjectionObject());
+			if (bounds != null && mapPanel != null) {
+				bounds = bounds.transform(mapPanel.defaultLonLatProjection, mapPanel.map.getProjectionObject());
 			}
-		}
-
-		if (bounds == null && typeof(this.layer.getDataExtent) === 'function') {
-			// getDataExtent() return already reprojected bounds
-			bounds = this.layer.getDataExtent();
 		}
 
 		return bounds;
