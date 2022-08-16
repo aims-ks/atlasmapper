@@ -25,8 +25,10 @@ import au.gov.aims.atlasmapperserver.ConfigManager;
 import au.gov.aims.atlasmapperserver.Utils;
 import au.gov.aims.atlasmapperserver.annotation.ConfigField;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class WMTSLayerConfig extends WMSLayerConfig {
@@ -35,9 +37,16 @@ public class WMTSLayerConfig extends WMSLayerConfig {
     // Key = CRS. Example: "EPSG:4326"
     public Map<String, MatrixSet> matrixSets;
 
+    @ConfigField
+    public List<String> formats;
+
+    @ConfigField
+    public String preferredFormat;
+
     public WMTSLayerConfig(ConfigManager configManager) {
         super(configManager);
         this.matrixSets = new HashMap<String, MatrixSet>();
+        this.formats = new ArrayList<String>();
     }
 
     public void addMatrixSet(String epsgCode, String matrixSetId, int zoomLevel, String matrixId) {
@@ -54,6 +63,25 @@ public class WMTSLayerConfig extends WMSLayerConfig {
 
     public Map<String, MatrixSet> getMatrixSets() {
         return this.matrixSets;
+    }
+
+    public void addFormat(String format) {
+        this.formats.add(format);
+    }
+    public void addAllFormats(List<String> formats) {
+        this.formats.addAll(formats);
+    }
+
+    public List<String> getFormats() {
+        return formats;
+    }
+
+    public String getPreferredFormat() {
+        return preferredFormat;
+    }
+
+    public void setPreferredFormat(String preferredFormat) {
+        this.preferredFormat = preferredFormat;
     }
 
     @Override

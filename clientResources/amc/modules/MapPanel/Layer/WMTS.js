@@ -82,16 +82,7 @@ Atlas.Layer.WMTS = OpenLayers.Class(Atlas.Layer.WMS, {
 		//   https://gis.stackexchange.com/questions/331836/wmts-from-geoserver-to-openlayers-is-unknown-tilematrix-x
 
 		// Example of a URL to a WMTS tile:
-		//   http://localhost:8080/geoserver/gwc/service/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=nurc%3AArc_Sample&STYLE=&TILEMATRIXSET=EPSG%3A4326&TILEMATRIX=EPSG%3A4326%3A7&TILEROW=34&TILECOL=58&FORMAT=image%2Fjpeg
-
-		// MatrixSet: get the one which has a SupportedCRS which matches the map projection
-		/*
-		<TileMatrixSet>
-			<ows:Identifier>WebMercatorQuad</ows:Identifier>
-			<ows:SupportedCRS>EPSG:3857</ows:SupportedCRS>
-			<TileMatrix>...</TileMatrix>
-		</TileMatrixSet>
-		*/
+		//   http://localhost:8080/geoserver/gwc/service/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=nurc%3AArc_Sample&STYLE=&TILEMATRIXSET=EPSG%3A4326&TILEMATRIX=EPSG%3A4326%3A7&TILEROW=34&TILECOL=58&FORMAT=image%2Fpng
 
 		if (!mapPanel) {
 			// Dummy layer, used for the description panel of the "Add layer" window
@@ -137,7 +128,7 @@ Atlas.Layer.WMTS = OpenLayers.Class(Atlas.Layer.WMS, {
 				'url': this.json['serviceUrl'],
 				'layer': this.json['layerName'],
 				'style': defaultStyle,
-				'format': 'image/png',
+				'format': this.json['preferredFormat'],
 				'matrixSet': matrixSetId,
 				'matrixIds': matrixIds,
 				'isBaseLayer': false,

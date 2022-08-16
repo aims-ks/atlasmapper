@@ -164,6 +164,7 @@ public class WMTSLayerGenerator extends AbstractWMSLayerGenerator<WMTSLayerConfi
                 WMTSLayerConfig layerConfig = this.layerToLayerConfig(logger, urlCache, layer, null, dataSourceClone, forceMestDownload);
                 if (layerConfig != null) {
                     this.addMatrices(layerConfig, layer, matrixSetMap);
+                    this.addFormats(layerConfig, layer);
                     layerConfigs.put(layerConfig.getLayerId(), layerConfig);
                 }
             }
@@ -300,6 +301,32 @@ public class WMTSLayerGenerator extends AbstractWMSLayerGenerator<WMTSLayerConfi
                     }
                 }
             }
+        }
+    }
+
+    private void addFormats(WMTSLayerConfig layerConfig, WMTSLayer layer) {
+        List<String> formats = layer.getFormats();
+        if (formats != null && !formats.isEmpty()) {
+            layerConfig.addAllFormats(formats);
+
+            // Determine the best preferred format
+            String preferredFormat = null;
+            for (String format : formats) {
+                // First choice
+                if ("image/png".equals(format)) {
+                    preferredFormat = format;
+                    break;
+                }
+                // If PNG is not supported, use JPG
+                if ("image/jpeg".equals(format)) {
+                    preferredFormat = format;
+                    break;
+                }
+            }
+            if (preferredFormat == null) {
+                preferredFormat = formats.get(0);
+            }
+            layerConfig.setPreferredFormat(preferredFormat);
         }
     }
 }
