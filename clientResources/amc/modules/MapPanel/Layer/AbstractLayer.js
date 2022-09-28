@@ -535,7 +535,7 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 	computeExtent: function() {
 		var bounds = null;
 		if (this.layer && this.layer.atlasLayer && this.layer.atlasLayer.json && this.layer.atlasLayer.json['layerBoundingBox']) {
-			bounds = this.getExtent(this.layer.atlasLayer.json, this.mapPanel);
+			bounds = this.reprojectExtent(this.layer.atlasLayer.json, this.mapPanel);
 		}
 
 		if (bounds == null && typeof(this.layer.getDataExtent) === 'function') {
@@ -546,7 +546,7 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 		return bounds;
 	},
 
-	getExtent: function(json, mapPanel) {
+	reprojectExtent: function(json, mapPanel) {
 		var bounds = null;
 		if (json && json['layerBoundingBox']) {
 			// Bounds order in JSon: left, bottom, right, top
@@ -554,7 +554,7 @@ Atlas.Layer.AbstractLayer = OpenLayers.Class({
 
 			// Bounds order as requested by OpenLayers: left, bottom, right, top
 			// NOTE: Re-projection can not work properly if the top or bottom overpass 85
-			var bounds = new OpenLayers.Bounds(
+			bounds = new OpenLayers.Bounds(
 				(boundsArray[0] < -180 ? -180 : (boundsArray[0] > 180 ? 180 : boundsArray[0])),
 				(boundsArray[1] < -85 ? -85 : (boundsArray[1] > 85 ? 85 : boundsArray[1])),
 				(boundsArray[2] < -180 ? -180 : (boundsArray[2] > 180 ? 180 : boundsArray[2])),

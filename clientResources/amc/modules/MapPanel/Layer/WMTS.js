@@ -133,7 +133,7 @@ Atlas.Layer.WMTS = OpenLayers.Class(Atlas.Layer.WMS, {
 				'matrixIds': matrixIds,
 				'isBaseLayer': false,
 				'wrapX': true,
-				'tileFullExtent': this.getExtent(this.json, mapPanel)
+				'tileFullExtent': this.reprojectExtent(this.json, mapPanel)
 			}));
 
 			// https://github.com/openlayers/ol2/blob/master/notes/2.12.md
