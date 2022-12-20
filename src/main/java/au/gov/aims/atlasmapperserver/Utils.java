@@ -112,19 +112,14 @@ public class Utils {
                     .put("maxResolution", 156543.033928)
                     .put("resolutions", new JSONArray("[156543.033928, 78271.5169639999, 39135.7584820001, 19567.8792409999, 9783.93962049996, 4891.96981024998, 2445.98490512499, 1222.99245256249, 611.49622628138, 305.748113140558, 152.874056570411, 76.4370282850732, 38.2185141425366, 19.1092570712683, 9.55462853563415, 4.77731426794937, 2.38865713397468, 1.19432856685505, 0.597164283559817, 0.298582141647617]")));
 
-            /*
-            // TODO Try with 3857
-            // OpenLayers is not able to do the re-projection of EPSG:3785.
-            SUPPORTED_PROJECTIONS.put("EPSG:3785", new JSONObject()
-                    .put("projectionName", "Mercator (EPSG:3785)")
+            SUPPORTED_PROJECTIONS.put("EPSG:3857", new JSONObject()
+                    .put("projectionName", "Pseudo-Mercator (EPSG:3857)")
                     .put("maxExtent", new JSONArray("[-20037508.342787, -20037508.342787, 20037508.342787, 20037508.342787]"))
                     .put("units", "m")
                     .put("numZoomLevels", 20)
                     .put("maxResolution", 156543.033928)
                     .put("resolutions", new JSONArray("[156543.033928, 78271.5169639999, 39135.7584820001, 19567.8792409999, 9783.93962049996, 4891.96981024998, 2445.98490512499, 1222.99245256249, 611.49622628138, 305.748113140558, 152.874056570411, 76.4370282850732, 38.2185141425366, 19.1092570712683, 9.55462853563415, 4.77731426794937, 2.38865713397468, 1.19432856685505, 0.597164283559817, 0.298582141647617]")));
-            */
 
-            // TODO Add more projections
         } catch (JSONException ex) {
             LOGGER.log(Level.SEVERE, "Can not create the JSON map of supported projections: {0}", Utils.getExceptionMessage(ex));
             LOGGER.log(Level.FINE, "Stack trace:", ex);

@@ -62,7 +62,7 @@ Atlas.Layer.THREDDS = OpenLayers.Class(Atlas.Layer.WMS, {
 			}
 
 			if (projectionCode !== null && projectionCode === 'EPSG:900913') {
-				// THREDDS do not support EPSG:900913, but it support EPSG:3857 which is the same thing.
+				// THREDDS do not support EPSG:900913, but it supports EPSG:3857 which is the same thing.
 				layerOptions.projection = 'EPSG:3857';
 			}
 		}
