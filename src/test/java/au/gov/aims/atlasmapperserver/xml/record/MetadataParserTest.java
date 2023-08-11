@@ -62,9 +62,14 @@ public class MetadataParserTest {
             Assert.assertNotNull(String.format("Can not find resource file: %s", xmlFilepath), url);
 
             MetadataParser.MetadataSchema actualSchema = null;
+            MetadataParser parser = MetadataParser.getInstance();
             try(InputStream inputStream = url.openStream()) {
-                MetadataParser parser = MetadataParser.getInstance();
-                actualSchema = parser.getMetadataSchema(inputStream);
+                actualSchema = parser.getXMLMetadataSchema(inputStream);
+            }
+            if (actualSchema == null) {
+                try(InputStream inputStream = url.openStream()) {
+                    actualSchema = parser.checkUnpublishedMetadataSchema(inputStream);
+                }
             }
 
             Assert.assertEquals(String.format("Wrong metadata schema found with resource file: %s", xmlFilepath),

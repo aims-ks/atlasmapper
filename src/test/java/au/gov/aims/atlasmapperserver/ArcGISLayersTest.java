@@ -31,6 +31,7 @@ import au.gov.aims.atlasmapperserver.thread.ThreadLogger;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.List;
 
 public class ArcGISLayersTest {
@@ -38,16 +39,17 @@ public class ArcGISLayersTest {
     // GBRMPA MapServer doesn't exists anymore...
     @Test
     @Ignore
-    public void testGetLayerConfigs() throws RevivableThreadInterruptedException {
+    public void testGetLayerConfigs() throws RevivableThreadInterruptedException, IOException {
         ThreadLogger logger = new ThreadLogger();
-        URLCache urlCache = new URLCache(null);
-
         ArcGISMapServerDataSourceConfig dataSourceConfig = new ArcGISMapServerDataSourceConfig(null);
         dataSourceConfig.setDataSourceId("gbrmpa");
         dataSourceConfig.setServiceUrl("http://www.gbrmpa.gov.au/spatial_services/gbrmpaBounds/MapServer");
 
         ArcGISMapServerLayerGenerator arcGISLayers = new ArcGISMapServerLayerGenerator();
-        LayerCatalog layerCatalogue = arcGISLayers.generateRawLayerCatalog(logger, urlCache, dataSourceConfig, false, false);
+        LayerCatalog layerCatalogue;
+        try (URLCache urlCache = new URLCache(null)) {
+            layerCatalogue = arcGISLayers.generateRawLayerCatalog(logger, urlCache, dataSourceConfig, false, false);
+        }
         List<AbstractLayerConfig> layers = layerCatalogue.getLayers();
 
         for (AbstractLayerConfig layer : layers) {

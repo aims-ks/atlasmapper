@@ -37,6 +37,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
@@ -49,7 +50,7 @@ import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class URLCache {
+public class URLCache implements Closeable {
     private static final Logger LOGGER = Logger.getLogger(URLCache.class.getName());
     protected static final long MAX_CACHED_FILE_SIZE = 50 * 1024 * 1024; // in Bytes
 
@@ -68,6 +69,11 @@ public class URLCache {
 
     public URLCache(ConfigManager configManager, String databaseName) {
         this.cacheDatabase = new CacheDatabase(configManager, databaseName);
+    }
+
+    @Override
+    public void close() throws IOException {
+        this.cacheDatabase.close();
     }
 
     public void startRun() {
@@ -97,14 +103,8 @@ public class URLCache {
     }
 
     public CacheEntry getCacheEntry(URL url) throws SQLException, IOException, ClassNotFoundException {
-        CacheEntry cacheEntry;
-
-        try {
-            this.cacheDatabase.openConnection();
-            cacheEntry = this.cacheDatabase.get(url);
-        } finally {
-            this.cacheDatabase.close();
-        }
+        this.cacheDatabase.openConnection();
+        CacheEntry cacheEntry = this.cacheDatabase.get(url);
 
         if (cacheEntry == null) {
             cacheEntry = new CacheEntry(url);
@@ -185,12 +185,8 @@ public class URLCache {
         if (this.isDownloadRequired(url, redownload, RequestMethod.GET)) {
             this.requestHttpDocument(cacheEntry);
         } else {
-            try {
-                this.cacheDatabase.openConnection();
-                this.cacheDatabase.loadDocument(cacheEntry);
-            } finally {
-                this.cacheDatabase.close();
-            }
+            this.cacheDatabase.openConnection();
+            this.cacheDatabase.loadDocument(cacheEntry);
         }
     }
 
@@ -206,17 +202,13 @@ public class URLCache {
         RevivableThread.checkForInterruption();
 
         if (cacheEntry != null) {
-            try {
-                this.cacheDatabase.openConnection();
+            this.cacheDatabase.openConnection();
 
-                cacheEntry.setValid(valid);
-                cacheEntry.setExpiryTimestamp(expiryTimestamp);
-                cacheEntry.setLastAccessTimestamp(CacheEntry.getCurrentTimestamp());
+            cacheEntry.setValid(valid);
+            cacheEntry.setExpiryTimestamp(expiryTimestamp);
+            cacheEntry.setLastAccessTimestamp(CacheEntry.getCurrentTimestamp());
 
-                this.cacheDatabase.save(cacheEntry);
-            } finally {
-                this.cacheDatabase.close();
-            }
+            this.cacheDatabase.save(cacheEntry);
         }
     }
 
@@ -233,12 +225,8 @@ public class URLCache {
         if (force || URLCache.lastExpiryCleanupTimestamp + URLCache.EXPIRY_CLEANUP_MINIMUM_DELAY < currentTimestamp) {
             URLCache.lastExpiryCleanupTimestamp = currentTimestamp;
 
-            try {
-                this.cacheDatabase.openConnection();
-                this.cacheDatabase.deleteExpired();
-            } finally {
-                this.cacheDatabase.close();
-            }
+            this.cacheDatabase.openConnection();
+            this.cacheDatabase.deleteExpired();
         }
     }
 
@@ -272,12 +260,8 @@ public class URLCache {
     private void cleanUp(String entityId, long expiryTimestamp)
             throws SQLException, IOException, ClassNotFoundException {
 
-        try {
-            this.cacheDatabase.openConnection();
-            this.cacheDatabase.cleanUp(entityId, expiryTimestamp);
-        } finally {
-            this.cacheDatabase.close();
-        }
+        this.cacheDatabase.openConnection();
+        this.cacheDatabase.cleanUp(entityId, expiryTimestamp);
     }
 
     private void requestHttpHead(CacheEntry cacheEntry) throws URISyntaxException, RevivableThreadInterruptedException, IOException {
@@ -424,7 +408,6 @@ public class URLCache {
             }
 
         } finally {
-            this.cacheDatabase.close();
             if (cacheEntry != null) {
                 cacheEntry.close();
             }

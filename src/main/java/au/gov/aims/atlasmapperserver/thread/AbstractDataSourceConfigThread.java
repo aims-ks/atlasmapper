@@ -72,9 +72,8 @@ public class AbstractDataSourceConfigThread extends AbstractConfigThread {
     @Override
     public void run() {
         ThreadLogger logger = this.getLogger();
-        URLCache urlcache = new URLCache(this.dataSourceConfig.getConfigManager());
 
-        try {
+        try (URLCache urlcache = new URLCache(this.dataSourceConfig.getConfigManager())) {
             // startDate: Used to log the elapse time
             urlcache.startRun();
             logger.log(Level.INFO, "Generating data source: " + this.dataSourceConfig.getDataSourceName());

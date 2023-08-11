@@ -670,8 +670,6 @@ public class ConfigManager {
             return;
         }
 
-        URLCache urlCache = new URLCache(this);
-
         MultiKeyHashMap<Integer, String, AbstractDataSourceConfig> configs = this.getDataSourceConfigs();
         JSONArray dataJSonArr = this.getPostedData(request);
         if (dataJSonArr != null) {
@@ -686,7 +684,7 @@ public class ConfigManager {
 
                     // Clear dataSource cache since it doesn't exist anymore
                     String dataSourceId = dataSourceConfig.getDataSourceId();
-                    try {
+                    try (URLCache urlCache = new URLCache(this)) {
                         urlCache.deleteEntity(dataSourceId);
                     } catch (Exception ex) {
                         LOGGER.log(Level.WARNING, String.format("Error occurred while deleting the datasource ID %s from the cache database: %s",

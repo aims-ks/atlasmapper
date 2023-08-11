@@ -65,10 +65,9 @@ public class ClientConfigThread extends AbstractConfigThread {
     @Override
     public void run() {
         ThreadLogger logger = this.getLogger();
-        // Currently only used to calculate the re-build time
-        URLCache urlcache = new URLCache(this.clientConfig.getConfigManager());
 
-        try {
+        // Currently only used to calculate the re-build time
+        try (URLCache urlcache = new URLCache(this.clientConfig.getConfigManager())) {
             urlcache.startRun();
             logger.log(Level.INFO, "Building client: " + this.clientConfig.getClientName());
 

@@ -355,15 +355,23 @@ public class MetadataParser {
 
         MetadataSchema schema = null;
         try(InputStream inputStream = new FileInputStream(metadataRecordFile)) {
-            schema = getMetadataSchema(inputStream);
+            schema = getXMLMetadataSchema(inputStream);
         } catch(Exception ex) {
             // Can't read the file
+        }
+
+        if (schema == null) {
+            try(InputStream inputStream = new FileInputStream(metadataRecordFile)) {
+                schema = checkUnpublishedMetadataSchema(inputStream);
+            } catch(Exception ex) {
+                // Can't read the file
+            }
         }
 
         return schema;
     }
 
-    protected MetadataSchema getMetadataSchema(InputStream inputStream) {
+    protected MetadataSchema getXMLMetadataSchema(InputStream inputStream) {
         XMLInputFactory inputFactory = XMLInputFactory.newInstance();
         XMLStreamReader streamReader = null;
 
@@ -388,10 +396,13 @@ public class MetadataParser {
             }
         }
 
-        if (schema == null) {
-            if (Utils.findInInputStream("Operation not allowed", inputStream)) {
-                schema = MetadataSchema.UNPUBLISHED;
-            }
+        return schema;
+    }
+
+    protected MetadataSchema checkUnpublishedMetadataSchema(InputStream inputStream) {
+        MetadataSchema schema = null;
+        if (Utils.findInInputStream("Operation not allowed", inputStream)) {
+            schema = MetadataSchema.UNPUBLISHED;
         }
 
         return schema;

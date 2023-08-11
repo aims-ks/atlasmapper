@@ -40,7 +40,6 @@
     String clientId = request.getParameter("client");
 
     ConfigManager configManager = ConfigHelper.getConfigManager(this.getServletConfig().getServletContext());
-    URLCache urlCache = new URLCache(configManager);
 
     int indent = (request.getParameter("indent") != null ? Integer.parseInt(request.getParameter("indent")) : 0);
     JSONObject jsonObj = new JSONObject();
@@ -58,7 +57,10 @@
         } else {
             if (Utils.isNotBlank(iso19115_19139url)) {
                 ThreadLogger logger = new ThreadLogger();
-                URLSaveState mapState = configManager.getMapStateForDataset(logger, urlCache, clientConfig, iso19115_19139url, false);
+                URLSaveState mapState;
+                try (URLCache urlCache = new URLCache(configManager)) {
+                    mapState = configManager.getMapStateForDataset(logger, urlCache, clientConfig, iso19115_19139url, false);
+                }
 
                 if (mapState == null) {
                     response.setStatus(HttpServletResponse.SC_BAD_REQUEST);

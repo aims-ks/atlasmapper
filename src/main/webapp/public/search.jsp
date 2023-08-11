@@ -92,7 +92,6 @@
 			(request.getParameter("limit") != null ? Integer.parseInt(request.getParameter("limit")) : 10));
 
 	ConfigManager configManager = ConfigHelper.getConfigManager(this.getServletConfig().getServletContext());
-	URLCache urlCache = new URLCache(configManager, "locationSearchDatabase");
 
 	int indent = (request.getParameter("indent") != null ? Integer.parseInt(request.getParameter("indent")) : 0);
 	JSONObject jsonObj = new JSONObject();
@@ -111,7 +110,7 @@
 			if (Utils.isBlank(searchTypeStr) || "LOCATION".equalsIgnoreCase(searchTypeStr)) {
 				JSONObject results = null;
 
-				try {
+				try (URLCache urlCache = new URLCache(configManager, "locationSearchDatabase")) {
 					String referer = request.getRequestURL().toString();
 					results = clientConfig.locationSearch(urlCache, query, referer, bounds, offset, qty);
 				} catch (Exception ex) {
