@@ -110,7 +110,9 @@
 			if (Utils.isBlank(searchTypeStr) || "LOCATION".equalsIgnoreCase(searchTypeStr)) {
 				JSONObject results = null;
 
-				try (URLCache urlCache = new URLCache(configManager, "locationSearchDatabase")) {
+				URLCache urlCache = null;
+				try {
+					urlCache = new URLCache(configManager, "locationSearchDatabase");
 					String referer = request.getRequestURL().toString();
 					results = clientConfig.locationSearch(urlCache, query, referer, bounds, offset, qty);
 				} catch (Exception ex) {
@@ -118,6 +120,10 @@
 					jsonObj.put("success", false);
 					jsonObj.put("errors", new JSONArray().put("Exception while performing the location search."));
 					ex.printStackTrace();
+				} finally {
+					if (urlCache != null) {
+						urlCache.close();
+					}
 				}
 
 				response.setStatus(HttpServletResponse.SC_OK);
