@@ -58,8 +58,15 @@
             if (Utils.isNotBlank(iso19115_19139url)) {
                 ThreadLogger logger = new ThreadLogger();
                 URLSaveState mapState;
-                try (URLCache urlCache = new URLCache(configManager)) {
+
+                URLCache urlCache = null;
+                try {
+                    urlCache = new URLCache(configManager);
                     mapState = configManager.getMapStateForDataset(logger, urlCache, clientConfig, iso19115_19139url, false);
+                } finally {
+                    if (urlCache != null) {
+                        urlCache.close();
+                    }
                 }
 
                 if (mapState == null) {
