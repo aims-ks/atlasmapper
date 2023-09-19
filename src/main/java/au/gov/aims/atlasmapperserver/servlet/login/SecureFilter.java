@@ -106,14 +106,14 @@ public class SecureFilter implements Filter {
 			if (this.expectJSON(request)) {
 				this.sendJSONTimeoutError(response);
 			} else {
-				this.sendRedirection(response);
+				LoginServlet.sendRedirectionToLoginPage(request, response);
 			}
 		} else if (!this.isServerStateValid()) {
 			LOGGER.log(Level.WARNING, "BLOCKED: The server state is not valid. Redirect to the login page.");
 			if (this.expectJSON(request)) {
 				this.sendJSONInvalidServerState(response);
 			} else {
-				this.sendRedirection(response);
+				LoginServlet.sendRedirectionToLoginPage(request, response);
 			}
 		} else {
 			LOGGER.log(Level.FINE, "ALLOWED: User [{0}] [{1}] is accessing the protected resource [{2}].", new Object[]{
@@ -198,9 +198,5 @@ public class SecureFilter implements Filter {
 				}
 			}
 		}
-	}
-
-	private void sendRedirection(HttpServletResponse response) throws IOException {
-		response.sendRedirect(LoginServlet.REDIRECT_PAGE);
 	}
 }

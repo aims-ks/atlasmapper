@@ -45,7 +45,7 @@ import org.json.JSONObject;
 public class LoginServlet extends HttpServlet {
 	private static final Logger LOGGER = Logger.getLogger(LoginServlet.class.getName());
 	private static final String LOGGED_USER_KEY = "logged.user";
-	protected static final String REDIRECT_PAGE = "../public/admin.jsp";
+	private static final String LOGIN_PAGE = "public/admin.jsp";
 
 	@Override
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -72,7 +72,7 @@ public class LoginServlet extends HttpServlet {
 		HttpSession session = request.getSession();
 		String actionStr = request.getParameter("action");
 		if ("logout".equalsIgnoreCase(actionStr)) {
-			this.logout(session, response);
+			this.logout(request, response);
 		} else if ("login".equalsIgnoreCase(actionStr)) {
 			String loginUsername = request.getParameter("loginUsername");
 			String loginPassword = request.getParameter("loginPassword");
@@ -94,7 +94,7 @@ public class LoginServlet extends HttpServlet {
 			this.setResponseContent(response, result.toString());
 		} else {
 			// Unknown action. Redirect to the home page.
-			response.sendRedirect(REDIRECT_PAGE);
+			LoginServlet.sendRedirectionToLoginPage(request, response);
 		}
 	}
 
@@ -156,7 +156,8 @@ public class LoginServlet extends HttpServlet {
 		return null;
 	}
 
-	private void logout(HttpSession session, HttpServletResponse response) {
+	private void logout(HttpServletRequest request, HttpServletResponse response) {
+		HttpSession session = request.getSession();
 		if (session == null) { return; }
 		String loginName = (String)session.getAttribute(LOGGED_USER_KEY);
 		session.removeAttribute(LOGGED_USER_KEY);
@@ -178,7 +179,7 @@ public class LoginServlet extends HttpServlet {
 		}
 
 		try {
-			response.sendRedirect(REDIRECT_PAGE);
+			LoginServlet.sendRedirectionToLoginPage(request, response);
 		} catch (IOException ex) {
 			LOGGER.log(Level.SEVERE, "Can not redirect the user after a logout!");
 		}
@@ -196,5 +197,40 @@ public class LoginServlet extends HttpServlet {
 			LOGGER.log(Level.FINE, "Stack trace: ", ex);
 		}
 		return user;
+	}
+
+	public static void sendRedirectionToLoginPage(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		// Deconstruct the URL found in the request.
+
+		// Scheme (aka protocol): http or https
+		String scheme = request.getScheme();
+
+		// Domain name. Example: domain.com
+		String serverName = request.getServerName();
+
+		// Port. Default ports are: 80 for http and 443 for https
+		int serverPort = request.getServerPort();
+
+		// Context path: the name of the war file.
+		// Default: "atlasmapper"
+		String contextPath = request.getContextPath();
+
+		// Determine if the URL uses the default port.
+		boolean defaultPort = false;
+		if ("http".equals(scheme) && serverPort == 80) {
+			defaultPort = true;
+		}
+		if ("https".equals(scheme) && serverPort == 443) {
+			defaultPort = true;
+		}
+
+		// Reconstruct the URL
+		String fullPath = scheme + "://" + serverName;
+		if (!defaultPort) {
+			fullPath += ":" + serverPort;
+		}
+		fullPath += contextPath + "/" + LoginServlet.LOGIN_PAGE;
+
+		response.sendRedirect(fullPath);
 	}
 }
