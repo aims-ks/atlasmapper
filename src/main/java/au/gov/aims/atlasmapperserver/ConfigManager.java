@@ -1459,12 +1459,10 @@ public class ConfigManager {
         clientWrapper.setMapMeasurementLineEnabled(clientConfig.isMapMeasurementLineEnabled());
         clientWrapper.setMapMeasurementAreaEnabled(clientConfig.isMapMeasurementAreaEnabled());
 
-        if (clientConfig.isSearchEnabled()) {
-            if (Utils.isNotBlank(clientConfig.getSearchServiceUrl())) {
-                clientWrapper.setSearchServiceUrl(clientConfig.getSearchServiceUrl().trim());
-            } else if (Utils.isNotBlank(this.defaultSearchServiceUrl)) {
-                clientWrapper.setSearchServiceUrl(this.defaultSearchServiceUrl.trim());
-            }
+        if (clientConfig.isSearchEnabled() && Utils.isNotBlank(clientConfig.getSearchServiceUrl())) {
+            clientWrapper.setSearchServiceUrl(clientConfig.getSearchServiceUrl().trim());
+        } else if (Utils.isNotBlank(this.defaultSearchServiceUrl)) {
+            clientWrapper.setSearchServiceUrl(this.defaultSearchServiceUrl.trim());
         }
 
         if (clientConfig.getVersion() != null) {
