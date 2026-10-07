@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
 
     container:
-      image: maven:3.6-alpine
+      image: maven:3.9.9-eclipse-temurin-8
 
     steps:
 
