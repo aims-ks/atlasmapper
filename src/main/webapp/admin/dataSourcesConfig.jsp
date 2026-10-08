@@ -25,6 +25,8 @@
 
 <%@page import="au.gov.aims.atlasmapperserver.Utils"%>
 <%@page import="java.util.List"%>
+<%@page import="java.util.Collection"%>
+<%@page import="au.gov.aims.atlasmapperserver.ClientConfig"%>
 <%@page import="java.util.logging.Level"%>
 <%@page import="java.util.logging.Logger"%>
 <%@page import="org.json.JSONArray"%>
@@ -294,6 +296,32 @@
         response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
         jsonObj.put("success", false);
         jsonObj.put("errors", new JSONArray().put("Missing parameter [action]."));
+    }
+
+    if (jsonObj.optBoolean("success") && jsonObj.opt("data") instanceof JSONArray) {
+        try {
+            Collection<ClientConfig> clientConfigs = configManager.getClientConfigs().values();
+            JSONArray dataSourceConfigs = jsonObj.getJSONArray("data");
+            for (int dataSourceIndex = 0; dataSourceIndex < dataSourceConfigs.length(); dataSourceIndex++) {
+                JSONObject dataSourceConfig = dataSourceConfigs.getJSONObject(dataSourceIndex);
+                JSONArray clients = new JSONArray();
+                for (ClientConfig clientConfig : clientConfigs) {
+                    if (clientConfig.hasDataSource(dataSourceConfig.getString("dataSourceId"))) {
+                        JSONObject client = new JSONObject();
+                        client.put("clientId", clientConfig.getClientId());
+                        client.put("clientName", clientConfig.getClientName());
+                        clients.put(client);
+                    }
+                }
+                dataSourceConfig.put("clients", clients);
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "An error occurred while retrieving clients using data sources", e);
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            jsonObj.put("success", false);
+            jsonObj.remove("data");
+            jsonObj.put("errors", new JSONArray().put("An error occurred while retrieving clients using data sources: " + Utils.getExceptionMessage(e) + "\nCheck your server logs."));
+        }
     }
 %>
 <%=jsonObj.toString() %>

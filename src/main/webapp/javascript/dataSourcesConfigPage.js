@@ -993,6 +993,51 @@ Ext.define('Writer.LayerServerConfigGrid', {
         return layerCount <= 0 ? '<span class="grid-error">0</span>' : '<span class="grid-success">' + layerCount + '</span>';
     },
 
+    renderClientCount: function(clientCount) {
+        return '<a href="#" class="data-source-clients" title="View clients">' + clientCount + '</a>';
+    },
+
+    onClientsClick: function(view, cell, cellIndex, record, row, rowIndex, event) {
+        if (event.getTarget('a.data-source-clients')) {
+            event.stopEvent();
+            this.showClients(record);
+        }
+    },
+
+    showClients: function(record) {
+        Ext.create('Ext.window.Window', {
+            title: 'Clients - ' + Ext.String.htmlEncode(record.get('dataSourceName')),
+            width: 500,
+            height: 300,
+            modal: true,
+            constrain: true,
+            layout: 'fit',
+            items: [{
+                xtype: 'grid',
+                store: Ext.create('Ext.data.Store', {
+                    fields: ['clientId', 'clientName'],
+                    data: record.get('clients') || [],
+                    sorters: {property: 'clientId', direction: 'ASC'}
+                }),
+                viewConfig: {
+                    emptyText: 'No clients use this data source.',
+                    deferEmptyText: false
+                },
+                columns: [{
+                    header: 'ID',
+                    dataIndex: 'clientId',
+                    width: 150,
+                    renderer: Ext.String.htmlEncode
+                }, {
+                    header: 'Name',
+                    dataIndex: 'clientName',
+                    flex: 1,
+                    renderer: Ext.String.htmlEncode
+                }]
+            }]
+        }).show();
+    },
+
     initComponent: function(){
         var that = this;
 
@@ -1047,6 +1092,12 @@ Ext.define('Writer.LayerServerConfigGrid', {
                     sortable: true,
                     dataIndex: 'layerCount',
                     renderer: that.renderLayerCount
+                }, {
+                    header: 'Clients',
+                    width: 70,
+                    sortable: true,
+                    dataIndex: 'clientCount',
+                    renderer: that.renderClientCount
                 }, {
                     header: 'Last build',
                     width: 130,
@@ -1139,6 +1190,7 @@ Ext.define('Writer.LayerServerConfigGrid', {
         });
         this.callParent();
         this.getSelectionModel().on('selectionchange', this.onSelectChange, this);
+        this.getView().on('cellclick', this.onClientsClick, this);
     },
 
     handleRebuild: function(rec) {
@@ -1690,6 +1742,10 @@ Ext.define('Writer.LayerServerConfig', {
         {name: 'layerType', type: 'string'},
         {name: 'lastHarvested', type: 'string'},
         {name: 'layerCount', type: 'int'},
+        {name: 'clients', persist: false},
+        {name: 'clientCount', type: 'int', persist: false, convert: function(value, record) {
+            return (record.get('clients') || []).length;
+        }},
         'treeRoot',
         'status',
         {name: 'modified', type: 'boolean', defaultValue: false},
